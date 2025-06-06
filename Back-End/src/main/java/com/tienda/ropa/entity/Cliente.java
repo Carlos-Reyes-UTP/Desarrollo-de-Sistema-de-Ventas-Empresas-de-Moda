@@ -1,6 +1,7 @@
 package com.tienda.ropa.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
@@ -9,13 +10,16 @@ public class Cliente {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idCliente;
-    
+
+    @NotNull
     @Column(name = "nombre_cliente")
     private String nombreCliente;
-    
+
+    @NotNull
     @Column(name = "tipo_cliente")
     private String tipoCliente;
-    
+
+    @NotNull
     @Column(name = "numero_documento", unique = true)
     private String numeroDocumento;
 

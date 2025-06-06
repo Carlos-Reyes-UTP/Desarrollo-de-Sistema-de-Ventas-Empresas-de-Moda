@@ -2,6 +2,7 @@ package com.tienda.ropa.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 @Data
@@ -19,7 +20,10 @@ public class DetalleVenta {
     @JoinColumn(name = "id_producto", nullable = false)
     private Producto producto;
 
+    @NotNull
     private int cantidad;
+
+    @NotNull
     private BigDecimal precioUnitario;
 
     private BigDecimal Subtotal;

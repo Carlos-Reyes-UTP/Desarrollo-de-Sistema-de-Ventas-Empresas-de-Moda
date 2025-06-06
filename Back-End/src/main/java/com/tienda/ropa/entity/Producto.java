@@ -1,23 +1,42 @@
 package com.tienda.ropa.entity;
 
-import jakarta.persistence.*;
-import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 @Data
 @Entity
 public class Producto {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_producto")
     private Long idProducto;
 
-    @Column(unique = true)
+    @NotNull
+    @Column(name = "codigo_identificacion", unique = true, nullable = false)
     private String codigoIdentificacion;
 
+    @NotNull
+    @Column(name = "nombre", nullable = false)
     private String nombre;
 
+    @NotNull
+    @Column(name = "sexo", nullable = false)
     private String sexo;
 
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "id_categoria", nullable = false)
     private Categoria categoria;
@@ -26,26 +45,38 @@ public class Producto {
     @JoinColumn(name = "id_categoria_padre")
     private Categoria categoriaPadre;
 
-    private String talla;
-
+    @NotNull
+    @Column(name = "marca", nullable = false)
     private String marca;
 
+    @NotNull
+    @Column(name = "color", nullable = false)
     private String color;
 
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "id_proveedor", nullable = false)
     private Proveedores proveedor;
 
+    @NotNull
+    @Column(name = "cantidad", nullable = false)
     private int cantidad;
 
-    @Column(nullable = false)
+    @NotNull
+    @Column(name = "precio_unitario", nullable = false)
     private BigDecimal precioUnitario;
 
+    @Column(name = "precio_cuarto")
     private BigDecimal precioCuarto;
 
+    @Column(name = "precio_media_docena")
     private BigDecimal precioMediaDocena;
 
+    @Column(name = "precio_docena")
     private BigDecimal precioDocena;
+
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<Talla> tallas;
 
     public Long getIdProducto() {
         return idProducto;
@@ -128,14 +159,6 @@ public class Producto {
     }
 
     // Getters y setters para los nuevos campos
-    public String getTalla() {
-        return talla;
-    }
-
-    public void setTalla(String talla) {
-        this.talla = talla;
-    }
-
     public String getMarca() {
         return marca;
     }
@@ -166,5 +189,13 @@ public class Producto {
 
     public void setCategoriaPadre(Categoria categoriaPadre) {
         this.categoriaPadre = categoriaPadre;
+    }
+
+    public List<Talla> getTallas() {
+        return tallas;
+    }
+
+    public void setTallas(List<Talla> tallas) {
+        this.tallas = tallas;
     }
 }

@@ -1,54 +1,68 @@
 package com.tienda.ropa.entity;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 @Data
 @Entity
 public class Venta {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_venta")
     private Long idVenta;
 
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "id_usuario", nullable = false)
-    @NotNull
     private Usuario usuario;
 
+    @NotNull
     @ManyToOne
     @JoinColumn(name = "id_cliente", nullable = false)
-    @NotNull
     private Cliente cliente;
 
-    @ManyToOne
-    @JoinColumn(name = "id_metodo_pago", nullable = false)
     @NotNull
-    private MetodoPago metodoPago;
+    @Column(name = "metodo_pago", nullable = false)
+    private String metodoPago;
 
+    @NotNull
+    @Column(name = "tipo_comprobante", nullable = false)
     private String tipoComprobante;
 
     @NotNull
+    @Column(name = "fecha_venta", nullable = false)
     private LocalDate fechaVenta;
 
     @NotNull
-    private BigDecimal TotalVentas;
+    @Column(name = "total_ventas", nullable = false)
+    private BigDecimal totalVentas;
 
     @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @JsonManagedReference
     private List<DetalleVenta> detalles;
 
     public BigDecimal getTotalVentas() {
-        return TotalVentas;
+        return totalVentas;
     }
 
     public void setTotalVentas(BigDecimal totalVentas) {
-        this.TotalVentas = totalVentas;
+        this.totalVentas = totalVentas;
     }
 
     public Long getIdVenta() {
@@ -75,11 +89,11 @@ public class Venta {
         this.cliente = cliente;
     }
 
-    public MetodoPago getMetodoPago() {
+    public String getMetodoPago() {
         return metodoPago;
     }
 
-    public void setMetodoPago(MetodoPago metodoPago) {
+    public void setMetodoPago(String metodoPago) {
         this.metodoPago = metodoPago;
     }
 
