@@ -1,0 +1,790 @@
+import { useState, useEffect } from 'react';
+import {
+  Users,
+  Search,
+  Edit,
+  Trash2,
+  UserPlus,
+  AlertCircle,
+  Loader2,
+  CheckCircle,
+  X,
+  RefreshCw,
+  UserCheck,
+  UserX,
+  Filter,
+  ChevronDown,
+  ArrowUpDown,
+  Eye,
+  EyeOff
+} from 'lucide-react';
+import { ServicioUsuarios } from '../services/UsuarioServices';
+import type { Usuario, Rol } from '../interfaces/Usuario';
+import type { RolNombre } from '../interfaces/enums';
+
+const GestionUsuarios = () => {
+  // Estados para la lista de usuarios
+  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
+  const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [busqueda, setBusqueda] = useState('');
+  const [filtroRol, setFiltroRol] = useState<RolNombre | 'TODOS'>('TODOS');
+  const [filtroActivo, setFiltroActivo] = useState<boolean | 'TODOS'>('TODOS');
+  const [ordenarPor, setOrdenarPor] = useState<string>('usuario');
+  const [ordenAscendente, setOrdenAscendente] = useState(true);
+  
+  // Estados para el modal de usuario
+  const [mostrarModal, setMostrarModal] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState(false);
+  const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [formUsuario, setFormUsuario] = useState<{
+    id?: number;
+    usuario: string;
+    password: string;
+    confirmPassword: string;
+    activo: boolean;
+    roles: RolNombre[];
+  }>({
+    usuario: '',
+    password: '',
+    confirmPassword: '',
+    activo: true,
+    roles: ['ROLE_CAJERO']
+  });
+  
+  // Estado para mensajes de acción
+  const [mensajeAccion, setMensajeAccion] = useState<{
+    texto: string;
+    tipo: 'success' | 'error';
+    visible: boolean;
+  }>({
+    texto: '',
+    tipo: 'success',
+    visible: false
+  });
+  
+  // Cargar usuarios al montar el componente
+  useEffect(() => {
+    cargarUsuarios();
+  }, []);
+  
+  // Aplicar filtros cuando cambian
+  useEffect(() => {
+    aplicarFiltros();
+  }, [busqueda, filtroRol, filtroActivo, usuarios, ordenarPor, ordenAscendente]);
+  // Función para cargar usuarios desde el servicio
+  const cargarUsuarios = async () => {
+    setCargando(true);
+    setError(null);
+    console.log('Cargando usuarios con roles...');
+    
+    try {
+      // Usar el nuevo endpoint que incluye roles
+      const data = await ServicioUsuarios.obtenerUsuariosConRoles();
+      
+      // Log para depuración
+      data.forEach(user => {
+        console.log(`Usuario: ${user.usuario}, Roles:`, user.roles);
+      });
+      
+      // Asegurar que los roles estén correctamente formateados
+      const usuariosConRolesNormalizados = data.map(user => {
+        // Si el usuario no tiene roles, crear un array vacío
+        if (!user.roles) {
+          user.roles = [];
+        }
+        // Si los roles no están en el formato esperado, normalizarlos
+        if (user.roles.length > 0 && typeof user.roles[0] === 'string') {
+          user.roles = (user.roles as unknown as string[]).map(rol => ({ nombreRol: rol as RolNombre }));
+        }
+        return user;
+      });
+      
+      setUsuarios(usuariosConRolesNormalizados);
+      setUsuariosFiltrados(usuariosConRolesNormalizados);
+    } catch (err: any) {
+      console.error('Error al cargar usuarios:', err);
+      setError('No se pudieron cargar los usuarios. ' + (err.message || ''));
+    } finally {
+      setCargando(false);
+    }
+  };
+  
+  // Función para aplicar filtros y ordenamiento
+  const aplicarFiltros = () => {
+    let resultado = [...usuarios];
+    
+    // Aplicar filtro de búsqueda
+    if (busqueda) {
+      const terminoBusqueda = busqueda.toLowerCase();
+      resultado = resultado.filter(user => 
+        user.usuario.toLowerCase().includes(terminoBusqueda)
+      );
+    }
+    
+    // Aplicar filtro de rol
+    if (filtroRol !== 'TODOS') {
+      resultado = resultado.filter(user => 
+        user.roles && user.roles.some(rol => rol.nombreRol === filtroRol)
+      );
+    }
+    
+    // Aplicar filtro de estado (activo/inactivo)
+    if (filtroActivo !== 'TODOS') {
+      resultado = resultado.filter(user => user.activo === filtroActivo);
+    }
+    
+    // Aplicar ordenamiento
+    resultado.sort((a, b) => {
+      let valorA: any;
+      let valorB: any;
+      
+      switch (ordenarPor) {
+        case 'usuario':
+          valorA = a.usuario;
+          valorB = b.usuario;
+          break;
+        case 'activo':
+          valorA = a.activo ? 1 : 0;
+          valorB = b.activo ? 1 : 0;
+          break;
+        case 'rol':
+          valorA = a.roles && a.roles.length > 0 ? a.roles[0].nombreRol : '';
+          valorB = b.roles && b.roles.length > 0 ? b.roles[0].nombreRol : '';
+          break;
+        default:
+          valorA = a.usuario;
+          valorB = b.usuario;
+      }
+      
+      if (valorA < valorB) return ordenAscendente ? -1 : 1;
+      if (valorA > valorB) return ordenAscendente ? 1 : -1;
+      return 0;
+    });
+    
+    setUsuariosFiltrados(resultado);
+  };
+  
+  // Función para abrir modal de creación
+  const abrirModalCreacion = () => {
+    setFormUsuario({
+      usuario: '',
+      password: '',
+      confirmPassword: '',
+      activo: true,
+      roles: ['ROLE_CAJERO'] // Por defecto, nuevo usuario será cajero
+    });
+    setModoEdicion(false);
+    setUsuarioEditando(null);
+    setMostrarModal(true);
+  };
+  
+  // Función para abrir modal de edición
+  const abrirModalEdicion = (usuario: Usuario) => {
+    console.log('Editando usuario:', usuario);
+    
+    setFormUsuario({
+      id: usuario.id,
+      usuario: usuario.usuario,
+      password: '',
+      confirmPassword: '',
+      activo: usuario.activo || true,
+      // Si no tiene roles, usar un array vacío para evitar errores
+      roles: usuario.roles && usuario.roles.length > 0 
+        ? usuario.roles.map(rol => rol.nombreRol) 
+        : [] 
+    });
+    
+    setModoEdicion(true);
+    setUsuarioEditando(usuario);
+    setMostrarModal(true);
+  };
+  
+  // Manejar cambios en el formulario
+  const manejarCambioForm = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    
+    if (type === 'checkbox') {
+      const checked = (e.target as HTMLInputElement).checked;
+      setFormUsuario(prev => ({ ...prev, [name]: checked }));
+    } else if (name === 'roles') {
+      // Manejar cambio de select múltiple
+      const select = e.target as HTMLSelectElement;
+      const valores: RolNombre[] = Array.from(select.selectedOptions).map(
+        option => option.value as RolNombre
+      );
+      setFormUsuario(prev => ({ ...prev, roles: valores }));
+    } else {
+      setFormUsuario(prev => ({ ...prev, [name]: value }));
+    }
+  };
+  
+  // Función para manejar toggle de rol
+  const toggleRol = (rol: RolNombre) => {
+    setFormUsuario(prev => {
+      if (prev.roles.includes(rol)) {
+        // Si ya tiene el rol, quitarlo (a menos que sea el último)
+        return prev.roles.length > 1
+          ? { ...prev, roles: prev.roles.filter(r => r !== rol) }
+          : prev;
+      } else {
+        // Si no tiene el rol, agregarlo
+        return { ...prev, roles: [...prev.roles, rol] };
+      }
+    });
+  };
+  
+  // Función para guardar usuario (crear o actualizar)
+  const guardarUsuario = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validaciones básicas
+    if (!formUsuario.usuario.trim()) {
+      mostrarMensaje('El nombre de usuario es obligatorio', 'error');
+      return;
+    }
+    
+    if (!modoEdicion && formUsuario.password !== formUsuario.confirmPassword) {
+      mostrarMensaje('Las contraseñas no coinciden', 'error');
+      return;
+    }
+    
+    if (!modoEdicion && !formUsuario.password) {
+      mostrarMensaje('La contraseña es obligatoria para nuevos usuarios', 'error');
+      return;
+    }
+    
+    // Validar que se haya seleccionado al menos un rol
+    if (formUsuario.roles.length === 0) {
+      mostrarMensaje('Debe seleccionar al menos un rol', 'error');
+      return;
+    }
+    
+    setCargando(true);
+    
+    try {
+      if (modoEdicion && formUsuario.id) {
+        // Actualizar usuario existente
+        await ServicioUsuarios.actualizar(formUsuario.id, {
+          id: formUsuario.id,
+          usuario: formUsuario.usuario,
+          password: formUsuario.password || undefined, // Solo enviar contraseña si se modificó
+          activo: formUsuario.activo,
+          roles: formUsuario.roles.map(rol => ({ nombreRol: rol }))
+        });
+        
+        mostrarMensaje(`Usuario ${formUsuario.usuario} actualizado correctamente`, 'success');
+      } else {
+        // Crear nuevo usuario
+        await ServicioUsuarios.crear({
+          usuario: formUsuario.usuario,
+          clave: formUsuario.password,
+          rol: formUsuario.roles[0] // El backend espera un solo rol como string
+        });
+        
+        mostrarMensaje(`Usuario ${formUsuario.usuario} creado correctamente`, 'success');
+      }
+      
+      // Recargar lista de usuarios
+      await cargarUsuarios();
+      setMostrarModal(false);
+      
+    } catch (err: any) {
+      console.error('Error al guardar usuario:', err);
+      mostrarMensaje(
+        err.response?.data?.message || 'Error al guardar usuario', 
+        'error'
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
+  
+  // Función para cambiar estado de usuario (activar/desactivar)
+  const cambiarEstadoUsuario = async (id: number, activo: boolean) => {
+    setCargando(true);
+    
+    try {
+      if (activo) {
+        await ServicioUsuarios.deshabilitar(id);
+        mostrarMensaje('Usuario deshabilitado correctamente', 'success');
+      } else {
+        await ServicioUsuarios.habilitar(id);
+        mostrarMensaje('Usuario habilitado correctamente', 'success');
+      }
+      
+      // Actualizar lista de usuarios
+      await cargarUsuarios();
+      
+    } catch (err: any) {
+      console.error('Error al cambiar estado de usuario:', err);
+      mostrarMensaje(
+        err.response?.data?.message || 'Error al cambiar estado de usuario', 
+        'error'
+      );
+    } finally {
+      setCargando(false);
+    }
+  };
+  
+  // Función para mostrar mensajes de acción
+  const mostrarMensaje = (texto: string, tipo: 'success' | 'error') => {
+    setMensajeAccion({
+      texto,
+      tipo,
+      visible: true
+    });
+    
+    // Ocultar mensaje después de 5 segundos
+    setTimeout(() => {
+      setMensajeAccion(prev => ({ ...prev, visible: false }));
+    }, 5000);
+  };
+  
+  // Función para ordenar por una columna
+  const ordenarPorColumna = (columna: string) => {
+    if (ordenarPor === columna) {
+      // Si ya estamos ordenando por esta columna, cambiar dirección
+      setOrdenAscendente(!ordenAscendente);
+    } else {
+      // Si es una columna diferente, ordenar ascendente por defecto
+      setOrdenarPor(columna);
+      setOrdenAscendente(true);
+    }
+  };
+    // Obtener color de badge para rol
+  const getColorBadgeRol = (rol: RolNombre) => {
+    // Normalizar el rol para manejar casos con o sin prefijo "ROLE_"
+    const normalizedRole = rol.includes('ROLE_') ? rol : `ROLE_${rol}`;
+    
+    switch (normalizedRole) {
+      case 'ROLE_ADMIN':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'ROLE_CAJERO':
+        return 'bg-green-100 text-green-800';
+      case 'ROLE_ALMACENERO':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+  
+  return (
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      {/* Cabecera */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Gestión de Usuarios</h1>
+          <p className="text-gray-500 mt-1">Administra los usuarios del sistema</p>
+        </div>
+        
+        <button
+          onClick={abrirModalCreacion}
+          className="flex items-center px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          <UserPlus size={18} className="mr-2" />
+          Nuevo Usuario
+        </button>
+      </div>
+      
+      {/* Mensajes de acción */}
+      {mensajeAccion.visible && (
+        <div className={`mb-4 p-3 rounded-lg ${
+          mensajeAccion.tipo === 'success' ? 'bg-green-100 border-l-4 border-green-500 text-green-700' : 
+          'bg-red-100 border-l-4 border-red-500 text-red-700'
+        }`}>
+          <div className="flex items-center">
+            {mensajeAccion.tipo === 'success' ? (
+              <CheckCircle size={20} className="mr-2" />
+            ) : (
+              <AlertCircle size={20} className="mr-2" />
+            )}
+            <span>{mensajeAccion.texto}</span>
+            <button 
+              onClick={() => setMensajeAccion(prev => ({ ...prev, visible: false }))}
+              className="ml-auto"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Filtros y búsqueda */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          {/* Búsqueda */}
+          <div className="md:col-span-2">
+            <label htmlFor="busqueda" className="block text-sm font-medium text-gray-700 mb-1">
+              Buscar usuario
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                id="busqueda"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Ingrese nombre de usuario..."
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+              />
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+          
+          {/* Filtro por rol */}
+          <div>
+            <label htmlFor="filtroRol" className="block text-sm font-medium text-gray-700 mb-1">
+              Filtrar por rol
+            </label>
+            <div className="relative">              <select
+                id="filtroRol"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                value={filtroRol}
+                onChange={(e) => setFiltroRol(e.target.value as RolNombre | 'TODOS')}
+              >
+                <option value="TODOS">Todos los roles</option>
+                <option value="ROLE_ADMIN">Administrador</option>
+                <option value="ROLE_CAJERO">Cajero</option>
+                <option value="ROLE_ALMACENERO">Almacenero</option>
+              </select>
+              <Filter size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <ChevronDown size={18} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+          
+          {/* Filtro por estado */}
+          <div>
+            <label htmlFor="filtroActivo" className="block text-sm font-medium text-gray-700 mb-1">
+              Estado
+            </label>
+            <div className="relative">
+              <select
+                id="filtroActivo"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 appearance-none"
+                value={filtroActivo === 'TODOS' ? 'TODOS' : filtroActivo ? 'true' : 'false'}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setFiltroActivo(val === 'TODOS' ? 'TODOS' : val === 'true');
+                }}
+              >
+                <option value="TODOS">Todos los estados</option>
+                <option value="true">Activos</option>
+                <option value="false">Inactivos</option>
+              </select>
+              <UserCheck size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <ChevronDown size={18} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            </div>
+          </div>
+          
+          {/* Botón para recargar */}
+          <div className="flex items-end">
+            <button
+              onClick={cargarUsuarios}
+              className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50"
+              disabled={cargando}
+            >
+              {cargando ? (
+                <Loader2 size={18} className="animate-spin mr-2" />
+              ) : (
+                <RefreshCw size={18} className="mr-2" />
+              )}
+              Recargar
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Tabla de usuarios */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        {error ? (
+          <div className="p-8 text-center">
+            <AlertCircle size={40} className="mx-auto text-red-500 mb-4" />
+            <p className="text-gray-800 font-medium mb-2">Error al cargar usuarios</p>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <button
+              onClick={cargarUsuarios}
+              className="px-4 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 inline-flex items-center"
+            >
+              <RefreshCw size={16} className="mr-2" />
+              Reintentar
+            </button>
+          </div>
+        ) : cargando && usuarios.length === 0 ? (
+          <div className="p-8 text-center">
+            <Loader2 size={40} className="mx-auto text-gray-500 animate-spin mb-4" />
+            <p className="text-gray-600">Cargando usuarios...</p>
+          </div>
+        ) : usuariosFiltrados.length === 0 ? (
+          <div className="p-8 text-center">
+            <Users size={40} className="mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-800 font-medium mb-2">No se encontraron usuarios</p>
+            <p className="text-gray-600">
+              {busqueda || filtroRol !== 'TODOS' || filtroActivo !== 'TODOS'
+                ? 'Intenta ajustar los filtros de búsqueda'
+                : 'No hay usuarios registrados en el sistema'}
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => ordenarPorColumna('usuario')}
+                  >
+                    <div className="flex items-center">
+                      Usuario
+                      {ordenarPor === 'usuario' && (
+                        <ArrowUpDown size={14} className={`ml-1 ${ordenAscendente ? '' : 'transform rotate-180'}`} />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => ordenarPorColumna('rol')}
+                  >
+                    <div className="flex items-center">
+                      Rol
+                      {ordenarPor === 'rol' && (
+                        <ArrowUpDown size={14} className={`ml-1 ${ordenAscendente ? '' : 'transform rotate-180'}`} />
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                    onClick={() => ordenarPorColumna('activo')}
+                  >
+                    <div className="flex items-center">
+                      Estado
+                      {ordenarPor === 'activo' && (
+                        <ArrowUpDown size={14} className={`ml-1 ${ordenAscendente ? '' : 'transform rotate-180'}`} />
+                      )}
+                    </div>
+                  </th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {usuariosFiltrados.map((usuario) => (
+                  <tr key={usuario.id || usuario.usuario} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+                          {usuario.usuario.substring(0, 2).toUpperCase()}
+                        </div>                        <div className="ml-4">
+                          <div className="text-sm font-medium text-gray-900">{usuario.usuario}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex flex-wrap gap-1">
+                        {usuario.roles && usuario.roles.length > 0 ? (
+                          usuario.roles.map((rol, index) => (
+                            <span 
+                              key={index} 
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getColorBadgeRol(rol.nombreRol)}`}
+                            >
+                              {rol.nombreRol.replace('ROLE_', '')}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-gray-500 text-sm">Sin rol asignado</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span 
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          usuario.activo 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {usuario.activo ? (
+                          <>
+                            <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+                            Activo
+                          </>
+                        ) : (
+                          <>
+                            <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+                            Inactivo
+                          </>
+                        )}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end space-x-2">
+                        <button 
+                          onClick={() => abrirModalEdicion(usuario)}
+                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-50"
+                        >
+                          <Edit size={18} />
+                        </button>
+                        <button 
+                          onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)}
+                          className={`p-1 rounded-full ${
+                            usuario.activo 
+                              ? 'text-red-600 hover:text-red-900 hover:bg-red-50' 
+                              : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                          }`}
+                          title={usuario.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                        >
+                          {usuario.activo ? <UserX size={18} /> : <UserCheck size={18} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      
+      {/* Modal de creación/edición de usuario */}
+      {mostrarModal && (
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {modoEdicion ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
+              </h3>
+              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-500">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <form onSubmit={guardarUsuario}>
+              <div className="p-6 space-y-4">
+                {/* Campo usuario */}
+                <div>
+                  <label htmlFor="usuario" className="block text-sm font-medium text-gray-700 mb-1">
+                    Nombre de usuario
+                  </label>
+                  <input
+                    type="text"
+                    id="usuario"
+                    name="usuario"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={formUsuario.usuario}
+                    onChange={manejarCambioForm}
+                    required
+                  />
+                </div>
+                
+                {/* Campo contraseña */}
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                    Contraseña {modoEdicion && '(dejar en blanco para mantener)'}
+                  </label>
+                  <div className="relative">
+                    <input
+                      type="password"
+                      id="password"
+                      name="password"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                      value={formUsuario.password}
+                      onChange={manejarCambioForm}
+                      required={!modoEdicion}
+                    />
+                  </div>
+                </div>
+                
+                {/* Campo confirmar contraseña */}
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                    Confirmar contraseña
+                  </label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    value={formUsuario.confirmPassword}
+                    onChange={manejarCambioForm}
+                    required={!modoEdicion || formUsuario.password !== ''}
+                  />
+                </div>
+                
+                {/* Selección de roles */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Roles
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {(['ROLE_ADMIN', 'ROLE_CAJERO', 'ROLE_ALMACENERO'] as RolNombre[]).map(rol => (                      <button
+                        key={rol}
+                        type="button"
+                        onClick={() => toggleRol(rol)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                          formUsuario.roles.includes(rol)
+                            ? getColorBadgeRol(rol)
+                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
+                      >
+                        {rol.replace('ROLE_', '')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Campo estado (activo/inactivo) */}
+                {modoEdicion && (
+                  <div className="flex items-center">
+                    <input
+                      type="checkbox"
+                      id="activo"
+                      name="activo"
+                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      checked={formUsuario.activo}
+                      onChange={(e) => 
+                        setFormUsuario(prev => ({ ...prev, activo: e.target.checked }))
+                      }
+                    />
+                    <label htmlFor="activo" className="ml-2 block text-sm font-medium text-gray-700">
+                      Usuario activo
+                    </label>
+                  </div>
+                )}
+              </div>
+              
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setMostrarModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                  disabled={cargando}
+                >
+                  {cargando ? (
+                    <div className="flex items-center">
+                      <Loader2 size={18} className="animate-spin mr-2" />
+                      <span>Guardando...</span>
+                    </div>
+                  ) : (
+                    <span>{modoEdicion ? 'Actualizar' : 'Crear'}</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default GestionUsuarios;
