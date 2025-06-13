@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import type { Usuario } from '../../interfaces/Usuario';
 import {
   Menu,
-  X,
+  X, 
   BarChart3,
   Users,
   Package,
@@ -15,7 +15,11 @@ import {
   ChevronsRight,
   DollarSign,
   Clock,
-  ArrowUpDown
+  ArrowUpDown,
+  Palette,
+  Ruler,
+  Building2,
+  TreePine
 } from 'lucide-react';
 
 interface SidebarMenuProps {
@@ -317,11 +321,31 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     texto="Productos" 
                     vista="productos-admin" 
                     icono={<Package size={20} />}
-                    onClick={() => {
-                      // TODO: Crear página de gestión de productos para admin
-                      console.log('Navegando a gestión de productos - página pendiente por crear');
-                      // navigate('/pages/GestionProductos');
-                    }}
+                    onClick={() => navigate('/pages/productos')}
+                  />
+                  <MenuItem 
+                    texto="Colores" 
+                    vista="colores-admin" 
+                    icono={<Palette size={20} />}
+                    onClick={() => navigate('/pages/colores')}
+                  />
+                  <MenuItem 
+                    texto="Tallas" 
+                    vista="tallas-admin" 
+                    icono={<Ruler size={20} />}
+                    onClick={() => navigate('/pages/tallas')}
+                  />
+                  <MenuItem 
+                    texto="Proveedores" 
+                    vista="proveedores-admin" 
+                    icono={<Building2 size={20} />}
+                    onClick={() => navigate('/pages/proveedores')}
+                  />
+                  <MenuItem 
+                    texto="Categorías" 
+                    vista="categorias-admin" 
+                    icono={<TreePine size={20} />}
+                    onClick={() => navigate('/pages/categorias')}
                   />
                   <MenuItem 
                     texto="Reportes" 
@@ -356,21 +380,31 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     texto="Productos" 
                     vista="productos-inventario" 
                     icono={<Package size={20} />}
-                    onClick={() => {
-                      // TODO: Crear página de gestión de inventario
-                      console.log('Navegando a gestión de inventario - página pendiente por crear');
-                      // navigate('/pages/GestionInventario');
-                    }}
+                    onClick={() => navigate('/pages/productos')}
+                  />
+                  <MenuItem 
+                    texto="Colores" 
+                    vista="colores-inventario" 
+                    icono={<Palette size={20} />}
+                    onClick={() => navigate('/pages/colores')}
+                  />
+                  <MenuItem 
+                    texto="Tallas" 
+                    vista="tallas-inventario" 
+                    icono={<Ruler size={20} />}
+                    onClick={() => navigate('/pages/tallas')}
                   />
                   <MenuItem 
                     texto="Proveedores" 
                     vista="proveedores" 
-                    icono={<Users size={20} />}
-                    onClick={() => {
-                      // TODO: Crear página de gestión de proveedores
-                      console.log('Navegando a gestión de proveedores - página pendiente por crear');
-                      // navigate('/pages/GestionProveedores');
-                    }}
+                    icono={<Building2 size={20} />}
+                    onClick={() => navigate('/pages/proveedores')}
+                  />
+                  <MenuItem 
+                    texto="Categorías" 
+                    vista="categorias" 
+                    icono={<TreePine size={20} />}
+                    onClick={() => navigate('/pages/categorias')}
                   />
                   <MenuItem 
                     texto="Reportes" 

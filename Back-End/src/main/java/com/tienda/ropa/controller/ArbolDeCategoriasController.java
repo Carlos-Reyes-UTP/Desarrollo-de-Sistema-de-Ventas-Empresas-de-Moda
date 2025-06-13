@@ -14,7 +14,7 @@ import java.util.List;
  * de categorías (árbol de categorías). Esto facilita la manipulación en el frontend.
  */
 @RestController
-@RequestMapping("/api/admin/categorias-tree")
+@RequestMapping("/api/almacenero/categorias-tree")
 @CrossOrigin(origins = "*")
 public class ArbolDeCategoriasController {
     @Autowired

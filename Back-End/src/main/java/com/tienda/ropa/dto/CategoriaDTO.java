@@ -12,7 +12,7 @@ public class CategoriaDTO {
     private String nombre;
     private List<CategoriaDTO> subcategorias = new ArrayList<>();
     
-    // Constructor vacío del DTO
+    // Constructor vacío
     public CategoriaDTO() {
     }
     

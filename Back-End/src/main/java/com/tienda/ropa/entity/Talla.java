@@ -5,10 +5,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.ManyToMany;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -18,12 +21,14 @@ public class Talla {
     @Column(name = "id_talla")
     private Long idTalla;
 
-    @NotNull
-    @ManyToOne
-    @JoinColumn(name = "id_producto", nullable = false)
-    private Producto producto;
-
-    @NotNull
-    @Column(name = "nombre_talla", nullable = false)
+    @NotBlank(message = "El nombre de la talla no puede estar vacío")
+    @Size(min = 1, max = 10, message = "El nombre de la talla debe tener entre 1 y 10 caracteres")
+    @Column(name = "nombre_talla", nullable = false, unique = true)
     private String nombreTalla;
+
+    @Column(name = "descripcion")
+    private String descripcion;
+
+    @ManyToMany(mappedBy = "tallas")
+    private Set<Producto> productos = new HashSet<>();
 }

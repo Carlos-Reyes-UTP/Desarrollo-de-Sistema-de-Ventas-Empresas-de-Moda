@@ -1,0 +1,374 @@
+import React, { useState, useEffect } from 'react';
+import { Plus, Search, Edit, Trash2, Save, X, Building2, Users } from 'lucide-react';
+import type { Proveedor } from '../../interfaces/Proveedor';
+import { ProveedorService } from '../../services/ProveedorServices';
+
+const GestionProveedores: React.FC = () => {
+  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showFormulario, setShowFormulario] = useState(false);
+  const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // Formulario
+  const [formData, setFormData] = useState({
+    nombre: '',
+    ruc: ''
+  });
+
+  useEffect(() => {
+    cargarProveedores();
+  }, []);
+
+  const cargarProveedores = async () => {
+    try {
+      setLoading(true);
+      const data = await ProveedorService.obtenerTodosProveedores();
+      setProveedores(data);
+    } catch (err) {
+      setError('Error al cargar proveedores');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBuscar = async () => {
+    if (!searchTerm.trim()) {
+      cargarProveedores();
+      return;
+    }
+
+    try {
+      setLoading(true);
+      // Filtrar localmente ya que no hay endpoint de búsqueda específico
+      const todosProveedores = await ProveedorService.obtenerTodosProveedores();
+      const resultados = todosProveedores.filter(proveedor =>
+        proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        proveedor.ruc.includes(searchTerm)
+      );
+      setProveedores(resultados);
+    } catch (err) {
+      setError('Error al buscar proveedores');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validaciones
+    if (!formData.nombre.trim()) {
+      setError('El nombre es requerido');
+      return;
+    }
+    
+    if (!formData.ruc.trim()) {
+      setError('El RUC es requerido');
+      return;
+    }
+
+    // Validar formato RUC (11 dígitos)
+    if (!/^\d{11}$/.test(formData.ruc)) {
+      setError('El RUC debe tener 11 dígitos');
+      return;
+    }
+
+    try {
+      if (proveedorEditar?.idProveedor) {
+        await ProveedorService.actualizarProveedor(proveedorEditar.idProveedor, {
+          ...formData,
+          idProveedor: proveedorEditar.idProveedor
+        });
+      } else {
+        await ProveedorService.crearProveedor(formData);
+      }
+      
+      setShowFormulario(false);
+      setProveedorEditar(null);
+      setFormData({ nombre: '', ruc: '' });
+      setError(null);
+      cargarProveedores();
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setError('Ya existe un proveedor con ese RUC');
+      } else {
+        setError('Error al guardar proveedor');
+      }
+      console.error(err);
+    }
+  };
+
+  const handleEliminar = async (id: number) => {
+    if (!confirm('¿Estás seguro de eliminar este proveedor?')) return;
+
+    try {
+      await ProveedorService.eliminarProveedor(id);
+      cargarProveedores();
+    } catch (err: any) {
+      if (err.response?.status === 409) {
+        setError('No se puede eliminar el proveedor porque tiene productos asociados');
+      } else {
+        setError('Error al eliminar proveedor');
+      }
+      console.error(err);
+    }
+  };
+
+  const handleEditar = (proveedor: Proveedor) => {
+    setProveedorEditar(proveedor);
+    setFormData({
+      nombre: proveedor.nombre,
+      ruc: proveedor.ruc
+    });
+    setShowFormulario(true);
+    setError(null);
+  };
+
+  const handleNuevo = () => {
+    setProveedorEditar(null);
+    setFormData({ nombre: '', ruc: '' });
+    setShowFormulario(true);
+    setError(null);
+  };
+
+  const handleCancelar = () => {
+    setShowFormulario(false);
+    setProveedorEditar(null);
+    setFormData({ nombre: '', ruc: '' });
+    setError(null);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleBuscar();
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-100 p-3 rounded-lg">
+            <Building2 className="w-8 h-8 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestión de Proveedores</h1>
+            <p className="text-gray-600">Administra los proveedores de tu empresa</p>
+          </div>
+        </div>
+        <button
+          onClick={handleNuevo}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+        >
+          <Plus className="w-5 h-5" />
+          Nuevo Proveedor
+        </button>
+      </div>
+
+      {/* Barra de búsqueda */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
+        <div className="flex gap-4">
+          <div className="flex-1 relative">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o RUC..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={handleKeyPress}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+          <button
+            onClick={handleBuscar}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Search className="w-4 h-4" />
+            Buscar
+          </button>
+        </div>
+      </div>
+
+      {/* Mensaje de error */}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+          {error}
+        </div>
+      )}
+
+      {/* Formulario Modal */}
+      {showFormulario && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold flex items-center gap-2">
+                <Building2 className="w-5 h-5 text-blue-600" />
+                {proveedorEditar ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+              </h3>
+              <button
+                onClick={handleCancelar}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre *
+                </label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Nombre del proveedor"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  RUC *
+                </label>
+                <input
+                  type="text"
+                  value={formData.ruc}
+                  onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="12345678901"
+                  maxLength={11}
+                  pattern="[0-9]{11}"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">Debe contener 11 dígitos</p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleCancelar}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <Save className="w-4 h-4" />
+                  {proveedorEditar ? 'Actualizar' : 'Guardar'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Tabla de proveedores */}
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-600 mt-2">Cargando proveedores...</p>
+          </div>
+        ) : proveedores.length === 0 ? (
+          <div className="p-8 text-center">
+            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No se encontraron proveedores</p>
+            <button
+              onClick={handleNuevo}
+              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Crear primer proveedor
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Proveedor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    RUC
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {proveedores.map((proveedor) => (
+                  <tr key={proveedor.idProveedor} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                          <Building2 className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {proveedor.nombre}
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            ID: {proveedor.idProveedor}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="text-sm text-gray-900 font-mono">
+                        {proveedor.ruc}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEditar(proveedor)}
+                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                          title="Editar proveedor"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleEliminar(proveedor.idProveedor!)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                          title="Eliminar proveedor"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Estadísticas */}
+      <div className="mt-6 bg-white rounded-lg shadow-sm border p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-gray-600">
+            <Users className="w-4 h-4" />
+            <span className="text-sm">Total de proveedores: {proveedores.length}</span>
+          </div>
+          <div className="text-sm text-gray-500">
+            Última actualización: {new Date().toLocaleString()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default GestionProveedores;

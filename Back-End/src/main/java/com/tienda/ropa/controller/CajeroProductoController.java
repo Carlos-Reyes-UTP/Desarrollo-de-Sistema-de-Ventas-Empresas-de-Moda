@@ -100,6 +100,10 @@ public class CajeroProductoController {
             @PathVariable Long id,
             @RequestParam Integer cantidad) {
 
+        if (cantidad <= 0) {
+            return ResponseEntity.badRequest().build(); // La cantidad a aumentar debe ser positiva
+        }
+
         Optional<Producto> productoOpt = productoService.obtenerProductoPorId(id);
 
         if (!productoOpt.isPresent()) {
@@ -108,7 +112,6 @@ public class CajeroProductoController {
 
         Producto producto = productoOpt.get();
         int nuevaCantidad = producto.getCantidad() + cantidad;
-
         producto.setCantidad(nuevaCantidad);
 
         Producto productoActualizado = productoService.editarProducto(id, producto);

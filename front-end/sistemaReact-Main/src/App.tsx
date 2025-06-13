@@ -8,6 +8,15 @@ import PaginaNoEncontrada from "./pages/PaginaNoEncontrada";
 import CajeroSistemaVentas from "./pages/CajeroSistemaVentas";
 import Layout from "./components/layout/Layout";
 import GestionUsuarios from "./pages/GestionUsuarios";
+// Product management components
+import GestionProductos from "./components/productos/GestionProductos";
+import GestionColores from "./components/productos/GestionColores";
+import GestionTallas from "./components/productos/GestionTallas";
+import GestionProductosUnificada from "./components/unificado/GestionProductosUnificada";
+// Provider management components
+import GestionProveedores from "./components/proveedores/GestionProveedores";
+// Category management components
+import GestionCategorias from "./components/categorias/GestionCategorias";
 
 // Componente para depuración
 
@@ -163,6 +172,73 @@ function App() {
             {/* Cambiado de "ADMIN" */}
             <Layout>
               <GestionUsuarios />
+            </Layout>
+          </RutaProtegida>
+        }
+      />
+
+      {/* Rutas para gestión de productos - Acceso para ADMIN y ALMACENERO */}
+      <Route
+        path="/pages/productos-unificado"
+        element={
+          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
+            <Layout>
+              <GestionProductosUnificada />
+            </Layout>
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/pages/productos"
+        element={
+          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
+            <Layout>
+              <GestionProductos />
+            </Layout>
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/pages/colores"
+        element={
+          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
+            <Layout>
+              <GestionColores />
+            </Layout>
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/pages/tallas"
+        element={
+          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
+            <Layout>
+              <GestionTallas />
+            </Layout>
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/pages/proveedores"
+        element={
+          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
+            <Layout>
+              <GestionProveedores />
+            </Layout>
+          </RutaProtegida>
+        }
+      />
+
+      <Route
+        path="/pages/categorias"
+        element={
+          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
+            <Layout>
+              <GestionCategorias />
             </Layout>
           </RutaProtegida>
         }

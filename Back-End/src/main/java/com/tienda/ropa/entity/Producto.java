@@ -1,5 +1,6 @@
 package com.tienda.ropa.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -11,6 +12,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotNull;
@@ -27,6 +30,9 @@ public class Producto {
     @NotNull
     @Column(name = "codigo_identificacion", unique = true, nullable = false)
     private String codigoIdentificacion;
+
+    @Column(name = "codigo_barras", unique = true)
+    private String codigoBarras;
 
     @NotNull
     @Column(name = "nombre", nullable = false)
@@ -50,17 +56,9 @@ public class Producto {
     private String marca;
 
     @NotNull
-    @Column(name = "color", nullable = false)
-    private String color;
-
-    @NotNull
     @ManyToOne
     @JoinColumn(name = "id_proveedor", nullable = false)
     private Proveedores proveedor;
-
-    @NotNull
-    @Column(name = "cantidad", nullable = false)
-    private int cantidad;
 
     @NotNull
     @Column(name = "precio_unitario", nullable = false)
@@ -75,8 +73,33 @@ public class Producto {
     @Column(name = "precio_docena")
     private BigDecimal precioDocena;
 
-    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @JsonManagedReference
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "producto_talla",
+        joinColumns = @JoinColumn(name = "id_producto"),
+        inverseJoinColumns = @JoinColumn(name = "id_talla")
+    )
     private List<Talla> tallas;
+
+    @JsonManagedReference
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private List<ProductoVariante> variantes;
+
+    @Column(name = "cantidad", nullable = false)
+    private Integer cantidad = 0;
+
+    // Método para calcular la cantidad total de producto disponible
+    public int getCantidadTotal() {
+        // Si el producto usa el sistema de variantes, suma las cantidades de todas las variantes
+        if (variantes != null && !variantes.isEmpty()) {
+            return variantes.stream()
+                    .mapToInt(ProductoVariante::getCantidad)
+                    .sum();
+        }
+        // Si no usa variantes, devuelve la cantidad del producto base
+        return cantidad != null ? cantidad : 0;
+    }
 
     public Long getIdProducto() {
         return idProducto;
@@ -93,6 +116,7 @@ public class Producto {
     public void setCodigoIdentificacion(String codigoIdentificacion) {
         this.codigoIdentificacion = codigoIdentificacion;
     }
+
 
     public String getNombre() {
         return nombre;
@@ -116,14 +140,6 @@ public class Producto {
 
     public void setCategoria(Categoria categoria) {
         this.categoria = categoria;
-    }
-
-    public int getCantidad() {
-        return cantidad;
-    }
-
-    public void setCantidad(int cantidad) {
-        this.cantidad = cantidad;
     }
 
     public BigDecimal getPrecioUnitario() {
@@ -175,14 +191,6 @@ public class Producto {
         this.sexo = sexo;
     }
 
-    public String getColor() {
-        return color;
-    }
-
-    public void setColor(String color) {
-        this.color = color;
-    }
-
     public Categoria getCategoriaPadre() {
         return categoriaPadre;
     }
@@ -198,4 +206,21 @@ public class Producto {
     public void setTallas(List<Talla> tallas) {
         this.tallas = tallas;
     }
+
+    public String getCodigoBarras() {
+        return codigoBarras;
+    }
+
+    public void setCodigoBarras(String codigoBarras) {
+        this.codigoBarras = codigoBarras;
+    }
+
+    public List<ProductoVariante> getVariantes() {
+        return variantes;
+    }
+
+    public void setVariantes(List<ProductoVariante> variantes) {
+        this.variantes = variantes;
+    }
 }
+

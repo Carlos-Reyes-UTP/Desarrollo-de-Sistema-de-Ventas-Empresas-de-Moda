@@ -57,7 +57,8 @@ const DashboardAdmin = () => {
       setError(null);
       
       try {        // Cargar productos
-        const productosData = await ProductoService.getAllProductos();
+        const productosResponse = await ProductoService.getAllProductos();
+        const productosData = Array.isArray(productosResponse) ? productosResponse : [];
         setProductos(productosData);
         
         // Cargar ventas (podríamos filtrar por fecha según el periodo)
@@ -67,20 +68,24 @@ const DashboardAdmin = () => {
         
         try {
           // Intentar obtener ventas por fecha (si está implementado)
-          ventasData = await VentaService.obtenerVentasPorFecha(fechaActual);
+          const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaActual);
+          ventasData = Array.isArray(ventasResponse) ? ventasResponse : [];
         } catch (error) {
           console.log('No se pudieron obtener ventas por fecha, cargando todas las ventas');
-          ventasData = await VentaService.obtenerTodasVentas();
+          const ventasResponse = await VentaService.obtenerTodasVentas();
+          ventasData = Array.isArray(ventasResponse) ? ventasResponse : [];
         }
         
         setVentas(ventasData);
         
         // Cargar usuarios
-        const usuariosData = await ServicioUsuarios.obtenerTodos();
+        const usuariosResponse = await ServicioUsuarios.obtenerTodos();
+        const usuariosData = Array.isArray(usuariosResponse) ? usuariosResponse : [];
         setUsuarios(usuariosData);
         
         // Cargar proveedores
-        const proveedoresData = await ProveedorService.obtenerTodosProveedores();
+        const proveedoresResponse = await ProveedorService.obtenerTodosProveedores();
+        const proveedoresData = Array.isArray(proveedoresResponse) ? proveedoresResponse : [];
         setProveedores(proveedoresData);
         
         // Calcular métricas de ventas

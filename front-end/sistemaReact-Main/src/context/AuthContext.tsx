@@ -6,6 +6,7 @@ import type { Usuario } from '../interfaces/Usuario';
 import type { CredencialesLogin, RespuestaAutenticacion } from '../interfaces/Usuario';
 import type { RolNombre } from '../interfaces/enums';
 import { RUTAS_AUTENTICACION } from '../config/apiConfig';
+import { setAuthToken } from '../config/apiClient';
 
 // Create a custom axios instance to handle CORS issues
 const apiAxios = axios.create({
@@ -106,11 +107,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         const tiempoActual = Date.now() / 1000;
         
         if (decodificado.exp && decodificado.exp < tiempoActual) {
-          console.log('Token expirado, cerrando sesión...');
-          cerrarSesion();
+          console.log('Token expirado, eliminando...');
+          localStorage.removeItem('token');
+          setToken(null);
+          setAuthToken(null);
+          setUsuario(null);
         } else {
           console.log('Token válido, estableciendo usuario...');
           setToken(tokenAlmacenado);
+          setAuthToken(tokenAlmacenado); // Actualizar el token en apiClient
           
           // Obtener el nombre de usuario
           const nombreUsuario = decodificado.sub;
@@ -127,7 +132,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       } catch (error) {
         console.error('Error al decodificar token:', error);
-        cerrarSesion();
+        localStorage.removeItem('token');
+        setToken(null);
+        setAuthToken(null);
+        setUsuario(null);
       }
     }
     setCargando(false);
@@ -136,6 +144,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Configurar el interceptor de axios para el token
   useEffect(() => {
     console.log('Configurando interceptor de axios con token:', token ? 'Presente' : 'Ausente');
+    
+    // Actualizar el token en apiClient
+    setAuthToken(token);
     
     // Si hay un interceptor previo, eliminarlo primero
     if (interceptorRef.current !== null) {
@@ -164,7 +175,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       error => {
         if (error.response && error.response.status === 401) {
           console.warn('Respuesta 401 recibida, token inválido o expirado');
-          cerrarSesion();
+          // No llamar cerrarSesion() directamente aquí para evitar ciclos infinitos
+          localStorage.removeItem('token');
+          setToken(null);
+          setAuthToken(null);
+          setUsuario(null);
+          // Redirigir a login solo si no estamos ya en la página de login
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
         }
         return Promise.reject(error);
       }
@@ -197,6 +216,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       if (jwt && status) {
         localStorage.setItem('token', jwt);
         setToken(jwt);
+        setAuthToken(jwt); // Actualizar el token en apiClient
         
         try {
           const decodificado = jwtDecode<TokenDecodificado>(jwt);
@@ -235,6 +255,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     console.log('Cerrando sesión, eliminando token...');
     localStorage.removeItem('token');
     setToken(null);
+    setAuthToken(null); // Limpiar el token en apiClient
     setUsuario(null);
   };
 

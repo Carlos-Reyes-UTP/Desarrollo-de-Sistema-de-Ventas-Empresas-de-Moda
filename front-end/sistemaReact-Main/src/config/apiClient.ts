@@ -12,14 +12,30 @@ const apiClient = axios.create({
   timeout: 15000, // 15 segundos
 });
 
+// Variable para almacenar el token actual
+let currentToken: string | null = null;
+
+// Función para actualizar el token
+export const setAuthToken = (token: string | null) => {
+  currentToken = token;
+  if (token) {
+    console.log('Actualizando token en apiClient');
+  } else {
+    console.log('Removiendo token de apiClient');
+  }
+};
+
 // Interceptor para añadir el token JWT a las cabeceras
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // Primero intentar obtener el token de la variable actual, luego del localStorage
+    const token = currentToken || localStorage.getItem('token');
     
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
       console.log('Añadiendo token a solicitud:', config.url);
+    } else {
+      console.log('No hay token disponible para la solicitud:', config.url);
     }
     
     // Si la URL ya incluye la BASE_URL, la convertimos en relativa
@@ -49,9 +65,12 @@ apiClient.interceptors.response.use(
       if (status === 401) {
         console.warn('Error 401: No autorizado. Token inválido o expirado.');
         localStorage.removeItem('token');
+        currentToken = null;
         
-        // Puedes redirigir a la página de login si deseas
-        // window.location.href = '/login';
+        // Redirigir a login si es necesario
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
       
       // Manejar error 403 (Prohibido)
