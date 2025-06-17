@@ -16,13 +16,18 @@ import {
   ChevronDown,
   ArrowUpDown,
   Eye,
-  EyeOff
+  EyeOff,
+  LogOut
 } from 'lucide-react';
 import { ServicioUsuarios } from '../services/UsuarioServices';
-import type { Usuario, Rol, UsuarioBackend, ActualizarUsuarioDTO } from '../interfaces/Usuario';
+import { useAuth } from '../context/AuthContext';
+import type { Usuario, UsuarioBackend, ActualizarUsuarioDTO } from '../interfaces/Usuario';
 import type { RolNombre } from '../interfaces/enums';
 
 const GestionUsuarios = () => {
+  // Contexto de autenticación
+  const { usuario: usuarioActual, cerrarSesion } = useAuth();
+  
   // Estados para la lista de usuarios
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
@@ -52,8 +57,7 @@ const GestionUsuarios = () => {
     activo: true,
     roles: [] // Inicializar sin roles preseleccionados
   });
-  
-  // Estado para mensajes de acción
+    // Estado para mensajes de acción
   const [mensajeAccion, setMensajeAccion] = useState<{
     texto: string;
     tipo: 'success' | 'error';
@@ -63,6 +67,10 @@ const GestionUsuarios = () => {
     tipo: 'success',
     visible: false
   });
+
+  // Estado para notificación de cierre de sesión
+  const [mostrarNotificacionCierre, setMostrarNotificacionCierre] = useState(false);
+  const [contadorCierre, setContadorCierre] = useState(5);
   
   // Cargar usuarios al montar el componente
   useEffect(() => {
@@ -73,7 +81,7 @@ const GestionUsuarios = () => {
   useEffect(() => {
     aplicarFiltros();
   }, [busqueda, filtroRol, filtroActivo, usuarios, ordenarPor, ordenAscendente]);
-    // Función helper para determinar si un usuario es el último administrador activo
+  // Función helper para determinar si un usuario es el último administrador activo
   const esUltimoAdministradorActivo = (usuario: Usuario): boolean => {
     // Verificar si el usuario actual es administrador activo
     const esAdminActivo = usuario.activo && 
@@ -90,6 +98,43 @@ const GestionUsuarios = () => {
     
     // Es el último admin si es administrador activo y solo hay 1 administrador activo en total
     return totalAdministradoresActivos === 1;
+  };
+
+  // Función helper para determinar si un usuario es el usuario actual
+  const esUsuarioActual = (usuario: Usuario): boolean => {
+    return usuarioActual?.usuario === usuario.usuario;
+  };
+  // Función helper para verificar si se debe cerrar la sesión
+  const verificarCierreSesion = (usuarioModificado: Usuario, datosOriginales: Usuario) => {
+    if (!esUsuarioActual(datosOriginales)) {
+      return; // No es el usuario actual, no hacer nada
+    }
+
+    // Verificar si cambió el nombre de usuario
+    const cambiaNombreUsuario = datosOriginales.usuario !== usuarioModificado.usuario;
+    
+    // Verificar si cambiaron los roles
+    const rolesOriginales = datosOriginales.roles?.map(r => r.nombreRol).sort() || [];
+    const rolesNuevos = usuarioModificado.roles?.map(r => r.nombreRol).sort() || [];
+    const cambianRoles = JSON.stringify(rolesOriginales) !== JSON.stringify(rolesNuevos);
+
+    if (cambiaNombreUsuario || cambianRoles) {
+      // Mostrar notificación personalizada
+      setMostrarNotificacionCierre(true);
+      setContadorCierre(5);
+      
+      // Iniciar contador regresivo
+      const intervalo = setInterval(() => {
+        setContadorCierre(prev => {
+          if (prev <= 1) {
+            clearInterval(intervalo);
+            cerrarSesion();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
   };
 
   // Función helper para normalizar usuarios del back-end
@@ -314,11 +359,27 @@ const GestionUsuarios = () => {
           roles: formUsuario.roles // Array de strings (RolNombre)
         };
         
-        console.log('Datos enviados para actualizar:', usuarioParaActualizar);
-        console.log('Roles enviados:', formUsuario.roles);
+        console.log('Datos enviados para actualizar:', usuarioParaActualizar);        console.log('Roles enviados:', formUsuario.roles);
+        
+        // Guardar los datos originales antes de la actualización
+        const datosOriginales = usuarioEditando!;
         
         await ServicioUsuarios.actualizar(usuarioEditando.id!, usuarioParaActualizar);
         mostrarMensaje('Usuario actualizado exitosamente', 'success');
+        
+        // Crear un objeto Usuario con los datos actualizados para la verificación
+        const usuarioActualizado: Usuario = {
+          ...datosOriginales,
+          usuario: formUsuario.usuario,
+          activo: formUsuario.activo,
+          roles: formUsuario.roles.map(rolNombre => ({
+            id: 0, // ID temporal, no se usa en la verificación
+            nombreRol: rolNombre
+          }))
+        };
+        
+        // Verificar si se debe cerrar la sesión después de una actualización exitosa
+        verificarCierreSesion(usuarioActualizado, datosOriginales);
       } else {
         // Crear nuevo usuario
         const rolSeleccionado = formUsuario.roles[0];
@@ -652,15 +713,27 @@ const GestionUsuarios = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {usuariosFiltrados.map((usuario) => (
-                  <tr key={usuario.id || usuario.usuario} className="hover:bg-gray-50">
+              <tbody className="bg-white divide-y divide-gray-200">                {usuariosFiltrados.map((usuario) => (
+                  <tr 
+                    key={usuario.id || usuario.usuario} 
+                    className={`
+                      ${esUsuarioActual(usuario) 
+                        ? 'bg-blue-50 border-l-4 border-blue-400 hover:bg-blue-100' 
+                        : 'hover:bg-gray-50'
+                      }
+                    `}
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
                           {usuario.usuario.substring(0, 2).toUpperCase()}
                         </div>                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{usuario.usuario}</div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {usuario.usuario}
+                            {esUsuarioActual(usuario) && (
+                              <span className="ml-2 text-xs text-blue-600 font-normal">(Usted)</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
@@ -949,8 +1022,65 @@ const GestionUsuarios = () => {
                 >
                   {modoEdicion ? 'Actualizar' : 'Crear Usuario'}
                 </button>
+              </div>            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Notificación de Cierre de Sesión */}
+      {mostrarNotificacionCierre && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center mb-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <LogOut className="w-6 h-6 text-yellow-600" />
+                  </div>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Credenciales Modificadas
+                  </h3>
+                </div>
               </div>
-            </form>
+
+              {/* Contenido */}
+              <div className="mb-6">
+                <p className="text-sm text-gray-600 mb-4">
+                  Sus credenciales han sido modificadas exitosamente. Por seguridad, 
+                  será redirigido al login para volver a iniciar sesión con sus nuevas credenciales.
+                </p>
+                
+                {/* Contador regresivo */}
+                <div className="bg-gray-50 rounded-lg p-4 border-l-4 border-yellow-400">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-yellow-800">
+                        Cerrando sesión en {contadorCierre} segundo{contadorCierre !== 1 ? 's' : ''}...
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botón de acción inmediata */}
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setMostrarNotificacionCierre(false);
+                    cerrarSesion();
+                  }}
+                  className="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                >
+                  Cerrar Sesión Ahora
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
