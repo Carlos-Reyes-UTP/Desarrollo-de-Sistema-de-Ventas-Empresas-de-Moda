@@ -12,8 +12,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.validation.constraints.NotNull;
@@ -72,15 +70,6 @@ public class Producto {
 
     @Column(name = "precio_docena")
     private BigDecimal precioDocena;
-
-    @JsonManagedReference
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-        name = "producto_talla",
-        joinColumns = @JoinColumn(name = "id_producto"),
-        inverseJoinColumns = @JoinColumn(name = "id_talla")
-    )
-    private List<Talla> tallas;
 
     @JsonManagedReference
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
@@ -199,14 +188,6 @@ public class Producto {
         this.categoriaPadre = categoriaPadre;
     }
 
-    public List<Talla> getTallas() {
-        return tallas;
-    }
-
-    public void setTallas(List<Talla> tallas) {
-        this.tallas = tallas;
-    }
-
     public String getCodigoBarras() {
         return codigoBarras;
     }
@@ -223,4 +204,3 @@ public class Producto {
         this.variantes = variantes;
     }
 }
-

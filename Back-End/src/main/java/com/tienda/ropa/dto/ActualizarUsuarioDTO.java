@@ -1,6 +1,6 @@
 package com.tienda.ropa.dto;
 
-import com.tienda.ropa.validation.ContrasenaSegura;
+import com.tienda.ropa.agregates.validation.ContrasenaSegura;
 import jakarta.validation.constraints.NotBlank;
 
 public class ActualizarUsuarioDTO {

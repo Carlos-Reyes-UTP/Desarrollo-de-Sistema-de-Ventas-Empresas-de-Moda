@@ -76,10 +76,6 @@ public class TallaServiceImpl implements TallaService {
         Talla talla = tallaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una talla con el ID: " + id));
 
-        // Verificar si la talla está siendo utilizada por algún producto
-        if (!talla.getProductos().isEmpty()) {
-            throw new IllegalStateException("No se puede eliminar la talla porque está siendo utilizada por uno o más productos");
-        }
 
         tallaRepository.delete(talla);
     }

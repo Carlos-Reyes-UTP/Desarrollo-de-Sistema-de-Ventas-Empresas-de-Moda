@@ -5,13 +5,9 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-
-import java.util.HashSet;
-import java.util.Set;
 
 @Data
 @Entity
@@ -28,7 +24,4 @@ public class Talla {
 
     @Column(name = "descripcion")
     private String descripcion;
-
-    @ManyToMany(mappedBy = "tallas")
-    private Set<Producto> productos = new HashSet<>();
 }

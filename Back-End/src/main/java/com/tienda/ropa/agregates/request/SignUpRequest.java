@@ -1,7 +1,7 @@
 package com.tienda.ropa.agregates.request;
 
 import jakarta.validation.constraints.NotBlank;
-import com.tienda.ropa.validation.ContrasenaSegura;
+import com.tienda.ropa.agregates.validation.ContrasenaSegura;
 
 public record SignUpRequest(
         @NotBlank(message = "El nombre de usuario no puede estar vacío") String usuario,

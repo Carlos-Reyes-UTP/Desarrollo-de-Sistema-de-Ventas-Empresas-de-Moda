@@ -1,6 +1,6 @@
 package com.tienda.ropa.entity;
 
-import com.tienda.ropa.validation.ContrasenaSegura;
+import com.tienda.ropa.agregates.validation.ContrasenaSegura;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
