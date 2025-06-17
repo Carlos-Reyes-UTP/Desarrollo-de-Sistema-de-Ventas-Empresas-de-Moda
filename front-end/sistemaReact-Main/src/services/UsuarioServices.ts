@@ -25,10 +25,33 @@ export const ServicioUsuarios = {
   },
   
   crear: async (datosUsuario: { usuario: string, clave: string, rol: string }): Promise<Usuario> => {
-    console.log('Creando usuario:', datosUsuario);
-    const respuesta = await apiClient.post<Usuario>(RUTAS_USUARIOS.CREAR, datosUsuario);
-    console.log('Respuesta crear:', respuesta.data);
-    return respuesta.data;
+    console.log('Creando usuario:', { ...datosUsuario, clave: '***' }); // Ocultar clave en logs
+    
+    // Asegurar que el rol tenga el prefijo ROLE_
+    const rolNormalizado = datosUsuario.rol.startsWith('ROLE_') 
+      ? datosUsuario.rol 
+      : `ROLE_${datosUsuario.rol}`;
+    
+    try {
+      const respuesta = await apiClient.post<Usuario>(RUTAS_USUARIOS.CREAR, {
+        ...datosUsuario,
+        rol: rolNormalizado
+      });
+
+      if (!respuesta.data) {
+        throw new Error('No se recibió respuesta del servidor');
+      }
+
+      console.log('Usuario creado exitosamente:', respuesta.data);
+      return respuesta.data;
+    } catch (error: any) {
+      // Si el error es por token expirado, propagarlo para manejarlo en el componente
+      if (error.response?.status === 401) {
+        throw error;
+      }
+      console.error('Error al crear usuario:', error.response?.data || error.message);
+      throw error;
+    }
   },
   
   actualizar: async (id: number, datosUsuario: Usuario): Promise<Usuario> => {

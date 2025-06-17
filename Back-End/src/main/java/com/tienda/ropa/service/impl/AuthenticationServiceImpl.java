@@ -66,6 +66,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         if (usuarioRepository.findByUsuario(username).isPresent()) {
             throw new IllegalArgumentException("El nombre de usuario ya está en uso: " + username);
         }
+
+        // Remover el prefijo ROLE_ si existe
+        if (roleName.startsWith("ROLE_")) {
+            roleName = roleName.substring(5);
+        }
+
         // Verifica que el rol proporcionado sea válido
         Role validRole;
         try {
@@ -86,7 +92,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .activo(true)
                 .build();
 
-        return usuarioRepository.save(user);
+        Usuario userCreated = usuarioRepository.save(user);
+
+        // Crear autenticación para el usuario recién creado
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+            userCreated,
+            password,
+            userCreated.getAuthorities()
+        );
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        return userCreated;
     }
 
     @Override

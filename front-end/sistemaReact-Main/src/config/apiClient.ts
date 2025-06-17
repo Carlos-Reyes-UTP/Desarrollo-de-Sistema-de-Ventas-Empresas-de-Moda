@@ -18,24 +18,15 @@ let currentToken: string | null = null;
 // Función para actualizar el token
 export const setAuthToken = (token: string | null) => {
   currentToken = token;
-  if (token) {
-    console.log('Actualizando token en apiClient');
-  } else {
-    console.log('Removiendo token de apiClient');
-  }
 };
 
 // Interceptor para añadir el token JWT a las cabeceras
 apiClient.interceptors.request.use(
   (config) => {
-    // Primero intentar obtener el token de la variable actual, luego del localStorage
     const token = currentToken || localStorage.getItem('token');
     
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
-      console.log('Añadiendo token a solicitud:', config.url);
-    } else {
-      console.log('No hay token disponible para la solicitud:', config.url);
     }
     
     // Si la URL ya incluye la BASE_URL, la convertimos en relativa
@@ -46,56 +37,25 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    console.error('Error en interceptor de solicitud:', error);
     return Promise.reject(error);
   }
 );
 
 // Interceptor de respuesta para manejar errores comunes
 apiClient.interceptors.response.use(
-  (response) => {
-    // Procesar la respuesta exitosa si es necesario
-    return response;
-  },
+  (response) => response,
   (error) => {
     if (error.response) {
       const { status, data } = error.response;
       
       // Manejar error 401 (No autorizado)
       if (status === 401) {
-        console.warn('Error 401: No autorizado. Token inválido o expirado.');
         localStorage.removeItem('token');
         currentToken = null;
-        
-        // Redirigir a login si es necesario
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
-        }
-      }
-      
-      // Manejar error 403 (Prohibido)
-      if (status === 403) {
-        console.warn('Error 403: No tienes permisos para realizar esta acción.');
-      }
-      
-      // Manejar error 404 (No encontrado)
-      if (status === 404) {
-        console.warn('Error 404: Recurso no encontrado.');
-      }
-      
-      // Manejar error 500 (Error del servidor)
-      if (status === 500) {
-        console.error('Error 500: Error en el servidor.');
       }
       
       // Log detallado para debugging
-      console.error(`Error ${status}:`, data?.message || 'Error en la solicitud', data);
-    } else if (error.request) {
-      // La solicitud se realizó pero no se recibió respuesta
-      console.error('No se recibió respuesta del servidor:', error.request);
-    } else {
-      // Error al configurar la solicitud
-      console.error('Error al configurar la solicitud:', error.message);
+      console.error(`Error ${status}:`, data?.message || 'Error en la solicitud');
     }
     
     return Promise.reject(error);

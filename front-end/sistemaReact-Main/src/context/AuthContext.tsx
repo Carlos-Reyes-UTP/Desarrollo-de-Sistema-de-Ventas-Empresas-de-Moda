@@ -66,121 +66,91 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [token, setToken] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // Usar useRef para almacenar el interceptor actual
   const interceptorRef = useRef<number | null>(null);
 
-  // Función mejorada para extraer roles del token
   const extraerRolesDelToken = (decodificado: TokenDecodificado): RolNombre[] => {
-    console.log('Datos del token decodificado:', decodificado);
     let roles: RolNombre[] = [];
     
-    // Verificar si authorities existe y procesarlo según su tipo
     if (decodificado.authorities) {
-      console.log('Authorities del token:', decodificado.authorities);
-      
-      // Si es un array (nuevo formato), usarlo directamente
       if (Array.isArray(decodificado.authorities)) {
         roles = decodificado.authorities as RolNombre[];
-      } 
-      // Si es un string (formato antiguo), dividirlo por comas
-      else if (typeof decodificado.authorities === 'string') {
+      } else if (typeof decodificado.authorities === 'string') {
         roles = decodificado.authorities.split(',').map(rol => rol.trim()) as RolNombre[];
       }
     }
     
-    console.log('Roles extraídos:', roles);
     return roles;
+  };
+
+  const validarYEstablecerToken = (tokenAlmacenado: string) => {
+    try {
+      const decodificado = jwtDecode<TokenDecodificado>(tokenAlmacenado);
+      const tiempoActual = Date.now() / 1000;
+      
+      if (decodificado.exp && decodificado.exp < tiempoActual) {
+        throw new Error('Token expirado');
+      }
+
+      const nombreUsuario = decodificado.sub;
+      const rolesUsuario = extraerRolesDelToken(decodificado);
+      
+      setToken(tokenAlmacenado);
+      setAuthToken(tokenAlmacenado);
+      
+      setUsuario({
+        usuario: nombreUsuario,
+        roles: rolesUsuario.map(rol => ({ nombreRol: rol }))
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error al validar token:', error);
+      localStorage.removeItem('token');
+      setToken(null);
+      setAuthToken(null);
+      setUsuario(null);
+      return false;
+    }
   };
 
   useEffect(() => {
     const tokenAlmacenado = localStorage.getItem('token');
     if (tokenAlmacenado) {
-      try {
-        console.log('Decodificando token almacenado...');
-        const decodificado = jwtDecode<TokenDecodificado>(tokenAlmacenado);
-        console.log('Token decodificado:', decodificado);
-        
-        const tiempoActual = Date.now() / 1000;
-        
-        if (decodificado.exp && decodificado.exp < tiempoActual) {
-          console.log('Token expirado, eliminando...');
-          localStorage.removeItem('token');
-          setToken(null);
-          setAuthToken(null);
-          setUsuario(null);
-        } else {
-          console.log('Token válido, estableciendo usuario...');
-          setToken(tokenAlmacenado);
-          setAuthToken(tokenAlmacenado); // Actualizar el token en apiClient
-          
-          // Obtener el nombre de usuario
-          const nombreUsuario = decodificado.sub;
-          
-          // Extraer roles del token
-          const rolesUsuario = extraerRolesDelToken(decodificado);
-          
-          console.log(`Usuario ${nombreUsuario} con roles:`, rolesUsuario);
-          
-          setUsuario({
-            usuario: nombreUsuario,
-            roles: rolesUsuario.map(rol => ({ nombreRol: rol }))
-          });
-        }
-      } catch (error) {
-        console.error('Error al decodificar token:', error);
-        localStorage.removeItem('token');
-        setToken(null);
-        setAuthToken(null);
-        setUsuario(null);
-      }
+      validarYEstablecerToken(tokenAlmacenado);
     }
     setCargando(false);
   }, []);
 
-  // Configurar el interceptor de axios para el token
   useEffect(() => {
-    console.log('Configurando interceptor de axios con token:', token ? 'Presente' : 'Ausente');
-    
-    // Actualizar el token en apiClient
-    setAuthToken(token);
-    
-    // Si hay un interceptor previo, eliminarlo primero
     if (interceptorRef.current !== null) {
       axios.interceptors.request.eject(interceptorRef.current);
       interceptorRef.current = null;
     }
     
-    // Crear nuevo interceptor
     interceptorRef.current = axios.interceptors.request.use(
       (config) => {
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
-          console.log('Añadiendo token a la solicitud');
         }
         return config;
       },
       (error) => {
-        console.error('Error en interceptor de solicitud:', error);
         return Promise.reject(error);
       }
     );
 
-    // También agregar un interceptor de respuesta para manejar errores de autenticación
     const responseInterceptor = axios.interceptors.response.use(
       response => response,
       error => {
-        if (error.response && error.response.status === 401) {
-          console.warn('Respuesta 401 recibida, token inválido o expirado');
-          // No llamar cerrarSesion() directamente aquí para evitar ciclos infinitos
+        if (error.response?.status === 401) {
           localStorage.removeItem('token');
           setToken(null);
           setAuthToken(null);
           setUsuario(null);
-          // Redirigir a login solo si no estamos ya en la página de login
           if (window.location.pathname !== '/login') {
             window.location.href = '/login';
           }
@@ -189,96 +159,58 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       }
     );
 
-    // Función de limpieza
     return () => {
       if (interceptorRef.current !== null) {
         axios.interceptors.request.eject(interceptorRef.current);
       }
       axios.interceptors.response.eject(responseInterceptor);
     };
-  }, [token]);  const iniciarSesion = async (credenciales: CredencialesLogin): Promise<boolean> => {
+  }, [token]);
+
+  const iniciarSesion = async (credenciales: CredencialesLogin): Promise<boolean> => {
     try {
       setError(null);
-      setCargando(true);
-      console.log('Iniciando sesión con:', { usuario: credenciales.usuario });
-      
-      const respuesta = await apiAxios.post<RespuestaAutenticacion>(
-        RUTAS_AUTENTICACION.INICIAR_SESION, 
-        {
-          usuario: credenciales.usuario,
-          clave: credenciales.clave
-        }
+      const response = await axios.post<RespuestaAutenticacion>(
+        RUTAS_AUTENTICACION.INICIAR_SESION,
+        credenciales
       );
+
+      const { jwt: nuevoToken } = response.data;
+      localStorage.setItem('token', nuevoToken);
       
-      console.log('Respuesta de autenticación:', respuesta.data);
-      const { jwt, status } = respuesta.data;
-      
-      if (jwt && status) {
-        localStorage.setItem('token', jwt);
-        setToken(jwt);
-        setAuthToken(jwt); // Actualizar el token en apiClient
-        
-        try {
-          const decodificado = jwtDecode<TokenDecodificado>(jwt);
-          const nombreUsuario = decodificado.sub;
-          
-          // Extraer roles del token usando la función mejorada
-          const rolesUsuario = extraerRolesDelToken(decodificado);
-          
-          console.log(`Usuario ${nombreUsuario} autenticado con roles:`, rolesUsuario);
-          
-          setUsuario({
-            usuario: nombreUsuario,
-            roles: rolesUsuario.map(rol => ({ nombreRol: rol }))
-          });
-          
-          return true;
-        } catch (error) {
-          console.error('Error al decodificar token:', error);
-          setError('Error al procesar el token recibido');
-          return false;
-        }
-      }
-      
-      setError('No se recibió un token válido');
+      return validarYEstablecerToken(nuevoToken);
+    } catch (error) {
+      console.error('Error en inicio de sesión:', error);
+      setError('Credenciales inválidas');
       return false;
-    } catch (error: any) {
-      console.error('Error al iniciar sesión:', error);
-      setError(error.response?.data?.message || 'Error al iniciar sesión');
-      return false;
-    } finally {
-      setCargando(false);
     }
   };
 
   const cerrarSesion = () => {
-    console.log('Cerrando sesión, eliminando token...');
     localStorage.removeItem('token');
     setToken(null);
-    setAuthToken(null); // Limpiar el token en apiClient
+    setAuthToken(null);
     setUsuario(null);
+    window.location.href = '/login';
   };
 
   const tieneRol = (rol: RolNombre): boolean => {
-    if (!usuario || !usuario.roles || usuario.roles.length === 0) {
-      console.log(`Verificando rol ${rol}: usuario sin roles`);
-      return false;
-    }
-    
-    const tieneElRol = usuario.roles.some(r => r.nombreRol === rol);
-    console.log(`Verificando rol ${rol}:`, tieneElRol ? 'SÍ lo tiene' : 'NO lo tiene');
-    
-    return tieneElRol;
+    if (!usuario?.roles) return false;
+    return usuario.roles.some(r => r.nombreRol === rol);
   };
 
-  const valor: ContextoAutenticacion = {
-    usuario,
-    cargando,
-    error,
-    iniciarSesion,
-    cerrarSesion,
-    tieneRol,
-  };
-
-  return <ContextoAuth.Provider value={valor}>{children}</ContextoAuth.Provider>;
+  return (
+    <ContextoAuth.Provider
+      value={{
+        usuario,
+        cargando,
+        error,
+        iniciarSesion,
+        cerrarSesion,
+        tieneRol,
+      }}
+    >
+      {children}
+    </ContextoAuth.Provider>
+  );
 };

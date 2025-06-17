@@ -50,7 +50,7 @@ const GestionUsuarios = () => {
     password: '',
     confirmPassword: '',
     activo: true,
-    roles: ['ROLE_CAJERO']
+    roles: [] // Inicializar sin roles preseleccionados
   });
   
   // Estado para mensajes de acción
@@ -173,7 +173,7 @@ const GestionUsuarios = () => {
       password: '',
       confirmPassword: '',
       activo: true,
-      roles: ['ROLE_CAJERO'] // Por defecto, nuevo usuario será cajero
+      roles: [] // Inicializar sin roles preseleccionados
     });
     setModoEdicion(false);
     setUsuarioEditando(null);
@@ -220,84 +220,73 @@ const GestionUsuarios = () => {
     }
   };
   
-  // Función para manejar toggle de rol
-  const toggleRol = (rol: RolNombre) => {
-    setFormUsuario(prev => {
-      if (prev.roles.includes(rol)) {
-        // Si ya tiene el rol, quitarlo (a menos que sea el último)
-        return prev.roles.length > 1
-          ? { ...prev, roles: prev.roles.filter(r => r !== rol) }
-          : prev;
-      } else {
-        // Si no tiene el rol, agregarlo
-        return { ...prev, roles: [...prev.roles, rol] };
-      }
-    });
-  };
-  
   // Función para guardar usuario (crear o actualizar)
   const guardarUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validaciones básicas
+    setError(null);
+
+    // Validaciones
     if (!formUsuario.usuario.trim()) {
-      mostrarMensaje('El nombre de usuario es obligatorio', 'error');
+      setError('El nombre de usuario no puede estar vacío');
       return;
     }
-    
-    if (!modoEdicion && formUsuario.password !== formUsuario.confirmPassword) {
-      mostrarMensaje('Las contraseñas no coinciden', 'error');
-      return;
+
+    if (!modoEdicion) {
+      if (!formUsuario.password) {
+        setError('La contraseña no puede estar vacía');
+        return;
+      }
+
+      if (formUsuario.password.length < 8) {
+        setError('La contraseña debe tener al menos 8 caracteres');
+        return;
+      }
+
+      if (formUsuario.password !== formUsuario.confirmPassword) {
+        setError('Las contraseñas no coinciden');
+        return;
+      }
     }
-    
-    if (!modoEdicion && !formUsuario.password) {
-      mostrarMensaje('La contraseña es obligatoria para nuevos usuarios', 'error');
-      return;
-    }
-    
-    // Validar que se haya seleccionado al menos un rol
+
     if (formUsuario.roles.length === 0) {
-      mostrarMensaje('Debe seleccionar al menos un rol', 'error');
+      setError('Debe seleccionar un rol');
       return;
     }
-    
-    setCargando(true);
-    
+
     try {
-      if (modoEdicion && formUsuario.id) {
-        // Actualizar usuario existente
-        await ServicioUsuarios.actualizar(formUsuario.id, {
-          id: formUsuario.id,
+      if (modoEdicion && usuarioEditando) {
+        // Lógica de edición
+        await ServicioUsuarios.actualizar(usuarioEditando.id!, {
+          ...usuarioEditando,
           usuario: formUsuario.usuario,
-          password: formUsuario.password || undefined, // Solo enviar contraseña si se modificó
+          password: formUsuario.password || usuarioEditando.password,
           activo: formUsuario.activo,
           roles: formUsuario.roles.map(rol => ({ nombreRol: rol }))
         });
-        
-        mostrarMensaje(`Usuario ${formUsuario.usuario} actualizado correctamente`, 'success');
+        mostrarMensaje('Usuario actualizado exitosamente', 'success');
       } else {
         // Crear nuevo usuario
+        const rolSeleccionado = formUsuario.roles[0];
         await ServicioUsuarios.crear({
           usuario: formUsuario.usuario,
           clave: formUsuario.password,
-          rol: formUsuario.roles[0] // El backend espera un solo rol como string
+          rol: rolSeleccionado
         });
-        
-        mostrarMensaje(`Usuario ${formUsuario.usuario} creado correctamente`, 'success');
+        mostrarMensaje('Usuario creado exitosamente', 'success');
       }
       
-      // Recargar lista de usuarios
-      await cargarUsuarios();
       setMostrarModal(false);
-      
+      cargarUsuarios();
     } catch (err: any) {
       console.error('Error al guardar usuario:', err);
-      mostrarMensaje(
-        err.response?.data?.message || 'Error al guardar usuario', 
-        'error'
-      );
-    } finally {
-      setCargando(false);
+      if (err.response?.status === 401) {
+        mostrarMensaje('Sesión expirada. Por favor, inicie sesión nuevamente.', 'error');
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setError(err.response?.data?.message || 'Error al guardar el usuario');
+      }
     }
   };
   
@@ -649,134 +638,164 @@ const GestionUsuarios = () => {
         )}
       </div>
       
-      {/* Modal de creación/edición de usuario */}
+      {/* Modal de Usuario */}
       {mostrarModal && (
-        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">
-                {modoEdicion ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
-              </h3>
-              <button onClick={() => setMostrarModal(false)} className="text-gray-400 hover:text-gray-500">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-indigo-50 rounded-lg">
+                  {modoEdicion ? (
+                    <Edit className="w-5 h-5 text-indigo-600" />
+                  ) : (
+                    <UserPlus className="w-5 h-5 text-indigo-600" />
+                  )}
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {modoEdicion ? 'Editar Usuario' : 'Crear Usuario'}
+                </h2>
+              </div>
+              <button
+                onClick={() => setMostrarModal(false)}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
+              >
                 <X size={20} />
               </button>
             </div>
-            
-            <form onSubmit={guardarUsuario}>
-              <div className="p-6 space-y-4">
-                {/* Campo usuario */}
-                <div>
-                  <label htmlFor="usuario" className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre de usuario
-                  </label>
-                  <input
-                    type="text"
-                    id="usuario"
-                    name="usuario"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={formUsuario.usuario}
-                    onChange={manejarCambioForm}
-                    required
-                  />
-                </div>
-                
-                {/* Campo contraseña */}
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                    Contraseña {modoEdicion && '(dejar en blanco para mantener)'}
-                  </label>
-                  <div className="relative">
+
+            <form onSubmit={guardarUsuario} className="p-6 space-y-6">
+              {/* Campo Usuario */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre de Usuario
+                </label>
+                <input
+                  type="text"
+                  name="usuario"
+                  value={formUsuario.usuario}
+                  onChange={manejarCambioForm}
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                  placeholder="Ingrese el nombre de usuario"
+                  required
+                  minLength={1}
+                />
+              </div>
+
+              {/* Campos de Contraseña (solo para nuevo usuario) */}
+              {!modoEdicion && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Contraseña
+                    </label>
                     <input
                       type="password"
-                      id="password"
                       name="password"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                       value={formUsuario.password}
                       onChange={manejarCambioForm}
-                      required={!modoEdicion}
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                      placeholder="Ingrese la contraseña (mínimo 8 caracteres)"
+                      required
+                      minLength={8}
                     />
+                    <p className="mt-1 text-sm text-gray-500">
+                      La contraseña debe tener al menos 8 caracteres
+                    </p>
                   </div>
-                </div>
-                
-                {/* Campo confirmar contraseña */}
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                    Confirmar contraseña
-                  </label>
-                  <input
-                    type="password"
-                    id="confirmPassword"
-                    name="confirmPassword"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    value={formUsuario.confirmPassword}
-                    onChange={manejarCambioForm}
-                    required={!modoEdicion || formUsuario.password !== ''}
-                  />
-                </div>
-                
-                {/* Selección de roles */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Roles
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {(['ROLE_ADMIN', 'ROLE_CAJERO', 'ROLE_ALMACENERO'] as RolNombre[]).map(rol => (                      <button
-                        key={rol}
-                        type="button"
-                        onClick={() => toggleRol(rol)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                          formUsuario.roles.includes(rol)
-                            ? getColorBadgeRol(rol)
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                        }`}
-                      >
-                        {rol.replace('ROLE_', '')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                
-                {/* Campo estado (activo/inactivo) */}
-                {modoEdicion && (
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="activo"
-                      name="activo"
-                      className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-                      checked={formUsuario.activo}
-                      onChange={(e) => 
-                        setFormUsuario(prev => ({ ...prev, activo: e.target.checked }))
-                      }
-                    />
-                    <label htmlFor="activo" className="ml-2 block text-sm font-medium text-gray-700">
-                      Usuario activo
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirmar Contraseña
                     </label>
+                    <input
+                      type="password"
+                      name="confirmPassword"
+                      value={formUsuario.confirmPassword}
+                      onChange={manejarCambioForm}
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                      placeholder="Confirme la contraseña"
+                      required
+                      minLength={8}
+                    />
                   </div>
-                )}
+                </>
+              )}
+
+              {/* Selección de Rol */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Rol de Usuario
+                </label>
+                <div className="grid grid-cols-3 gap-3">
+                  {(['ROLE_ADMIN', 'ROLE_ALMACENERO', 'ROLE_CAJERO'] as RolNombre[]).map((rol) => (
+                    <label
+                      key={rol}
+                      className={`relative flex flex-col items-center p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                        formUsuario.roles.includes(rol)
+                          ? 'border-indigo-500 bg-indigo-50'
+                          : 'border-gray-200 hover:border-indigo-200'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="roles"
+                        value={rol}
+                        checked={formUsuario.roles.includes(rol)}
+                        onChange={() => setFormUsuario(prev => ({ ...prev, roles: [rol] }))}
+                        className="sr-only"
+                      />
+                      <span className={`text-sm font-medium ${
+                        formUsuario.roles.includes(rol) ? 'text-indigo-700' : 'text-gray-700'
+                      }`}>
+                        {rol.replace('ROLE_', '')}
+                      </span>
+                    </label>
+                  ))}
+                </div>
               </div>
-              
-              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+
+              {/* Estado Activo */}
+              <div className="flex items-center">
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="activo"
+                    checked={formUsuario.activo}
+                    onChange={manejarCambioForm}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-indigo-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                  <span className="ml-3 text-sm font-medium text-gray-700">
+                    Usuario Activo
+                  </span>
+                </label>
+              </div>
+
+              {/* Mensaje de Error */}
+              {error && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                  <div className="flex items-center text-red-700">
+                    <AlertCircle className="w-5 h-5 mr-2" />
+                    <span className="text-sm">{error}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Botones de Acción */}
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={() => setMostrarModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  disabled={cargando}
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
-                  {cargando ? (
-                    <div className="flex items-center">
-                      <Loader2 size={18} className="animate-spin mr-2" />
-                      <span>Guardando...</span>
-                    </div>
-                  ) : (
-                    <span>{modoEdicion ? 'Actualizar' : 'Crear'}</span>
-                  )}
+                  {modoEdicion ? 'Actualizar' : 'Crear Usuario'}
                 </button>
               </div>
             </form>
