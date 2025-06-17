@@ -73,19 +73,23 @@ const GestionUsuarios = () => {
   useEffect(() => {
     aplicarFiltros();
   }, [busqueda, filtroRol, filtroActivo, usuarios, ordenarPor, ordenAscendente]);
-  
-  // Función helper para determinar si un usuario es el último administrador activo
+    // Función helper para determinar si un usuario es el último administrador activo
   const esUltimoAdministradorActivo = (usuario: Usuario): boolean => {
-    // Contar cuántos administradores activos hay
-    const administradoresActivos = usuarios.filter(u => 
+    // Verificar si el usuario actual es administrador activo
+    const esAdminActivo = usuario.activo && 
+      usuario.roles?.some(rol => rol.nombreRol === 'ROLE_ADMIN');
+    
+    if (!esAdminActivo) {
+      return false; // Si no es admin activo, definitivamente no es el último
+    }
+    
+    // Contar cuántos administradores activos hay en total
+    const totalAdministradoresActivos = usuarios.filter(u => 
       u.activo && u.roles?.some(rol => rol.nombreRol === 'ROLE_ADMIN')
-    );
+    ).length;
     
-    // Verificar si el usuario actual es administrador
-    const esAdmin = usuario.roles?.some(rol => rol.nombreRol === 'ROLE_ADMIN') ?? false;
-    
-    // Es el último admin si es administrador y solo hay 1 administrador activo
-    return esAdmin && administradoresActivos.length === 1;
+    // Es el último admin si es administrador activo y solo hay 1 administrador activo en total
+    return totalAdministradoresActivos === 1;
   };
 
   // Función helper para normalizar usuarios del back-end
