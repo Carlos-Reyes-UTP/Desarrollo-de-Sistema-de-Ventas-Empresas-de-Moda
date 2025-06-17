@@ -19,7 +19,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { ServicioUsuarios } from '../services/UsuarioServices';
-import type { Usuario, Rol, UsuarioBackend } from '../interfaces/Usuario';
+import type { Usuario, Rol, UsuarioBackend, ActualizarUsuarioDTO } from '../interfaces/Usuario';
 import type { RolNombre } from '../interfaces/enums';
 
 const GestionUsuarios = () => {
@@ -300,16 +300,20 @@ const GestionUsuarios = () => {
       return;
     }
 
-    try {
-      if (modoEdicion && usuarioEditando) {
-        // Lógica de edición
-        await ServicioUsuarios.actualizar(usuarioEditando.id!, {
-          ...usuarioEditando,
+    try {      if (modoEdicion && usuarioEditando) {
+        // Lógica de edición - enviar en formato UsuarioDTO
+        const usuarioParaActualizar: ActualizarUsuarioDTO = {
+          id: usuarioEditando.id,
           usuario: formUsuario.usuario,
-          password: formUsuario.password || usuarioEditando.password,
+          clave: formUsuario.password || undefined, // Solo incluir si hay una nueva contraseña
           activo: formUsuario.activo,
-          roles: formUsuario.roles.map(rol => ({ nombreRol: rol }))
-        });
+          roles: formUsuario.roles // Ya es un array de strings (RolNombre)
+        };
+        
+        console.log('Datos enviados para actualizar:', usuarioParaActualizar);
+        console.log('Roles enviados:', formUsuario.roles);
+        
+        await ServicioUsuarios.actualizar(usuarioEditando.id!, usuarioParaActualizar);
         mostrarMensaje('Usuario actualizado exitosamente', 'success');
       } else {
         // Crear nuevo usuario
@@ -752,13 +756,12 @@ const GestionUsuarios = () => {
                   required
                   minLength={1}
                 />
-              </div>
-
-              {/* Campos de Contraseña (solo para nuevo usuario) */}
-              {!modoEdicion && (
-                <>                  <div>
+              </div>              {/* Campos de Contraseña */}
+              {(!modoEdicion || (modoEdicion && formUsuario.password)) && (
+                <>
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Contraseña
+                      {modoEdicion ? 'Nueva Contraseña (opcional)' : 'Contraseña'}
                     </label>
                     <input
                       type="password"
@@ -766,53 +769,70 @@ const GestionUsuarios = () => {
                       value={formUsuario.password}
                       onChange={manejarCambioForm}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      placeholder="Ingrese una contraseña segura"
-                      required
+                      placeholder={modoEdicion ? "Dejar vacío para mantener la actual" : "Ingrese una contraseña segura"}
+                      required={!modoEdicion}
                       minLength={8}
                     />
-                    <div className="mt-2 text-sm text-gray-600">
-                      <p className="font-medium mb-1">La contraseña debe contener:</p>
-                      <ul className="space-y-1">
-                        <li className={`flex items-center ${formUsuario.password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
-                          <span className="mr-2">{formUsuario.password.length >= 8 ? '✓' : '○'}</span>
-                          Al menos 8 caracteres
-                        </li>
-                        <li className={`flex items-center ${/[a-z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                          <span className="mr-2">{/[a-z]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                          Una letra minúscula
-                        </li>
-                        <li className={`flex items-center ${/[A-Z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                          <span className="mr-2">{/[A-Z]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                          Una letra mayúscula
-                        </li>
-                        <li className={`flex items-center ${/[0-9]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                          <span className="mr-2">{/[0-9]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                          Un número
-                        </li>
-                        <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                          <span className="mr-2">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                          Un símbolo especial (!@#$%^&*...)
-                        </li>
-                      </ul>
-                    </div>
+                    {formUsuario.password && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <p className="font-medium mb-1">La contraseña debe contener:</p>
+                        <ul className="space-y-1">
+                          <li className={`flex items-center ${formUsuario.password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{formUsuario.password.length >= 8 ? '✓' : '○'}</span>
+                            Al menos 8 caracteres
+                          </li>
+                          <li className={`flex items-center ${/[a-z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{/[a-z]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                            Una letra minúscula
+                          </li>
+                          <li className={`flex items-center ${/[A-Z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{/[A-Z]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                            Una letra mayúscula
+                          </li>
+                          <li className={`flex items-center ${/[0-9]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{/[0-9]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                            Un número
+                          </li>
+                          <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                            Un símbolo especial (!@#$%^&*...)
+                          </li>
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirmar Contraseña
-                    </label>
-                    <input
-                      type="password"
-                      name="confirmPassword"
-                      value={formUsuario.confirmPassword}
-                      onChange={manejarCambioForm}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      placeholder="Confirme la contraseña"
-                      required
-                      minLength={8}
-                    />
-                  </div>
+                  {formUsuario.password && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Confirmar Contraseña
+                      </label>
+                      <input
+                        type="password"
+                        name="confirmPassword"
+                        value={formUsuario.confirmPassword}
+                        onChange={manejarCambioForm}
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        placeholder="Confirme la contraseña"
+                        required={!modoEdicion && formUsuario.password.length > 0}
+                        minLength={8}
+                      />
+                    </div>
+                  )}
                 </>
+              )}
+
+              {/* Botón para cambiar contraseña en modo edición */}
+              {modoEdicion && !formUsuario.password && (
+                <div className="flex justify-start">
+                  <button
+                    type="button"
+                    onClick={() => setFormUsuario(prev => ({ ...prev, password: '', confirmPassword: '' }))}
+                    className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
+                  >
+                    Cambiar Contraseña
+                  </button>
+                </div>
               )}
 
               {/* Selección de Rol */}

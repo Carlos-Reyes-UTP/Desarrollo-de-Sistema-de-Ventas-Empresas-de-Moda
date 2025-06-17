@@ -2,7 +2,10 @@ package com.tienda.ropa.service.impl;
 
 import com.tienda.ropa.dto.UsuarioDTO;
 import com.tienda.ropa.entity.Usuario;
+import com.tienda.ropa.entity.Rol;
+import com.tienda.ropa.entity.Role;
 import com.tienda.ropa.repository.UsuarioRepository;
+import com.tienda.ropa.repository.RolRepository;
 import com.tienda.ropa.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,10 +20,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
-public class UsuarioServiceImpl implements UsuarioService {
+public class UsuarioServiceImpl implements UsuarioService {    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private UsuarioRepository usuarioRepository;
+    private RolRepository rolRepository;
 
     public UserDetailsService userDetailsService() {
         return new UserDetailsService() {
@@ -50,19 +54,54 @@ public class UsuarioServiceImpl implements UsuarioService {
         }).collect(Collectors.toList());
     }    public UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO) {
         Usuario usuario = usuarioRepository.findById(id).orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        
+        System.out.println("Actualizando usuario con ID: " + id);
+        System.out.println("Roles recibidos: " + usuarioDTO.getRoles());
+        
+        // Actualizar nombre de usuario
         usuario.setUsuario(usuarioDTO.getUsuario());
         
+        // Actualizar estado activo
+        usuario.setActivo(usuarioDTO.isActivo());
+        
         // Si se proporciona una nueva contraseña, validarla y encriptarla
-        if (usuarioDTO.getClave() != null && !usuarioDTO.getClave().isEmpty()) {
+        if (usuarioDTO.getClave() != null && !usuarioDTO.getClave().trim().isEmpty()) {
             if (!validarContrasenaSegura(usuarioDTO.getClave())) {
                 throw new RuntimeException("La contraseña no cumple con los requisitos de seguridad");
             }
             usuario.setPassword(new BCryptPasswordEncoder().encode(usuarioDTO.getClave()));
         }
         
+        // Actualizar roles si se proporcionan
+        if (usuarioDTO.getRoles() != null && !usuarioDTO.getRoles().isEmpty()) {
+            System.out.println("Actualizando roles...");
+            usuario.getRoles().clear(); // Limpiar roles existentes
+            
+            for (String rolNombre : usuarioDTO.getRoles()) {
+                System.out.println("Procesando rol: " + rolNombre);
+                // Convertir string a enum Role (remover prefijo ROLE_ si existe)
+                String nombreRolSinPrefijo = rolNombre.replace("ROLE_", "");
+                Role roleEnum;
+                try {
+                    roleEnum = Role.valueOf(nombreRolSinPrefijo);
+                } catch (IllegalArgumentException e) {
+                    throw new RuntimeException("Rol no válido: " + rolNombre);
+                }
+                
+                // Buscar el rol en la base de datos
+                Rol rol = rolRepository.findByNombreRol(roleEnum)
+                        .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + roleEnum));
+                
+                usuario.getRoles().add(rol);
+                System.out.println("Rol agregado: " + rol.getNombreRol());
+            }
+        }
+        
         usuarioRepository.save(usuario);
+        System.out.println("Usuario guardado con roles: " + usuario.getRoles().size());
 
-        return usuarioDTO;
+        // Devolver el DTO actualizado con roles
+        return convertirADTOConRoles(usuario);
     }
 
     public boolean deshabilitarUsuario(Long id) {

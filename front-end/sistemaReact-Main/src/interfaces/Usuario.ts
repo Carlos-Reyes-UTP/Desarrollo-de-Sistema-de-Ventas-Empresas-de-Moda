@@ -33,3 +33,12 @@ export interface RespuestaAutenticacion {
   jwt: string;
   status: boolean;
 }
+
+// DTO para actualizar usuarios (coincide con UsuarioDTO del back-end)
+export interface ActualizarUsuarioDTO {
+  id?: number;
+  usuario: string;
+  clave?: string; // Opcional para actualizaciones
+  activo: boolean;
+  roles?: string[]; // Array de strings con los nombres de roles
+}

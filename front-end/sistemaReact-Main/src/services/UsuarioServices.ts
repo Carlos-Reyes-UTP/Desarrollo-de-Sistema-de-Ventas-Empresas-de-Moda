@@ -1,5 +1,5 @@
 import apiClient from '../config/apiClient';
-import type { Usuario, UsuarioBackend } from '../interfaces/Usuario';
+import type { Usuario, UsuarioBackend, ActualizarUsuarioDTO } from '../interfaces/Usuario';
 import { RUTAS_USUARIOS } from '../config/apiConfig';
 
 export const ServicioUsuarios = {
@@ -56,10 +56,9 @@ export const ServicioUsuarios = {
       throw error;
     }
   },
-  
-  actualizar: async (id: number, datosUsuario: Usuario): Promise<Usuario> => {
+    actualizar: async (id: number, datosUsuario: ActualizarUsuarioDTO): Promise<UsuarioBackend> => {
     console.log('Actualizando usuario:', id, datosUsuario);
-    const respuesta = await apiClient.put<Usuario>(RUTAS_USUARIOS.POR_ID(id), datosUsuario);
+    const respuesta = await apiClient.put<UsuarioBackend>(RUTAS_USUARIOS.POR_ID(id), datosUsuario);
     console.log('Respuesta actualizar:', respuesta.data);
     return respuesta.data;
   },
