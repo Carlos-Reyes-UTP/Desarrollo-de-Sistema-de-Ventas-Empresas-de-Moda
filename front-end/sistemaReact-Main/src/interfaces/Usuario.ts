@@ -5,6 +5,15 @@ export interface Rol {
   nombreRol: RolNombre;
 }
 
+// Interfaz para la respuesta del back-end donde roles viene como Set<String>
+export interface UsuarioBackend {
+  id?: number;
+  usuario: string;
+  password?: string;
+  activo?: boolean;
+  roles?: string[] | Set<string> | Record<string, unknown>; // Flexible para manejar diferentes formatos
+}
+
 export interface Usuario {
   id?: number;
   usuario: string;

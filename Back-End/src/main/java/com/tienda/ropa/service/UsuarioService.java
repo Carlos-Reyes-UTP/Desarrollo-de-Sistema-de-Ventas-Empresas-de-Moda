@@ -24,5 +24,5 @@ public interface UsuarioService {
 
     public List<UsuarioDTO> obtenerUsuariosConRoles();
 
-
+    public boolean validarContrasenaSegura(String password);
 }

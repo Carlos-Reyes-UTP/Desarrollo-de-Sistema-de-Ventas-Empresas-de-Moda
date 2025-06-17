@@ -1,8 +1,8 @@
 package com.tienda.ropa.entity;
 
+import com.tienda.ropa.validation.ContrasenaSegura;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -30,10 +30,8 @@ public class Usuario implements UserDetails {
 
     @NotBlank(message = "El nombre de usuario no puede estar vacío")
     @Column(name = "usuario")
-    private String usuario;
-
-    @NotBlank(message = "La contraseña no puede estar vacía")
-    @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
+    private String usuario;    @NotBlank(message = "La contraseña no puede estar vacía")
+    @ContrasenaSegura
     @Column(name = "password")
     private String password;
 

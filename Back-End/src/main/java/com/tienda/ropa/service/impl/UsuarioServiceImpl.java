@@ -48,12 +48,18 @@ public class UsuarioServiceImpl implements UsuarioService {
 
             return dto;
         }).collect(Collectors.toList());
-    }
-
-    public UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO) {
+    }    public UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO) {
         Usuario usuario = usuarioRepository.findById(id).orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         usuario.setUsuario(usuarioDTO.getUsuario());
-        usuario.setPassword(new BCryptPasswordEncoder().encode(usuarioDTO.getClave()));
+        
+        // Si se proporciona una nueva contraseña, validarla y encriptarla
+        if (usuarioDTO.getClave() != null && !usuarioDTO.getClave().isEmpty()) {
+            if (!validarContrasenaSegura(usuarioDTO.getClave())) {
+                throw new RuntimeException("La contraseña no cumple con los requisitos de seguridad");
+            }
+            usuario.setPassword(new BCryptPasswordEncoder().encode(usuarioDTO.getClave()));
+        }
+        
         usuarioRepository.save(usuario);
 
         return usuarioDTO;
@@ -112,5 +118,38 @@ public class UsuarioServiceImpl implements UsuarioService {
         return dto;
     }
 
+    @Override
+    public boolean validarContrasenaSegura(String password) {
+        if (password == null || password.isEmpty()) {
+            return false;
+        }
+
+        // Validar longitud mínima
+        if (password.length() < 8) {
+            return false;
+        }
+
+        // Validar letra minúscula
+        if (!password.matches(".*[a-z].*")) {
+            return false;
+        }
+
+        // Validar letra mayúscula
+        if (!password.matches(".*[A-Z].*")) {
+            return false;
+        }
+
+        // Validar número
+        if (!password.matches(".*[0-9].*")) {
+            return false;
+        }
+
+        // Validar símbolo especial
+        if (!password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) {
+            return false;
+        }
+
+        return true;
+    }
 
 }

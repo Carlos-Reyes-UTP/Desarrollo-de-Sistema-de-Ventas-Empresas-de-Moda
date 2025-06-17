@@ -1,5 +1,5 @@
 import apiClient from '../config/apiClient';
-import type { Usuario } from '../interfaces/Usuario';
+import type { Usuario, UsuarioBackend } from '../interfaces/Usuario';
 import { RUTAS_USUARIOS } from '../config/apiConfig';
 
 export const ServicioUsuarios = {
@@ -8,19 +8,22 @@ export const ServicioUsuarios = {
     const respuesta = await apiClient.get<Usuario[]>(RUTAS_USUARIOS.BASE);
     console.log('Respuesta obtenerTodos:', respuesta.data);
     return respuesta.data;
-  },
-
-  obtenerUsuariosConRoles: async (): Promise<Usuario[]> => {
+  },  obtenerUsuariosConRoles: async (): Promise<UsuarioBackend[]> => {
     console.log('Obteniendo usuarios con roles...');
     try {
-      const respuesta = await apiClient.get<Usuario[]>(`${RUTAS_USUARIOS.BASE}/with-roles`);
+      const respuesta = await apiClient.get<UsuarioBackend[]>(`${RUTAS_USUARIOS.BASE}/with-roles`);
       console.log('Respuesta obtenerUsuariosConRoles:', respuesta.data);
       return respuesta.data;
     } catch (error) {
       console.error('Error en obtenerUsuariosConRoles:', error);
       // Si falla el endpoint con roles, usar el endpoint base como fallback
       console.log('Usando fallback al endpoint base...');
-      return await ServicioUsuarios.obtenerTodos();
+      const usuariosBase = await ServicioUsuarios.obtenerTodos();
+      // Transformar a UsuarioBackend (sin roles)
+      return usuariosBase.map(usuario => ({
+        ...usuario,
+        roles: []
+      }));
     }
   },
   
@@ -49,7 +52,7 @@ export const ServicioUsuarios = {
       if (error.response?.status === 401) {
         throw error;
       }
-      console.error('Error al crear usuario:', error.response?.data || error.message);
+      console.error('Error al crear usuario:', error.response?.data ?? error.message);
       throw error;
     }
   },

@@ -19,7 +19,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { ServicioUsuarios } from '../services/UsuarioServices';
-import type { Usuario, Rol } from '../interfaces/Usuario';
+import type { Usuario, Rol, UsuarioBackend } from '../interfaces/Usuario';
 import type { RolNombre } from '../interfaces/enums';
 
 const GestionUsuarios = () => {
@@ -73,6 +73,40 @@ const GestionUsuarios = () => {
   useEffect(() => {
     aplicarFiltros();
   }, [busqueda, filtroRol, filtroActivo, usuarios, ordenarPor, ordenAscendente]);
+  // Función helper para normalizar usuarios del back-end
+  const normalizarUsuario = (usuarioBackend: UsuarioBackend): Usuario => {
+    const usuario: Usuario = {
+      id: usuarioBackend.id,
+      usuario: usuarioBackend.usuario,
+      password: usuarioBackend.password,
+      activo: usuarioBackend.activo,
+      roles: []
+    };
+
+    // Normalizar roles
+    if (usuarioBackend.roles) {
+      if (Array.isArray(usuarioBackend.roles)) {
+        // Si es array de strings, convertir a objetos Rol
+        usuario.roles = (usuarioBackend.roles as string[]).map(rol => ({
+          nombreRol: rol.startsWith('ROLE_') ? rol as RolNombre : `ROLE_${rol}` as RolNombre
+        }));
+      } else if (usuarioBackend.roles instanceof Set) {
+        // Si es Set, convertir a array y luego a objetos Rol
+        usuario.roles = Array.from(usuarioBackend.roles as Set<string>).map(rol => ({
+          nombreRol: rol.startsWith('ROLE_') ? rol as RolNombre : `ROLE_${rol}` as RolNombre
+        }));
+      } else if (typeof usuarioBackend.roles === 'object') {
+        // Si es un objeto, extraer los valores
+        const rolesArray = Object.values(usuarioBackend.roles) as string[];
+        usuario.roles = rolesArray.map(rol => ({
+          nombreRol: rol.startsWith('ROLE_') ? rol as RolNombre : `ROLE_${rol}` as RolNombre
+        }));
+      }
+    }
+
+    return usuario;
+  };
+
   // Función para cargar usuarios desde el servicio
   const cargarUsuarios = async () => {
     setCargando(true);
@@ -82,30 +116,19 @@ const GestionUsuarios = () => {
     try {
       // Usar el nuevo endpoint que incluye roles
       const data = await ServicioUsuarios.obtenerUsuariosConRoles();
+        // Normalizar los usuarios del back-end al formato del front-end
+      const usuariosNormalizados = data.map(normalizarUsuario);
       
       // Log para depuración
-      data.forEach(user => {
+      usuariosNormalizados.forEach(user => {
         console.log(`Usuario: ${user.usuario}, Roles:`, user.roles);
       });
       
-      // Asegurar que los roles estén correctamente formateados
-      const usuariosConRolesNormalizados = data.map(user => {
-        // Si el usuario no tiene roles, crear un array vacío
-        if (!user.roles) {
-          user.roles = [];
-        }
-        // Si los roles no están en el formato esperado, normalizarlos
-        if (user.roles.length > 0 && typeof user.roles[0] === 'string') {
-          user.roles = (user.roles as unknown as string[]).map(rol => ({ nombreRol: rol as RolNombre }));
-        }
-        return user;
-      });
-      
-      setUsuarios(usuariosConRolesNormalizados);
-      setUsuariosFiltrados(usuariosConRolesNormalizados);
+      setUsuarios(usuariosNormalizados);
+      setUsuariosFiltrados(usuariosNormalizados);
     } catch (err: any) {
       console.error('Error al cargar usuarios:', err);
-      setError('No se pudieron cargar los usuarios. ' + (err.message || ''));
+      setError('No se pudieron cargar los usuarios. ' + (err.message ?? ''));
     } finally {
       setCargando(false);
     }
@@ -123,11 +146,23 @@ const GestionUsuarios = () => {
       );
     }
     
-    // Aplicar filtro de rol
+    // Aplicar filtro de rol con logs de depuración
     if (filtroRol !== 'TODOS') {
-      resultado = resultado.filter(user => 
-        user.roles && user.roles.some(rol => rol.nombreRol === filtroRol)
-      );
+      console.log('Filtrando por rol:', filtroRol);
+      console.log('Usuarios antes de filtrar:', resultado);
+
+      resultado = resultado.filter(user => {
+        // Verificar si el usuario tiene roles y si alguno coincide con el filtro
+        const tieneRol = user.roles &&
+                        Array.isArray(user.roles) &&
+                        user.roles.some(rol => {
+                          console.log('Comparando rol de usuario:', rol, 'con filtro:', filtroRol);
+                          return rol && rol.nombreRol === filtroRol;
+                        });
+        return tieneRol;
+      });
+
+      console.log('Usuarios después de filtrar por rol:', resultado);
     }
     
     // Aplicar filtro de estado (activo/inactivo)
@@ -229,16 +264,28 @@ const GestionUsuarios = () => {
     if (!formUsuario.usuario.trim()) {
       setError('El nombre de usuario no puede estar vacío');
       return;
-    }
-
-    if (!modoEdicion) {
+    }    if (!modoEdicion) {
       if (!formUsuario.password) {
         setError('La contraseña no puede estar vacía');
         return;
       }
 
-      if (formUsuario.password.length < 8) {
-        setError('La contraseña debe tener al menos 8 caracteres');
+      // Validar contraseña segura
+      const validacionPassword = validarContrasenaSegura(formUsuario.password);
+      if (!validacionPassword.esValida) {
+        setError(validacionPassword.mensaje);
+        return;
+      }
+
+      if (formUsuario.password !== formUsuario.confirmPassword) {
+        setError('Las contraseñas no coinciden');
+        return;
+      }
+    } else if (formUsuario.password) {
+      // Si está editando y proporcionó una nueva contraseña, validarla
+      const validacionPassword = validarContrasenaSegura(formUsuario.password);
+      if (!validacionPassword.esValida) {
+        setError(validacionPassword.mensaje);
         return;
       }
 
@@ -359,6 +406,31 @@ const GestionUsuarios = () => {
     }
   };
   
+  // Función para validar contraseña segura
+  const validarContrasenaSegura = (password: string): { esValida: boolean; mensaje: string } => {
+    if (password.length < 8) {
+      return { esValida: false, mensaje: 'La contraseña debe tener al menos 8 caracteres' };
+    }
+
+    if (!/[a-z]/.test(password)) {
+      return { esValida: false, mensaje: 'La contraseña debe contener al menos una letra minúscula' };
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      return { esValida: false, mensaje: 'La contraseña debe contener al menos una letra mayúscula' };
+    }
+
+    if (!/[0-9]/.test(password)) {
+      return { esValida: false, mensaje: 'La contraseña debe contener al menos un número' };
+    }
+
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+      return { esValida: false, mensaje: 'La contraseña debe contener al menos un símbolo especial (!@#$%^&*()_+-=[]{};\'":\\|,.<>/?)' };
+    }
+
+    return { esValida: true, mensaje: 'Contraseña válida' };
+  };
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       {/* Cabecera */}
@@ -684,8 +756,7 @@ const GestionUsuarios = () => {
 
               {/* Campos de Contraseña (solo para nuevo usuario) */}
               {!modoEdicion && (
-                <>
-                  <div>
+                <>                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Contraseña
                     </label>
@@ -695,13 +766,35 @@ const GestionUsuarios = () => {
                       value={formUsuario.password}
                       onChange={manejarCambioForm}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      placeholder="Ingrese la contraseña (mínimo 8 caracteres)"
+                      placeholder="Ingrese una contraseña segura"
                       required
                       minLength={8}
                     />
-                    <p className="mt-1 text-sm text-gray-500">
-                      La contraseña debe tener al menos 8 caracteres
-                    </p>
+                    <div className="mt-2 text-sm text-gray-600">
+                      <p className="font-medium mb-1">La contraseña debe contener:</p>
+                      <ul className="space-y-1">
+                        <li className={`flex items-center ${formUsuario.password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
+                          <span className="mr-2">{formUsuario.password.length >= 8 ? '✓' : '○'}</span>
+                          Al menos 8 caracteres
+                        </li>
+                        <li className={`flex items-center ${/[a-z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                          <span className="mr-2">{/[a-z]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                          Una letra minúscula
+                        </li>
+                        <li className={`flex items-center ${/[A-Z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                          <span className="mr-2">{/[A-Z]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                          Una letra mayúscula
+                        </li>
+                        <li className={`flex items-center ${/[0-9]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                          <span className="mr-2">{/[0-9]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                          Un número
+                        </li>
+                        <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                          <span className="mr-2">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                          Un símbolo especial (!@#$%^&*...)
+                        </li>
+                      </ul>
+                    </div>
                   </div>
 
                   <div>
@@ -807,3 +900,4 @@ const GestionUsuarios = () => {
 };
 
 export default GestionUsuarios;
+

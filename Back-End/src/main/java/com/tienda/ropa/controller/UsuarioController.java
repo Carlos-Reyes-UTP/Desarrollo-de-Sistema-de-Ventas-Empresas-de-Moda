@@ -3,6 +3,7 @@ package com.tienda.ropa.controller;
 import jakarta.validation.Valid;
 import com.tienda.ropa.agregates.request.SignUpRequest;
 import com.tienda.ropa.dto.UsuarioDTO;
+import com.tienda.ropa.dto.ActualizarUsuarioDTO;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.service.AuthenticationService;
 import com.tienda.ropa.service.UsuarioService;
