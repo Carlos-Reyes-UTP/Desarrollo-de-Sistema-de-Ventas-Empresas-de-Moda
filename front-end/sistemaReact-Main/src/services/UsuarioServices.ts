@@ -56,17 +56,39 @@ export const ServicioUsuarios = {
       throw error;
     }
   },
-    actualizar: async (id: number, datosUsuario: ActualizarUsuarioDTO): Promise<UsuarioBackend> => {
+  actualizar: async (id: number, datosUsuario: ActualizarUsuarioDTO): Promise<UsuarioBackend> => {
     console.log('Actualizando usuario:', id, datosUsuario);
-    const respuesta = await apiClient.put<UsuarioBackend>(RUTAS_USUARIOS.POR_ID(id), datosUsuario);
-    console.log('Respuesta actualizar:', respuesta.data);
-    return respuesta.data;
+    try {
+      const respuesta = await apiClient.put<UsuarioBackend>(RUTAS_USUARIOS.POR_ID(id), datosUsuario);
+      console.log('Respuesta actualizar:', respuesta.data);
+      return respuesta.data;
+    } catch (error: any) {
+      // Manejar específicamente los errores de validación del último administrador
+      if (error.response?.status === 409) {
+        // Error de conflicto - último administrador
+        const mensaje = error.response?.data || 'No se puede quitar el rol de administrador al último usuario administrador del sistema';
+        throw new Error(mensaje);
+      }
+      // Para otros errores, propagar tal como están
+      throw error;
+    }
   },
   
   deshabilitar: async (id: number): Promise<void> => {
     console.log('Deshabilitando usuario:', id);
-    await apiClient.put(RUTAS_USUARIOS.DESHABILITAR(id));
-    console.log('Usuario deshabilitado exitosamente');
+    try {
+      await apiClient.put(RUTAS_USUARIOS.DESHABILITAR(id));
+      console.log('Usuario deshabilitado exitosamente');
+    } catch (error: any) {
+      // Manejar específicamente los errores de validación del último administrador
+      if (error.response?.status === 409) {
+        // Error de conflicto - último administrador
+        const mensaje = error.response?.data || 'No se puede deshabilitar al último usuario administrador del sistema';
+        throw new Error(mensaje);
+      }
+      // Para otros errores, propagar tal como están
+      throw error;
+    }
   },
   
   habilitar: async (id: number): Promise<void> => {

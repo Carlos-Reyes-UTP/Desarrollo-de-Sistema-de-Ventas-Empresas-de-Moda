@@ -52,11 +52,20 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
 
             return dto;
         }).collect(Collectors.toList());
-    }    public UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO) {
+    }    
+    
+    public UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO) {
         Usuario usuario = usuarioRepository.findById(id).orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         
         System.out.println("Actualizando usuario con ID: " + id);
         System.out.println("Roles recibidos: " + usuarioDTO.getRoles());
+        
+        // Validar si es el último administrador y se intenta cambiar sus roles
+        if (usuarioDTO.getRoles() != null) {
+            if (!validarCambioRoles(id, usuarioDTO.getRoles().stream().collect(Collectors.toList()))) {
+                throw new RuntimeException("No se puede quitar el rol de administrador al último usuario administrador del sistema");
+            }
+        }
         
         // Actualizar nombre de usuario
         usuario.setUsuario(usuarioDTO.getUsuario());
@@ -105,10 +114,17 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
     }
 
     public boolean deshabilitarUsuario(Long id) {
-        Optional<Usuario> usuario = usuarioRepository.findById(id);
-        if (usuario.isPresent()) {
-            usuario.get().setActivo(false);
-            usuarioRepository.save(usuario.get());
+        Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            
+            // Validar si es el último administrador activo
+            if (esUltimoAdministrador(id)) {
+                throw new RuntimeException("No se puede deshabilitar al último usuario administrador del sistema");
+            }
+            
+            usuario.setActivo(false);
+            usuarioRepository.save(usuario);
             return true;
         }
         return false;
@@ -189,6 +205,53 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
         }
 
         return true;
+    }
+    
+    @Override
+    public boolean esUltimoAdministrador(Long usuarioId) {
+        // Obtener todos los usuarios activos
+        List<Usuario> usuariosActivos = usuarioRepository.findAll().stream()
+                .filter(Usuario::isActivo)
+                .collect(Collectors.toList());
+        
+        // Contar cuántos administradores activos hay
+        long cantidadAdminsActivos = usuariosActivos.stream()
+                .filter(usuario -> usuario.getRoles().stream()
+                        .anyMatch(rol -> rol.getNombreRol() == Role.ADMIN))
+                .count();
+        
+        // Verificar si el usuario actual es administrador
+        Usuario usuarioActual = usuarioRepository.findById(usuarioId).orElse(null);
+        if (usuarioActual == null) {
+            return false;
+        }
+        
+        boolean esAdmin = usuarioActual.getRoles().stream()
+                .anyMatch(rol -> rol.getNombreRol() == Role.ADMIN);
+        
+        // Es el último admin si:
+        // 1. Es administrador
+        // 2. Solo hay 1 administrador activo en total
+        return esAdmin && cantidadAdminsActivos == 1;
+    }
+    
+    @Override
+    public boolean validarCambioRoles(Long usuarioId, List<String> nuevosRoles) {
+        // Si es el último administrador, debe mantener su rol de admin
+        if (esUltimoAdministrador(usuarioId)) {
+            // Verificar si los nuevos roles incluyen ADMIN
+            boolean tieneRolAdmin = nuevosRoles.stream()
+                    .anyMatch(rol -> {
+                        String rolSinPrefijo = rol.replace("ROLE_", "");
+                        return "ADMIN".equals(rolSinPrefijo);
+                    });
+            
+            if (!tieneRolAdmin) {
+                return false; // No se permite quitar el rol de admin al último administrador
+            }
+        }
+        
+        return true; // Cambio permitido
     }
 
 }

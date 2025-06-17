@@ -25,4 +25,9 @@ public interface UsuarioService {
     public List<UsuarioDTO> obtenerUsuariosConRoles();
 
     public boolean validarContrasenaSegura(String password);
+    
+    // Métodos para validar protección del último admin
+    public boolean esUltimoAdministrador(Long usuarioId);
+    
+    public boolean validarCambioRoles(Long usuarioId, List<String> nuevosRoles);
 }

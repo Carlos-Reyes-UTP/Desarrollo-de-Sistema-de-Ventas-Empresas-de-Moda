@@ -34,18 +34,36 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UsuarioDTO> actualizarUsuario(@PathVariable Long id, @RequestBody UsuarioDTO usuarioDTO) {
-        UsuarioDTO usuarioActualizado = usuarioService.actualizarUsuario(id, usuarioDTO);
-        return new ResponseEntity<>(usuarioActualizado, HttpStatus.OK);
+    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody UsuarioDTO usuarioDTO) {
+        try {
+            UsuarioDTO usuarioActualizado = usuarioService.actualizarUsuario(id, usuarioDTO);
+            return new ResponseEntity<>(usuarioActualizado, HttpStatus.OK);
+        } catch (RuntimeException e) {
+            // Manejar validaciones de último administrador
+            if (e.getMessage().contains("último usuario administrador") || 
+                e.getMessage().contains("último administrador")) {
+                return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+            }
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @PutMapping("/deshabilitar/{id}")
-    public ResponseEntity<Void> deshabilitarUsuario(@PathVariable Long id) {
-        boolean isActive = usuarioService.deshabilitarUsuario(id);
-        if (isActive) {
-            return new ResponseEntity<>(HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    public ResponseEntity<?> deshabilitarUsuario(@PathVariable Long id) {
+        try {
+            boolean result = usuarioService.deshabilitarUsuario(id);
+            if (result) {
+                return new ResponseEntity<>(HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("Usuario no encontrado", HttpStatus.NOT_FOUND);
+            }
+        } catch (RuntimeException e) {
+            // Manejar validación de último administrador
+            if (e.getMessage().contains("último usuario administrador") || 
+                e.getMessage().contains("último administrador")) {
+                return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+            }
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 

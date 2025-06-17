@@ -73,6 +73,21 @@ const GestionUsuarios = () => {
   useEffect(() => {
     aplicarFiltros();
   }, [busqueda, filtroRol, filtroActivo, usuarios, ordenarPor, ordenAscendente]);
+  
+  // Función helper para determinar si un usuario es el último administrador activo
+  const esUltimoAdministradorActivo = (usuario: Usuario): boolean => {
+    // Contar cuántos administradores activos hay
+    const administradoresActivos = usuarios.filter(u => 
+      u.activo && u.roles?.some(rol => rol.nombreRol === 'ROLE_ADMIN')
+    );
+    
+    // Verificar si el usuario actual es administrador
+    const esAdmin = usuario.roles?.some(rol => rol.nombreRol === 'ROLE_ADMIN') ?? false;
+    
+    // Es el último admin si es administrador y solo hay 1 administrador activo
+    return esAdmin && administradoresActivos.length === 1;
+  };
+
   // Función helper para normalizar usuarios del back-end
   const normalizarUsuario = (usuarioBackend: UsuarioBackend): Usuario => {
     const usuario: Usuario = {
@@ -312,10 +327,16 @@ const GestionUsuarios = () => {
       }
       
       setMostrarModal(false);
-      cargarUsuarios();
-    } catch (err: any) {
+      cargarUsuarios();    } catch (err: any) {
       console.error('Error al guardar usuario:', err);
-      if (err.response?.status === 401) {
+      
+      // Manejar específicamente los errores de validación del último administrador
+      if (err.message && (
+          err.message.includes('último usuario administrador') || 
+          err.message.includes('último administrador')
+        )) {
+        setError(err.message);
+      } else if (err.response?.status === 401) {
         mostrarMensaje('Sesión expirada. Por favor, inicie sesión nuevamente.', 'error');
         setTimeout(() => {
           window.location.href = '/login';
@@ -341,13 +362,20 @@ const GestionUsuarios = () => {
       
       // Actualizar lista de usuarios
       await cargarUsuarios();
-      
-    } catch (err: any) {
+        } catch (err: any) {
       console.error('Error al cambiar estado de usuario:', err);
-      mostrarMensaje(
-        err.response?.data?.message || 'Error al cambiar estado de usuario', 
-        'error'
-      );
+      
+      // Manejar específicamente los errores de validación del último administrador
+      if (err.message && (
+          err.message.includes('último usuario administrador') || 
+          err.message.includes('último administrador')
+        )) {
+        mostrarMensaje(err.message, 'error');
+      } else {
+        // Para otros errores, usar mensaje genérico o el del servidor
+        const mensaje = err.response?.data?.message || err.message || 'Error al cambiar estado de usuario';
+        mostrarMensaje(mensaje, 'error');
+      }
     } finally {
       setCargando(false);
     }
@@ -668,23 +696,43 @@ const GestionUsuarios = () => {
                           </>
                         )}
                       </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    </td>                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center justify-end space-x-2">
+                        {/* Mostrar icono de advertencia para último admin */}
+                        {esUltimoAdministradorActivo(usuario) && (
+                          <div 
+                            className="flex items-center text-yellow-600 mr-2"
+                            title="Último administrador del sistema - operaciones restringidas"
+                          >
+                            <AlertCircle size={16} />
+                          </div>
+                        )}
+                        
                         <button 
                           onClick={() => abrirModalEdicion(usuario)}
                           className="text-indigo-600 hover:text-indigo-900 p-1 rounded-full hover:bg-indigo-50"
+                          title="Editar usuario"
                         >
                           <Edit size={18} />
                         </button>
+                        
                         <button 
                           onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)}
+                          disabled={esUltimoAdministradorActivo(usuario) && usuario.activo}
                           className={`p-1 rounded-full ${
-                            usuario.activo 
-                              ? 'text-red-600 hover:text-red-900 hover:bg-red-50' 
-                              : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                            esUltimoAdministradorActivo(usuario) && usuario.activo
+                              ? 'text-gray-400 cursor-not-allowed opacity-50' 
+                              : usuario.activo 
+                                ? 'text-red-600 hover:text-red-900 hover:bg-red-50' 
+                                : 'text-green-600 hover:text-green-900 hover:bg-green-50'
                           }`}
-                          title={usuario.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                          title={
+                            esUltimoAdministradorActivo(usuario) && usuario.activo
+                              ? 'No se puede desactivar al último administrador del sistema'
+                              : usuario.activo 
+                                ? 'Desactivar usuario' 
+                                : 'Activar usuario'
+                          }
                         >
                           {usuario.activo ? <UserX size={18} /> : <UserCheck size={18} />}
                         </button>
@@ -803,7 +851,23 @@ const GestionUsuarios = () => {
                       />
                     </div>
                   )}
-                </>
+                </>              )}
+
+              {/* Alerta para último administrador */}
+              {modoEdicion && usuarioEditando && esUltimoAdministradorActivo(usuarioEditando) && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 mr-3 flex-shrink-0" />
+                    <div>
+                      <h4 className="text-sm font-medium text-yellow-800 mb-1">
+                        ⚠️ Último Administrador del Sistema
+                      </h4>
+                      <p className="text-sm text-yellow-700">
+                        Este es el único usuario administrador activo. Debe mantener el rol de <strong>ADMIN</strong> para asegurar el acceso administrativo al sistema.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               )}
 
               {/* Selección de Rol */}
