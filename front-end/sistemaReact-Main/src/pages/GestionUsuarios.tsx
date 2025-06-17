@@ -214,17 +214,15 @@ const GestionUsuarios = () => {
     setUsuarioEditando(null);
     setMostrarModal(true);
   };
-  
-  // Función para abrir modal de edición
+    // Función para abrir modal de edición
   const abrirModalEdicion = (usuario: Usuario) => {
     console.log('Editando usuario:', usuario);
-    
-    setFormUsuario({
+      setFormUsuario({
       id: usuario.id,
       usuario: usuario.usuario,
-      password: '',
-      confirmPassword: '',
-      activo: usuario.activo || true,
+      password: '', // Vacío - no se permite cambiar contraseña
+      confirmPassword: '', // Vacío - no se permite cambiar contraseña
+      activo: usuario.activo ?? true, // Usar ?? para solo asignar true si activo es null/undefined
       // Si no tiene roles, usar un array vacío para evitar errores
       roles: usuario.roles && usuario.roles.length > 0 
         ? usuario.roles.map(rol => rol.nombreRol) 
@@ -281,33 +279,20 @@ const GestionUsuarios = () => {
         setError('Las contraseñas no coinciden');
         return;
       }
-    } else if (formUsuario.password) {
-      // Si está editando y proporcionó una nueva contraseña, validarla
-      const validacionPassword = validarContrasenaSegura(formUsuario.password);
-      if (!validacionPassword.esValida) {
-        setError(validacionPassword.mensaje);
-        return;
-      }
-
-      if (formUsuario.password !== formUsuario.confirmPassword) {
-        setError('Las contraseñas no coinciden');
-        return;
-      }
     }
+    // En modo edición, no permitir cambio de contraseña desde el front-end
 
     if (formUsuario.roles.length === 0) {
       setError('Debe seleccionar un rol');
       return;
     }
 
-    try {      if (modoEdicion && usuarioEditando) {
-        // Lógica de edición - enviar en formato UsuarioDTO
+    try {      if (modoEdicion && usuarioEditando) {        // Lógica de edición - no incluir contraseña
         const usuarioParaActualizar: ActualizarUsuarioDTO = {
           id: usuarioEditando.id,
           usuario: formUsuario.usuario,
-          clave: formUsuario.password || undefined, // Solo incluir si hay una nueva contraseña
           activo: formUsuario.activo,
-          roles: formUsuario.roles // Ya es un array de strings (RolNombre)
+          roles: formUsuario.roles // Array de strings (RolNombre)
         };
         
         console.log('Datos enviados para actualizar:', usuarioParaActualizar);
@@ -409,8 +394,7 @@ const GestionUsuarios = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
-  
-  // Función para validar contraseña segura
+    // Función para validar contraseña segura
   const validarContrasenaSegura = (password: string): { esValida: boolean; mensaje: string } => {
     if (password.length < 8) {
       return { esValida: false, mensaje: 'La contraseña debe tener al menos 8 caracteres' };
@@ -424,12 +408,12 @@ const GestionUsuarios = () => {
       return { esValida: false, mensaje: 'La contraseña debe contener al menos una letra mayúscula' };
     }
 
-    if (!/[0-9]/.test(password)) {
+    if (!/\d/.test(password)) {
       return { esValida: false, mensaje: 'La contraseña debe contener al menos un número' };
     }
 
-    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
-      return { esValida: false, mensaje: 'La contraseña debe contener al menos un símbolo especial (!@#$%^&*()_+-=[]{};\'":\\|,.<>/?)' };
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(password)) {
+      return { esValida: false, mensaje: 'La contraseña debe contener al menos un símbolo especial (!@#$%^&*()_+-=[]{};\'":\\|,.<>?)' };
     }
 
     return { esValida: true, mensaje: 'Contraseña válida' };
@@ -756,12 +740,12 @@ const GestionUsuarios = () => {
                   required
                   minLength={1}
                 />
-              </div>              {/* Campos de Contraseña */}
-              {(!modoEdicion || (modoEdicion && formUsuario.password)) && (
+              </div>              {/* Campos de Contraseña (solo para nuevo usuario) */}
+              {!modoEdicion && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {modoEdicion ? 'Nueva Contraseña (opcional)' : 'Contraseña'}
+                      Contraseña
                     </label>
                     <input
                       type="password"
@@ -769,8 +753,8 @@ const GestionUsuarios = () => {
                       value={formUsuario.password}
                       onChange={manejarCambioForm}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      placeholder={modoEdicion ? "Dejar vacío para mantener la actual" : "Ingrese una contraseña segura"}
-                      required={!modoEdicion}
+                      placeholder="Ingrese una contraseña segura"
+                      required
                       minLength={8}
                     />
                     {formUsuario.password && (
@@ -789,12 +773,12 @@ const GestionUsuarios = () => {
                             <span className="mr-2">{/[A-Z]/.test(formUsuario.password) ? '✓' : '○'}</span>
                             Una letra mayúscula
                           </li>
-                          <li className={`flex items-center ${/[0-9]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                            <span className="mr-2">{/[0-9]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                          <li className={`flex items-center ${/\d/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{/\d/.test(formUsuario.password) ? '✓' : '○'}</span>
                             Un número
                           </li>
-                          <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                            <span className="mr-2">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                          <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? '✓' : '○'}</span>
                             Un símbolo especial (!@#$%^&*...)
                           </li>
                         </ul>
@@ -814,25 +798,12 @@ const GestionUsuarios = () => {
                         onChange={manejarCambioForm}
                         className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                         placeholder="Confirme la contraseña"
-                        required={!modoEdicion && formUsuario.password.length > 0}
+                        required
                         minLength={8}
                       />
                     </div>
                   )}
                 </>
-              )}
-
-              {/* Botón para cambiar contraseña en modo edición */}
-              {modoEdicion && !formUsuario.password && (
-                <div className="flex justify-start">
-                  <button
-                    type="button"
-                    onClick={() => setFormUsuario(prev => ({ ...prev, password: '', confirmPassword: '' }))}
-                    className="px-4 py-2 text-sm font-medium text-indigo-600 bg-indigo-50 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors"
-                  >
-                    Cambiar Contraseña
-                  </button>
-                </div>
               )}
 
               {/* Selección de Rol */}
