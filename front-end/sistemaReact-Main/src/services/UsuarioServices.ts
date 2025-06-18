@@ -3,6 +3,26 @@ import type { Usuario, UsuarioBackend, ActualizarUsuarioDTO } from '../interface
 import { RUTAS_USUARIOS } from '../config/apiConfig';
 
 export const ServicioUsuarios = {
+  verificarDisponibilidadUsuario: async (nombreUsuario: string, idUsuarioActual?: number): Promise<boolean> => {
+    console.log('Verificando disponibilidad de nombre de usuario:', nombreUsuario);
+    try {
+      // Obtenemos todos los usuarios para verificar manualmente
+      const usuarios = await ServicioUsuarios.obtenerUsuariosConRoles();
+      
+      // Filtramos buscando un usuario con el mismo nombre, excluyendo el usuario actual en edición
+      const usuarioExistente = usuarios.find(u => 
+        u.usuario.toLowerCase() === nombreUsuario.toLowerCase() && 
+        u.id !== idUsuarioActual
+      );
+      
+      // Si no hay ningún usuario con este nombre (o es el mismo que estamos editando), está disponible
+      return !usuarioExistente;
+    } catch (error) {
+      console.error('Error al verificar disponibilidad de usuario:', error);
+      // En caso de error, asumimos que no está disponible por precaución
+      return false;
+    }
+  },
   obtenerTodos: async (): Promise<Usuario[]> => {
     console.log('Obteniendo todos los usuarios...');
     const respuesta = await apiClient.get<Usuario[]>(RUTAS_USUARIOS.BASE);

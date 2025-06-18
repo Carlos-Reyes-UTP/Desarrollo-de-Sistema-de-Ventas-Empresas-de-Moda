@@ -72,6 +72,10 @@ const GestionUsuarios = () => {
   const [mostrarNotificacionCierre, setMostrarNotificacionCierre] = useState(false);
   const [contadorCierre, setContadorCierre] = useState(5);
   
+  // Estado para verificar disponibilidad de nombre de usuario
+  const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
+  const [verificandoUsuario, setVerificandoUsuario] = useState(false);
+  
   // Cargar usuarios al montar el componente
   useEffect(() => {
     cargarUsuarios();
@@ -276,11 +280,16 @@ const GestionUsuarios = () => {
     setModoEdicion(false);
     setUsuarioEditando(null);
     setCambiarPassword(false); // Reset del estado de cambio de contraseña
+    
+    // Resetear el estado de verificación de disponibilidad de nombre de usuario
+    setUsuarioDisponible(null); // Ningún nombre ingresado aún, por lo que es null
+    setVerificandoUsuario(false);
+    
     setMostrarModal(true);
   };    // Función para abrir modal de edición
   const abrirModalEdicion = (usuario: Usuario) => {
     console.log('Editando usuario:', usuario);
-      setFormUsuario({
+    setFormUsuario({
       id: usuario.id,
       usuario: usuario.usuario,
       password: '', // Vacío - no se permite cambiar contraseña por defecto
@@ -291,6 +300,10 @@ const GestionUsuarios = () => {
         ? usuario.roles.map(rol => rol.nombreRol) 
         : [] 
     });
+    
+    // Resetear el estado de verificación de disponibilidad de nombre de usuario
+    setUsuarioDisponible(true); // El nombre actual es siempre válido al principio (es el propio nombre del usuario)
+    setVerificandoUsuario(false);
     
     setModoEdicion(true);
     setUsuarioEditando(usuario);
@@ -314,15 +327,28 @@ const GestionUsuarios = () => {
       setFormUsuario(prev => ({ ...prev, roles: valores }));
     } else {
       setFormUsuario(prev => ({ ...prev, [name]: value }));
+      
+      // Verificar disponibilidad del nombre de usuario si es ese campo el que cambió
+      if (name === 'usuario') {
+        verificarDisponibilidadUsuario(value);
+      }
     }
   };
   
   // Función para guardar usuario (crear o actualizar)
   const guardarUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);    // Validaciones
+    setError(null);
+    
+    // Validaciones
     if (!formUsuario.usuario.trim()) {
       setError('El nombre de usuario no puede estar vacío');
+      return;
+    }
+
+    // Verificar disponibilidad del usuario antes de continuar
+    if (usuarioDisponible === false) {
+      setError('El nombre de usuario ya está en uso. Por favor, elija otro nombre de usuario');
       return;
     }
 
@@ -483,7 +509,36 @@ const GestionUsuarios = () => {
       setOrdenAscendente(true);
     }
   };
-    // Obtener color de badge para rol
+
+  // Función para verificar la disponibilidad del nombre de usuario
+  const verificarDisponibilidadUsuario = async (nombreUsuario: string) => {
+    // Evitar verificaciones innecesarias si el nombre no ha cambiado
+    if (modoEdicion && usuarioEditando && usuarioEditando.usuario === nombreUsuario) {
+      setUsuarioDisponible(true);
+      return;
+    }
+
+    if (!nombreUsuario.trim()) {
+      setUsuarioDisponible(null);
+      return;
+    }
+
+    setVerificandoUsuario(true);
+    try {
+      const estaDisponible = await ServicioUsuarios.verificarDisponibilidadUsuario(
+        nombreUsuario, 
+        modoEdicion && usuarioEditando ? usuarioEditando.id : undefined
+      );
+      setUsuarioDisponible(estaDisponible);
+    } catch (error) {
+      console.error('Error al verificar disponibilidad:', error);
+      setUsuarioDisponible(false);
+    } finally {
+      setVerificandoUsuario(false);
+    }
+  };
+    
+  // Obtener color de badge para rol
   const getColorBadgeRol = (rol: RolNombre) => {
     // Normalizar el rol para manejar casos con o sin prefijo "ROLE_"
     const normalizedRole = rol.includes('ROLE_') ? rol : `ROLE_${rol}`;
@@ -872,16 +927,50 @@ const GestionUsuarios = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre de Usuario
                 </label>
-                <input
-                  type="text"
-                  name="usuario"
-                  value={formUsuario.usuario}
-                  onChange={manejarCambioForm}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                  placeholder="Ingrese el nombre de usuario"
-                  required
-                  minLength={1}
-                />              </div>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="usuario"
+                    value={formUsuario.usuario}
+                    onChange={manejarCambioForm}
+                    className={`w-full px-4 py-2.5 rounded-lg border
+                    ${verificandoUsuario ? 'border-yellow-300' : ''}
+                    ${!verificandoUsuario && usuarioDisponible === false ? 'border-red-500 pr-10' : ''}
+                    ${!verificandoUsuario && usuarioDisponible === true ? 'border-green-500 pr-10' : ''}
+                    ${!verificandoUsuario && usuarioDisponible === null ? 'border-gray-200' : ''}
+                    focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors`}
+                    placeholder="Ingrese el nombre de usuario"
+                    required
+                    minLength={1}
+                    onBlur={(e) => verificarDisponibilidadUsuario(e.target.value)}
+                  />
+                  {verificandoUsuario && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <Loader2 className="h-5 w-5 text-yellow-500 animate-spin" />
+                    </div>
+                  )}
+                  {!verificandoUsuario && usuarioDisponible === false && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <X className="h-5 w-5 text-red-500" />
+                    </div>
+                  )}
+                  {!verificandoUsuario && usuarioDisponible === true && formUsuario.usuario && (
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                      <CheckCircle className="h-5 w-5 text-green-500" />
+                    </div>
+                  )}
+                </div>
+                {!verificandoUsuario && usuarioDisponible === false && (
+                  <p className="mt-1 text-sm text-red-600">
+                    Este nombre de usuario ya está en uso. Por favor, elija otro.
+                  </p>
+                )}
+                {!verificandoUsuario && usuarioDisponible === true && formUsuario.usuario && (
+                  <p className="mt-1 text-sm text-green-600">
+                    Nombre de usuario disponible.
+                  </p>
+                )}
+              </div>
 
               {/* Campos de Contraseña */}
               {(!modoEdicion || cambiarPassword) && (
@@ -919,10 +1008,9 @@ const GestionUsuarios = () => {
                           <li className={`flex items-center ${/\d/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
                             <span className="mr-2">{/\d/.test(formUsuario.password) ? '✓' : '○'}</span>
                             Un número
-                          </li>
-                          <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                            <span className="mr-2">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                            Un símbolo especial (!@#$%^&*...)
+                          </li>                          <li className={`flex items-center ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                            <span className="mr-2">{/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                            Un símbolo especial (!@#$%^&*()_+-=[]{};&quot;\|,.)
                           </li>
                         </ul>
                       </div>
