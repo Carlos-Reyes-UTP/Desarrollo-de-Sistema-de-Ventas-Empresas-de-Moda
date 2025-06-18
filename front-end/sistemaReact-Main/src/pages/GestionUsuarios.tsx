@@ -76,6 +76,10 @@ const GestionUsuarios = () => {
   const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
   const [verificandoUsuario, setVerificandoUsuario] = useState(false);
   
+  // Estados para controlar la visibilidad de las contraseñas
+  const [mostrarPassword, setMostrarPassword] = useState(false);
+  const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
+  
   // Cargar usuarios al montar el componente
   useEffect(() => {
     cargarUsuarios();
@@ -285,6 +289,10 @@ const GestionUsuarios = () => {
     setUsuarioDisponible(null); // Ningún nombre ingresado aún, por lo que es null
     setVerificandoUsuario(false);
     
+    // Resetear visibilidad de contraseñas
+    setMostrarPassword(false);
+    setMostrarConfirmPassword(false);
+    
     setMostrarModal(true);
   };    // Función para abrir modal de edición
   const abrirModalEdicion = (usuario: Usuario) => {
@@ -304,6 +312,10 @@ const GestionUsuarios = () => {
     // Resetear el estado de verificación de disponibilidad de nombre de usuario
     setUsuarioDisponible(true); // El nombre actual es siempre válido al principio (es el propio nombre del usuario)
     setVerificandoUsuario(false);
+    
+    // Resetear visibilidad de contraseñas
+    setMostrarPassword(false);
+    setMostrarConfirmPassword(false);
     
     setModoEdicion(true);
     setUsuarioEditando(usuario);
@@ -979,16 +991,29 @@ const GestionUsuarios = () => {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Contraseña
                     </label>
-                    <input
-                      type="password"
-                      name="password"
-                      value={formUsuario.password}
-                      onChange={manejarCambioForm}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      placeholder="Ingrese una contraseña segura"
-                      required
-                      minLength={8}
-                    />
+                    <div className="relative">
+                      <input
+                        type={mostrarPassword ? 'text' : 'password'}
+                        name="password"
+                        value={formUsuario.password}
+                        onChange={manejarCambioForm}
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        placeholder="Ingrese una contraseña segura"
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setMostrarPassword(prev => !prev)}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3"
+                      >
+                        {mostrarPassword ? (
+                          <EyeOff className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <Eye className="h-5 w-5 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                     {formUsuario.password && (
                       <div className="mt-2 text-sm text-gray-600">
                         <p className="font-medium mb-1">La contraseña debe contener:</p>
@@ -1022,16 +1047,29 @@ const GestionUsuarios = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-1">
                         Confirmar Contraseña
                       </label>
-                      <input
-                        type="password"
-                        name="confirmPassword"
-                        value={formUsuario.confirmPassword}
-                        onChange={manejarCambioForm}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                        placeholder="Confirme la contraseña"
-                        required
-                        minLength={8}
-                      />
+                      <div className="relative">
+                        <input
+                          type={mostrarConfirmPassword ? 'text' : 'password'}
+                          name="confirmPassword"
+                          value={formUsuario.confirmPassword}
+                          onChange={manejarCambioForm}
+                          className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                          placeholder="Confirme la contraseña"
+                          required
+                          minLength={8}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setMostrarConfirmPassword(prev => !prev)}
+                          className="absolute inset-y-0 right-0 flex items-center pr-3"
+                        >
+                          {mostrarConfirmPassword ? (
+                            <EyeOff className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <Eye className="h-5 w-5 text-gray-400" />
+                          )}
+                        </button>
+                      </div>
                     </div>
                   )}
                 </>
