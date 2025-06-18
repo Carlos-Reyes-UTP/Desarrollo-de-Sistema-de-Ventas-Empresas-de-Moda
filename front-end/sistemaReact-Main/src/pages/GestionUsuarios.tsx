@@ -76,9 +76,15 @@ const GestionUsuarios = () => {
   const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
   const [verificandoUsuario, setVerificandoUsuario] = useState(false);
   
-  // Estados para controlar la visibilidad de las contraseñas
+  // Estado para la contraseña actual (cuando el usuario edita su propio perfil)
+  const [passwordActual, setPasswordActual] = useState<string>('');
+  const [mostrarModalPassword, setMostrarModalPassword] = useState<boolean>(false);
+  const [errorPasswordActual, setErrorPasswordActual] = useState<string | null>(null);
+  
+  // Estados para mostrar/ocultar contraseñas
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
+  const [mostrarPasswordActual, setMostrarPasswordActual] = useState(false);
   
   // Cargar usuarios al montar el componente
   useEffect(() => {
@@ -289,7 +295,7 @@ const GestionUsuarios = () => {
     setUsuarioDisponible(null); // Ningún nombre ingresado aún, por lo que es null
     setVerificandoUsuario(false);
     
-    // Resetear visibilidad de contraseñas
+    // Resetear estados de mostrar/ocultar contraseñas
     setMostrarPassword(false);
     setMostrarConfirmPassword(false);
     
@@ -313,7 +319,7 @@ const GestionUsuarios = () => {
     setUsuarioDisponible(true); // El nombre actual es siempre válido al principio (es el propio nombre del usuario)
     setVerificandoUsuario(false);
     
-    // Resetear visibilidad de contraseñas
+    // Resetear estados de mostrar/ocultar contraseñas
     setMostrarPassword(false);
     setMostrarConfirmPassword(false);
     
@@ -589,6 +595,37 @@ const GestionUsuarios = () => {
     }
 
     return { esValida: true, mensaje: 'Contraseña válida' };
+  };
+
+  // Función para verificar la contraseña actual del usuario
+  const verificarContrasenaActual = async () => {
+    if (!passwordActual.trim()) {
+      setErrorPasswordActual('Debe ingresar su contraseña actual');
+      return;
+    }
+
+    try {
+      const esCorrecta = await ServicioUsuarios.verificarContrasenaActual(
+        usuarioActual?.usuario || '', 
+        passwordActual
+      );
+
+      if (esCorrecta) {
+        // Si la contraseña es correcta, cerrar el modal y habilitar el cambio de contraseña
+        setMostrarModalPassword(false);
+        setCambiarPassword(true);
+        setFormUsuario(prev => ({
+          ...prev,
+          password: '',
+          confirmPassword: ''
+        }));
+      } else {
+        setErrorPasswordActual('La contraseña ingresada es incorrecta');
+      }
+    } catch (error) {
+      console.error('Error al verificar contraseña:', error);
+      setErrorPasswordActual('Ocurrió un error al verificar la contraseña');
+    }
   };
 
   return (
@@ -987,8 +1024,7 @@ const GestionUsuarios = () => {
               {/* Campos de Contraseña */}
               {(!modoEdicion || cambiarPassword) && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <div>                    <label className="block text-sm font-medium text-gray-700 mb-1">
                       Contraseña
                     </label>
                     <div className="relative">
@@ -997,7 +1033,7 @@ const GestionUsuarios = () => {
                         name="password"
                         value={formUsuario.password}
                         onChange={manejarCambioForm}
-                        className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                         placeholder="Ingrese una contraseña segura"
                         required
                         minLength={8}
@@ -1005,12 +1041,13 @@ const GestionUsuarios = () => {
                       <button
                         type="button"
                         onClick={() => setMostrarPassword(prev => !prev)}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3"
+                        className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                        tabIndex={-1}
                       >
                         {mostrarPassword ? (
-                          <EyeOff className="h-5 w-5 text-gray-400" />
+                          <EyeOff className="h-5 w-5" />
                         ) : (
-                          <Eye className="h-5 w-5 text-gray-400" />
+                          <Eye className="h-5 w-5" />
                         )}
                       </button>
                     </div>
@@ -1043,8 +1080,7 @@ const GestionUsuarios = () => {
                   </div>
 
                   {formUsuario.password && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <div>                      <label className="block text-sm font-medium text-gray-700 mb-1">
                         Confirmar Contraseña
                       </label>
                       <div className="relative">
@@ -1053,7 +1089,7 @@ const GestionUsuarios = () => {
                           name="confirmPassword"
                           value={formUsuario.confirmPassword}
                           onChange={manejarCambioForm}
-                          className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                          className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                           placeholder="Confirme la contraseña"
                           required
                           minLength={8}
@@ -1061,12 +1097,13 @@ const GestionUsuarios = () => {
                         <button
                           type="button"
                           onClick={() => setMostrarConfirmPassword(prev => !prev)}
-                          className="absolute inset-y-0 right-0 flex items-center pr-3"
+                          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                          tabIndex={-1}
                         >
                           {mostrarConfirmPassword ? (
-                            <EyeOff className="h-5 w-5 text-gray-400" />
+                            <EyeOff className="h-5 w-5" />
                           ) : (
-                            <Eye className="h-5 w-5 text-gray-400" />
+                            <Eye className="h-5 w-5" />
                           )}
                         </button>
                       </div>
@@ -1086,16 +1123,25 @@ const GestionUsuarios = () => {
                       <p className="text-sm text-gray-600">
                         Si desea cambiar la contraseña del usuario, active esta opción
                       </p>
-                    </div>
-                    <button
+                    </div>                    <button
                       type="button"
                       onClick={() => {
-                        setCambiarPassword(true);
-                        setFormUsuario(prev => ({
-                          ...prev,
-                          password: '',
-                          confirmPassword: ''
-                        }));
+                        // Verificar si el usuario está editando su propio perfil
+                        if (usuarioEditando && esUsuarioActual(usuarioEditando)) {
+                          // Si es el usuario actual, mostrar modal para verificar contraseña
+                          setPasswordActual('');
+                          setErrorPasswordActual(null);
+                          setMostrarPasswordActual(false); // Aseguramos que la contraseña esté oculta inicialmente
+                          setMostrarModalPassword(true);
+                        } else {
+                          // Si es otro usuario, permitir cambio de contraseña directamente
+                          setCambiarPassword(true);
+                          setFormUsuario(prev => ({
+                            ...prev,
+                            password: '',
+                            confirmPassword: ''
+                          }));
+                        }
                       }}
                       className="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
                     >
@@ -1285,6 +1331,90 @@ const GestionUsuarios = () => {
                   className="px-4 py-2 bg-yellow-600 text-white text-sm font-medium rounded-lg hover:bg-yellow-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
                 >
                   Cerrar Sesión Ahora
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para verificar contraseña actual */}
+      {mostrarModalPassword && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-yellow-50 rounded-lg">
+                  <Eye className="w-5 h-5 text-yellow-600" />
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  Verificar identidad
+                </h2>
+              </div>
+              <button
+                onClick={() => setMostrarModalPassword(false)}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200 mb-4">
+                <div className="flex">
+                  <AlertCircle className="w-5 h-5 text-yellow-600 mr-2 flex-shrink-0" />
+                  <p className="text-sm text-yellow-700">
+                    Para cambiar su propia contraseña, necesita verificar su identidad ingresando su contraseña actual.
+                  </p>
+                </div>
+              </div>              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña actual
+                </label>
+                <div className="relative">
+                  <input
+                    type={mostrarPasswordActual ? 'text' : 'password'}
+                    value={passwordActual}
+                    onChange={(e) => setPasswordActual(e.target.value)}
+                    className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                    placeholder="Ingrese su contraseña actual"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarPasswordActual(prev => !prev)}
+                    className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700 focus:outline-none"
+                    tabIndex={-1}
+                  >
+                    {mostrarPasswordActual ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </div>
+                {errorPasswordActual && (
+                  <p className="mt-1 text-sm text-red-600">
+                    {errorPasswordActual}
+                  </p>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setMostrarModalPassword(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={verificarContrasenaActual}
+                  className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                >
+                  Verificar y continuar
                 </button>
               </div>
             </div>

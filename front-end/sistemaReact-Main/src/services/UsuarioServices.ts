@@ -1,6 +1,6 @@
 import apiClient from '../config/apiClient';
 import type { Usuario, UsuarioBackend, ActualizarUsuarioDTO } from '../interfaces/Usuario';
-import { RUTAS_USUARIOS } from '../config/apiConfig';
+import { RUTAS_USUARIOS, RUTAS_AUTENTICACION } from '../config/apiConfig';
 
 export const ServicioUsuarios = {
   verificarDisponibilidadUsuario: async (nombreUsuario: string, idUsuarioActual?: number): Promise<boolean> => {
@@ -23,6 +23,26 @@ export const ServicioUsuarios = {
       return false;
     }
   },
+
+  verificarContrasenaActual: async (usuario: string, contrasena: string): Promise<boolean> => {
+    console.log('Verificando contraseña actual para:', usuario);
+    try {
+      // En lugar de un endpoint específico, usamos el endpoint de inicio de sesión
+      // que ya valida las credenciales
+      const respuesta = await apiClient.post(RUTAS_AUTENTICACION.INICIAR_SESION, {
+        usuario,
+        clave: contrasena
+      });
+      
+      // Si la respuesta es exitosa, la contraseña es correcta
+      return respuesta.status === 200 && respuesta.data?.status === true;
+    } catch (error) {
+      console.error('Error al verificar contraseña:', error);
+      // Si hay un error (como credenciales incorrectas), la verificación falla
+      return false;
+    }
+  },
+  
   obtenerTodos: async (): Promise<Usuario[]> => {
     console.log('Obteniendo todos los usuarios...');
     const respuesta = await apiClient.get<Usuario[]>(RUTAS_USUARIOS.BASE);
