@@ -417,6 +417,12 @@ const GestionUsuarios = () => {
     setCargando(true);
     
     try {
+      const usuarioAModificar = usuarios.find(u => u.id === id);
+      if (usuarioAModificar && esUsuarioActual(usuarioAModificar) && activo) {
+        mostrarMensaje('No puede desactivar su propia cuenta', 'error');
+        return;
+      }
+
       if (activo) {
         await ServicioUsuarios.deshabilitar(id);
         mostrarMensaje('Usuario deshabilitado correctamente', 'success');
@@ -795,9 +801,12 @@ const GestionUsuarios = () => {
                         
                         <button 
                           onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)}
-                          disabled={esUltimoAdministradorActivo(usuario) && usuario.activo}
-                          className={`p-1 rounded-full ${
-                            esUltimoAdministradorActivo(usuario) && usuario.activo
+                          disabled={
+                            (esUltimoAdministradorActivo(usuario) && usuario.activo) ||
+                            (esUsuarioActual(usuario) && usuario.activo)
+                          }                          className={`p-1 rounded-full ${
+                            (esUltimoAdministradorActivo(usuario) && usuario.activo) ||
+                            (esUsuarioActual(usuario) && usuario.activo)
                               ? 'text-gray-400 cursor-not-allowed opacity-50' 
                               : usuario.activo 
                                 ? 'text-red-600 hover:text-red-900 hover:bg-red-50' 
@@ -806,9 +815,11 @@ const GestionUsuarios = () => {
                           title={
                             esUltimoAdministradorActivo(usuario) && usuario.activo
                               ? 'No se puede desactivar al último administrador del sistema'
-                              : usuario.activo 
-                                ? 'Desactivar usuario' 
-                                : 'Activar usuario'
+                              : esUsuarioActual(usuario) && usuario.activo
+                                ? 'No puede desactivar su propia cuenta'
+                                : usuario.activo 
+                                  ? 'Desactivar usuario' 
+                                  : 'Activar usuario'
                           }
                         >
                           {usuario.activo ? <UserX size={18} /> : <UserCheck size={18} />}
