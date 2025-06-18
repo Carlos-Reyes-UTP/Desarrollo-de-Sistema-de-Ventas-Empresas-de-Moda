@@ -38,11 +38,11 @@ const GestionUsuarios = () => {
   const [filtroActivo, setFiltroActivo] = useState<boolean | 'TODOS'>('TODOS');
   const [ordenarPor, setOrdenarPor] = useState<string>('usuario');
   const [ordenAscendente, setOrdenAscendente] = useState(true);
-  
-  // Estados para el modal de usuario
+    // Estados para el modal de usuario
   const [mostrarModal, setMostrarModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
+  const [cambiarPassword, setCambiarPassword] = useState(false); // Nuevo estado para controlar si se quiere cambiar la contraseña
   const [formUsuario, setFormUsuario] = useState<{
     id?: number;
     usuario: string;
@@ -264,8 +264,7 @@ const GestionUsuarios = () => {
     
     setUsuariosFiltrados(resultado);
   };
-  
-  // Función para abrir modal de creación
+    // Función para abrir modal de creación
   const abrirModalCreacion = () => {
     setFormUsuario({
       usuario: '',
@@ -276,16 +275,16 @@ const GestionUsuarios = () => {
     });
     setModoEdicion(false);
     setUsuarioEditando(null);
+    setCambiarPassword(false); // Reset del estado de cambio de contraseña
     setMostrarModal(true);
-  };
-    // Función para abrir modal de edición
+  };    // Función para abrir modal de edición
   const abrirModalEdicion = (usuario: Usuario) => {
     console.log('Editando usuario:', usuario);
       setFormUsuario({
       id: usuario.id,
       usuario: usuario.usuario,
-      password: '', // Vacío - no se permite cambiar contraseña
-      confirmPassword: '', // Vacío - no se permite cambiar contraseña
+      password: '', // Vacío - no se permite cambiar contraseña por defecto
+      confirmPassword: '', // Vacío - no se permite cambiar contraseña por defecto
       activo: usuario.activo ?? true, // Usar ?? para solo asignar true si activo es null/undefined
       // Si no tiene roles, usar un array vacío para evitar errores
       roles: usuario.roles && usuario.roles.length > 0 
@@ -295,6 +294,7 @@ const GestionUsuarios = () => {
     
     setModoEdicion(true);
     setUsuarioEditando(usuario);
+    setCambiarPassword(false); // Por defecto no cambiar contraseña
     setMostrarModal(true);
   };
   
@@ -320,13 +320,14 @@ const GestionUsuarios = () => {
   // Función para guardar usuario (crear o actualizar)
   const guardarUsuario = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(null);
-
-    // Validaciones
+    setError(null);    // Validaciones
     if (!formUsuario.usuario.trim()) {
       setError('El nombre de usuario no puede estar vacío');
       return;
-    }    if (!modoEdicion) {
+    }
+
+    // Validaciones de contraseña para nuevo usuario o cambio de contraseña en edición
+    if (!modoEdicion || cambiarPassword) {
       if (!formUsuario.password) {
         setError('La contraseña no puede estar vacía');
         return;
@@ -344,14 +345,13 @@ const GestionUsuarios = () => {
         return;
       }
     }
-    // En modo edición, no permitir cambio de contraseña desde el front-end
 
     if (formUsuario.roles.length === 0) {
       setError('Debe seleccionar un rol');
       return;
     }
 
-    try {      if (modoEdicion && usuarioEditando) {        // Lógica de edición - no incluir contraseña
+    try {      if (modoEdicion && usuarioEditando) {        // Lógica de edición
         const usuarioParaActualizar: ActualizarUsuarioDTO = {
           id: usuarioEditando.id,
           usuario: formUsuario.usuario,
@@ -359,7 +359,13 @@ const GestionUsuarios = () => {
           roles: formUsuario.roles // Array de strings (RolNombre)
         };
         
+        // Solo incluir la contraseña si se desea cambiar
+        if (cambiarPassword && formUsuario.password) {
+          usuarioParaActualizar.clave = formUsuario.password;
+        }
+        
         console.log('Datos enviados para actualizar:', usuarioParaActualizar);        console.log('Roles enviados:', formUsuario.roles);
+        console.log('Cambiar contraseña:', cambiarPassword);
         
         // Guardar los datos originales antes de la actualización
         const datosOriginales = usuarioEditando!;
@@ -875,9 +881,10 @@ const GestionUsuarios = () => {
                   placeholder="Ingrese el nombre de usuario"
                   required
                   minLength={1}
-                />
-              </div>              {/* Campos de Contraseña (solo para nuevo usuario) */}
-              {!modoEdicion && (
+                />              </div>
+
+              {/* Campos de Contraseña */}
+              {(!modoEdicion || cambiarPassword) && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -939,7 +946,70 @@ const GestionUsuarios = () => {
                       />
                     </div>
                   )}
-                </>              )}
+                </>
+              )}
+
+              {/* Checkbox para cambiar contraseña en modo edición */}
+              {modoEdicion && !cambiarPassword && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-900 mb-1">
+                        Cambiar Contraseña
+                      </h4>
+                      <p className="text-sm text-gray-600">
+                        Si desea cambiar la contraseña del usuario, active esta opción
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCambiarPassword(true);
+                        setFormUsuario(prev => ({
+                          ...prev,
+                          password: '',
+                          confirmPassword: ''
+                        }));
+                      }}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-indigo-600 bg-white border border-indigo-200 rounded-lg hover:bg-indigo-50 hover:border-indigo-300 transition-colors"
+                    >
+                      <Eye size={16} className="mr-1" />
+                      Cambiar Contraseña
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Opción para cancelar el cambio de contraseña */}
+              {modoEdicion && cambiarPassword && (
+                <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-medium text-yellow-800 mb-1">
+                        Cambiando Contraseña
+                      </h4>
+                      <p className="text-sm text-yellow-700">
+                        Complete los campos de contraseña para actualizar las credenciales
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCambiarPassword(false);
+                        setFormUsuario(prev => ({
+                          ...prev,
+                          password: '',
+                          confirmPassword: ''
+                        }));
+                      }}
+                      className="inline-flex items-center px-3 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <EyeOff size={16} className="mr-1" />
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Alerta para último administrador */}
               {modoEdicion && usuarioEditando && esUltimoAdministradorActivo(usuarioEditando) && (
