@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Users,
   Search,
@@ -86,6 +86,9 @@ const GestionUsuarios = () => {
   const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
   const [mostrarPasswordActual, setMostrarPasswordActual] = useState(false);
   
+  // Ref para el campo de nombre de usuario (para poner el foco)
+  const usuarioInputRef = useRef<HTMLInputElement>(null);
+  
   // Cargar usuarios al montar el componente
   useEffect(() => {
     cargarUsuarios();
@@ -95,6 +98,17 @@ const GestionUsuarios = () => {
   useEffect(() => {
     aplicarFiltros();
   }, [busqueda, filtroRol, filtroActivo, usuarios, ordenarPor, ordenAscendente]);
+
+  // Poner foco en el campo de nombre de usuario cuando se abre el modal
+  useEffect(() => {
+    if (mostrarModal && usuarioInputRef.current) {
+      // Pequeño timeout para asegurar que el modal esté completamente renderizado
+      setTimeout(() => {
+        usuarioInputRef.current?.focus();
+      }, 100);
+    }
+  }, [mostrarModal]);
+  
   // Función helper para determinar si un usuario es el último administrador activo
   const esUltimoAdministradorActivo = (usuario: Usuario): boolean => {
     // Verificar si el usuario actual es administrador activo
@@ -829,22 +843,27 @@ const GestionUsuarios = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">                {usuariosFiltrados.map((usuario) => (
-                  <tr 
+              <tbody className="bg-white divide-y divide-gray-200">                {usuariosFiltrados.map((usuario) => (                  <tr 
                     key={usuario.id || usuario.usuario} 
                     className={`
                       ${esUsuarioActual(usuario) 
                         ? 'bg-blue-50 border-l-4 border-blue-400 hover:bg-blue-100' 
-                        : 'hover:bg-gray-50'
+                        : !usuario.activo
+                          ? 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                          : 'hover:bg-gray-50'
                       }
                     `}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  >                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500">
+                        <div className={`h-10 w-10 rounded-full flex items-center justify-center 
+                          ${!usuario.activo 
+                            ? 'bg-gray-200 text-gray-400' 
+                            : 'bg-gray-100 text-gray-500'
+                          }`}>
                           {usuario.usuario.substring(0, 2).toUpperCase()}
-                        </div>                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
+                        </div>
+                        <div className="ml-4">
+                          <div className={`text-sm font-medium ${!usuario.activo ? 'text-gray-500' : 'text-gray-900'}`}>
                             {usuario.usuario}
                             {esUsuarioActual(usuario) && (
                               <span className="ml-2 text-xs text-blue-600 font-normal">(Usted)</span>
@@ -909,8 +928,7 @@ const GestionUsuarios = () => {
                           <Edit size={18} />
                         </button>
                         
-                        <button 
-                          onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)}
+                        <button                          onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)}
                           disabled={
                             (esUltimoAdministradorActivo(usuario) && usuario.activo) ||
                             (esUsuarioActual(usuario) && usuario.activo)
@@ -920,7 +938,8 @@ const GestionUsuarios = () => {
                               ? 'text-gray-400 cursor-not-allowed opacity-50' 
                               : usuario.activo 
                                 ? 'text-red-600 hover:text-red-900 hover:bg-red-50' 
-                                : 'text-green-600 hover:text-green-900 hover:bg-green-50'
+                                // Botón de activar usuario siempre visible con buen contraste
+                                : 'text-green-600 hover:text-green-900 hover:bg-green-50 font-medium'
                           }`}
                           title={
                             esUltimoAdministradorActivo(usuario) && usuario.activo
@@ -982,6 +1001,7 @@ const GestionUsuarios = () => {
                     name="usuario"
                     value={formUsuario.usuario}
                     onChange={manejarCambioForm}
+                    ref={usuarioInputRef}
                     className={`w-full px-4 py-2.5 rounded-lg border
                     ${verificandoUsuario ? 'border-yellow-300' : ''}
                     ${!verificandoUsuario && usuarioDisponible === false ? 'border-red-500 pr-10' : ''}
