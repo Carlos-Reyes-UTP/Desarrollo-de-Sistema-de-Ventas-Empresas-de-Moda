@@ -83,24 +83,47 @@ export const ProductoService = {
       });
     } catch (err) {
       console.log('Error searching cajero endpoints:', err);
-    }
-
-    return Array.from(productosUnicos.values());
+    }    return Array.from(productosUnicos.values());
   },
 
   // Write operations - only for almacenero/admin
   createProducto: async (productoData: Omit<Producto, 'idProducto'>): Promise<Producto> => {
-    const response = await apiClient.post<Producto>(RUTAS_PRODUCTOS.BASE, productoData);
-    return response.data;
+    try {
+      const response = await apiClient.post<Producto>(RUTAS_PRODUCTOS.BASE, productoData);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para crear productos. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para crear productos. Esta acción requiere rol de Almacenero o Administrador.');
+      }
+      throw error;
+    }
   },
-
   updateProducto: async (id: number, productoData: Producto): Promise<Producto> => {
-    const response = await apiClient.put<Producto>(RUTAS_PRODUCTOS.POR_ID(id), productoData);
-    return response.data;
+    try {
+      const response = await apiClient.put<Producto>(RUTAS_PRODUCTOS.POR_ID(id), productoData);
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para actualizar productos. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para actualizar productos. Esta acción requiere rol de Almacenero o Administrador.');
+      }
+      throw error;
+    }
   },
-
   deleteProducto: async (id: number): Promise<void> => {
-    await apiClient.delete(RUTAS_PRODUCTOS.POR_ID(id));
+    try {
+      await apiClient.delete(RUTAS_PRODUCTOS.POR_ID(id));
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para eliminar productos. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para eliminar productos. Esta acción requiere rol de Almacenero o Administrador.');
+      }
+      throw error;
+    }
   },
 
   // Legacy methods (maintain backward compatibility)

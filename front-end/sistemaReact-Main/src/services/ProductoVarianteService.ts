@@ -5,36 +5,125 @@ import type { Color } from '../interfaces/Color';
 import type { Talla } from '../interfaces/Talla';
 import { RUTAS_VARIANTES } from '../config/apiConfig';
 
-export const ProductoVarianteService = {
-  // Crear nueva variante
+export const ProductoVarianteService = {    // Crear nueva variante
   crearVariante: async (variante: Omit<ProductoVariante, 'idVariante'>): Promise<ProductoVariante> => {
-    const response = await apiClient.post<ProductoVariante>(RUTAS_VARIANTES.BASE, variante);
-    return response.data;
-  },
-
-  // Actualizar variante completa
-  actualizarVariante: async (id: number, variante: ProductoVariante): Promise<ProductoVariante> => {
-    const response = await apiClient.put<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id), variante);
-    return response.data;
-  },
-
-  // Obtener variante por ID
-  obtenerVariantePorId: async (id: number): Promise<ProductoVariante | null> => {
     try {
-      const response = await apiClient.get<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id));
-      return response.data;
-    } catch (error) {
-      if (error instanceof AxiosError && error.response?.status === 404) {
-        return null;
+      console.log("Creando nueva variante con datos:", variante);
+      const response = await apiClient.post<ProductoVariante>(RUTAS_VARIANTES.BASE, variante);
+      
+      // Normalizar los IDs: asegurar que idVariante refleje el ID real de BD
+      const varianteCreada = response.data;
+      if (varianteCreada.idProductoVariante && !varianteCreada.idVariante) {
+        varianteCreada.idVariante = varianteCreada.idProductoVariante;
+      }
+      
+      return varianteCreada;
+    } catch (error: any) {
+      console.error("Error al crear variante:", error);
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para crear variantes. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para crear variantes. Esta acción requiere rol de Almacenero o Administrador.');
       }
       throw error;
     }
+  },  // Actualizar variante completa
+  actualizarVariante: async (id: number, variante: ProductoVariante): Promise<ProductoVariante> => {
+    try {
+      if (!id || isNaN(id) || id <= 0) {
+        throw new Error('ID de variante inválido o indefinido');
+      }
+      
+      console.log(`Actualizando variante ID: ${id} con datos:`, variante);
+      
+      // Asegurar que el ID correcto esté en el payload
+      const varianteConId = {
+        ...variante,
+        idProductoVariante: id // El backend espera idProductoVariante como ID principal
+      };
+      
+      const response = await apiClient.put<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id), varianteConId);
+      
+      // Normalizar la respuesta
+      const varianteActualizada = response.data;
+      if (varianteActualizada.idProductoVariante && !varianteActualizada.idVariante) {
+        varianteActualizada.idVariante = varianteActualizada.idProductoVariante;
+      }
+      
+      return varianteActualizada;
+    } catch (error: any) {
+      // Si es error 401/403, personalizar mensaje
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para actualizar variantes. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para actualizar variantes. Esta acción requiere rol de Almacenero o Administrador.');
+      } else if (error.response?.status === 404) {
+        throw new Error(`No se encontró la variante con ID: ${id}. Es posible que haya sido eliminada.`);
+      }
+      // Devolver error original si no es un error conocido
+      throw error;
+    }
   },
-
-  // Obtener todas las variantes de un producto
+  // Obtener variante por ID
+  obtenerVariantePorId: async (id: number): Promise<ProductoVariante | null> => {
+    try {
+      console.log(`Obteniendo variante con ID: ${id}`);
+      const response = await apiClient.get<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id));
+      
+      // Normalizar IDs para consistencia
+      const variante = response.data;
+      if (variante.idProductoVariante && !variante.idVariante) {
+        variante.idVariante = variante.idProductoVariante;
+      }
+      
+      return variante;
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) {
+        console.log(`No se encontró la variante con ID: ${id}`);
+        return null;
+      }
+      console.error(`Error al obtener variante ${id}:`, error);
+      throw error;
+    }
+  },  // Obtener todas las variantes de un producto
   obtenerVariantesPorProducto: async (idProducto: number): Promise<ProductoVariante[]> => {
-    const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.POR_PRODUCTO(idProducto));
-    return response.data;
+    try {
+      console.log(`Obteniendo variantes para producto ID: ${idProducto}`);
+      const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.POR_PRODUCTO(idProducto));
+      
+      // Normalizar IDs y eliminar duplicados
+      const variantesMapeadas = response.data.map(variante => {
+        // Priorizar idProductoVariante como ID principal, sincronizar con idVariante
+        if (variante.idProductoVariante && !variante.idVariante) {
+          return {
+            ...variante,
+            idVariante: variante.idProductoVariante
+          };
+        }
+        return variante;
+      });
+      
+      // Eliminar duplicados basándose en idProductoVariante (ID real de BD)
+      const variantesUnicas = Array.from(
+        new Map(variantesMapeadas.map(v => [v.idProductoVariante || v.idVariante, v])).values()
+      );
+      
+      console.log(`Variantes obtenidas: ${variantesUnicas.length}`);
+      return variantesUnicas;
+    } catch (error: any) {
+      console.error(`Error al obtener variantes para producto ${idProducto}:`, error);
+      
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para ver las variantes.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para ver las variantes.');
+      } else if (error.response?.status === 404) {
+        // Si no se encuentran variantes, devolver un array vacío en lugar de error
+        console.log(`No se encontraron variantes para el producto ${idProducto}`);
+        return [];
+      }
+      throw error;
+    }
   },
 
   // Obtener variantes por producto y talla
@@ -71,23 +160,45 @@ export const ProductoVarianteService = {
       throw error;
     }
   },
-
   // Actualizar solo la cantidad de una variante
   actualizarCantidad: async (id: number, cantidad: number): Promise<ProductoVariante> => {
     if (cantidad < 0) {
       throw new Error('La cantidad no puede ser negativa');
     }
-    const response = await apiClient.patch<ProductoVariante>(
-      RUTAS_VARIANTES.ACTUALIZAR_CANTIDAD(id),
-      null,
-      { params: { cantidad } }
-    );
-    return response.data;
+    
+    try {
+      const response = await apiClient.patch<ProductoVariante>(
+        RUTAS_VARIANTES.ACTUALIZAR_CANTIDAD(id),
+        null,
+        { params: { cantidad } }
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para actualizar la cantidad. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para actualizar la cantidad. Esta acción requiere rol de Almacenero o Administrador.');
+      }
+      throw error;
+    }
   },
-
   // Eliminar variante
   eliminarVariante: async (id: number): Promise<void> => {
-    await apiClient.delete(RUTAS_VARIANTES.POR_ID(id));
+    try {
+      console.log(`Eliminando variante con ID: ${id}`);
+      await apiClient.delete(RUTAS_VARIANTES.POR_ID(id));
+      console.log(`Variante eliminada correctamente`);
+    } catch (error: any) {
+      console.error(`Error al eliminar variante ${id}:`, error);
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para eliminar variantes. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para eliminar variantes. Esta acción requiere rol de Almacenero o Administrador.');
+      } else if (error.response?.status === 404) {
+        throw new Error(`No se encontró la variante con ID: ${id}. Es posible que ya haya sido eliminada.`);
+      }
+      throw error;
+    }
   },
 
   // Obtener cantidad total de un producto (suma de todas sus variantes)
@@ -100,18 +211,26 @@ export const ProductoVarianteService = {
   migrarProductoAVariantes: async (
     idProducto: number,
     tallas: Talla[],
-    colores: Color[],
-    distribucionPorcentual: boolean = false
+    colores: Color[],    distribucionPorcentual: boolean = false
   ): Promise<ProductoVariante[]> => {
-    const payload = {
-      tallas,
-      colores
-    };
-    const response = await apiClient.post<ProductoVariante[]>(
-      RUTAS_VARIANTES.MIGRAR_PRODUCTO(idProducto),
-      payload,
-      { params: { distribucionPorcentual } }
-    );
-    return response.data;
+    try {
+      const payload = {
+        tallas,
+        colores
+      };
+      const response = await apiClient.post<ProductoVariante[]>(
+        RUTAS_VARIANTES.MIGRAR_PRODUCTO(idProducto),
+        payload,
+        { params: { distribucionPorcentual } }
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para migrar el producto. Inicia sesión como Almacenero o Administrador.');
+      } else if (error.response?.status === 403) {
+        throw new Error('Error de permisos: No tienes autorización para migrar el producto. Esta acción requiere rol de Almacenero o Administrador.');
+      }
+      throw error;
+    }
   },
 };

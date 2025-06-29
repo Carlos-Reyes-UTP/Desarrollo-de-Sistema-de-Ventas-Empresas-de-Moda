@@ -147,11 +147,13 @@ const GestionCategorias: React.FC = () => {
   const [categorias, setCategorias] = useState<CategoriaDTO[]>([]);
   const [categoriasFiltradas, setCategoriasFiltradas] = useState<CategoriaDTO[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [showFormulario, setShowFormulario] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');  const [showFormulario, setShowFormulario] = useState(false);
   const [categoriaEditar, setCategoriaEditar] = useState<CategoriaDTO | null>(null);
   const [categoriaPadreId, setCategoriaPadreId] = useState<number | null>(null);  const [error, setError] = useState<string | null>(null);
   const [categoriasExpandidas, setCategoriasExpandidas] = useState<Set<number>>(new Set());
+  
+  // Estado para animación del modal
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   // Formulario
   const [formData, setFormData] = useState({
@@ -226,17 +228,20 @@ const GestionCategorias: React.FC = () => {
         await CategoriaService.actualizarCategoria(categoriaEditar.id, { nombre: formData.nombre });
       } else if (categoriaPadreId) {
         // Crear subcategoría
-        await CategoriaService.crearSubcategoria(categoriaPadreId, { nombre: formData.nombre });
-      } else {
+        await CategoriaService.crearSubcategoria(categoriaPadreId, { nombre: formData.nombre });      } else {
         // Crear categoría principal
         await CategoriaService.crearCategoria({ nombre: formData.nombre });
       }
       
-      setShowFormulario(false);
-      setCategoriaEditar(null);
-      setCategoriaPadreId(null);
-      setFormData({ nombre: '' });
-      setError(null);
+      // Cerrar modal con animación
+      setIsModalVisible(false);
+      setTimeout(() => {
+        setShowFormulario(false);
+        setCategoriaEditar(null);
+        setCategoriaPadreId(null);
+        setFormData({ nombre: '' });
+        setError(null);
+      }, 300);
       cargarCategorias();
     } catch (err: any) {
       if (err.response?.status === 409) {
@@ -263,12 +268,12 @@ const GestionCategorias: React.FC = () => {
       console.error(err);
     }
   };
-
   const handleEditar = (categoria: CategoriaDTO) => {
     setCategoriaEditar(categoria);
     setCategoriaPadreId(null);
     setFormData({ nombre: categoria.nombre });
     setShowFormulario(true);
+    setTimeout(() => setIsModalVisible(true), 10);
     setError(null);
   };
 
@@ -277,6 +282,7 @@ const GestionCategorias: React.FC = () => {
     setCategoriaPadreId(null);
     setFormData({ nombre: '' });
     setShowFormulario(true);
+    setTimeout(() => setIsModalVisible(true), 10);
     setError(null);
   };
 
@@ -285,15 +291,19 @@ const GestionCategorias: React.FC = () => {
     setCategoriaPadreId(idPadre);
     setFormData({ nombre: '' });
     setShowFormulario(true);
+    setTimeout(() => setIsModalVisible(true), 10);
     setError(null);
   };
 
   const handleCancelar = () => {
-    setShowFormulario(false);
-    setCategoriaEditar(null);
-    setCategoriaPadreId(null);
-    setFormData({ nombre: '' });
-    setError(null);
+    setIsModalVisible(false);
+    setTimeout(() => {
+      setShowFormulario(false);
+      setCategoriaEditar(null);
+      setCategoriaPadreId(null);
+      setFormData({ nombre: '' });
+      setError(null);
+    }, 300);
   };
 
   const toggleExpansion = (id: number) => {
@@ -399,12 +409,10 @@ const GestionCategorias: React.FC = () => {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
           {error}
         </div>
-      )}
-
-      {/* Formulario Modal */}
+      )}      {/* Formulario Modal */}
       {showFormulario && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-200 transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold flex items-center gap-2">
                 <TreePine className="w-5 h-5 text-green-600" />
@@ -416,7 +424,7 @@ const GestionCategorias: React.FC = () => {
               </h3>
               <button
                 onClick={handleCancelar}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:bg-gray-100 p-2 rounded-lg"
               >
                 <X className="w-6 h-6" />
               </button>

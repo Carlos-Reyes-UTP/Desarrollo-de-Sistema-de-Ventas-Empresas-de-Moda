@@ -1,14 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Ticket } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2 } from 'lucide-react';
 import { useProductoService } from '../../hooks/useProductoService';
-import { VentaService } from '../../services/VentaServices';
+import { useAuthReady } from '../../hooks/useAuthReady';
 import { ClienteService } from '../../services/ClienteServices';
 import type { Producto, ProductoVenta } from '../../interfaces/Producto';
 import type { Cliente } from '../../interfaces/Cliente';
-import type { VentaInput, Venta } from '../../interfaces/Venta';
+import type { VentaInput } from '../../interfaces/Venta';
 import type { DetalleVentaInput } from '../../interfaces/DetalleVenta';
 
 const VentasPanel = () => {
+  const { isReady, isAuthenticated } = useAuthReady();
   // Get role-aware product service methods
   const productoService = useProductoService();
   
@@ -36,15 +37,25 @@ const VentasPanel = () => {
   const [qrDataModal, setQrDataModal] = useState({ url: '', tipo: '' });
   const [mostrarModalBoleta, setMostrarModalBoleta] = useState(false);
   const [datosVentaParaBoleta, setDatosVentaParaBoleta] = useState<any>(null);
-
   // --------------------------------------------------------------------------------------------
   // B. EFECTOS (useEffect)
   // --------------------------------------------------------------------------------------------
+  
   useEffect(() => {
+    if (!isReady) return;
+    
+    if (!isAuthenticated) {
+      window.location.href = '/login';
+      return;
+    }
+    
     const cargarTodosLosProductos = async () => {
       try {
         setCargandoProductosIniciales(true);
-        setErrorGlobal(null);        setMensajeInfoVista("Cargando productos...");        // Usar el hook personalizado que maneja roles automáticamente
+        setErrorGlobal(null);
+        setMensajeInfoVista("Cargando productos...");
+        
+        // Usar el hook personalizado que maneja roles automáticamente
         const data = await productoService.getAllProductos();
         setProductosCargados(data);
         setProductosFiltradosVista(data);
@@ -63,7 +74,7 @@ const VentasPanel = () => {
       }
     };
     cargarTodosLosProductos();
-  }, []); 
+  }, [isReady, isAuthenticated, productoService]);
 
   useEffect(() => {
     if (!cargandoProductosIniciales && !cargandoBusquedaAccion) { 
@@ -142,12 +153,14 @@ const VentasPanel = () => {
       setCargandoBusquedaAccion(false);
     }
   };
-  
-  const handleBuscarPorCodigoExacto = useCallback(async (codigoScaneado: string) => {
+    const handleBuscarPorCodigoExacto = async (codigoScaneado: string) => {
     if (!codigoScaneado.trim()) return;
     try {
       setCargandoBusquedaAccion(true);
-      setErrorGlobal(null);      setMensajeInfoVista(`Procesando código "${codigoScaneado}"...`);      // Usar el hook personalizado que maneja roles automáticamente
+      setErrorGlobal(null);
+      setMensajeInfoVista(`Procesando código "${codigoScaneado}"...`);
+      
+      // Usar el hook personalizado que maneja roles automáticamente
       const productos = await productoService.getProductosByCodigo(codigoScaneado.trim());
       const productoEncontrado = productos && productos.length > 0 ? productos[0] : null;
       
@@ -167,7 +180,7 @@ const VentasPanel = () => {
     } finally {
       setCargandoBusquedaAccion(false);
     }
-  }, []); 
+  };
 
   const handleBuscarCliente = async () => {
     if (!documentoCliente.trim()) {
@@ -218,12 +231,11 @@ const VentasPanel = () => {
           ? { ...item, cantidad: item.cantidad + 1, total: (item.cantidad + 1) * item.precio } 
           : item
       ));
-    } else {
-      setProductosSeleccionadosVenta(prev => [...prev, {
+    } else {      setProductosSeleccionadosVenta(prev => [...prev, {
         idProducto: producto.idProducto!,
         codigo: producto.codigoIdentificacion,
         descripcion: producto.nombre,
-        talla: producto.talla || 'Única',
+        talla: 'Única', // La interfaz Producto no tiene talla, usamos valor por defecto
         cantidad: 1,
         precio: precioAplicado, 
         total: precioAplicado

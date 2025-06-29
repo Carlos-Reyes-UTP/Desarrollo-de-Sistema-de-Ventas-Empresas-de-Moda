@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Package2, Palette, Ruler, BarChart3, Scan, Eye } from 'lucide-react';
+import { Plus, Search, Package2, Palette, Ruler, BarChart3, Scan, Eye, X, Trash2 } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -7,9 +7,12 @@ import { ProductoService } from '../../services/ProductoServices';
 import { CategoriaService } from '../../services/CategoriaServices';
 import { ProveedorService } from '../../services/ProveedorServices';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
+import { useAuthReady } from '../../hooks/useAuthReady';
+import { AuthLoadingScreen } from '../auth/AuthLoadingScreen';
+import Barcode from 'react-barcode';
 
 // Componentes específicos
-import FormularioProducto from '../productos/FormularioProducto';
+import FormularioProducto from '../productos/FormularioProductoUnificado';
 import GestionVariantes from '../productos/GestionVariantes';
 import GestionColores from '../productos/GestionColores';
 import GestionTallas from '../productos/GestionTallas';
@@ -21,7 +24,68 @@ interface ProductoUnificadoProps {
   className?: string;
 }
 
+// Modal de confirmación reutilizable
+const ConfirmModal: React.FC<{
+  open: boolean;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}> = ({ open, message, onConfirm, onCancel }) => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => setIsVisible(true), 10);
+    } else {
+      setIsVisible(false);
+    }
+  }, [open]);
+
+  if (!open) return null;
+  
+  return (
+    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`bg-white rounded-xl shadow-2xl p-6 w-full max-w-sm relative border border-gray-200 transform transition-all duration-300 ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+        <button 
+          onClick={onCancel} 
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 transition-colors duration-200 hover:bg-gray-100 p-2 rounded-lg"
+        >
+          <X className="w-5 h-5" />
+        </button>
+        <div className="text-center">
+          <div className="bg-red-100 p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+            <Trash2 className="w-8 h-8 text-red-600" />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar eliminación</h3>
+          <p className="text-gray-600 mb-6">{message}</p>
+          <div className="flex justify-center gap-3">
+            <button 
+              onClick={onCancel} 
+              className="px-6 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors duration-200"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={onConfirm} 
+              className="px-6 py-3 rounded-lg bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-red-500/50"
+            >
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className = '' }) => {
+  const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
+  
+  // Si aún está cargando la autenticación, mostrar pantalla de carga
+  if (authLoading) {
+    return <AuthLoadingScreen message="Validando sesión y cargando datos..." />;
+  }
+  
   // Estados principales
   const [vistaActiva, setVistaActiva] = useState<VistaActiva>('productos');
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -36,17 +100,46 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
   const [selectedProveedor, setSelectedProveedor] = useState<string>('');
 
   // Estados para modales (separados por z-index)
-  const [showFormularioProducto, setShowFormularioProducto] = useState(false);
-  const [showVariantes, setShowVariantes] = useState(false);
+  const [showFormularioProducto, setShowFormularioProducto] = useState(false);  const [showVariantes, setShowVariantes] = useState(false);
   const [showCodigosBarras, setShowCodigosBarras] = useState(false);
+  const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
+  const [productoBarcode, setProductoBarcode] = useState<Producto | null>(null);
 
+  // Estado para loading de eliminación y feedback
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
+  const [mensajeExito, setMensajeExito] = useState<string | null>(null);
+  const [mensajeError, setMensajeError] = useState<string | null>(null);
+  // Estado para confirmación de eliminación
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
+  
+  // Estado para animación del modal
+  const [isBarcodeModalVisible, setIsBarcodeModalVisible] = useState(false);
+
+  // Función para cerrar modal de código de barras con animación
+  const handleCloseBarcodeModal = () => {
+    setIsBarcodeModalVisible(false);
+    setTimeout(() => {
+      setShowBarcodeModal(false);
+      setProductoBarcode(null);
+    }, 300);
+  };
+
+  // Esperar a que la autenticación esté lista antes de cargar datos
   useEffect(() => {
-    cargarDatos();
-  }, []);
-  const cargarDatos = async () => {
+    if (isReady && isAuthenticated) {
+      cargarDatos();
+    } else if (isReady && !isAuthenticated) {
+      // Redirigir a login si no está autenticado
+      console.log('Usuario no autenticado, redirigiendo a login...');
+      window.location.href = '/login';
+    }
+  }, [isReady, isAuthenticated]);const cargarDatos = async () => {
     try {
       setLoading(true);
+      console.log('🔄 Cargando datos del componente padre...');
+      
       const [productosResponse, categoriasResponse, proveedoresResponse] = await Promise.all([
         ProductoService.getAllProductos('ROLE_ADMIN'),
         CategoriaService.obtenerTodasCategorias(),
@@ -76,13 +169,24 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
       setProductos(productosConCantidad);
       setCategorias(categoriasData);
       setProveedores(proveedoresData);
+      
+      // Si hay un producto seleccionado y un modal abierto, actualizar el producto seleccionado con los datos más recientes
+      if (productoSeleccionado && (showVariantes || showCodigosBarras || showFormularioProducto)) {
+        const productoActualizado = productosConCantidad.find(p => p.idProducto === productoSeleccionado.idProducto);
+        if (productoActualizado) {
+          console.log(`🔄 Actualizando producto seleccionado con datos frescos: ${productoActualizado.nombre}`);
+          setProductoSeleccionado(productoActualizado);
+        }
+      }
+      
+      console.log('✅ Datos del componente padre cargados correctamente');
     } catch (err) {
       setError('Error al cargar los datos');
-      console.error(err);
+      console.error('❌ Error al cargar datos del componente padre:', err);
     } finally {
       setLoading(false);
     }
-  };  const handleBuscar = async () => {
+  };const handleBuscar = async () => {
     if (!searchTerm.trim()) {
       cargarDatos();
       return;
@@ -102,7 +206,6 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
       setLoading(false);
     }
   };
-
   const handleAbrirVariantes = (producto: Producto) => {
     setProductoSeleccionado(producto);
     setShowVariantes(true);
@@ -122,15 +225,40 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
     setProductoSeleccionado(null);
     setShowFormularioProducto(true);
   };
-
-  const handleProductoGuardado = () => {
+  const handleProductoGuardado = (productoGuardado?: Producto) => {
     setShowFormularioProducto(false);
+    
+    if (productoGuardado) {
+      console.log('🔄 Producto guardado recibido en componente padre:', productoGuardado);
+      
+      // Actualizar productos en el estado con el producto guardado
+      setProductos(prevProductos => {
+        // Si el producto ya existe, actualizarlo
+        if (productoGuardado.idProducto && prevProductos.some(p => p.idProducto === productoGuardado.idProducto)) {
+          return prevProductos.map(p => 
+            p.idProducto === productoGuardado.idProducto ? productoGuardado : p
+          );
+        }
+        // Si es un producto nuevo, agregarlo a la lista
+        return [...prevProductos, productoGuardado];
+      });
+        // Si el producto guardado es el mismo que estaba seleccionado, actualizar productoSeleccionado
+      if (productoSeleccionado && productoSeleccionado.idProducto === productoGuardado.idProducto) {
+        setProductoSeleccionado(productoGuardado);
+      }
+    } else {
+      // Si no se recibió un producto, recargar todos los datos
+      cargarDatos();
+    }
+    
     setProductoSeleccionado(null);
-    cargarDatos();
-  };
-
-  const handleVariantesActualizadas = () => {
-    cargarDatos();
+  };const handleVariantesActualizadas = () => {
+    console.log('🔄 Notificación de variantes actualizadas recibida en componente padre');
+    // Agregar un pequeño delay para evitar condiciones de carrera
+    setTimeout(() => {
+      console.log('🔄 Recargando datos del componente padre después de actualización de variantes');
+      cargarDatos();
+    }, 100);
   };
 
   const productosFiltrados = productos.filter(producto => {
@@ -140,6 +268,36 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
       producto.proveedor.nombre.toLowerCase().includes(selectedProveedor.toLowerCase());
     return matchCategoria && matchProveedor;
   });
+
+  const solicitarEliminarProducto = (idProducto: number) => {
+    setProductoAEliminar(idProducto);
+    setConfirmModalOpen(true);
+  };
+
+  const confirmarEliminarProducto = async () => {
+    if (productoAEliminar == null) return;
+    setEliminandoId(productoAEliminar);
+    setMensajeError(null);
+    setMensajeExito(null);
+    try {
+      await ProductoService.deleteProducto(productoAEliminar);
+      setMensajeExito('Producto eliminado correctamente.');
+      cargarDatos();
+    } catch (err) {
+      setMensajeError('Error al eliminar el producto.');
+    } finally {
+      setEliminandoId(null);
+      setProductoAEliminar(null);
+      setConfirmModalOpen(false);
+      setTimeout(() => setMensajeExito(null), 3000);
+    }
+  };
+
+  const cancelarEliminarProducto = () => {
+    setProductoAEliminar(null);
+    setConfirmModalOpen(false);
+  };
+
   const NavButton: React.FC<{
     icon: React.ReactNode;
     label: string;
@@ -221,6 +379,16 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
           </div>
         ) : (
           <div className="overflow-x-auto">
+            {mensajeExito && (
+              <div className="mb-4 px-4 py-2 bg-green-100 border border-green-400 text-green-800 rounded">
+                {mensajeExito}
+              </div>
+            )}
+            {mensajeError && (
+              <div className="mb-4 px-4 py-2 bg-red-100 border border-red-400 text-red-800 rounded">
+                {mensajeError}
+              </div>
+            )}
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -252,10 +420,12 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
                   <tr key={producto.idProducto} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {producto.codigoIdentificacion}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </td>                    <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
+                        {producto.codigoBarras && (
+                          <div className="text-xs text-blue-600 font-mono">📊 {producto.codigoBarras}</div>
+                        )}
                         {producto.descripcion && (
                           <div className="text-sm text-gray-500">{producto.descripcion}</div>
                         )}
@@ -296,6 +466,16 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
                           title="Códigos de Barras"
                         >
                           <BarChart3 className="w-4 h-4" />
+                        </button>                        <button
+                          onClick={() => {
+                            setProductoBarcode(producto);
+                            setShowBarcodeModal(true);
+                            setTimeout(() => setIsBarcodeModalVisible(true), 10);
+                          }}
+                          className="text-gray-600 hover:text-black p-1 rounded"
+                          title="Ver código de barras"
+                        >
+                          <Scan className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleEditarProducto(producto)}
@@ -303,6 +483,17 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
                           title="Editar"
                         >
                           <Eye className="w-4 h-4" />
+                        </button>                        <button
+                          onClick={() => producto.idProducto && solicitarEliminarProducto(producto.idProducto)}
+                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                          title="Eliminar"
+                          disabled={eliminandoId === producto.idProducto}
+                        >
+                          {eliminandoId === producto.idProducto ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </td>
@@ -325,7 +516,6 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
       </div>
     </div>
   );
-
   if (error) {
     return (
       <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
@@ -402,14 +592,20 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
             onProductoGuardado={handleProductoGuardado}
           />
         </div>
-      )}
-
-      {showVariantes && productoSeleccionado && (
+      )}      {showVariantes && productoSeleccionado && (
         <div style={{ zIndex: 2000 }}>
           <GestionVariantes
             producto={productoSeleccionado}
             onClose={() => {
+              console.log('🚪 Cerrando modal de variantes');
               setShowVariantes(false);
+              
+              // Actualizar datos inmediatamente al cerrar el modal de variantes
+              if (productoSeleccionado?.idProducto) {
+                console.log(`🔄 Actualizando datos después de cerrar modal de variantes para producto ID: ${productoSeleccionado.idProducto}`);
+                cargarDatos();
+              }
+              
               setProductoSeleccionado(null);
             }}
             onVariantesActualizadas={handleVariantesActualizadas}
@@ -427,7 +623,31 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
             }}
           />
         </div>
-      )}
+      )}      {showBarcodeModal && productoBarcode && (
+        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isBarcodeModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+          <div className={`bg-white rounded-xl shadow-2xl p-8 max-w-md w-full relative border border-gray-200 transform transition-all duration-300 ${isBarcodeModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+            <button
+              onClick={handleCloseBarcodeModal}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 transition-colors duration-200 hover:bg-gray-100 p-2 rounded-lg"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <h2 className="text-lg font-bold mb-4 text-center">Código de Barras</h2>
+            <div className="flex flex-col items-center">
+              <Barcode value={productoBarcode.codigoIdentificacion} width={2} height={80} fontSize={18} />
+              <div className="mt-2 text-center text-sm text-gray-700">{productoBarcode.codigoIdentificacion}</div>
+              <div className="mt-1 text-xs text-gray-500">{productoBarcode.nombre}</div>
+            </div>
+          </div>
+        </div>)}
+
+      {/* Modal de confirmación */}
+      <ConfirmModal
+        open={confirmModalOpen}
+        message="¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer."
+        onConfirm={confirmarEliminarProducto}
+        onCancel={cancelarEliminarProducto}
+      />
     </div>
   );
 };

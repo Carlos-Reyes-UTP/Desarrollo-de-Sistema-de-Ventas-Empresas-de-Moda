@@ -3,7 +3,7 @@ export const API_BASE_URL = 'http://localhost:8080'; // Use full URL to bypass C
 // Rutas de Autenticación
 export const RUTAS_AUTENTICACION = {
   INICIAR_SESION: `${API_BASE_URL}/api/autenticacion/signin`,
-  REGISTRAR_ADMIN: `${API_BASE_URL}/api/autenticacion/signup/createAdmin`,
+  REGISTRAR_ADMIN: `${API_BASE_URL}/api/admin/user/createUser`, // Corregida para coincidir con UsuarioController
 };
 
 // Rutas de Usuarios
@@ -13,7 +13,7 @@ export const RUTAS_USUARIOS = {
   POR_ID: (id: number) => `${API_BASE_URL}/api/admin/user/${id}`, // Para actualizar
   DESHABILITAR: (id: number) => `${API_BASE_URL}/api/admin/user/deshabilitar/${id}`,
   HABILITAR: (id: number) => `${API_BASE_URL}/api/admin/user/habilitar/${id}`,
-  VERIFICAR_CONTRASENA: `${API_BASE_URL}/api/autenticacion/verify-password`, // Endpoint para verificar contraseña
+  // VERIFICAR_CONTRASENA: `${API_BASE_URL}/api/autenticacion/verify-password`, // TODO: Implementar en backend
 };
 
 // Rutas de Productos
@@ -72,10 +72,10 @@ export const RUTAS_CLIENTES = {
   POR_DOCUMENTO: (numeroDocumento: string) => `${API_BASE_URL}/api/cajero/clientes/documento/${encodeURIComponent(numeroDocumento)}`,
 };
 
-// Rutas de Métodos de Pago
+// Rutas de Métodos de Pago (TODO: Implementar controlador en backend)
 export const RUTAS_METODOS_PAGO = {
-  BASE: `${API_BASE_URL}/api/cajero/metodos-pago`, // Updated to follow role-based pattern
-  POR_ID: (id: number) => `${API_BASE_URL}/api/cajero/metodos-pago/${id}`,
+  // BASE: `${API_BASE_URL}/api/cajero/metodos-pago`,
+  // POR_ID: (id: number) => `${API_BASE_URL}/api/cajero/metodos-pago/${id}`,
 };
 
 // Rutas de Colores
@@ -113,30 +113,64 @@ export const RUTAS_VARIANTES = {
 
 // Rutas de Códigos de Barras
 export const RUTAS_CODIGOS_BARRAS = {
-  // Base routes for CRUD operations
-  BASE: `${API_BASE_URL}/api/codigos-barras`,
-  POR_ID: (id: number) => `${API_BASE_URL}/api/codigos-barras/${id}`,
+  // Base routes for CRUD operations (Legacy controller)
+  BASE: `${API_BASE_URL}/api/almacenero/codigobarras`,
   
-  // Search by barcode
-  BUSCAR: (codigo: string) => `${API_BASE_URL}/api/codigos-barras/buscar/${encodeURIComponent(codigo)}`,
+  // Generate barcode for product
+  GENERAR_PRODUCTO: (idProducto: number, ancho?: number, alto?: number) => {
+    let url = `${API_BASE_URL}/api/almacenero/codigobarras/generar/${idProducto}`;
+    const params = new URLSearchParams();
+    if (ancho) params.append('ancho', ancho.toString());
+    if (alto) params.append('alto', alto.toString());
+    return params.toString() ? `${url}?${params.toString()}` : url;
+  },
   
-  // Generate new barcode
-  GENERAR: `${API_BASE_URL}/api/codigos-barras/generar`,
+  // Generate barcode for variant
+  GENERAR_VARIANTE: (idVariante: number, ancho?: number, alto?: number) => {
+    let url = `${API_BASE_URL}/api/almacenero/codigobarras/generar-variante/${idVariante}`;
+    const params = new URLSearchParams();
+    if (ancho) params.append('ancho', ancho.toString());
+    if (alto) params.append('alto', alto.toString());
+    return params.toString() ? `${url}?${params.toString()}` : url;
+  },
   
-  // Assign barcode to product or variant
-  ASIGNAR: `${API_BASE_URL}/api/codigos-barras/asignar`,
+  // Assign barcode to product
+  ASIGNAR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/almacenero/codigobarras/asignar/${idProducto}`,
   
-  // Get barcodes by product
-  POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/codigos-barras/producto/${idProducto}`,
+  // Assign barcode to variant
+  ASIGNAR_VARIANTE: (idVariante: number) => `${API_BASE_URL}/api/almacenero/codigobarras/asignar-variante/${idVariante}`,
   
-  // Get barcodes by variant
-  POR_VARIANTE: (idVariante: number) => `${API_BASE_URL}/api/codigos-barras/variante/${idVariante}`,
+  // Read barcode from image
+  LEER: `${API_BASE_URL}/api/almacenero/codigobarras/leer`,
   
-  // Validation endpoint
-  VALIDAR: (codigo: string) => `${API_BASE_URL}/api/codigos-barras/validar/${encodeURIComponent(codigo)}`,
+  // Search product by barcode
+  BUSCAR_PRODUCTO: (codigo: string) => `${API_BASE_URL}/api/almacenero/codigobarras/buscar-producto/${encodeURIComponent(codigo)}`,
   
-  // Search products/variants by barcode (for scanning)
-  BUSCAR_PRODUCTO: (codigo: string) => `${API_BASE_URL}/api/codigos-barras/buscar/producto/${encodeURIComponent(codigo)}`,
-  BUSCAR_VARIANTE: (codigo: string) => `${API_BASE_URL}/api/codigos-barras/buscar/variante/${encodeURIComponent(codigo)}`,
+  // Search variant by barcode
+  BUSCAR_VARIANTE: (codigo: string) => `${API_BASE_URL}/api/almacenero/codigobarras/buscar-variante/${encodeURIComponent(codigo)}`,
+  
+  // Validate barcode
+  VALIDAR: (codigo: string) => `${API_BASE_URL}/api/almacenero/codigobarras/validar?codigo=${encodeURIComponent(codigo)}`,
+  
+  // Obtener todos los códigos de barras con detalles (optimizado para evitar N+1)
+  OBTENER_TODOS_CON_DETALLES: `${API_BASE_URL}/api/almacenero/codigobarras/all-with-details`,
+  
+  // Obtener códigos de barras de un producto específico
+  OBTENER_CODIGOS_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/almacenero/codigobarras/producto/${idProducto}`,
+  
+  // Obtener códigos de barras de una variante específica
+  OBTENER_CODIGOS_VARIANTE: (idVariante: number) => `${API_BASE_URL}/api/almacenero/codigobarras/variante/${idVariante}`,
+};
+
+// Rutas de Códigos de Barras V1 (New robust controller)
+export const RUTAS_CODIGOS_BARRAS_V1 = {
+  // Base for V1 API
+  BASE: `${API_BASE_URL}/api/v1/codigos-barras`,
+  
+  // Generate barcode image for product (returns PNG directly)
+  GENERAR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/v1/codigos-barras/generar/producto/${idProducto}`,
+  
+  // Generate barcode image for variant (returns PNG directly)
+  GENERAR_VARIANTE: (idVariante: number) => `${API_BASE_URL}/api/v1/codigos-barras/generar/variante/${idVariante}`,
 };
 

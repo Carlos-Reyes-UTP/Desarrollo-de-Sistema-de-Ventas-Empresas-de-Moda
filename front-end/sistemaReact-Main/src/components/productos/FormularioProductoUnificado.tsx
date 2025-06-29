@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, Package, Minus } from 'lucide-react';
+import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, Minus } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -9,6 +9,7 @@ import type { ProductoVariante } from '../../interfaces/ProductoVariante';
 import { ProductoService } from '../../services/ProductoServices';
 import { ColorService } from '../../services/ColorService';
 import { TallaService } from '../../services/TallaService';
+import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 
 interface VarianteFormData {
@@ -24,8 +25,11 @@ interface FormularioProductoUnificadoProps {
   categorias: Categoria[];
   proveedores: Proveedor[];
   onClose: () => void;
-  onProductoGuardado: () => void;
+  onProductoGuardado: (productoGuardado?: Producto) => void;
 }
+
+// Definimos las pestañas disponibles
+type TabType = 'informacion' | 'variantes' | 'precios' | 'codigosBarras';
 
 const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = ({
   producto,
@@ -33,15 +37,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   proveedores,
   onClose,
   onProductoGuardado
-}) => {
-  // Estados para el formulario principal del producto
+}) => {  // Estado básico del formulario
   const [formData, setFormData] = useState({
     codigoIdentificacion: '',
+    codigoBarras: '',
     nombre: '',
-    descripcion: '',
     sexo: '',
     categoriaId: '',
-    categoriaPadreId: '',
+    subcategoriaId: '',
     marca: '',
     proveedorId: '',
     precioUnitario: '',
@@ -49,38 +52,53 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     precioMediaDocena: '',
     precioDocena: ''
   });
-
-  // Estados para colores y tallas disponibles
+    // Estados para variantes y datos relacionados
+  const [variantes, setVariantes] = useState<VarianteFormData[]>([]);
   const [coloresDisponibles, setColoresDisponibles] = useState<Color[]>([]);
   const [tallasDisponibles, setTallasDisponibles] = useState<Talla[]>([]);
-
-  // Estados para variantes
-  const [variantes, setVariantes] = useState<VarianteFormData[]>([]);
-  const [nuevaVariante, setNuevaVariante] = useState<Omit<VarianteFormData, 'id'>>({
+  const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+    // Estados para nueva variante (modo simple)
+  const [nuevaVariante, setNuevaVariante] = useState({
     tallaId: 0,
     colorId: 0,
     cantidad: 1,
     codigoIdentificacion: ''
   });
-
-  // Estados para gestión de formulario
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
+  const [showFormularioVariante, setShowFormularioVariante] = useState(false);
+  
+  // Estados para formulario optimizado (múltiples colores por talla)
+  const [modoFormulario, setModoFormulario] = useState<'simple' | 'optimizado'>('optimizado');
+  const [formularioOptimizado, setFormularioOptimizado] = useState({
+    tallaSeleccionada: 0,
+    cantidadesPorColor: {} as Record<number, number>
+  });  // Estados nuevos para UI mejorada
+  const [tabActiva, setTabActiva] = useState<TabType>('informacion');
+  const [codigoBarrasPreview, setCodigoBarrasPreview] = useState<string | null>(null);
+  const [varianteSeleccionada, setVarianteSeleccionada] = useState<number | null>(null);
+  
+  // Estado para animación del modal
+  const [isModalVisible, setIsModalVisible] = useState(false);
   // Cargar datos iniciales
   useEffect(() => {
+    setIsModalVisible(true);
     cargarColoresYTallas();
   }, []);
-
+  
+  // Función para cerrar con animación
+  const handleClose = () => {
+    setIsModalVisible(false);
+    setTimeout(onClose, 300); // Esperar a que la animación termine
+  };
   useEffect(() => {
-    if (producto) {
-      setFormData({
+    if (producto) {      setFormData({
         codigoIdentificacion: producto.codigoIdentificacion,
+        codigoBarras: producto.codigoBarras || '',
         nombre: producto.nombre,
-        descripcion: producto.descripcion || '',
         sexo: producto.sexo || '',
-        categoriaId: producto.categoria.idCategoria?.toString() || '',
-        categoriaPadreId: producto.categoriaPadre?.idCategoria?.toString() || '',
+        categoriaId: producto.categoria?.categoriaPadre ? producto.categoria.categoriaPadre.idCategoria?.toString() || '' : producto.categoria?.idCategoria?.toString() || '',
+        subcategoriaId: producto.categoria?.categoriaPadre ? producto.categoria.idCategoria?.toString() || '' : '',
         marca: producto.marca || '',
         proveedorId: producto.proveedor.idProveedor?.toString() || '',
         precioUnitario: producto.precioUnitario.toString(),
@@ -89,22 +107,41 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         precioDocena: producto.precioDocena?.toString() || ''
       });
       
+      // Cargar subcategorías si el producto tiene una categoría padre
+      if (producto.categoria?.categoriaPadre) {
+        const categoriaSeleccionada = categorias.find(c => c.idCategoria === producto.categoria?.categoriaPadre?.idCategoria);
+        if (categoriaSeleccionada?.subCategorias) {
+          setSubcategorias(categoriaSeleccionada.subCategorias);
+        }
+      }
+      
       // Cargar variantes existentes si estamos editando
       cargarVariantesExistentes();
     }
-  }, [producto]);
+  }, [producto, categorias]);
 
   const cargarColoresYTallas = async () => {
     try {
+      setLoading(true);
       const [coloresData, tallasData] = await Promise.all([
         ColorService.getAllColores(),
         TallaService.getAllTallas()
       ]);
       setColoresDisponibles(coloresData);
       setTallasDisponibles(tallasData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error al cargar colores y tallas:', err);
-      setError('Error al cargar colores y tallas disponibles');
+      
+      // Manejo específico para errores de autenticación/autorización
+      if (err.response?.status === 401) {
+        setError('Error de autorización: Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      } else if (err.response?.status === 403) {
+        setError('Error de permisos: No tienes autorización para acceder a esta información.');
+      } else {
+        setError('Error al cargar colores y tallas disponibles: ' + (err.message || 'Error de comunicación con el servidor'));
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -112,28 +149,64 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     if (!producto?.idProducto) return;
     
     try {
+      setLoading(true);
+      console.log(`🔄 Cargando variantes existentes para producto ID: ${producto.idProducto}`);
+      
       const variantesExistentes = await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto);
-      const variantesFormData: VarianteFormData[] = variantesExistentes.map(v => ({
-        id: v.idVariante,
-        tallaId: v.talla.idTalla || 0,
-        colorId: v.color.idColor || 0,
-        cantidad: v.cantidad,
-        codigoIdentificacion: v.codigoIdentificacion
-      }));
+      console.log(`📦 Variantes obtenidas del backend: ${variantesExistentes.length}`);
+      
+      // Verificar que no haya duplicados por ID
+      const variantesUnicas = Array.from(
+        new Map(variantesExistentes.map(v => [v.idVariante, v])).values()
+      );
+      
+      if (variantesUnicas.length !== variantesExistentes.length) {
+        console.warn(`⚠️  Se removieron ${variantesExistentes.length - variantesUnicas.length} variantes duplicadas`);
+      }      // Mapear variantes del backend al formato del formulario
+      const variantesFormData: VarianteFormData[] = variantesUnicas.map(v => {
+        // Priorizar idProductoVariante (que es el ID real en BD) sobre idVariante
+        const varianteId = v.idProductoVariante || v.idVariante;
+        
+        const variante = {
+          id: varianteId,
+          tallaId: v.talla.idTalla || 0,
+          colorId: v.color.idColor || 0,
+          cantidad: v.cantidad,
+          codigoIdentificacion: v.codigoBarrasVariante || ''
+        };
+        
+        console.log(`   ✅ Variante mapeada: ID=${variante.id}, Talla=${v.talla.nombreTalla}, Color=${v.color.nombre}, Cantidad=${variante.cantidad}`);
+        return variante;
+      });
+      
+      console.log(`✅ ${variantesFormData.length} variantes cargadas en el estado del formulario`);
       setVariantes(variantesFormData);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error al cargar variantes existentes:', err);
+      
+      // Manejo específico para errores de autenticación/autorización
+      if (err.response?.status === 401) {
+        setError('Error de autorización: Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+      } else if (err.response?.status === 403) {
+        setError('Error de permisos: No tienes autorización para acceder a esta información.');
+      } else {
+        setError('Error al cargar variantes: ' + (err.message || 'Error de comunicación con el servidor'));
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Función para agregar nueva variante
+  const cantidadTotal = variantes.reduce((total, variante) => total + variante.cantidad, 0);
+
+  // Funciones para manejar variantes
   const agregarVariante = () => {
     if (nuevaVariante.tallaId === 0 || nuevaVariante.colorId === 0) {
-      setError('Debe seleccionar una talla y un color');
+      setError('Debe seleccionar una talla y un color para la variante');
       return;
     }
 
-    // Verificar que no exista ya esta combinación
+    // Verificar si ya existe una variante con la misma talla y color
     const existeVariante = variantes.some(v => 
       v.tallaId === nuevaVariante.tallaId && v.colorId === nuevaVariante.colorId
     );
@@ -143,17 +216,26 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       return;
     }
 
-    // Generar código automático si no se proporciona
-    let codigoVariante = nuevaVariante.codigoIdentificacion;
-    if (!codigoVariante) {
-      const talla = tallasDisponibles.find(t => t.idTalla === nuevaVariante.tallaId);
-      const color = coloresDisponibles.find(c => c.idColor === nuevaVariante.colorId);
-      codigoVariante = `${formData.codigoIdentificacion}-${talla?.nombreTalla || 'T'}-${color?.nombre || 'C'}`;
+    const talla = tallasDisponibles.find(t => t.idTalla === nuevaVariante.tallaId);
+    const color = coloresDisponibles.find(c => c.idColor === nuevaVariante.colorId);
+
+    if (!talla || !color) {
+      setError('Error al encontrar la talla o color seleccionado');
+      return;
+    }
+
+    // Generar código de identificación si está vacío
+    let codigoIdentificacion = nuevaVariante.codigoIdentificacion;
+    if (!codigoIdentificacion) {
+      const codigoBase = formData.codigoIdentificacion || 'PROD';
+      codigoIdentificacion = `${codigoBase}-${talla.nombreTalla}-${color.nombre}`;
     }
 
     const nuevaVarianteCompleta: VarianteFormData = {
-      ...nuevaVariante,
-      codigoIdentificacion: codigoVariante
+      tallaId: nuevaVariante.tallaId,
+      colorId: nuevaVariante.colorId,
+      cantidad: nuevaVariante.cantidad,
+      codigoIdentificacion
     };
 
     setVariantes(prev => [...prev, nuevaVarianteCompleta]);
@@ -163,49 +245,34 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       cantidad: 1,
       codigoIdentificacion: ''
     });
+    setShowFormularioVariante(false);
     setError(null);
   };
 
-  // Función para eliminar variante
   const eliminarVariante = (index: number) => {
     setVariantes(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Función para actualizar cantidad de variante
   const actualizarCantidadVariante = (index: number, cantidad: number) => {
-    if (cantidad < 0) return;
+    if (cantidad < 1) return;
     
-    setVariantes(prev => prev.map((v, i) => 
-      i === index ? { ...v, cantidad } : v
+    setVariantes(prev => prev.map((variante, i) => 
+      i === index ? { ...variante, cantidad } : variante
     ));
   };
 
-  // Calcular cantidad total
-  const cantidadTotal = variantes.reduce((total, v) => total + v.cantidad, 0);
-
-  // Función para obtener nombre de talla
-  const getNombreTalla = (tallaId: number) => {
-    return tallasDisponibles.find(t => t.idTalla === tallaId)?.nombreTalla || 'N/A';
-  };
-
-  // Función para obtener color
-  const getColor = (colorId: number) => {
-    return coloresDisponibles.find(c => c.idColor === colorId);
-  };
-
-  // Manejar cambios en el formulario principal
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Manejar envío del formulario
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
     try {
+      console.log('🚀 Iniciando proceso de guardado de producto');
+      console.log('📊 Estado actual de variantes:', {
+        cantidad: variantes.length,
+        variantes: variantes.map(v => ({ id: v.id, tallaId: v.tallaId, colorId: v.colorId, cantidad: v.cantidad }))
+      });
+
       // Validaciones básicas
       if (!formData.nombre.trim()) {
         throw new Error('El nombre del producto es requerido');
@@ -213,30 +280,26 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
       if (!formData.codigoIdentificacion.trim()) {
         throw new Error('El código de identificación es requerido');
-      }
-
-      if (variantes.length === 0) {
-        throw new Error('Debe agregar al menos una variante');
-      }
-
-      // Encontrar objetos de categorías y proveedor
-      const categoria = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
-      const categoriaPadre = categorias.find(c => c.idCategoria?.toString() === formData.categoriaPadreId);
+      }      // Encontrar objetos de categorías y proveedor
+      const categoriaSeleccionada = formData.subcategoriaId 
+        ? categorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)
+        : categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
       const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
 
-      if (!categoria || !proveedor) {
+      if (!categoriaSeleccionada || !proveedor) {
         throw new Error('Debe seleccionar una categoría y un proveedor válidos');
-      }      // Crear objeto producto
+      }
+
+      // Crear objeto producto
       const productoData: Omit<Producto, 'idProducto'> = {
         codigoIdentificacion: formData.codigoIdentificacion,
+        codigoBarras: formData.codigoBarras || undefined,
         nombre: formData.nombre,
-        descripcion: formData.descripcion || undefined,
         sexo: formData.sexo || undefined,
-        categoria,
-        categoriaPadre: categoriaPadre || undefined,
+        categoria: categoriaSeleccionada,
         marca: formData.marca || undefined,
         proveedor,
-        cantidad: cantidadTotal, // Use the calculated total from variants
+        cantidad: cantidadTotal,
         precioUnitario: parseFloat(formData.precioUnitario),
         precioCuarto: formData.precioCuarto ? parseFloat(formData.precioCuarto) : undefined,
         precioMediaDocena: formData.precioMediaDocena ? parseFloat(formData.precioMediaDocena) : undefined,
@@ -246,6 +309,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       let productoGuardado: Producto;
 
       // Crear o actualizar producto
+      console.log(`${producto?.idProducto ? '✏️  Actualizando' : '➕ Creando'} producto...`);
       if (producto?.idProducto) {
         productoGuardado = await ProductoService.updateProducto(producto.idProducto, {
           ...productoData,
@@ -254,481 +318,1345 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       } else {
         productoGuardado = await ProductoService.createProducto(productoData);
       }
+      console.log(`✅ Producto ${producto?.idProducto ? 'actualizado' : 'creado'} con ID: ${productoGuardado.idProducto}`);      // ===== PROCESAMIENTO MEJORADO DE VARIANTES =====
+      if (productoGuardado.idProducto && variantes.length > 0) {
+        console.log('🔧 Iniciando sincronización de variantes...');
 
-      // Procesar variantes
-      if (productoGuardado.idProducto) {
-        // Si estamos editando, eliminar variantes existentes que no están en la nueva lista
-        if (producto?.idProducto) {
-          const variantesExistentes = await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto);
-          
-          for (const varianteExistente of variantesExistentes) {
-            const sigueExistiendo = variantes.some(v => v.id === varianteExistente.idVariante);
-            if (!sigueExistiendo && varianteExistente.idVariante) {
-              await ProductoVarianteService.eliminarVariante(varianteExistente.idVariante);
-            }
+        // 1. Obtener el estado actual REAL de la base de datos
+        const variantesEnBD = producto?.idProducto
+          ? await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto)
+          : [];
+        console.log(`📦 Encontradas ${variantesEnBD.length} variantes existentes en la base de datos.`);
+
+        const variantesEnFormulario = variantes; // Las variantes del estado de React
+        console.log(`� Se procesarán ${variantesEnFormulario.length} variantes desde el formulario.`);
+
+        // Convertir a mapas para una búsqueda eficiente (O(1) en lugar de O(n))
+        const mapaVariantesBD = new Map(variantesEnBD.map(v => [v.idProductoVariante, v]));
+        const mapaVariantesFormulario = new Map(variantesEnFormulario.filter(v => v.id).map(v => [v.id, v]));
+
+        // 2. IDENTIFICAR OPERACIONES
+        
+        // -> Variantes a ELIMINAR: Están en la BD pero no en el formulario
+        const variantesAEliminar = variantesEnBD.filter(
+          vDB => !mapaVariantesFormulario.has(vDB.idProductoVariante!)
+        );
+
+        // -> Variantes a ACTUALIZAR: Están en ambos, formulario y BD
+        const variantesAActualizar = variantesEnFormulario.filter(
+          vForm => vForm.id && mapaVariantesBD.has(vForm.id)
+        );
+
+        // -> Variantes a CREAR: Están en el formulario pero no tienen ID (son nuevas)
+        const variantesACrear = variantesEnFormulario.filter(vForm => !vForm.id);
+
+        console.log(`➕ ${variantesACrear.length} para crear, ✏️ ${variantesAActualizar.length} para actualizar, 🗑️ ${variantesAEliminar.length} para eliminar.`);
+
+        // 3. EJECUTAR OPERACIONES EN ORDEN (Eliminar, Actualizar, Crear)
+        
+        // -> Eliminar primero
+        for (const variante of variantesAEliminar) {
+          console.log(`  🗑️ Eliminando variante ID: ${variante.idProductoVariante}`);
+          try {
+            await ProductoVarianteService.eliminarVariante(variante.idProductoVariante!);
+            console.log(`  ✅ Variante ID=${variante.idProductoVariante} eliminada correctamente`);
+          } catch (error: any) {
+            console.error(`❌ Error al eliminar variante ID ${variante.idProductoVariante}:`, error.message);
+            throw new Error(`Fallo al eliminar la variante ${variante.talla.nombreTalla} - ${variante.color.nombre}.`);
           }
         }
 
-        // Crear o actualizar variantes
-        for (const variante of variantes) {
+        // -> Luego, actualizar existentes
+        for (const variante of variantesAActualizar) {
+          const existente = mapaVariantesBD.get(variante.id!);
+          
+          // Solo llamar a la API si hay cambios reales
+          if (existente && (existente.cantidad !== variante.cantidad || existente.codigoBarrasVariante !== variante.codigoIdentificacion)) {
+            console.log(`  ✏️ Actualizando variante ID: ${variante.id}`);
+            console.log(`    📊 Cantidad: ${existente.cantidad} → ${variante.cantidad}`);
+            console.log(`    🏷️ Código: '${existente.codigoBarrasVariante}' → '${variante.codigoIdentificacion}'`);
+            
+            const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
+            const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
+
+            if (!talla || !color) {
+              console.warn(`⚠️ Saltando actualización - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+              continue;
+            }
+
+            const varianteData: Omit<ProductoVariante, 'idVariante'> = {
+              producto: productoGuardado,
+              talla,
+              color,
+              cantidad: variante.cantidad,
+              codigoBarrasVariante: variante.codigoIdentificacion
+            };
+
+            try {
+              await ProductoVarianteService.actualizarVariante(variante.id!, {
+                ...varianteData,
+                idProductoVariante: variante.id
+              });
+              console.log(`  ✅ Variante ID=${variante.id} actualizada correctamente`);
+            } catch (error: any) {
+              console.error(`❌ Error al actualizar variante ID ${variante.id}:`, error.message);
+              throw new Error(`Error al actualizar variante ${talla.nombreTalla}-${color.nombre}: ${error.message}`);
+            }
+          } else {
+            console.log(`  ⏩ Saltando variante ID: ${variante.id} (sin cambios)`);
+          }
+        }
+
+        // -> Finalmente, crear nuevas
+        for (const variante of variantesACrear) {
           const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
           const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
 
-          if (!talla || !color) continue;
+          if (!talla || !color) {
+            console.warn(`⚠️ Saltando creación - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+            continue;
+          }
 
+          console.log(`  ➕ Creando nueva variante (Talla: ${talla.nombreTalla}, Color: ${color.nombre}, Cantidad: ${variante.cantidad})`);
+          
           const varianteData: Omit<ProductoVariante, 'idVariante'> = {
             producto: productoGuardado,
             talla,
             color,
             cantidad: variante.cantidad,
-            codigoIdentificacion: variante.codigoIdentificacion
+            codigoBarrasVariante: variante.codigoIdentificacion
           };
 
-          if (variante.id) {
-            // Actualizar variante existente
-            await ProductoVarianteService.actualizarVariante(variante.id, {
-              ...varianteData,
-              idVariante: variante.id
-            });
-          } else {
-            // Crear nueva variante
-            await ProductoVarianteService.crearVariante(varianteData);
+          try {
+            const nuevaVariante = await ProductoVarianteService.crearVariante(varianteData);
+            console.log(`  ✅ Nueva variante creada con ID=${nuevaVariante.idProductoVariante}`);
+          } catch (error: any) {
+            console.error(`❌ Error al crear nueva variante:`, error.message);
+            throw new Error(`Error al crear variante ${talla.nombreTalla}-${color.nombre}: ${error.message}`);
           }
         }
+
+        console.log('\n✅ ¡Sincronización de variantes completada exitosamente!');
+      } else if (variantes.length === 0) {
+        console.log('ℹ️ No hay variantes para procesar');
       }
 
-      onProductoGuardado();
-      onClose();
+      // Obtener las variantes actualizadas del producto para devolver un producto completo con sus variantes
+      if (productoGuardado.idProducto) {
+        const variantesActualizadas = await ProductoVarianteService.obtenerVariantesPorProducto(productoGuardado.idProducto);
+        console.log(`🔄 Obtenidas ${variantesActualizadas.length} variantes actualizadas para el producto`);
+        // Añadir la cantidad total actualizada al producto
+        const cantidadTotalActualizada = variantesActualizadas.reduce((total, v) => total + v.cantidad, 0);
+        productoGuardado = {
+          ...productoGuardado,
+          cantidad: cantidadTotalActualizada
+        };
+      }      console.log('🎉 Proceso de guardado completado exitosamente');
+      onProductoGuardado(productoGuardado);
+      handleClose();
     } catch (err: any) {
-      console.error('Error al guardar producto:', err);
-      setError(err.message || 'Error al guardar el producto');
+      console.error('❌ Error al guardar producto:', err);
+      
+      // Manejo específico para errores de autenticación/autorización
+      if (err.response?.status === 401) {
+        setError('Error de autorización: Tu sesión ha expirado o no tienes permisos para realizar esta acción. Por favor, inicia sesión nuevamente.');
+      } else if (err.response?.status === 403) {
+        setError('Error de permisos: No tienes autorización para realizar esta acción.');
+      } else {
+        setError(err.message || 'Error al guardar el producto');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const generarCodigoBarrasAutomatico = () => {
+    // Generar un código de barras basado en el timestamp actual y el código de identificación
+    const timestamp = Date.now();
+    const codigoBase = formData.codigoIdentificacion || 'PROD';
+    const codigoGenerado = `${codigoBase}-${timestamp}`;
+    
+    setFormData(prev => ({
+      ...prev,
+      codigoBarras: codigoGenerado
+    }));
+  };
+
+  const generarCodigoBarrasVariante = async (varianteId: number | undefined) => {
+    if (!varianteId) {
+      setError('No se puede generar código de barras: la variante no tiene ID asignado. Guarda el producto primero.');
+      return;
+    }
+      try {
+      setLoading(true);
+      setError(null);
+      console.log(`🏷️ Generando código de barras para variante ID: ${varianteId}`);
+      
+      const blob = await CodigoBarrasService.generarImagenVariante(varianteId);
+      
+      // Crear URL para previsualizar la imagen
+      const url = window.URL.createObjectURL(blob);
+      setCodigoBarrasPreview(url);
+      setVarianteSeleccionada(varianteId);
+      
+      // Cambiar a la pestaña de códigos de barras
+      setTabActiva('codigosBarras');
+    } catch (err: any) {
+      console.error('Error al generar código de barras de variante:', err);
+      setError('Error al generar código de barras: ' + (err.message || 'Error desconocido'));
     } finally {
       setLoading(false);
     }
   };
+  const descargarCodigoBarrasVariante = () => {
+    if (!codigoBarrasPreview || !varianteSeleccionada) return;
 
+    const link = document.createElement('a');
+    link.href = codigoBarrasPreview;
+    link.download = `codigo_barras_variante_${varianteSeleccionada}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // Mostrar mensaje de éxito
+    alert('Código de barras de variante descargado correctamente');
+  };
+  
+  // Función para manejar cambio de categoría principal
+  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const categoriaId = e.target.value;
+    setFormData(prev => ({ 
+      ...prev, 
+      categoriaId,
+      subcategoriaId: '' // Limpiar subcategoría cuando cambia la principal
+    }));
+
+    // Cargar subcategorías de la categoría seleccionada
+    if (categoriaId) {
+      const categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === categoriaId);
+      if (categoriaSeleccionada?.subCategorias) {
+        setSubcategorias(categoriaSeleccionada.subCategorias);
+      } else {
+        setSubcategorias([]);
+      }
+    } else {
+      setSubcategorias([]);
+    }
+  };
+
+  // Función optimizada para agregar múltiples variantes de una talla
+  const agregarVariantesOptimizado = () => {
+    if (formularioOptimizado.tallaSeleccionada === 0) {
+      setError('Debe seleccionar una talla');
+      return;
+    }
+
+    const talla = tallasDisponibles.find(t => t.idTalla === formularioOptimizado.tallaSeleccionada);
+    if (!talla) {
+      setError('Talla no encontrada');
+      return;
+    }
+
+    // Filtrar solo los colores que tienen cantidad > 0
+    const coloresConCantidad = Object.entries(formularioOptimizado.cantidadesPorColor)
+      .filter(([_, cantidad]) => cantidad > 0)
+      .map(([colorId, cantidad]) => ({ colorId: parseInt(colorId), cantidad }));
+
+    if (coloresConCantidad.length === 0) {
+      setError('Debe especificar al menos una cantidad mayor a 0 para algún color');
+      return;
+    }
+
+    const nuevasVariantes: VarianteFormData[] = [];
+    const errores: string[] = [];
+
+    for (const { colorId, cantidad } of coloresConCantidad) {
+      // Verificar si ya existe una variante con esta talla y color
+      const existeVariante = variantes.some(v => 
+        v.tallaId === formularioOptimizado.tallaSeleccionada && v.colorId === colorId
+      );
+
+      if (existeVariante) {
+        const color = coloresDisponibles.find(c => c.idColor === colorId);
+        errores.push(`Ya existe una variante para ${talla.nombreTalla} - ${color?.nombre || 'Color desconocido'}`);
+        continue;
+      }
+
+      const color = coloresDisponibles.find(c => c.idColor === colorId);
+      if (!color) {
+        errores.push(`Color con ID ${colorId} no encontrado`);
+        continue;
+      }
+
+      // Generar código de identificación automático
+      const codigoBase = formData.codigoIdentificacion || 'PROD';
+      const codigoIdentificacion = `${codigoBase}-${talla.nombreTalla}-${color.nombre}`;
+
+      nuevasVariantes.push({
+        tallaId: formularioOptimizado.tallaSeleccionada,
+        colorId,
+        cantidad,
+        codigoIdentificacion
+      });
+    }
+
+    if (errores.length > 0) {
+      setError(errores.join(', '));
+      return;
+    }
+
+    if (nuevasVariantes.length > 0) {
+      setVariantes(prev => [...prev, ...nuevasVariantes]);
+      // Limpiar formulario
+      setFormularioOptimizado({
+        tallaSeleccionada: 0,
+        cantidadesPorColor: {}
+      });
+      setShowFormularioVariante(false);
+      setError(null);
+    }
+  };
+
+  // Función para actualizar cantidad de un color en el formulario optimizado
+  const actualizarCantidadColor = (colorId: number, cantidad: number) => {
+    setFormularioOptimizado(prev => ({
+      ...prev,
+      cantidadesPorColor: {
+        ...prev.cantidadesPorColor,
+        [colorId]: cantidad >= 0 ? cantidad : 0
+      }
+    }));
+  };
+
+  // Función para cambiar talla en formulario optimizado
+  const cambiarTallaOptimizada = (tallaId: number) => {
+    setFormularioOptimizado({
+      tallaSeleccionada: tallaId,
+      cantidadesPorColor: {} // Limpiar cantidades al cambiar talla
+    });
+  };
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto border border-gray-200 relative transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-800">
-            {producto ? 'Editar Producto' : 'Nuevo Producto'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            <X className="w-6 h-6" />
-          </button>
+        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-8 py-5 rounded-t-2xl z-10">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold text-gray-900">
+              {producto ? 'Editar Producto' : 'Nuevo Producto'}
+            </h2>
+            <button 
+              onClick={handleClose}
+              className="text-gray-400 hover:text-gray-600 transition-colors hover:bg-gray-100 p-2 rounded-lg"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
         </div>
 
-        {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Información básica del producto */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Código de Identificación *
-              </label>
-              <input
-                type="text"
-                name="codigoIdentificacion"
-                value={formData.codigoIdentificacion}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Nombre del Producto *
-              </label>
-              <input
-                type="text"
-                name="nombre"
-                value={formData.nombre}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Descripción
-              </label>
-              <textarea
-                name="descripcion"
-                value={formData.descripcion}
-                onChange={handleInputChange}
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sexo
-              </label>
-              <select
-                name="sexo"
-                value={formData.sexo}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Seleccionar...</option>
-                <option value="M">Masculino</option>
-                <option value="F">Femenino</option>
-                <option value="U">Unisex</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Marca
-              </label>
-              <input
-                type="text"
-                name="marca"
-                value={formData.marca}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría *
-              </label>
-              <select
-                name="categoriaId"
-                value={formData.categoriaId}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Seleccionar categoría...</option>
-                {categorias.map(categoria => (
-                  <option key={categoria.idCategoria} value={categoria.idCategoria}>
-                    {categoria.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría Padre
-              </label>
-              <select
-                name="categoriaPadreId"
-                value={formData.categoriaPadreId}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Seleccionar categoría padre...</option>
-                {categorias.map(categoria => (
-                  <option key={categoria.idCategoria} value={categoria.idCategoria}>
-                    {categoria.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Proveedor *
-              </label>
-              <select
-                name="proveedorId"
-                value={formData.proveedorId}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Seleccionar proveedor...</option>
-                {proveedores.map(proveedor => (
-                  <option key={proveedor.idProveedor} value={proveedor.idProveedor}>
-                    {proveedor.nombre}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio Unitario *
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="precioUnitario"
-                value={formData.precioUnitario}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio por Cuarto
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="precioCuarto"
-                value={formData.precioCuarto}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio por Media Docena
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="precioMediaDocena"
-                value={formData.precioMediaDocena}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Precio por Docena
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                name="precioDocena"
-                value={formData.precioDocena}
-                onChange={handleInputChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Sección de Variantes */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-              <Package className="w-5 h-5 mr-2" />
-              Variantes del Producto
-            </h3>
-
-            {/* Agregar nueva variante */}
-            <div className="bg-gray-50 p-4 rounded-lg mb-4">
-              <h4 className="text-md font-medium text-gray-700 mb-3">Agregar Nueva Variante</h4>
-              <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Talla
-                  </label>
-                  <select
-                    value={nuevaVariante.tallaId}
-                    onChange={(e) => setNuevaVariante(prev => ({ ...prev, tallaId: parseInt(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value={0}>Seleccionar talla...</option>
-                    {tallasDisponibles.map(talla => (
-                      <option key={talla.idTalla} value={talla.idTalla}>
-                        {talla.nombreTalla}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Color
-                  </label>
-                  <select
-                    value={nuevaVariante.colorId}
-                    onChange={(e) => setNuevaVariante(prev => ({ ...prev, colorId: parseInt(e.target.value) }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value={0}>Seleccionar color...</option>
-                    {coloresDisponibles.map(color => (
-                      <option key={color.idColor} value={color.idColor}>
-                        {color.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Cantidad
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={nuevaVariante.cantidad}
-                    onChange={(e) => setNuevaVariante(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Código (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={nuevaVariante.codigoIdentificacion}
-                    onChange={(e) => setNuevaVariante(prev => ({ ...prev, codigoIdentificacion: e.target.value }))}
-                    placeholder="Se generará automático"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <button
-                    type="button"
-                    onClick={agregarVariante}
-                    className="w-full bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 flex items-center justify-center"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Agregar
-                  </button>
+        {/* Content */}
+        <div className="px-8 py-6">
+          {error && (
+            <div className="mb-6 p-4 border-l-4 border-red-500 bg-red-50 rounded-lg">
+              <div className="flex">
+                <div className="ml-3">
+                  <p className="text-red-700">{error}</p>
                 </div>
               </div>
             </div>
+          )}
 
-            {/* Lista de variantes */}
-            {variantes.length > 0 && (
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <h4 className="text-md font-medium text-gray-700">
-                    Variantes Agregadas ({variantes.length})
-                  </h4>
-                  <div className="text-sm text-gray-600">
-                    Cantidad Total: <span className="font-semibold">{cantidadTotal}</span>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Navegación por pestañas */}
+            <div className="flex border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setTabActiva('informacion')}
+                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                  tabActiva === 'informacion' 
+                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' 
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Package2 className="w-4 h-4" />
+                Información Básica
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setTabActiva('variantes')}
+                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                  tabActiva === 'variantes' 
+                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50' 
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Layers className="w-4 h-4" />
+                Variantes {variantes.length > 0 && `(${variantes.length})`}
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setTabActiva('precios')}
+                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                  tabActiva === 'precios' 
+                  ? 'text-amber-600 border-b-2 border-amber-600 bg-amber-50' 
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Tag className="w-4 h-4" />
+                Precios
+              </button>
+              
+              <button
+                type="button"
+                onClick={() => setTabActiva('codigosBarras')}
+                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                  tabActiva === 'codigosBarras' 
+                  ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50' 
+                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                <Barcode className="w-4 h-4" />
+                Códigos de Barras
+              </button>
+            </div>
+
+            {/* Pestaña: Información básica */}
+            {tabActiva === 'informacion' && (
+              <div className="bg-gray-50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Información Básica</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Código de Identificación *
+                    </label>
+                    <input
+                      type="text"
+                      name="codigoIdentificacion"
+                      value={formData.codigoIdentificacion}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Código de Barras
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        name="codigoBarras"
+                        value={formData.codigoBarras}
+                        onChange={handleInputChange}
+                        placeholder="Código de barras (opcional)"
+                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => generarCodigoBarrasAutomatico()}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
+                        title="Generar código de barras automático"
+                      >
+                        <Barcode size={16} />
+                        Auto
+                      </button>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Se genera automáticamente si se deja vacío
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nombre del Producto *
+                    </label>
+                    <input
+                      type="text"
+                      name="nombre"
+                      value={formData.nombre}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Sexo
+                    </label>
+                    <select
+                      name="sexo"
+                      value={formData.sexo}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="">Seleccionar sexo</option>
+                      <option value="Hombre">Hombre</option>
+                      <option value="Mujer">Mujer</option>
+                      <option value="Unisex">Unisex</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Marca
+                    </label>
+                    <input
+                      type="text"
+                      name="marca"
+                      value={formData.marca}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Categoría Principal *
+                    </label>
+                    <select
+                      name="categoriaId"
+                      value={formData.categoriaId}
+                      onChange={handleCategoriaChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Seleccionar categoría principal</option>
+                      {categorias
+                        .filter(categoria => categoria.esCategoriaPrincipal || !categoria.categoriaPadre)
+                        .map(categoria => (
+                        <option key={categoria.idCategoria} value={categoria.idCategoria}>
+                          {categoria.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {subcategorias.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Subcategoría *
+                      </label>
+                      <select
+                        name="subcategoriaId"
+                        value={formData.subcategoriaId}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      >
+                        <option value="">Seleccionar subcategoría</option>
+                        {subcategorias.map(subcategoria => (
+                          <option key={subcategoria.idCategoria} value={subcategoria.idCategoria}>
+                            {subcategoria.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Proveedor *
+                    </label>
+                    <select
+                      name="proveedorId"
+                      value={formData.proveedorId}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Seleccionar proveedor</option>
+                      {proveedores.map(proveedor => (
+                        <option key={proveedor.idProveedor} value={proveedor.idProveedor}>
+                          {proveedor.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Precio Unitario (S/) *
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="precioUnitario"
+                          value={formData.precioUnitario}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Precio por Cuarto (S/)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="precioCuarto"
+                          value={formData.precioCuarto}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Precio Media Docena (S/)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          name="precioMediaDocena"
+                          value={formData.precioMediaDocena}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Precio por Docena (S/)
+                        </label><input
+                          type="number"
+                          step="0.01"
+                          name="precioDocena"
+                          value={formData.precioDocena}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
+              </div>
+            )}            {/* Pestaña: Variantes */}
+            {tabActiva === 'variantes' && (
+              <div className="bg-green-50 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Variantes del Producto ({variantes.length})
+                  </h3>
+                  <div className="flex items-center gap-3">
+                    {/* Selector de modo */}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm font-medium text-gray-700">Modo:</label>
+                      <select
+                        value={modoFormulario}
+                        onChange={(e) => setModoFormulario(e.target.value as 'simple' | 'optimizado')}
+                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                      >
+                        <option value="optimizado">Optimizado (por talla)</option>
+                        <option value="simple">Simple (individual)</option>
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowFormularioVariante(!showFormularioVariante)}
+                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    >
+                      {showFormularioVariante ? 'Cancelar' : 'Agregar Variante'}
+                    </button>
+                  </div>
+                </div>              {/* Formularios de variantes */}
+              {showFormularioVariante && (
+                <div className="bg-white rounded-lg p-4 mb-4 border border-green-200">
+                  {modoFormulario === 'simple' ? (
+                    // Formulario simple (una variante a la vez)
+                    <>
+                      <h4 className="text-md font-semibold mb-3 text-gray-800">Nueva Variante (Modo Simple)</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Talla *
+                          </label>
+                          <select
+                            value={nuevaVariante.tallaId}
+                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, tallaId: parseInt(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                          >
+                            <option value={0}>Seleccionar talla</option>
+                            {tallasDisponibles.map(talla => (
+                              <option key={talla.idTalla} value={talla.idTalla}>
+                                {talla.nombreTalla}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Color *
+                          </label>
+                          <select
+                            value={nuevaVariante.colorId}
+                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, colorId: parseInt(e.target.value) }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                          >
+                            <option value={0}>Seleccionar color</option>
+                            {coloresDisponibles.map(color => (
+                              <option key={color.idColor} value={color.idColor}>
+                                {color.nombre}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Cantidad *
+                          </label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={nuevaVariante.cantidad}
+                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                          />
+                        </div>                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Código (opcional)
+                          </label>
+                          <input
+                            type="text"
+                            value={nuevaVariante.codigoIdentificacion}
+                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, codigoIdentificacion: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                            placeholder="Se genera automáticamente"
+                          />
+                          <p className="mt-1 text-xs text-gray-500 italic">
+                            La etiqueta incluirá automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex justify-end">
+                        <button
+                          type="button"
+                          onClick={agregarVariante}
+                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Agregar Variante
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    // Formulario optimizado (múltiples colores por talla)
+                    <>                      <h4 className="text-md font-semibold mb-3 text-gray-800">Agregar Variantes por Talla (Modo Optimizado)</h4>
+                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-700 mb-1">💡 <strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
+                        <p className="text-xs text-blue-600 italic">
+                          Las etiquetas incluirán automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        {/* Selector de talla */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Talla *
+                          </label>
+                          <select
+                            value={formularioOptimizado.tallaSeleccionada}
+                            onChange={(e) => cambiarTallaOptimizada(parseInt(e.target.value))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                          >
+                            <option value={0}>Seleccionar talla</option>
+                            {tallasDisponibles.map(talla => (
+                              <option key={talla.idTalla} value={talla.idTalla}>
+                                {talla.nombreTalla}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Grid de colores y cantidades */}
+                        {formularioOptimizado.tallaSeleccionada > 0 && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-3">
+                              Cantidades por Color
+                            </label>
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                              {coloresDisponibles.map(color => (
+                                <div key={color.idColor} className="flex flex-col items-center p-3 border border-gray-200 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div 
+                                      className="w-5 h-5 rounded-full border border-gray-300" 
+                                      style={{ backgroundColor: color.codigoHex || '#CCCCCC' }}
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">{color.nombre}</span>
+                                  </div>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={formularioOptimizado.cantidadesPorColor[color.idColor!] || 0}
+                                    onChange={(e) => actualizarCantidadColor(color.idColor!, parseInt(e.target.value) || 0)}
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                    placeholder="0"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 flex justify-between items-center">
+                        <div className="text-sm text-gray-600">
+                          Total de variantes: <span className="font-semibold">
+                            {Object.values(formularioOptimizado.cantidadesPorColor).reduce((sum, qty) => sum + qty, 0)}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={agregarVariantesOptimizado}
+                          disabled={formularioOptimizado.tallaSeleccionada === 0 || Object.values(formularioOptimizado.cantidadesPorColor).every(qty => qty === 0)}
+                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          Agregar Variantes
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* Lista de variantes */}
+              {variantes.length > 0 && (
+                <div className="bg-white rounded-lg border border-green-200 overflow-hidden">
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="w-full text-sm">
+                      <thead className="bg-green-50">
                         <tr>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Talla
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Color
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Cantidad
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Código
-                          </th>
-                          <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Acciones
-                          </th>
+                          <th className="text-left py-3 px-4 font-semibold text-green-800">Talla</th>
+                          <th className="text-left py-3 px-4 font-semibold text-green-800">Color</th>
+                          <th className="text-center py-3 px-4 font-semibold text-green-800">Cantidad</th>
+                          <th className="text-left py-3 px-4 font-semibold text-green-800">Código</th>
+                          <th className="text-center py-3 px-4 font-semibold text-green-800">Acciones</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {variantes.map((variante, index) => {
-                          const color = getColor(variante.colorId);
-                          return (
-                            <tr key={index} className="hover:bg-gray-50">
-                              <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {getNombreTalla(variante.tallaId)}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                <div className="flex items-center">
-                                  <div
-                                    className="w-4 h-4 rounded-full mr-2 border border-gray-300"
-                                    style={{ backgroundColor: color?.codigoHex || '#000000' }}
-                                  ></div>
-                                  {color?.nombre || 'N/A'}
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                <div className="flex items-center space-x-1">
+                      <tbody>
+                        {/* FIX: Se usa una clave única y estable en lugar del índice. */}
+                        {variantes.map((variante, index) => (
+                          <tr key={variante.id || `new-${variante.tallaId}-${variante.colorId}`} className="border-t border-green-100 hover:bg-green-50 transition-colors">
+                            <td className="py-3 px-4">
+                              {tallasDisponibles.find(t => t.idTalla === variante.tallaId)?.nombreTalla || 'N/A'}
+                            </td>
+                            <td className="py-3 px-4">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-4 h-4 rounded-full border border-gray-300" 
+                                  style={{ 
+                                    backgroundColor: coloresDisponibles.find(c => c.idColor === variante.colorId)?.codigoHex || '#CCCCCC'
+                                  }} 
+                                />
+                                {coloresDisponibles.find(c => c.idColor === variante.colorId)?.nombre || 'N/A'}
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-center">
+                              <input
+                                type="number"
+                                min="1"
+                                value={variante.cantidad}
+                                onChange={(e) => actualizarCantidadVariante(index, parseInt(e.target.value) || 1)}
+                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                              />
+                            </td>
+                            <td className="py-3 px-4 text-xs text-gray-600 font-mono">
+                              {variante.codigoIdentificacion}
+                            </td>                            <td className="py-3 px-4 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                {variante.id ? (
                                   <button
                                     type="button"
-                                    onClick={() => actualizarCantidadVariante(index, variante.cantidad - 1)}
-                                    className="text-gray-500 hover:text-gray-700"
-                                    disabled={variante.cantidad <= 1}
+                                    onClick={() => generarCodigoBarrasVariante(variante.id)}
+                                    className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50"
+                                    disabled={loading}
+                                    title="Ver código de barras"
                                   >
-                                    <Minus className="w-4 h-4" />
+                                    <Barcode className="w-4 h-4" />
                                   </button>
-                                  <span className="mx-2 min-w-[3ch] text-center">{variante.cantidad}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => actualizarCantidadVariante(index, variante.cantidad + 1)}
-                                    className="text-gray-500 hover:text-gray-700"
+                                ) : (
+                                  <span 
+                                    className="text-xs text-gray-400 italic px-2 py-1" 
+                                    title="Guarda el producto para generar el código"
                                   >
-                                    <Plus className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
-                                {variante.codigoIdentificacion}
-                              </td>
-                              <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                                    Pendiente
+                                  </span>
+                                )}
                                 <button
                                   type="button"
                                   onClick={() => eliminarVariante(index)}
-                                  className="text-red-600 hover:text-red-800"
+                                  className="text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50"
+                                  title="Eliminar variante"
                                 >
-                                  <Trash2 className="w-4 h-4" />
+                                  <Trash className="w-4 h-4" />
                                 </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
+                  </div>
+                  
+                  <div className="bg-green-50 px-4 py-3 border-t border-green-200">
+                    <div className="text-sm font-semibold text-gray-700 flex items-center justify-between">
+                      <span>Total de unidades: <span className="text-green-700 font-bold">{cantidadTotal}</span></span>
+                      <span className="text-xs text-gray-500">
+                        {variantes.length === 1 ? '1 variante' : `${variantes.length} variantes`}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {variantes.length === 0 && !showFormularioVariante && (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No hay variantes agregadas</p>
+                  <p className="text-sm">Haz clic en "Agregar Variante" para comenzar</p>
+                </div>
+              )}
+              </div>
+            )}
+
+            {/* Resumen de variantes */}
+            {variantes.length > 0 && (
+              <div className="bg-blue-50 rounded-xl p-6">
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">
+                  Resumen de Variantes ({variantes.length})
+                </h3>
+                <div className="text-sm text-gray-600 mb-4">                  Cantidad total: <span className="font-semibold">{cantidadTotal}</span> unidades
+                </div>
+                
+                {variantes.length === 0 ? (
+                  <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-blue-700 mb-3">No hay variantes agregadas todavía</p>
+                    <button
+                      type="button"
+                      onClick={() => setShowFormularioVariante(true)}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Agregar Variante
+                    </button>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-blue-200">
+                          <th className="text-left py-2">ID</th>
+                          <th className="text-left py-2">Talla</th>
+                          <th className="text-left py-2">Color</th>
+                          <th className="text-right py-2">Cantidad</th>
+                          <th className="text-left py-2">Código</th>
+                          <th className="text-center py-2">Acciones</th>
+                        </tr>
+                      </thead>
+                      {/* FIX: Se usa una clave única y se cierra la etiqueta <tbody> */}
+                      <tbody>
+                        {variantes.map((variante, index) => (
+                          <tr key={variante.id || `new-summary-${variante.tallaId}-${variante.colorId}`} className="border-b border-blue-100 hover:bg-blue-50 transition-colors">
+                            <td className="py-2 text-xs text-gray-500">{variante.id || 'Nuevo'}</td>
+                            <td className="py-2">
+                              {tallasDisponibles.find(t => t.idTalla === variante.tallaId)?.nombreTalla || 'N/A'}
+                            </td>
+                            <td className="py-2">
+                              <div className="flex items-center gap-2">
+                                <div 
+                                  className="w-4 h-4 rounded-full border border-gray-300" 
+                                  style={{
+                                    backgroundColor: coloresDisponibles.find(c => c.idColor === variante.colorId)?.codigoHex || '#FFF'
+                                  }}
+                                ></div>
+                                {coloresDisponibles.find(c => c.idColor === variante.colorId)?.nombre || 'N/A'}
+                              </div>
+                            </td>
+                            <td className="py-2 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => actualizarCantidadVariante(index, variante.cantidad - 1)}
+                                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+                                  disabled={variante.cantidad <= 1}
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="font-medium mx-1">{variante.cantidad}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => actualizarCantidadVariante(index, variante.cantidad + 1)}
+                                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            </td>
+                            <td className="py-2 text-xs font-mono text-gray-600">
+                              {variante.codigoIdentificacion || 'Sin código'}
+                            </td>                            <td className="py-2 text-center">
+                              <div className="flex items-center justify-center gap-2">
+                                {variante.id ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => generarCodigoBarrasVariante(variante.id)}
+                                    className="bg-green-500 hover:bg-green-600 text-white p-1 rounded text-xs shadow transition-all disabled:bg-gray-400 flex items-center"
+                                    disabled={loading}
+                                    title="Generar código de barras"
+                                  >
+                                    <Barcode className="w-3 h-3 mr-1" />
+                                    <span>Barcode</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-gray-400 italic px-2 py-1" title="Guarda el producto para generar el código">
+                                    Pendiente
+                                  </span>
+                                )}
+                                <button                                 
+                                  type="button"
+                                  onClick={() => eliminarVariante(index)}
+                                  className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
+                                  title="Eliminar variante"
+                                >
+                                  <Trash className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td></tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Pestaña: Precios */}
+            {tabActiva === 'precios' && (
+              <div className="bg-white rounded-xl border border-amber-200 shadow-sm">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-amber-800 flex items-center gap-2">
+                    <Tag className="w-5 h-5" />
+                    Configuración de Precios
+                  </h3>
+                  
+                  <div className="mb-4 p-4 bg-amber-50 rounded-lg border border-amber-100">
+                    <p className="text-sm text-amber-700">
+                      Configure los diferentes precios según la cantidad. El precio unitario es obligatorio, los demás son opcionales.
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-6">
+                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio Unitario *
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">S/</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            name="precioUnitario"
+                            value={formData.precioUnitario}
+                            onChange={handleInputChange}
+                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            required
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Precio por unidad individual
+                        </p>
+                      </div>
+
+                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio por Cuarto de Docena
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">S/</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            name="precioCuarto"
+                            value={formData.precioCuarto}
+                            onChange={handleInputChange}
+                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Precio por 3 unidades (1/4 docena)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio por Media Docena
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">S/</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            name="precioMediaDocena"
+                            value={formData.precioMediaDocena}
+                            onChange={handleInputChange}
+                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Precio por 6 unidades (1/2 docena)
+                        </p>
+                      </div>
+
+                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Precio por Docena
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">S/</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            name="precioDocena"
+                            value={formData.precioDocena}
+                            onChange={handleInputChange}
+                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Precio por 12 unidades (docena completa)
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <h4 className="font-medium text-blue-800 mb-2">Resumen de Descuentos</h4>
+                    <div className="grid grid-cols-3 gap-4">
+                      {formData.precioCuarto && formData.precioUnitario && (
+                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                          <p className="text-xs text-gray-500">Descuento por 1/4 docena</p>
+                          <p className="text-lg font-semibold text-blue-600">
+                            {(((parseFloat(formData.precioUnitario) * 3) - parseFloat(formData.precioCuarto)) / (parseFloat(formData.precioUnitario) * 3) * 100).toFixed(1)}%
+                          </p>
+                        </div>
+                      )}
+                      
+                      {formData.precioMediaDocena && formData.precioUnitario && (
+                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                          <p className="text-xs text-gray-500">Descuento por 1/2 docena</p>
+                          <p className="text-lg font-semibold text-blue-600">
+                            {(((parseFloat(formData.precioUnitario) * 6) - parseFloat(formData.precioMediaDocena)) / (parseFloat(formData.precioUnitario) * 6) * 100).toFixed(1)}%
+                          </p>
+                        </div>
+                      )}
+                      
+                      {formData.precioDocena && formData.precioUnitario && (
+                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                          <p className="text-xs text-gray-500">Descuento por docena</p>
+                          <p className="text-lg font-semibold text-blue-600">
+                            {(((parseFloat(formData.precioUnitario) * 12) - parseFloat(formData.precioDocena)) / (parseFloat(formData.precioUnitario) * 12) * 100).toFixed(1)}%
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* Botones de acción */}
-          <div className="flex justify-end space-x-3 pt-6 border-t">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-              disabled={loading}
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading || variantes.length === 0}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  {producto ? 'Actualizar' : 'Crear'} Producto
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+            {/* Pestaña: Códigos de Barras */}
+            {tabActiva === 'codigosBarras' && (              <div className="bg-white rounded-xl border border-purple-200 shadow-sm">
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-purple-800 flex items-center gap-2">
+                    <Barcode className="w-5 h-5" />
+                    Códigos de Barras
+                  </h3>
+                    {/* Mensaje informativo actualizado */}
+                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h4 className="font-medium text-blue-800 mb-2">🏷️ Sobre las etiquetas de código de barras</h4>                    <div className="text-sm text-blue-700 space-y-1">
+                      <p><strong>Etiquetas de Variantes:</strong> Cada etiqueta incluye automáticamente toda la información necesaria</p>
+                      <p className="text-xs italic">Formato: "Nombre del Producto [Código] - T/Talla - Color"</p>
+                      <p className="text-xs italic">Ejemplo: "Boxer Americano [BA001] - T/M - Azul"</p>
+                    </div>
+                  </div>
+                    <div className="grid grid-cols-1 gap-6">
+                    <div>
+                      <div className="bg-purple-50 p-5 rounded-lg border border-purple-200 h-full"><h4 className="font-medium text-purple-800 mb-3">
+                          {varianteSeleccionada 
+                            ? 'Etiqueta con Información Completa'
+                            : 'Etiquetas de Variantes (con nombre del producto)'}
+                        </h4>
+                        
+                        {varianteSeleccionada && codigoBarrasPreview ? (
+                          <div className="flex flex-col gap-4">
+                            <div className="text-sm text-gray-600">
+                              {variantes.map(v => {
+                                if (v.id === varianteSeleccionada) {
+                                  const talla = tallasDisponibles.find(t => t.idTalla === v.tallaId);
+                                  const color = coloresDisponibles.find(c => c.idColor === v.colorId);
+                                  return (
+                                    <div key={v.id} className="bg-gray-50 p-3 rounded-lg">                                      <p className="font-medium text-gray-800">Esta etiqueta contiene:</p>
+                                      <p className="text-green-700 font-semibold">"{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"</p>
+                                      <p className="text-xs text-gray-500 mt-1">Código: {v.codigoIdentificacion}</p>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                            
+                            <div className="flex flex-col items-center justify-center bg-white p-4 rounded-lg border border-purple-200">
+                              <img 
+                                src={codigoBarrasPreview} 
+                                alt="Código de barras de variante" 
+                                className="max-w-full h-auto max-h-48 mb-3"
+                              />
+                              <div className="flex gap-2">
+                                <button
+                                  type="button"
+                                  onClick={descargarCodigoBarrasVariante}
+                                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  Descargar
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setVarianteSeleccionada(null);
+                                    setCodigoBarrasPreview(null);
+                                  }}
+                                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                                >
+                                  <X className="w-4 h-4" />
+                                  Cerrar
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (                          variantes.length > 0 ? (
+                            <div className="space-y-3">                              <div className="text-sm text-gray-500 mb-3">
+                                <p className="font-medium">Cada etiqueta contendrá:</p>
+                                <p className="text-xs italic">"{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"</p>
+                              </div>
+                              
+                              <div className="max-h-60 overflow-y-auto pr-2">
+                                {variantes.map((variante, index) => {
+                                  if (!variante.id) return null;
+                                  
+                                  const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
+                                  const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
+                                  
+                                  return (
+                                    <button
+                                      key={index}
+                                      type="button"
+                                      onClick={() => generarCodigoBarrasVariante(variante.id!)}
+                                      className="flex flex-col items-start gap-1 w-full p-3 mb-2 rounded-lg border border-purple-100 hover:bg-purple-100 transition-colors text-left"
+                                      disabled={loading}
+                                    >
+                                      <div className="flex items-center gap-2 w-full">
+                                        <div className="w-3 h-3 rounded-full" style={{
+                                          backgroundColor: color?.codigoHex || '#CCCCCC'
+                                        }} />                                        <span className="font-medium flex-1">T/{talla?.nombreTalla} - {color?.nombre}</span>
+                                        <Barcode className="w-4 h-4 text-purple-600" />
+                                      </div>
+                                      <span className="text-xs text-green-600 font-medium">
+                                        "{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ): (                            <div className="text-center py-6">
+                              <p className="text-sm text-gray-500 mb-2">
+                                No hay variantes agregadas.
+                              </p>                              <p className="text-xs text-gray-500 italic mb-4">
+                                Las etiquetas de variantes incluirán automáticamente:<br/>
+                                "Nombre del Producto [Código] - T/X - Color Y"
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setTabActiva('variantes');
+                                  setShowFormularioVariante(true);
+                                }}
+                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
+                              >
+                                <Plus className="w-4 h-4" />
+                                Agregar Variantes
+                              </button>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white py-4 border-t border-gray-200">
+              <div className="flex gap-3">                <button
+                  type="button"
+                  onClick={handleClose}
+                  className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors"
+                >
+                  Cancelar
+                </button>
+                
+                <div className="flex gap-2">
+                  {tabActiva !== 'informacion' && (
+                    <button
+                      type="button"
+                      onClick={() => setTabActiva('informacion')}
+                      className="px-5 py-2.5 rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium text-sm transition-colors"
+                    >
+                      Anterior
+                    </button>
+                  )}
+                  
+                  {tabActiva === 'informacion' && (
+                    <button
+                      type="button"
+                      onClick={() => setTabActiva('variantes')}
+                      className="px-5 py-2.5 rounded-lg border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 font-medium text-sm transition-colors"
+                    >
+                      Continuar a Variantes
+                    </button>
+                  )}
+                  
+                  {tabActiva === 'variantes' && (
+                    <button
+                      type="button"
+                      onClick={() => setTabActiva('precios')}
+                      className="px-5 py-2.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium text-sm transition-colors"
+                    >
+                      Continuar a Precios
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              <button
+                type="submit"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-base font-semibold shadow-lg transition-all disabled:bg-gray-400 flex items-center gap-2 w-full sm:w-auto justify-center"
+                disabled={loading}
+              >
+                <Save className="w-5 h-5" />
+                {loading ? 'Guardando...' : (producto ? 'Guardar Cambios' : 'Crear Producto')}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

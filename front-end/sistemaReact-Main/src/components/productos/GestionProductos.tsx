@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Package } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Package, X } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -21,8 +21,9 @@ const GestionProductos: React.FC = () => {
   const [showFormulario, setShowFormulario] = useState(false);
   const [showVariantes, setShowVariantes] = useState(false);
   const [productoEditar, setProductoEditar] = useState<Producto | null>(null);
-  const [productoVariantes, setProductoVariantes] = useState<Producto | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [productoVariantes, setProductoVariantes] = useState<Producto | null>(null);  const [error, setError] = useState<string | null>(null);
+  const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -86,20 +87,28 @@ const GestionProductos: React.FC = () => {
     }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!confirm('¿Estás seguro de que deseas eliminar este producto?')) {
-      return;
-    }
+  const solicitarEliminarProducto = (idProducto: number) => {
+    setProductoAEliminar(idProducto);
+    setConfirmModalOpen(true);
+  };
 
+  const confirmarEliminarProducto = async () => {
+    if (productoAEliminar == null) return;
     try {
-      await ProductoService.deleteProducto(id);
-      setProductos(productos.filter(p => p.idProducto !== id));
+      await ProductoService.deleteProducto(productoAEliminar);
+      cargarDatos();
     } catch (err) {
-      setError('Error al eliminar el producto');
-      console.error(err);
+      setError('Error al eliminar el producto.');
+    } finally {
+      setProductoAEliminar(null);
+      setConfirmModalOpen(false);
     }
   };
 
+  const cancelarEliminarProducto = () => {
+    setProductoAEliminar(null);
+    setConfirmModalOpen(false);
+  };
   const handleProductoGuardado = () => {
     setShowFormulario(false);
     setProductoEditar(null);
@@ -231,10 +240,12 @@ const GestionProductos: React.FC = () => {
                 <tr key={producto.idProducto} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {producto.codigoIdentificacion}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  </td>                  <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
+                      {producto.codigoBarras && (
+                        <div className="text-xs text-blue-600 font-mono">📊 {producto.codigoBarras}</div>
+                      )}
                       {producto.descripcion && (
                         <div className="text-sm text-gray-500">{producto.descripcion}</div>
                       )}
@@ -286,7 +297,7 @@ const GestionProductos: React.FC = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => producto.idProducto && handleEliminar(producto.idProducto)}
+                        onClick={() => producto.idProducto && solicitarEliminarProducto(producto.idProducto)}
                         className="text-red-600 hover:text-red-900 p-1 rounded"
                         title="Eliminar"
                       >
@@ -333,8 +344,38 @@ const GestionProductos: React.FC = () => {
             setProductoVariantes(null);
           }}
           onVariantesActualizadas={cargarDatos}
-        />
-      )}
+        />      )}
+
+      <ConfirmModal
+        open={confirmModalOpen}
+        message="¿Estás seguro de que deseas eliminar este producto? Esta acción no se puede deshacer."
+        onConfirm={confirmarEliminarProducto}
+        onCancel={cancelarEliminarProducto}
+      />
+    </div>
+  );
+};
+
+const ConfirmModal: React.FC<{
+  open: boolean;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}> = ({ open, message, onConfirm, onCancel }) => {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-sm relative">
+        <button onClick={onCancel} className="absolute top-2 right-2 text-gray-400 hover:text-gray-700">
+          <X className="w-5 h-5" />
+        </button>
+        <div className="text-lg font-semibold mb-4 text-center">Confirmar acción</div>
+        <div className="mb-6 text-center text-gray-700">{message}</div>
+        <div className="flex justify-center gap-4">
+          <button onClick={onCancel} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium">Cancelar</button>
+          <button onClick={onConfirm} className="px-4 py-2 rounded bg-red-600 hover:bg-red-700 text-white font-medium">Eliminar</button>
+        </div>
+      </div>
     </div>
   );
 };

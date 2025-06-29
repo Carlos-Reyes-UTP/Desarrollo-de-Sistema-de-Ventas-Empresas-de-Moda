@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -84,9 +85,23 @@ public class ProductoVarianteController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminarVariante(@PathVariable("id") Long idVariante) {
-        productoVarianteService.eliminarVariante(idVariante);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> eliminarVariante(@PathVariable("id") Long idVariante) {
+        try {
+            productoVarianteService.eliminarVariante(idVariante);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            // Error por variante no encontrada
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (IllegalStateException e) {
+            // Error al eliminar la variante
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            // Error inesperado
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Error inesperado al eliminar la variante: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/producto/{idProducto}/cantidad-total")

@@ -27,6 +27,20 @@ public interface CodigoBarrasService {
     BufferedImage generarCodigoBarrasVariante(Long idVariante, Integer ancho, Integer alto) throws Exception;
 
     /**
+     * Genera un código de barras para un producto y lo retorna como array de bytes
+     * @param idProducto ID del producto
+     * @return Array de bytes de la imagen PNG del código de barras
+     */
+    byte[] generarCodigoBarrasProducto(Long idProducto) throws Exception;
+
+    /**
+     * Genera un código de barras para una variante y lo retorna como array de bytes
+     * @param idVariante ID de la variante del producto
+     * @return Array de bytes de la imagen PNG del código de barras
+     */
+    byte[] generarCodigoBarrasVariante(Long idVariante) throws Exception;
+
+    /**
      * Asigna un código de barras personalizado a un producto
      * @param idProducto ID del producto
      * @param codigoBarrasDTO DTO con el código a asignar y dimensiones de la imagen

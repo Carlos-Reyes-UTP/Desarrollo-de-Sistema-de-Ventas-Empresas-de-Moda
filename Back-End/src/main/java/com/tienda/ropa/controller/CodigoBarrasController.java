@@ -5,16 +5,17 @@ import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.service.CodigoBarrasService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,33 +24,49 @@ import java.util.Map;
 @CrossOrigin(origins = "*")
 public class CodigoBarrasController {
 
-    @Autowired
-    private CodigoBarrasService codigoBarrasService;
+    private static final Logger logger = LoggerFactory.getLogger(CodigoBarrasController.class);
+    private final CodigoBarrasService codigoBarrasService;
+
+    public CodigoBarrasController(CodigoBarrasService codigoBarrasService) {
+        this.codigoBarrasService = codigoBarrasService;
+    }
 
     /**
-     * Genera un código de barras para un producto
-     * @param idProducto ID del producto
-     * @param ancho Ancho de la imagen (opcional)
-     * @param alto Alto de la imagen (opcional)
-     * @return Imagen PNG del código de barras
-     */
-    @GetMapping(value = "/generar/{idProducto}", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<?> generarCodigoBarras(
-            @PathVariable Long idProducto,
-            @RequestParam(required = false) Integer ancho,
-            @RequestParam(required = false) Integer alto) {
+     * Endpoint para generar la imagen de un código de barras para un Producto.
+     * Utiliza ResponseEntity y el atributo 'produces' para garantizar el tipo de contenido.
+     *
+     * @param id ID del Producto.
+     * @return ResponseEntity con los bytes de la imagen o un error.
+     */    // ATRIBUTO 'produces' AÑADIDO para resolver el error HttpMediaTypeNotAcceptableException    @GetMapping(value = "/generar/{id}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> generarCodigoBarrasProducto(@PathVariable Long id) {
         try {
-            BufferedImage imagen = codigoBarrasService.generarCodigoBarras(idProducto, ancho, alto);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(imagen, "png", baos);
-            byte[] imageBytes = baos.toByteArray();
-            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(imageBytes);
+            // Log para depuración de autorización
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            logger.info("=== CÓDIGO DE BARRAS DEBUG ===");
+            logger.info("Usuario: " + (auth != null ? auth.getName() : "No autenticado"));
+            logger.info("Authorities: " + (auth != null ? auth.getAuthorities().toString() : "Sin authorities"));
+            logger.info("Tipo de autenticación: " + (auth != null ? auth.getClass().getSimpleName() : "Null"));
+            logger.info("Es autenticado: " + (auth != null ? auth.isAuthenticated() : false));
+            logger.info("ID del producto solicitado: " + id);
+            logger.info("================================");
+
+            byte[] imagenBytes = codigoBarrasService.generarCodigoBarrasProducto(id);
+            
+            // Configurar headers explícitamente para imagen PNG
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.IMAGE_PNG);
+            headers.setContentLength(imagenBytes.length);
+            headers.setCacheControl("no-cache");
+            
+            return new ResponseEntity<>(imagenBytes, headers, HttpStatus.OK);
+
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            logger.error("Error al generar código de barras para producto {}: {}", id, e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 
     /**
      * Genera un código de barras para una variante específica de un producto
@@ -57,24 +74,26 @@ public class CodigoBarrasController {
      * @param ancho Ancho de la imagen (opcional)
      * @param alto Alto de la imagen (opcional)
      * @return Imagen PNG del código de barras
-     */
-    @GetMapping(value = "/generar-variante/{idVariante}", produces = MediaType.IMAGE_PNG_VALUE)
-    public ResponseEntity<?> generarCodigoBarrasVariante(
-            @PathVariable Long idVariante,
-            @RequestParam(required = false) Integer ancho,
-            @RequestParam(required = false) Integer alto) {
+     */    @GetMapping(value = "/generar-variante/{id}", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> generarCodigoBarrasVariante(@PathVariable Long id) {
         try {
-            BufferedImage imagen = codigoBarrasService.generarCodigoBarrasVariante(idVariante, ancho, alto);
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(imagen, "png", baos);
-            byte[] imageBytes = baos.toByteArray();
-            return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(imageBytes);
+            byte[] imagenBytes = codigoBarrasService.generarCodigoBarrasVariante(id);
+            
+            // Configurar headers explícitamente para imagen PNG
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.IMAGE_PNG);
+            headers.setContentLength(imagenBytes.length);
+            headers.setCacheControl("no-cache");
+            
+            return new ResponseEntity<>(imagenBytes, headers, HttpStatus.OK);
+
         } catch (Exception e) {
-            Map<String, String> response = new HashMap<>();
-            response.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+            logger.error("Error al generar código de barras para variante {}: {}", id, e.getMessage());
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+
 
     /**
      * Asigna un código de barras personalizado a un producto

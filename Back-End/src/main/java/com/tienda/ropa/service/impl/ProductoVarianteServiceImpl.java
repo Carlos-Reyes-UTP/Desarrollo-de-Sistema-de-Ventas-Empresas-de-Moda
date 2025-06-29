@@ -8,6 +8,7 @@ import com.tienda.ropa.repository.ColorRepository;
 import com.tienda.ropa.repository.ProductoRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.TallaRepository;
+import com.tienda.ropa.service.CodigoBarrasService;
 import com.tienda.ropa.service.ProductoVarianteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,9 +33,27 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     @Autowired
     private ColorRepository colorRepository;
 
+    @Autowired
+    private CodigoBarrasService codigoBarrasService;
+
     @Override
     public ProductoVariante crearVariante(ProductoVariante productoVariante) {
-        return productoVarianteRepository.save(productoVariante);
+        // No crear variantes con talla 'Única' o color 'Único'
+        if (productoVariante.getTalla() != null && "Única".equalsIgnoreCase(productoVariante.getTalla().getNombreTalla())) {
+            throw new IllegalArgumentException("No se permite crear variantes con talla 'Única'");
+        }
+        if (productoVariante.getColor() != null && "Único".equalsIgnoreCase(productoVariante.getColor().getNombre())) {
+            throw new IllegalArgumentException("No se permite crear variantes con color 'Único'");
+        }
+        if (productoVariante.getCodigoBarrasVariante() == null || productoVariante.getCodigoBarrasVariante().isEmpty()) {
+            Producto producto = productoVariante.getProducto();
+            Talla talla = productoVariante.getTalla();
+            Color color = productoVariante.getColor();
+            String codigo = producto.getCodigoIdentificacion() + "-" + talla.getNombreTalla() + "-" + color.getNombre();
+            productoVariante.setCodigoBarrasVariante(codigo);
+        }
+        ProductoVariante guardada = productoVarianteRepository.save(productoVariante);
+        return guardada;
     }
 
     @Override
@@ -103,10 +122,23 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     @Override
     @Transactional
     public void eliminarVariante(Long idVariante) {
-        if (!productoVarianteRepository.existsById(idVariante)) {
-            throw new IllegalArgumentException("No existe una variante con el ID: " + idVariante);
+        // Verificar si la variante existe
+        ProductoVariante variante = productoVarianteRepository.findById(idVariante)
+                .orElseThrow(() -> new IllegalArgumentException("No existe una variante con el ID: " + idVariante));
+        
+        try {
+            // Eliminar la variante
+            productoVarianteRepository.deleteById(idVariante);
+            
+            // Confirmar que la variante ya no existe para evitar duplicaciones
+            if (productoVarianteRepository.existsById(idVariante)) {
+                throw new IllegalStateException("Error al eliminar la variante. La variante aún existe después de la eliminación.");
+            }
+        } catch (Exception e) {
+            // Registrar el error
+            System.err.println("Error al eliminar variante: " + e.getMessage());
+            throw e;
         }
-        productoVarianteRepository.deleteById(idVariante);
     }
 
     @Override
@@ -141,7 +173,9 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
         List<ProductoVariante> nuevasVariantes = new ArrayList<>();
 
         for (Talla talla : tallas) {
+            if ("Única".equalsIgnoreCase(talla.getNombreTalla())) continue;
             for (Color color : colores) {
+                if ("Único".equalsIgnoreCase(color.getNombre())) continue;
                 // Verificar si ya existe esta combinación
                 Optional<ProductoVariante> varianteExistente =
                         productoVarianteRepository.findByProductoAndTallaAndColor(producto, talla, color);
@@ -166,7 +200,7 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
 
                 // Generar código de barras único para la variante (si se necesita)
                 nuevaVariante.setCodigoBarrasVariante(
-                        producto.getCodigoBarras() + "-" + talla.getIdTalla() + "-" + color.getIdColor());
+                        producto.getCodigoIdentificacion() + "-" + talla.getNombreTalla() + "-" + color.getNombre());
 
                 nuevasVariantes.add(productoVarianteRepository.save(nuevaVariante));
             }

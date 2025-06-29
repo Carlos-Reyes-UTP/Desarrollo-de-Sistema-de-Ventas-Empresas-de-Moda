@@ -5,6 +5,7 @@ import type { Proveedor } from "./Proveedor";
 export interface Producto {
   idProducto?: number;
   codigoIdentificacion: string;
+  codigoBarras?: string; // Campo para código de barras
   cantidad: number;
   nombre: string;
   descripcion?: string;

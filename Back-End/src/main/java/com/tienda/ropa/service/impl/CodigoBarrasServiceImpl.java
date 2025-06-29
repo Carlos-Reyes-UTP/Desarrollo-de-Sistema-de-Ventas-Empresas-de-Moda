@@ -7,7 +7,6 @@ import com.google.zxing.common.BitMatrix;
 import com.google.zxing.common.HybridBinarizer;
 import com.google.zxing.oned.Code128Writer;
 import com.google.zxing.oned.EAN8Writer;
-import com.google.zxing.WriterException;
 import com.tienda.ropa.dto.CodigoBarrasDTO;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
@@ -18,8 +17,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import javax.imageio.ImageIO;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -56,31 +57,34 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
 
         // Generar la imagen del código de barras
         return generarImagenCodigoBarras(codigoCompleto, ancho, alto);
-    }
-
-    @Override
+    }    @Override
     public BufferedImage generarCodigoBarrasVariante(Long idVariante, Integer ancho, Integer alto) throws Exception {
         // Verificar que la variante existe
         ProductoVariante variante = productoVarianteRepository.findById(idVariante)
                 .orElseThrow(() -> new Exception("No se encontró la variante de producto con ID: " + idVariante));
 
-        // Si la variante ya tiene un código de barras, lo devolvemos
+        // Generar código EAN-8 basado en el ID de la variante (si no existe)
+        String codigoBarras;
         if (variante.getCodigoBarrasVariante() != null && !variante.getCodigoBarrasVariante().isEmpty()) {
-            return generarImagenCodigoBarras(variante.getCodigoBarrasVariante(), ancho, alto);
-        }
+            codigoBarras = variante.getCodigoBarrasVariante();
+        } else {
+            // Utilizamos el formato 1VVVVVD donde V es el ID de variante y D es el dígito verificador
+            String codigoBase = "1" + String.format("%06d", idVariante % 1000000);
+            int digitoVerificador = calcularDigitoVerificador(codigoBase);
+            codigoBarras = codigoBase + digitoVerificador;
 
-        // Generar código EAN-8 basado en el ID de la variante
-        // Utilizamos el formato 1VVVVVD donde V es el ID de variante y D es el dígito verificador
-        String codigoBase = "1" + String.format("%06d", idVariante % 1000000); // Aseguramos que sea de 7 dígitos
-        int digitoVerificador = calcularDigitoVerificador(codigoBase);
-        String codigoCompleto = codigoBase + digitoVerificador;
+            // Asignar el código a la variante
+            variante.setCodigoBarrasVariante(codigoBarras);
+            productoVarianteRepository.save(variante);
+        }        // NUEVA LÓGICA: Generar imagen con descripción completa del producto + variante
+        String nombreProducto = variante.getProducto().getNombre();
+        String codigoIdentificador = variante.getProducto().getCodigoIdentificacion();
+        String talla = variante.getTalla().getNombreTalla();
+        String color = variante.getColor().getNombre();
+        String descripcionCompleta = String.format("%s [%s] - T/%s - %s", nombreProducto, codigoIdentificador, talla, color);
 
-        // Asignar el código a la variante
-        variante.setCodigoBarrasVariante(codigoCompleto);
-        productoVarianteRepository.save(variante);
-
-        // Generar la imagen del código de barras
-        return generarImagenCodigoBarras(codigoCompleto, ancho, alto);
+        // Generar imagen con código de barras y descripción completa
+        return generarCodigoBarrasConTexto(codigoBarras, descripcionCompleta, ancho != null ? ancho : 400, alto != null ? alto : 150);
     }
 
     @Override
@@ -219,6 +223,22 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
         return digitoVerificador == digitoCalculado;
     }
 
+    @Override
+    public byte[] generarCodigoBarrasProducto(Long idProducto) throws Exception {
+        BufferedImage imagen = generarCodigoBarras(idProducto, 300, 100);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(imagen, "png", baos);
+        return baos.toByteArray();
+    }
+
+    @Override
+    public byte[] generarCodigoBarrasVariante(Long idVariante) throws Exception {
+        BufferedImage imagen = generarCodigoBarrasVariante(idVariante, 300, 100);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        ImageIO.write(imagen, "png", baos);
+        return baos.toByteArray();
+    }
+
     /**
      * Método auxiliar para generar la imagen del código de barras
      */
@@ -246,5 +266,77 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
         } catch (Exception e) {
             throw new Exception("Error al generar la imagen del código de barras: " + e.getMessage());
         }
+    }
+
+    /**
+     * Método auxiliar para generar código de barras con texto descriptivo
+     * Incluye el nombre del producto y detalles de la variante
+     */
+    private BufferedImage generarCodigoBarrasConTexto(String codigo, String descripcion, int ancho, int alto) throws Exception {
+        // Generar la imagen del código de barras (más pequeña para dejar espacio al texto)
+        BufferedImage codigoImagen = generarImagenCodigoBarras(codigo, ancho, alto - 40); // Reservar 40px para texto
+
+        // Crear imagen más grande para incluir texto
+        BufferedImage imagenCompleta = new BufferedImage(ancho, alto, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g2d = imagenCompleta.createGraphics();
+
+        // Configurar renderizado para texto de alta calidad
+        g2d.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+
+        // Fondo blanco
+        g2d.setColor(Color.WHITE);
+        g2d.fillRect(0, 0, ancho, alto);
+
+        // Dibujar el código de barras centrado en la parte superior
+        int x = (ancho - codigoImagen.getWidth()) / 2;
+        g2d.drawImage(codigoImagen, x, 5, null);
+
+        // Configurar fuente para la descripción
+        Font font = new Font("Arial", Font.BOLD, 10);
+        g2d.setFont(font);
+        g2d.setColor(Color.BLACK);
+
+        // Dividir el texto si es muy largo
+        FontMetrics fontMetrics = g2d.getFontMetrics();
+        String[] lineas = dividirTexto(descripcion, fontMetrics, ancho - 20);
+
+        // Dibujar cada línea de texto
+        int yInicial = codigoImagen.getHeight() + 20;
+        for (int i = 0; i < lineas.length; i++) {
+            String linea = lineas[i];
+            int textWidth = fontMetrics.stringWidth(linea);
+            int textX = (ancho - textWidth) / 2;
+            int textY = yInicial + (i * fontMetrics.getHeight());
+            g2d.drawString(linea, textX, textY);
+        }
+
+        g2d.dispose();
+        return imagenCompleta;
+    }
+
+    /**
+     * Divide un texto en múltiples líneas si es muy largo para el ancho disponible
+     */
+    private String[] dividirTexto(String texto, FontMetrics fontMetrics, int anchoMaximo) {
+        if (fontMetrics.stringWidth(texto) <= anchoMaximo) {
+            return new String[]{texto};
+        }
+
+        // Si el texto es muy largo, dividirlo en dos líneas
+        String[] palabras = texto.split(" - ");
+        if (palabras.length >= 2) {
+            // Primera línea: nombre del producto
+            String linea1 = palabras[0];
+            // Segunda línea: talla y color
+            StringBuilder linea2 = new StringBuilder();
+            for (int i = 1; i < palabras.length; i++) {
+                if (i > 1) linea2.append(" - ");
+                linea2.append(palabras[i]);
+            }
+            return new String[]{linea1, linea2.toString()};
+        }
+
+        return new String[]{texto};
     }
 }

@@ -29,21 +29,17 @@ const RedirectToDashboard = () => {
     "Roles:",
     usuario?.roles
   );
-
   if (tieneRol("ROLE_ADMIN")) {
-    // Cambiado de 'ADMIN'
     console.log(
       "RedirectToDashboard - Usuario es ADMIN, redirigiendo a /dashboard/admin"
     );
     return <Navigate to="/dashboard/admin" />;
   } else if (tieneRol("ROLE_ALMACENERO")) {
-    // Cambiado de 'ALMACENERO'
     console.log(
       "RedirectToDashboard - Usuario es ALMACENERO, redirigiendo a /dashboard/almacenero"
     );
     return <Navigate to="/dashboard/almacenero" />;
   } else if (tieneRol("ROLE_CAJERO")) {
-    // Cambiado de 'CAJERO'
     console.log(
       "RedirectToDashboard - Usuario es CAJERO, redirigiendo a /pages/CajeroSistemaVentas"
     );

@@ -17,6 +17,8 @@ import { ProductoService } from '../services/ProductoServices';
 import { VentaService } from '../services/VentaServices';
 import { ServicioUsuarios } from '../services/UsuarioServices';
 import { ProveedorService } from '../services/ProveedorServices';
+import { useAuthReady } from '../hooks/useAuthReady';
+import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
 
 // Importar tipos
 import type { Producto } from '../interfaces/Producto';
@@ -25,6 +27,13 @@ import type { Usuario } from '../interfaces/Usuario';
 import type { Proveedor } from '../interfaces/Proveedor';
 
 const DashboardAdmin = () => {
+  const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
+  
+  // Si aún está cargando la autenticación, mostrar pantalla de carga
+  if (authLoading) {
+    return <AuthLoadingScreen message="Cargando dashboard administrativo..." />;
+  }
+  
   // Estados para los datos
   const [periodo, setPeriodo] = useState('hoy');
   const [cargando, setCargando] = useState(true);
@@ -35,7 +44,7 @@ const DashboardAdmin = () => {
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  
+
   // Estados para métricas
   const [metricasVenta, setMetricasVenta] = useState({
     totalVentas: 0,
@@ -52,6 +61,13 @@ const DashboardAdmin = () => {
   
   // Cargar datos al montar el componente o cambiar el periodo
   useEffect(() => {
+    if (!isReady) return;
+    
+    if (!isAuthenticated) {
+      window.location.href = '/login';
+      return;
+    }
+    
     const cargarDatos = async () => {
       setCargando(true);
       setError(null);
@@ -103,10 +119,9 @@ const DashboardAdmin = () => {
       } finally {
         setCargando(false);
       }
-    };
-    
+    };    
     cargarDatos();
-  }, [periodo]);
+  }, [periodo, isReady, isAuthenticated]);
   
   // Calcular métricas a partir de los datos de ventas
   const calcularMetricas = (ventasData: Venta[]) => {

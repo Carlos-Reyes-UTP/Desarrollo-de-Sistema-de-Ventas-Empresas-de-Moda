@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Search, Trash2, BarChart3, Scan, X, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { ProductoVariante } from '../../interfaces/ProductoVariante';
-import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../interfaces/CodigoBarras';
+import type { CodigoBarras, CodigoBarrasConDetallesDTO, GenerarCodigoRequest, AsignarCodigoRequest } from '../../interfaces/CodigoBarras';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
-import { ProductoService } from '../../services/ProductoServices';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 
 interface GestionCodigosBarrasProps {
@@ -19,11 +18,11 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
-
   // Estados principales
   const [productos, setProductos] = useState<Producto[]>([]);
   const [variantes, setVariantes] = useState<ProductoVariante[]>([]);
   const [codigosBarras, setCodigosBarras] = useState<CodigoBarras[]>([]);
+  const [codigosConDetalles, setCodigosConDetalles] = useState<CodigoBarrasConDetallesDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Estados para modales
@@ -93,35 +92,87 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       setLoading(false);
     }
   };
-
   const cargarTodosLosDatos = async () => {
     try {
       setLoading(true);
-      const productosData = await ProductoService.getAllProductos('ROLE_ADMIN');
-      setProductos(productosData);
-
-      // Cargar códigos de todos los productos
-      const todosLosCodigos: CodigoBarras[] = [];
-      for (const prod of productosData) {
-        if (prod.idProducto) {
-          const codigosProducto = await CodigoBarrasService.obtenerCodigosProducto(prod.idProducto);
-          todosLosCodigos.push(...codigosProducto);
-
-          // Cargar códigos de variantes
-          const variantes = await ProductoVarianteService.obtenerVariantesPorProducto(prod.idProducto);
-          for (const variante of variantes) {
-            if (variante.idVariante) {
-              const codigosVariante = await CodigoBarrasService.obtenerCodigosVariante(variante.idVariante);
-              todosLosCodigos.push(...codigosVariante);
-            }
+      console.log('🚀 Iniciando carga optimizada de códigos de barras...');
+      
+      // ===== MÉTODO OPTIMIZADO: UNA SOLA LLAMADA =====
+      // En lugar de hacer N+1 llamadas, obtenemos todo en una sola consulta
+      const codigosConDetallesData = await CodigoBarrasService.obtenerTodosConDetalles();
+      
+      console.log(`✅ Obtenidos ${codigosConDetallesData.length} códigos con detalles completos`);
+      
+      // Procesar los datos para extraer productos únicos y variantes
+      const productosMap = new Map<number, Producto>();
+      const variantesMap = new Map<number, ProductoVariante>();
+      const codigosList: CodigoBarras[] = [];
+      
+      for (const codigoConDetalle of codigosConDetallesData) {
+        // Extraer información del producto
+        const productoInfo = codigoConDetalle.producto;
+        if (!productosMap.has(productoInfo.idProducto)) {          const producto: Producto = {
+            idProducto: productoInfo.idProducto,
+            codigoIdentificacion: productoInfo.codigoIdentificacion,
+            nombre: productoInfo.nombre,
+            descripcion: productoInfo.descripcion,
+            marca: productoInfo.marca,
+            sexo: productoInfo.sexo,
+            categoria: codigoConDetalle.categoria,            proveedor: {
+              ...codigoConDetalle.proveedor,
+              ruc: '' // Campo requerido pero no disponible en este contexto
+            },
+            cantidad: 0, // Se calculará después
+            precioUnitario: 0 // Información no disponible en este contexto
+          };
+          productosMap.set(productoInfo.idProducto, producto);
+        }
+        
+        // Extraer información de la variante (si existe)
+        if (codigoConDetalle.tipo === 'VARIANTE' && codigoConDetalle.variante) {
+          const varianteInfo = codigoConDetalle.variante;
+          if (!variantesMap.has(varianteInfo.idVariante)) {
+            const variante: ProductoVariante = {
+              idVariante: varianteInfo.idVariante,
+              idProductoVariante: varianteInfo.idVariante, // Asumiendo que son iguales
+              producto: productosMap.get(productoInfo.idProducto)!,
+              talla: varianteInfo.talla,
+              color: varianteInfo.color,
+              cantidad: varianteInfo.cantidad,
+              codigoBarrasVariante: varianteInfo.codigoBarrasVariante
+            };
+            variantesMap.set(varianteInfo.idVariante, variante);
           }
         }
+        
+        // Extraer información del código de barras
+        const codigoBarras: CodigoBarras = {
+          id: codigoConDetalle.id,
+          codigo: codigoConDetalle.codigo,
+          formato: codigoConDetalle.formato,
+          tipo: codigoConDetalle.tipo,
+          entidadId: codigoConDetalle.entidadId,
+          fechaCreacion: codigoConDetalle.fechaCreacion,
+          activo: codigoConDetalle.activo
+        };
+        codigosList.push(codigoBarras);
       }
-
-      setCodigosBarras(todosLosCodigos);
-    } catch (err) {
-      setError('Error al cargar datos');
-      console.error(err);
+      
+      // Actualizar los estados
+      setProductos(Array.from(productosMap.values()));
+      setVariantes(Array.from(variantesMap.values()));
+      setCodigosBarras(codigosList);
+      setCodigosConDetalles(codigosConDetallesData);
+      
+      console.log(`📊 Procesamiento completado:`, {
+        productos: productosMap.size,
+        variantes: variantesMap.size,
+        codigos: codigosList.length
+      });
+      
+    } catch (err: any) {
+      console.error('❌ Error al cargar datos optimizados:', err);
+      setError('Error al cargar códigos de barras: ' + (err.message || 'Error desconocido'));
     } finally {
       setLoading(false);
     }

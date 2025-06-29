@@ -11,6 +11,8 @@ import {
   PlusCircle
 } from 'lucide-react';
 import { DashboardService } from '../services/DashboardService';
+import { useAuthReady } from '../hooks/useAuthReady';
+import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
 import type { 
   ProductoStats, 
   CategoriaDistribucion, 
@@ -20,7 +22,9 @@ import type {
 } from '../interfaces/DashboardStats';
 
 const DashboardAlmacenero = () => {
-  // Estados para datos reales del API
+  const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
+  
+  // Estados para datos reales del API - TODOS LOS HOOKS PRIMERO
   const [productosData, setProductosData] = useState<ProductoStats>({
     total: 0,
     bajoStock: 0,
@@ -38,24 +42,20 @@ const DashboardAlmacenero = () => {
   });
   const [inventarioReciente, setInventarioReciente] = useState<ProductoInventario[]>([]);
   const [actividadReciente, setActividadReciente] = useState<ActividadReciente[]>([]);
-    const [busqueda, setBusqueda] = useState('');
+  const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar datos del dashboard
-  useEffect(() => {
-    cargarDatosDashboard();
-  }, []);
-
-  // Cargar datos del inventario cuando cambia la búsqueda
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      cargarInventarioReciente();
-    }, 300); // Debounce de 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [busqueda]);
-
+  // Cargar datos del dashboard solo cuando la autenticación esté lista  // ===== FUNCIONES DEFINIDAS ANTES DE LOS useEffect =====
+  
+  const cargarInventarioReciente = async () => {
+    try {
+      const inventario = await DashboardService.obtenerProductosInventario(20, busqueda);
+      setInventarioReciente(inventario);
+    } catch (err) {
+      console.error('Error cargando inventario:', err);
+    }
+  };
   const cargarDatosDashboard = async () => {
     setCargando(true);
     setError(null);
@@ -81,22 +81,36 @@ const DashboardAlmacenero = () => {
       setEstadoInventario(estadoInventarioData);
       setInventarioReciente(inventario);
       setActividadReciente(actividad);
-    } catch (err) {
-      console.error('Error cargando datos del dashboard:', err);
-      setError('Error al cargar los datos del dashboard. Por favor, intenta de nuevo.');
+    } catch (err: any) {
+      console.error('Error al cargar datos del dashboard:', err);
+      setError('Error al cargar los datos del dashboard');
     } finally {
       setCargando(false);
     }
   };
 
-  const cargarInventarioReciente = async () => {
-    try {
-      const inventario = await DashboardService.obtenerProductosInventario(20, busqueda);
-      setInventarioReciente(inventario);
-    } catch (err) {
-      console.error('Error cargando inventario:', err);
+  // ===== useEffect HOOKS =====
+
+  useEffect(() => {
+    if (isReady && isAuthenticated) {
+      cargarDatosDashboard();
+    } else if (isReady && !isAuthenticated) {
+      window.location.href = '/login';
     }
-  };
+  }, [isReady, isAuthenticated]);
+
+  // Cargar datos del inventario cuando cambia la búsqueda
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      cargarInventarioReciente();
+    }, 300); // Debounce de 300ms
+
+    return () => clearTimeout(timeoutId);
+  }, [busqueda]);
+  // Si aún está cargando la autenticación, mostrar pantalla de carga
+  if (authLoading) {
+    return <AuthLoadingScreen message="Cargando dashboard del almacenero..." />;
+  }
 
   const actualizarDatos = async () => {
     await cargarDatosDashboard();
@@ -370,10 +384,9 @@ const DashboardAlmacenero = () => {
                   <div>
                     {getEstadoBadge(producto.estado)}
                   </div>
-                </div>
-                <div className="mt-2 flex justify-between text-xs text-gray-500">
+                </div>                <div className="mt-2 flex justify-between text-xs text-gray-500">
                   <span>Stock: {producto.stock} unidades</span>
-                  <span>${producto.precioUnitario}</span>
+                  <span>S/ {producto.precioUnitario.toFixed(2)}</span>
                 </div>
               </div>
             ))}
@@ -448,10 +461,9 @@ const DashboardAlmacenero = () => {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {getEstadoBadge(item.estado)}
-                  </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                  </td>                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
                     <div>
-                      <span>${item.precioUnitario}</span>
+                      <span>S/ {item.precioUnitario.toFixed(2)}</span>
                       {item.marca && (
                         <p className="text-xs text-gray-400">{item.marca}</p>
                       )}

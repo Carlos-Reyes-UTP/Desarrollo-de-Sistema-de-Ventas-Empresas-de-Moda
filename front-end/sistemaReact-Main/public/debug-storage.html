@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Auth Token</title>
+</head>
+<body>
+    <h1>Debug Auth Storage</h1>
+    <button onclick="clearStorage()">Clear All Storage</button>
+    <button onclick="showStorage()">Show Storage</button>
+    <div id="output"></div>
+
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            document.getElementById('output').innerHTML = '<p style="color: green;">Storage cleared!</p>';
+        }
+
+        function showStorage() {
+            const output = document.getElementById('output');
+            let html = '<h2>LocalStorage:</h2>';
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                html += `<p><strong>${key}:</strong> ${value}</p>`;
+            }
+            
+            html += '<h2>SessionStorage:</h2>';
+            for (let i = 0; i < sessionStorage.length; i++) {
+                const key = sessionStorage.key(i);
+                const value = sessionStorage.getItem(key);
+                html += `<p><strong>${key}:</strong> ${value}</p>`;
+            }
+            
+            output.innerHTML = html;
+        }
+
+        // Show storage on load
+        showStorage();
+    </script>
+</body>
+</html>
