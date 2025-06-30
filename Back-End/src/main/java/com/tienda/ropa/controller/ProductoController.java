@@ -1,17 +1,26 @@
 package com.tienda.ropa.controller;
 
-import com.tienda.ropa.entity.Producto;
-import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.service.ProductoService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.tienda.ropa.entity.Producto;
+import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.service.ProductoService;
 
 @RestController
 @RequestMapping("/api/almacenero/productos")
@@ -48,6 +57,26 @@ public class ProductoController {
     @GetMapping("/categoria/{categoria}")
     public List<Producto> obtenerProductosPorCategoria(@PathVariable String categoria) {
         return productoService.obtenerProductosPorCategoria(categoria);
+    }
+
+    // Nuevo endpoint: Filtrar por categoría principal
+    @GetMapping("/categoria-principal/{categoriaPrincipal}")
+    public List<Producto> obtenerProductosPorCategoriaPrincipal(@PathVariable String categoriaPrincipal) {
+        return productoService.obtenerProductosPorCategoriaPrincipal(categoriaPrincipal);
+    }
+
+    // Nuevo endpoint: Filtrar por subcategoría
+    @GetMapping("/subcategoria/{subCategoria}")
+    public List<Producto> obtenerProductosPorSubCategoria(@PathVariable String subCategoria) {
+        return productoService.obtenerProductosPorSubCategoria(subCategoria);
+    }
+
+    // Nuevo endpoint: Filtrar por categoría principal y subcategoría (parámetros opcionales)
+    @GetMapping("/filtrar-categorias")
+    public List<Producto> obtenerProductosPorCategorias(
+            @RequestParam(required = false) String categoriaPrincipal,
+            @RequestParam(required = false) String subCategoria) {
+        return productoService.obtenerProductosPorCategoriaPrincipalYSubCategoria(categoriaPrincipal, subCategoria);
     }
 
     @GetMapping("/distribuidor/{nombreDistribuidor}")

@@ -22,6 +22,14 @@ export const RUTAS_PRODUCTOS = {
   BASE: `${API_BASE_URL}/api/almacenero/productos`,
   POR_ID: (id: number) => `${API_BASE_URL}/api/almacenero/productos/${id}`,
   POR_CATEGORIA: (categoria: string) => `${API_BASE_URL}/api/almacenero/productos/categoria/${encodeURIComponent(categoria)}`,
+  POR_CATEGORIA_PRINCIPAL: (categoriaPrincipal: string) => `${API_BASE_URL}/api/almacenero/productos/categoria-principal/${encodeURIComponent(categoriaPrincipal)}`,
+  POR_SUBCATEGORIA: (subCategoria: string) => `${API_BASE_URL}/api/almacenero/productos/subcategoria/${encodeURIComponent(subCategoria)}`,
+  FILTRAR_CATEGORIAS: (categoriaPrincipal?: string, subCategoria?: string) => {
+    const params = new URLSearchParams();
+    if (categoriaPrincipal) params.append('categoriaPrincipal', categoriaPrincipal);
+    if (subCategoria) params.append('subCategoria', subCategoria);
+    return `${API_BASE_URL}/api/almacenero/productos/filtrar-categorias?${params.toString()}`;
+  },
   POR_CODIGO: (codigo: string) => `${API_BASE_URL}/api/almacenero/productos/codigo/${encodeURIComponent(codigo)}`,
   POR_NOMBRE: (nombre: string) => `${API_BASE_URL}/api/almacenero/productos/nombre/${encodeURIComponent(nombre)}`,
   POR_PROVEEDOR: (proveedor: string) => `${API_BASE_URL}/api/almacenero/productos/distribuidor/${encodeURIComponent(proveedor)}`, // El backend usa 'distribuidor'

@@ -171,6 +171,49 @@ public class ProductoService {
         return productoRepository.findByCategoria(categoria);
     }
 
+    // Nuevo método: Filtrar por categoría principal (productos que tienen esta categoría como padre)
+    public List<Producto> obtenerProductosPorCategoriaPrincipal(String nombreCategoriaPrincipal) {
+        Categoria categoriaPrincipal = categoriaRepository.findByNombre(nombreCategoriaPrincipal)
+                .orElseThrow(() -> new IllegalArgumentException("Categoría principal no encontrada"));
+        return productoRepository.findByCategoriaPadre(categoriaPrincipal);
+    }
+
+    // Nuevo método: Filtrar por subcategoría (productos que tienen esta categoría como subcategoría)
+    public List<Producto> obtenerProductosPorSubCategoria(String nombreSubCategoria) {
+        Categoria subCategoria = categoriaRepository.findByNombre(nombreSubCategoria)
+                .orElseThrow(() -> new IllegalArgumentException("Subcategoría no encontrada"));
+        return productoRepository.findByCategoria(subCategoria);
+    }
+
+    // Nuevo método: Filtrar por ambos criterios - categoría principal y subcategoría
+    public List<Producto> obtenerProductosPorCategoriaPrincipalYSubCategoria(
+            String nombreCategoriaPrincipal, 
+            String nombreSubCategoria) {
+        
+        Categoria categoriaPrincipal = null;
+        Categoria subCategoria = null;
+        
+        if (nombreCategoriaPrincipal != null && !nombreCategoriaPrincipal.isEmpty()) {
+            categoriaPrincipal = categoriaRepository.findByNombre(nombreCategoriaPrincipal)
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría principal no encontrada"));
+        }
+        
+        if (nombreSubCategoria != null && !nombreSubCategoria.isEmpty()) {
+            subCategoria = categoriaRepository.findByNombre(nombreSubCategoria)
+                    .orElseThrow(() -> new IllegalArgumentException("Subcategoría no encontrada"));
+        }
+        
+        if (categoriaPrincipal != null && subCategoria != null) {
+            return productoRepository.findByCategoriaPadreAndCategoria(categoriaPrincipal, subCategoria);
+        } else if (categoriaPrincipal != null) {
+            return productoRepository.findByCategoriaPadre(categoriaPrincipal);
+        } else if (subCategoria != null) {
+            return productoRepository.findByCategoria(subCategoria);
+        } else {
+            return productoRepository.findAll();
+        }
+    }
+
     public List<Producto> obtenerProductosPorProveedor(String nombreProveedor) {  // Cambiar método
         Proveedores proveedor = proveedoresRepository.findByNombre(nombreProveedor)
                 .orElseThrow(() -> new IllegalArgumentException("Proveedor no encontrado"));

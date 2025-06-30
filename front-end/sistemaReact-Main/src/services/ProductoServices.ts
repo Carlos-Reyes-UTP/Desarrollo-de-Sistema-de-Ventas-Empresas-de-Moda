@@ -132,6 +132,28 @@ export const ProductoService = {
     return response.data;
   },
 
+  // Nuevos métodos para filtrar por categoría principal y subcategoría
+  getProductosByCategoriaPrincipal: async (categoriaPrincipal: string, userRole?: string): Promise<Producto[]> => {
+    const response = await apiClient.get<Producto[]>(RUTAS_PRODUCTOS.POR_CATEGORIA_PRINCIPAL(categoriaPrincipal));
+    return response.data;
+  },
+
+  getProductosBySubCategoria: async (subCategoria: string, userRole?: string): Promise<Producto[]> => {
+    const response = await apiClient.get<Producto[]>(RUTAS_PRODUCTOS.POR_SUBCATEGORIA(subCategoria));
+    return response.data;
+  },
+
+  getProductosByFiltrosCategorias: async (
+    categoriaPrincipal?: string, 
+    subCategoria?: string, 
+    userRole?: string
+  ): Promise<Producto[]> => {
+    const response = await apiClient.get<Producto[]>(
+      RUTAS_PRODUCTOS.FILTRAR_CATEGORIAS(categoriaPrincipal, subCategoria)
+    );
+    return response.data;
+  },
+
   getProductosByProveedor: async (nombreProveedor: string): Promise<Producto[]> => {
     const response = await apiClient.get<Producto[]>(RUTAS_PRODUCTOS.POR_PROVEEDOR(nombreProveedor));
     return response.data;

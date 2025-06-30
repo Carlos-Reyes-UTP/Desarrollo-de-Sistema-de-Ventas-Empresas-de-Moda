@@ -1,11 +1,13 @@
 package com.tienda.ropa.repository;
 
-import com.tienda.ropa.entity.Categoria;
-import com.tienda.ropa.entity.Proveedores;
-import com.tienda.ropa.entity.Producto;
-import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import com.tienda.ropa.entity.Categoria;
+import com.tienda.ropa.entity.Producto;
+import com.tienda.ropa.entity.Proveedores;
 
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByCategoria(Categoria categoria);
@@ -14,4 +16,10 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByNombre(String nombre);
     Optional<Producto> findByCodigoBarras(String codigoBarras);
     boolean existsByCodigoBarras(String codigoBarras);
+    
+    // Nuevos métodos para filtrar por categoría padre (categoría principal)
+    List<Producto> findByCategoriaPadre(Categoria categoriaPadre);
+    
+    // Método para filtrar por ambos: categoría padre y subcategoría
+    List<Producto> findByCategoriaPadreAndCategoria(Categoria categoriaPadre, Categoria categoria);
 }
