@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Package,
   AlertTriangle,
@@ -23,6 +24,7 @@ import type {
 
 const DashboardAlmacenero = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
+  const navigate = useNavigate();
   
   // Estados para datos reales del API - TODOS LOS HOOKS PRIMERO
   const [productosData, setProductosData] = useState<ProductoStats>({
@@ -42,7 +44,7 @@ const DashboardAlmacenero = () => {
   });
   const [inventarioReciente, setInventarioReciente] = useState<ProductoInventario[]>([]);
   const [actividadReciente, setActividadReciente] = useState<ActividadReciente[]>([]);
-  const [busqueda, setBusqueda] = useState('');
+  const [busquedaInventario, setBusquedaInventario] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,8 +52,8 @@ const DashboardAlmacenero = () => {
   
   const cargarInventarioReciente = async () => {
     try {
-      console.log('Cargando inventario reciente con búsqueda:', busqueda);
-      const inventario = await DashboardService.obtenerProductosInventario(20, busqueda);
+      console.log('Cargando inventario reciente...');
+      const inventario = await DashboardService.obtenerProductosInventario(50); // Cargar más productos para mejor búsqueda
       console.log('Inventario cargado:', inventario.length, 'productos');
       setInventarioReciente(inventario);
     } catch (err) {
@@ -109,6 +111,9 @@ const DashboardAlmacenero = () => {
       setEstadoInventario(estadoInventarioData);
       setInventarioReciente(inventario);
       setActividadReciente(actividad);
+      
+      // Cargar inventario adicional para la tabla de búsqueda
+      await cargarInventarioReciente();
     } catch (err: any) {
       console.error('Error general al cargar datos del dashboard:', err);
       setError('Error al cargar los datos del dashboard. Verifique su conexión e intente nuevamente.');
@@ -126,15 +131,6 @@ const DashboardAlmacenero = () => {
       window.location.href = '/login';
     }
   }, [isReady, isAuthenticated]);
-
-  // Cargar datos del inventario cuando cambia la búsqueda
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      cargarInventarioReciente();
-    }, 300); // Debounce de 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [busqueda]);
   // Si aún está cargando la autenticación, mostrar pantalla de carga
   if (authLoading) {
     return <AuthLoadingScreen message="Cargando dashboard del almacenero..." />;
@@ -170,10 +166,11 @@ const DashboardAlmacenero = () => {
         </div>
       </div>
     </div>
-  );  // Filtrar inventario reciente según búsqueda
+  );  // Filtrar inventario reciente según búsqueda (solo para la tabla)
   const inventarioFiltrado = inventarioReciente.filter(item => 
-    item.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
-    item.categoria.toLowerCase().includes(busqueda.toLowerCase())
+    item.nombre.toLowerCase().includes(busquedaInventario.toLowerCase()) ||
+    item.codigoIdentificacion.toLowerCase().includes(busquedaInventario.toLowerCase()) ||
+    item.categoria.toLowerCase().includes(busquedaInventario.toLowerCase())
   );
 
   const getEstadoBadge = (estado: string) => {
@@ -280,7 +277,10 @@ const DashboardAlmacenero = () => {
             <RefreshCw size={16} className={`mr-2 ${cargando ? 'animate-spin' : ''}`} /> 
             {cargando ? 'Actualizando...' : 'Actualizar Datos'}
           </button>
-          <button className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500">
+          <button 
+            onClick={() => navigate('/pages/productos?openModal=true')}
+            className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md shadow-sm text-white bg-gray-900 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
             <PlusCircle size={16} className="mr-2" /> Nuevo Producto
           </button>
         </div>
@@ -399,7 +399,7 @@ const DashboardAlmacenero = () => {
           </div>
           
           <div className="space-y-4">
-            {inventarioReciente.filter(p => p.estado === 'critico' || p.estado === 'sin-stock').slice(0, 4).map((producto) => (
+            {inventarioReciente.filter(p => p.estado === 'critico' || p.estado === 'sin-stock').slice(0, 3).map((producto) => (
               <div key={producto.idProducto} className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
                 <div className="flex justify-between items-start">
                   <div>
@@ -434,10 +434,10 @@ const DashboardAlmacenero = () => {
           <div className="w-full sm:w-64 relative">
             <input 
               type="text" 
-              placeholder="Buscar producto..." 
+              placeholder="Buscar por nombre, código o categoría..." 
               className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
+              value={busquedaInventario}
+              onChange={(e) => setBusquedaInventario(e.target.value)}
             />
             <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Plus, Edit, Trash2, Package, X } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
@@ -11,6 +12,7 @@ import FormularioProductoUnificado from './FormularioProductoUnificado'
 import GestionVariantes from './GestionVariantes';
 
 const GestionProductos: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
@@ -37,6 +39,16 @@ const GestionProductos: React.FC = () => {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  // Verificar si se debe abrir el modal automáticamente
+  useEffect(() => {
+    const openModal = searchParams.get('openModal');
+    if (openModal === 'true') {
+      setShowFormulario(true);
+      // Limpiar el parámetro de URL después de abrir el modal
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   // Limpiar búsqueda cuando se cambia el tipo de búsqueda
   useEffect(() => {
