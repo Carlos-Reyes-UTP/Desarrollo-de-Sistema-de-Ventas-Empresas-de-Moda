@@ -24,8 +24,8 @@ export const DashboardService = {  // Obtener estadísticas generales de product
       
       // Calcular estadísticas
       const total = productosData.length;
-      const bajoStock = productosData.filter(p => (p.cantidadTotal || p.cantidad || 0) > 0 && (p.cantidadTotal || p.cantidad || 0) <= 10).length;
-      const sinStock = productosData.filter(p => (p.cantidadTotal || p.cantidad || 0) === 0).length;
+      const bajoStock = productosData.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) > 0 && (p?.cantidadTotal ?? p?.cantidad ?? 0) <= 10).length;
+      const sinStock = productosData.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) === 0).length;
       const categorias_count = categoriasData.length;
         // Para productos del último mes, necesitaríamos una fecha de creación en el modelo
       // Por ahora, usaremos una aproximación
@@ -58,13 +58,43 @@ export const DashboardService = {  // Obtener estadísticas generales de product
       
       // Validar que la respuesta es un array
       const productosData = Array.isArray(productosResponse) ? productosResponse : [];
+      console.log('Productos obtenidos para distribución de categorías:', productosData.length);
       
-      // Agrupar por categoría
+      // Mostrar algunos productos de ejemplo para debug
+      if (productosData.length > 0) {
+        console.log('Ejemplo de estructura de producto:', {
+          categoriaPadre: productosData[0]?.categoriaPadre,
+          categoria: productosData[0]?.categoria,
+          nombre: productosData[0]?.nombre
+        });
+      }
+      
+      // Agrupar por categoría padre - filtrar productos con datos válidos
       const categoriasMap = new Map<number, { nombre: string; cantidad: number }>();
 
       productosData.forEach(producto => {
-        const categoriaId = producto.categoria.idCategoria!;
-        const categoriaNombre = producto.categoria.nombre;
+        // Priorizar categoriaPadre, luego categoria
+        let categoriaId: number | undefined;
+        let categoriaNombre: string | undefined;
+
+        if (producto?.categoriaPadre?.idCategoria && producto?.categoriaPadre?.nombre) {
+          // Usar categoria padre si existe
+          categoriaId = producto.categoriaPadre.idCategoria;
+          categoriaNombre = producto.categoriaPadre.nombre;
+        } else if (producto?.categoria?.idCategoria && producto?.categoria?.nombre) {
+          // Usar categoria directa si no tiene padre
+          categoriaId = producto.categoria.idCategoria;
+          categoriaNombre = producto.categoria.nombre;
+        }
+
+        if (!categoriaId || !categoriaNombre) {
+          console.warn('Producto sin categoría válida:', {
+            nombre: producto?.nombre,
+            categoriaPadre: producto?.categoriaPadre,
+            categoria: producto?.categoria
+          });
+          return; // Saltar este producto
+        }
         
         if (categoriasMap.has(categoriaId)) {
           categoriasMap.get(categoriaId)!.cantidad++;
@@ -72,14 +102,27 @@ export const DashboardService = {  // Obtener estadísticas generales de product
           categoriasMap.set(categoriaId, { nombre: categoriaNombre, cantidad: 1 });
         }
       });
-        const total = productosData.length;
+
+      console.log('Categorías agrupadas:', Array.from(categoriasMap.entries()));
+
+      // Usar solo productos con categorías válidas para el total
+      const productosConCategoria = productosData.filter(producto => {
+        return (producto?.categoriaPadre?.idCategoria && producto?.categoriaPadre?.nombre) ||
+               (producto?.categoria?.idCategoria && producto?.categoria?.nombre);
+      });
+      const total = productosConCategoria.length;
       
-      return Array.from(categoriasMap.entries()).map(([idCategoria, data]) => ({
+      console.log('Total productos con categoría:', total);
+      
+      const resultado = Array.from(categoriasMap.entries()).map(([idCategoria, data]) => ({
         idCategoria,
         nombre: data.nombre,
         cantidadProductos: data.cantidad,
-        porcentaje: Math.round((data.cantidad / total) * 100)
+        porcentaje: total > 0 ? Math.round((data.cantidad / total) * 100) : 0
       })).sort((a, b) => b.cantidadProductos - a.cantidadProductos);
+
+      console.log('Distribución de categorías resultado:', resultado);
+      return resultado;
     } catch (error) {
       console.error('Error obteniendo distribución de categorías:', error);
       return [];
@@ -93,13 +136,13 @@ export const DashboardService = {  // Obtener estadísticas generales de product
       
       // Validar que la respuesta es un array
       const productosData = Array.isArray(productosResponse) ? productosResponse : [];      const total = productosData.length;
-      const sinStock = productosData.filter(p => (p.cantidadTotal || p.cantidad || 0) === 0).length;
+      const sinStock = productosData.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) === 0).length;
       const critico = productosData.filter(p => {
-        const stock = p.cantidadTotal || p.cantidad || 0;
+        const stock = p?.cantidadTotal ?? p?.cantidad ?? 0;
         return stock > 0 && stock <= 5;
       }).length;
       const bajo = productosData.filter(p => {
-        const stock = p.cantidadTotal || p.cantidad || 0;
+        const stock = p?.cantidadTotal ?? p?.cantidad ?? 0;
         return stock > 5 && stock <= 15;
       }).length;
       const normal = total - sinStock - critico - bajo;
@@ -126,7 +169,7 @@ export const DashboardService = {  // Obtener estadísticas generales de product
     try {
       let productosResponse: Producto[];
       
-      if (busqueda && busqueda.trim()) {
+      if (busqueda?.trim()) {
         productosResponse = await ProductoService.getProductosByNombre(busqueda.trim(), 'ROLE_ADMIN');
       } else {
         productosResponse = await ProductoService.getAllProductos('ROLE_ADMIN');
@@ -134,33 +177,56 @@ export const DashboardService = {  // Obtener estadísticas generales de product
       
       // Validar que la respuesta es un array
       const productos = Array.isArray(productosResponse) ? productosResponse : [];      
-      return productos.slice(0, limite).map(producto => {
-        let estado: 'normal' | 'bajo' | 'critico' | 'sin-stock';
-        const stock = producto.cantidadTotal || producto.cantidad || 0;
-        
-        if (stock === 0) {
-          estado = 'sin-stock';
-        } else if (stock <= 5) {
-          estado = 'critico';
-        } else if (stock <= 15) {
-          estado = 'bajo';
-        } else {
-          estado = 'normal';
-        }
-        
-        return {
-          idProducto: producto.idProducto!,
-          nombre: producto.nombre,
-          codigoIdentificacion: producto.codigoIdentificacion,
-          categoria: producto.categoria.nombre,
-          stock: stock,
-          estado,
-          precioUnitario: producto.precioUnitario,
-          marca: producto.marca,
-          proveedor: producto.proveedor.nombre,
-          fechaActualizacion: new Date().toLocaleDateString() // Mock date, idealmente del backend
-        };
-      });
+      
+      // Filtrar productos con datos válidos y mapear
+      return productos
+        .filter(producto => {
+          // Validar que el producto tenga nombre y al menos una categoría válida
+          if (!producto?.nombre) {
+            console.warn('Producto sin nombre:', producto);
+            return false;
+          }
+          
+          // Verificar que tenga categoría padre o categoría directa
+          const tieneCategoria = (producto?.categoriaPadre?.nombre) ?? (producto?.categoria?.nombre);
+          if (!tieneCategoria) {
+            console.warn('Producto sin categoría válida:', producto);
+            return false;
+          }
+          
+          return true;
+        })
+        .slice(0, limite)
+        .map(producto => {
+          let estado: 'normal' | 'bajo' | 'critico' | 'sin-stock';
+          const stock = producto.cantidadTotal ?? producto.cantidad ?? 0;
+          
+          if (stock === 0) {
+            estado = 'sin-stock';
+          } else if (stock <= 5) {
+            estado = 'critico';
+          } else if (stock <= 15) {
+            estado = 'bajo';
+          } else {
+            estado = 'normal';
+          }
+
+          // Priorizar categoría padre sobre categoría directa
+          const categoriaNombre = producto.categoriaPadre?.nombre ?? producto.categoria?.nombre ?? 'Sin categoría';
+          
+          return {
+            idProducto: producto.idProducto ?? 0,
+            nombre: producto.nombre,
+            codigoIdentificacion: producto.codigoIdentificacion ?? '',
+            categoria: categoriaNombre,
+            stock: stock,
+            estado,
+            precioUnitario: producto.precioUnitario ?? 0,
+            marca: producto.marca ?? '',
+            proveedor: producto.proveedor?.nombre ?? 'Sin proveedor',
+            fechaActualizacion: new Date().toLocaleDateString() // Mock date, idealmente del backend
+          };
+        });
     } catch (error) {
       console.error('Error obteniendo productos del inventario:', error);
       return [];
@@ -176,10 +242,10 @@ export const DashboardService = {  // Obtener estadísticas generales de product
       // Obtener productos con stock crítico (disponible para todos los roles)
       const productosResponse = await ProductoService.getAllProductos('ROLE_ADMIN');
       const productos = Array.isArray(productosResponse) ? productosResponse : [];
-      const productosCriticos = productos.filter(p => (p.cantidadTotal || p.cantidad || 0) <= 5);
+      const productosCriticos = productos.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) <= 5);
       
       productosCriticos.slice(0, 2).forEach((producto, index) => {
-        const stock = producto.cantidadTotal || producto.cantidad || 0;
+        const stock = producto?.cantidadTotal ?? producto?.cantidad ?? 0;
         actividades.push({
           id: `stock-critico-${producto.idProducto}`,
           tipo: 'stock_critico',

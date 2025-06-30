@@ -50,10 +50,13 @@ const DashboardAlmacenero = () => {
   
   const cargarInventarioReciente = async () => {
     try {
+      console.log('Cargando inventario reciente con búsqueda:', busqueda);
       const inventario = await DashboardService.obtenerProductosInventario(20, busqueda);
+      console.log('Inventario cargado:', inventario.length, 'productos');
       setInventarioReciente(inventario);
     } catch (err) {
       console.error('Error cargando inventario:', err);
+      setInventarioReciente([]); // Establecer array vacío en caso de error
     }
   };
   const cargarDatosDashboard = async () => {
@@ -61,6 +64,8 @@ const DashboardAlmacenero = () => {
     setError(null);
     
     try {
+      console.log('Iniciando carga de datos del dashboard...');
+      
       // Cargar todas las estadísticas en paralelo
       const [
         estadisticasProductos,
@@ -69,12 +74,35 @@ const DashboardAlmacenero = () => {
         inventario,
         actividad
       ] = await Promise.all([
-        DashboardService.obtenerEstadisticasProductos(),
-        DashboardService.obtenerDistribucionCategorias(),
-        DashboardService.obtenerEstadoInventario(),
-        DashboardService.obtenerProductosInventario(20),
-        DashboardService.obtenerActividadReciente()
+        DashboardService.obtenerEstadisticasProductos().catch(err => {
+          console.error('Error en estadísticas de productos:', err);
+          return { total: 0, bajoStock: 0, sinStock: 0, categorias: 0, ultimoMes: 0 };
+        }),
+        DashboardService.obtenerDistribucionCategorias().catch(err => {
+          console.error('Error en distribución de categorías:', err);
+          return [];
+        }),
+        DashboardService.obtenerEstadoInventario().catch(err => {
+          console.error('Error en estado del inventario:', err);
+          return { normal: 0, bajo: 0, critico: 0, sinStock: 0 };
+        }),
+        DashboardService.obtenerProductosInventario(20).catch(err => {
+          console.error('Error en productos del inventario:', err);
+          return [];
+        }),
+        DashboardService.obtenerActividadReciente().catch(err => {
+          console.error('Error en actividad reciente:', err);
+          return [];
+        })
       ]);
+
+      console.log('Datos cargados exitosamente:', {
+        estadisticasProductos,
+        distribucionCategorias,
+        estadoInventarioData,
+        inventario: inventario.length,
+        actividad: actividad.length
+      });
 
       setProductosData(estadisticasProductos);
       setCategoriaStats(distribucionCategorias);
@@ -82,8 +110,8 @@ const DashboardAlmacenero = () => {
       setInventarioReciente(inventario);
       setActividadReciente(actividad);
     } catch (err: any) {
-      console.error('Error al cargar datos del dashboard:', err);
-      setError('Error al cargar los datos del dashboard');
+      console.error('Error general al cargar datos del dashboard:', err);
+      setError('Error al cargar los datos del dashboard. Verifique su conexión e intente nuevamente.');
     } finally {
       setCargando(false);
     }
