@@ -1,8 +1,9 @@
 package com.tienda.ropa.entity;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import java.math.BigDecimal;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -40,13 +41,12 @@ public class Producto {
     @Column(name = "sexo", nullable = false)
     private String sexo;
 
-    @NotNull
     @ManyToOne
-    @JoinColumn(name = "id_categoria", nullable = false)
+    @JoinColumn(name = "id_subcategoria", nullable = true)
     private Categoria categoria;
 
     @ManyToOne
-    @JoinColumn(name = "id_categoria_padre")
+    @JoinColumn(name = "id_categoria_padre", nullable = false)
     private Categoria categoriaPadre;
 
     @NotNull

@@ -1,23 +1,22 @@
 package com.tienda.ropa.service;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.tienda.ropa.entity.Categoria;
-import com.tienda.ropa.entity.Color;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Proveedores;
-import com.tienda.ropa.entity.Talla;
 import com.tienda.ropa.repository.CategoriaRepository;
 import com.tienda.ropa.repository.ColorRepository;
 import com.tienda.ropa.repository.ProductoRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.ProveedoresRepository;
 import com.tienda.ropa.repository.TallaRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 public class ProductoService {
@@ -40,14 +39,72 @@ public class ProductoService {
     @Autowired
     private ColorRepository colorRepository;    @Transactional
     public Producto agregarProducto(Producto producto) {
+        // Validar y configurar las categorías correctamente
+        configurarCategorias(producto);
+        
         // Generar código de barras automáticamente si no se proporciona
         if (producto.getCodigoBarras() == null || producto.getCodigoBarras().trim().isEmpty()) {
             String codigoBarrasGenerado = generarCodigoBarrasUnico(producto.getCodigoIdentificacion());
             producto.setCodigoBarras(codigoBarrasGenerado);
         }
         
-        Producto productoGuardado = productoRepository.save(producto);
-        return productoGuardado;
+        return productoRepository.save(producto);
+    }
+    
+    /**
+     * Configura correctamente las categorías padre e hija del producto
+     */
+    private void configurarCategorias(Producto producto) {
+        // Validar que al menos una categoría esté presente
+        if (producto.getCategoria() == null && producto.getCategoriaPadre() == null) {
+            throw new IllegalArgumentException("El producto debe tener al menos una categoría (subcategoría o categoría padre)");
+        }
+        
+        if (producto.getCategoria() != null) {
+            // Caso 1: Si la categoría asignada tiene una categoría padre en la BD
+            if (producto.getCategoria().getCategoriaPadre() != null) {
+                // La categoría actual es una subcategoría real
+                // Establecer automáticamente su categoría padre
+                producto.setCategoriaPadre(producto.getCategoria().getCategoriaPadre());
+            } 
+            // Caso 2: Si se recibió una categoriaPadre explícitamente desde el frontend
+            else if (producto.getCategoriaPadre() != null) {
+                // Verificar si categoria y categoriaPadre son iguales
+                if (producto.getCategoria().getIdCategoria().equals(producto.getCategoriaPadre().getIdCategoria())) {
+                    // Es una categoría principal sin hijos que se envió duplicada
+                    // Limpiar el campo categoria y mantener solo categoriaPadre
+                    producto.setCategoria(null);
+                } else {
+                    // Son diferentes - mantener la configuración tal como viene
+                    // (caso especial o configuración personalizada)
+                }
+            } else {
+                // Caso 3: Solo se especificó categoria sin categoriaPadre
+                // Verificar si la categoría tiene subcategorías
+                if (producto.getCategoria().getSubCategorias() != null && 
+                    !producto.getCategoria().getSubCategorias().isEmpty()) {
+                    // La categoría tiene hijos, pero se está usando como categoria directa
+                    // Esto podría ser un error, pero lo permitimos
+                } else {
+                    // La categoría no tiene hijos - debería ser categoriaPadre
+                    // Mover categoria a categoriaPadre y limpiar categoria
+                    producto.setCategoriaPadre(producto.getCategoria());
+                    producto.setCategoria(null);
+                }
+            }
+        } else if (producto.getCategoriaPadre() != null) {
+            // Caso 4: Solo se especificó categoría padre (sin subcategoría)
+            // Verificar que efectivamente la categoría padre no tenga subcategorías sería redundante
+            // porque el frontend ya hizo esta validación
+            
+            // Estado actual: categoria=null, categoriaPadre=[Categoría]
+            // Este es el estado CORRECTO para categorías principales sin hijos
+            
+            // ✅ NO necesitamos:
+            // - producto.setCategoria(null);        // Ya es null
+            // - producto.setCategoriaPadre(...);    // Ya está configurado correctamente
+            // - Validaciones adicionales            // Frontend ya las hizo
+        }
     }
     
     private String generarCodigoBarrasUnico(String codigoIdentificacion) {
@@ -66,7 +123,7 @@ public class ProductoService {
         }
         
         return codigoFinal;
-    }@Transactional
+    }    @Transactional
     public Producto editarProducto(Long id, Producto productoActualizado) {
         return productoRepository.findById(id).map(producto -> {
             // Actualizar todas las propiedades del producto
@@ -83,6 +140,9 @@ public class ProductoService {
             producto.setPrecioMediaDocena(productoActualizado.getPrecioMediaDocena());
             producto.setPrecioDocena(productoActualizado.getPrecioDocena());
             producto.setCodigoBarras(productoActualizado.getCodigoBarras());
+            
+            // Aplicar la misma lógica de configuración de categorías
+            configurarCategorias(producto);
             
             // Guardar los cambios del producto
             return productoRepository.save(producto);

@@ -10,8 +10,8 @@ export interface Producto {
   nombre: string;
   descripcion?: string;
   sexo?: string;
-  categoria: Categoria; // En el payload de creación/actualización, podrías enviar solo el idCategoria
-  categoriaPadre?: Categoria | null; // Similar, podrías enviar solo el idCategoriaPadre
+  categoria?: Categoria; // Ahora es opcional - se usa para subcategorías
+  categoriaPadre?: Categoria | null; // Se usa para categorías principales
   marca?: string;
   proveedor: Proveedor; // Similar, podrías enviar solo el idProveedor
   precioUnitario: number;

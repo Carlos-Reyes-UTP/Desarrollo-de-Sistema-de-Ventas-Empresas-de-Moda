@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Package, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, X } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -16,6 +16,7 @@ const GestionProductos: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [searchType, setSearchType] = useState<'nombre' | 'codigo'>('nombre');
   const [selectedCategoria, setSelectedCategoria] = useState<string>('');
   const [selectedProveedor, setSelectedProveedor] = useState<string>('');
   const [showFormulario, setShowFormulario] = useState(false);
@@ -28,6 +29,11 @@ const GestionProductos: React.FC = () => {
   useEffect(() => {
     cargarDatos();
   }, []);
+
+  // Limpiar búsqueda cuando se cambia el tipo de búsqueda
+  useEffect(() => {
+    setSearchTerm('');
+  }, [searchType]);
   const cargarDatos = async () => {
     try {
       setLoading(true);
@@ -66,27 +72,6 @@ const GestionProductos: React.FC = () => {
     }
   };
 
-  const handleBuscar = async () => {
-    if (!searchTerm.trim()) {
-      cargarDatos();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const resultadosResponse = await ProductoService.buscarProductosCompleto(searchTerm, 'ROLE_ADMIN');
-      
-      // Validar que la respuesta es un array
-      const resultados = Array.isArray(resultadosResponse) ? resultadosResponse : [];
-      setProductos(resultados);
-    } catch (err) {
-      setError('Error al buscar productos');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const solicitarEliminarProducto = (idProducto: number) => {
     setProductoAEliminar(idProducto);
     setConfirmModalOpen(true);
@@ -98,6 +83,7 @@ const GestionProductos: React.FC = () => {
       await ProductoService.deleteProducto(productoAEliminar);
       cargarDatos();
     } catch (err) {
+      console.error('Error al eliminar el producto:', err);
       setError('Error al eliminar el producto.');
     } finally {
       setProductoAEliminar(null);
@@ -116,11 +102,24 @@ const GestionProductos: React.FC = () => {
   };
 
   const productosFiltrados = productos.filter(producto => {
+    // Filtro por nombre o código según la selección del usuario
+    let matchBusqueda = true;
+    if (searchTerm) {
+      if (searchType === 'nombre') {
+        matchBusqueda = producto.nombre.toLowerCase().includes(searchTerm.toLowerCase());
+      } else if (searchType === 'codigo') {
+        matchBusqueda = producto.codigoIdentificacion.toLowerCase().includes(searchTerm.toLowerCase());
+      }
+    }
+    
+    // Obtener el nombre de la categoría desde categoria o categoriaPadre
+    const nombreCategoria = producto.categoria?.nombre ?? producto.categoriaPadre?.nombre ?? '';
     const matchCategoria = !selectedCategoria || 
-      producto.categoria.nombre.toLowerCase().includes(selectedCategoria.toLowerCase());
+      nombreCategoria.toLowerCase().includes(selectedCategoria.toLowerCase());
     const matchProveedor = !selectedProveedor || 
       producto.proveedor.nombre.toLowerCase().includes(selectedProveedor.toLowerCase());
-    return matchCategoria && matchProveedor;
+    
+    return matchBusqueda && matchCategoria && matchProveedor;
   });
 
   if (loading) {
@@ -153,22 +152,34 @@ const GestionProductos: React.FC = () => {
 
       {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex">
-            <input
-              type="text"
-              placeholder="Buscar productos..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleBuscar}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-colors"
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="col-span-2 flex gap-0">
+            <select
+              value={searchType}
+              onChange={(e) => setSearchType(e.target.value as 'nombre' | 'codigo')}
+              className="px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm"
             >
-              <Search className="w-4 h-4" />
-            </button>
+              <option value="nombre">🏷️ Nombre</option>
+              <option value="codigo">🔢 Código</option>
+            </select>
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder={searchType === 'nombre' ? "Ej: Camiseta, Pantalón..." : "Ej: PROD001, CAM123..."}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-3 py-2 border-l-0 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  title="Limpiar búsqueda"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <select
@@ -197,8 +208,13 @@ const GestionProductos: React.FC = () => {
             ))}
           </select>
 
-          <div className="text-sm text-gray-600 flex items-center">
-            Total: {productosFiltrados.length} productos
+          <div className="text-sm text-gray-600 flex items-center gap-2">
+            <span>Total: {productosFiltrados.length} productos</span>
+            {searchTerm && (
+              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                {searchType === 'nombre' ? 'Nombre' : 'Código'}: "{searchTerm}"
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -216,7 +232,10 @@ const GestionProductos: React.FC = () => {
                   Nombre
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Categoría
+                  Categoría Principal
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Sub Categoría
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Marca
@@ -225,7 +244,16 @@ const GestionProductos: React.FC = () => {
                   Proveedor
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Precio
+                  Precio Unitario
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Precio Cuarto
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Precio ½ Docena
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Precio Docena
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Stock Total
@@ -240,7 +268,8 @@ const GestionProductos: React.FC = () => {
                 <tr key={producto.idProducto} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {producto.codigoIdentificacion}
-                  </td>                  <td className="px-6 py-4 whitespace-nowrap">
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
                       {producto.codigoBarras && (
@@ -252,27 +281,59 @@ const GestionProductos: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {producto.categoria.nombre}
+                    {producto.categoriaPadre?.nombre ?? '-'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {producto.marca || 'N/A'}
+                    {producto.categoria?.nombre ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {producto.marca ?? 'N/A'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {producto.proveedor.nombre}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    S/ {producto.precioUnitario.toFixed(2)}
+                    <span className="font-semibold text-green-600">S/ {producto.precioUnitario.toFixed(2)}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {producto.precioCuarto ? (
+                      <span className="text-blue-600">S/ {producto.precioCuarto.toFixed(2)}</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {producto.precioMediaDocena ? (
+                      <span className="text-purple-600">S/ {producto.precioMediaDocena.toFixed(2)}</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {producto.precioDocena ? (
+                      <span className="text-orange-600">S/ {producto.precioDocena.toFixed(2)}</span>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      (producto.cantidadTotal || 0) > 10 
-                        ? 'bg-green-100 text-green-800' 
-                        : (producto.cantidadTotal || 0) > 0 
-                        ? 'bg-yellow-100 text-yellow-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {producto.cantidadTotal || 0}
-                    </span>
+                    {(() => {
+                      const cantidad = producto.cantidadTotal ?? 0;
+                      let claseStock = '';
+                      if (cantidad > 10) {
+                        claseStock = 'bg-green-100 text-green-800';
+                      } else if (cantidad > 0) {
+                        claseStock = 'bg-yellow-100 text-yellow-800';
+                      } else {
+                        claseStock = 'bg-red-100 text-red-800';
+                      }
+                      
+                      return (
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${claseStock}`}>
+                          {cantidad}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center space-x-2">

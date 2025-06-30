@@ -262,8 +262,10 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
   };
 
   const productosFiltrados = productos.filter(producto => {
+    // Obtener el nombre de la categoría desde categoria o categoriaPadre
+    const nombreCategoria = producto.categoria?.nombre ?? producto.categoriaPadre?.nombre ?? '';
     const matchCategoria = !selectedCategoria || 
-      producto.categoria.nombre.toLowerCase().includes(selectedCategoria.toLowerCase());
+      nombreCategoria.toLowerCase().includes(selectedCategoria.toLowerCase());
     const matchProveedor = !selectedProveedor || 
       producto.proveedor.nombre.toLowerCase().includes(selectedProveedor.toLowerCase());
     return matchCategoria && matchProveedor;
@@ -432,7 +434,7 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {producto.categoria.nombre}
+                      {producto.categoria?.nombre ?? producto.categoriaPadre?.nombre ?? 'Sin categoría'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {producto.proveedor.nombre}
@@ -442,13 +444,13 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        (producto.cantidadTotal || 0) > 10 
+                        (producto.cantidadTotal ?? 0) > 10 
                           ? 'bg-green-100 text-green-800' 
-                          : (producto.cantidadTotal || 0) > 0 
+                          : (producto.cantidadTotal ?? 0) > 0 
                           ? 'bg-yellow-100 text-yellow-800' 
                           : 'bg-red-100 text-red-800'
                       }`}>
-                        {producto.cantidadTotal || 0}
+                        {producto.cantidadTotal ?? 0}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">

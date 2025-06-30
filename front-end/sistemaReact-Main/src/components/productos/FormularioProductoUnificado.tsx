@@ -92,13 +92,46 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     setTimeout(onClose, 300); // Esperar a que la animación termine
   };
   useEffect(() => {
-    if (producto) {      setFormData({
+    if (producto) {
+      // Determinar la configuración de categorías del producto
+      const tieneCategoriaPadre = producto.categoriaPadre != null;
+      const tieneCategoria = producto.categoria != null;
+      
+      // Caso 1: Producto con categoria y categoriaPadre diferentes (subcategoría)
+      // Caso 2: Producto con categoria y categoriaPadre iguales (categoría principal sin hijos)
+      // Caso 3: Producto solo con categoriaPadre (categoría principal)
+      
+      let categoriaIdFormulario = '';
+      let subcategoriaIdFormulario = '';
+      
+      if (tieneCategoriaPadre && tieneCategoria) {
+        // Verificar si son iguales (categoría principal sin hijos) o diferentes (subcategoría)
+        if (producto.categoria?.idCategoria === producto.categoriaPadre?.idCategoria) {
+          // Categoría principal sin hijos
+          categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
+          subcategoriaIdFormulario = '';
+        } else {
+          // Tiene subcategoría
+          categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
+          subcategoriaIdFormulario = producto.categoria?.idCategoria?.toString() || '';
+        }
+      } else if (tieneCategoriaPadre) {
+        // Solo tiene categoría padre
+        categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
+        subcategoriaIdFormulario = '';
+      } else if (tieneCategoria) {
+        // Solo tiene categoría (caso legacy)
+        categoriaIdFormulario = producto.categoria?.idCategoria?.toString() || '';
+        subcategoriaIdFormulario = '';
+      }
+      
+      setFormData({
         codigoIdentificacion: producto.codigoIdentificacion,
         codigoBarras: producto.codigoBarras || '',
         nombre: producto.nombre,
         sexo: producto.sexo || '',
-        categoriaId: producto.categoria?.categoriaPadre ? producto.categoria.categoriaPadre.idCategoria?.toString() || '' : producto.categoria?.idCategoria?.toString() || '',
-        subcategoriaId: producto.categoria?.categoriaPadre ? producto.categoria.idCategoria?.toString() || '' : '',
+        categoriaId: categoriaIdFormulario,
+        subcategoriaId: subcategoriaIdFormulario,
         marca: producto.marca || '',
         proveedorId: producto.proveedor.idProveedor?.toString() || '',
         precioUnitario: producto.precioUnitario.toString(),
@@ -108,8 +141,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       });
       
       // Cargar subcategorías si el producto tiene una categoría padre
-      if (producto.categoria?.categoriaPadre) {
-        const categoriaSeleccionada = categorias.find(c => c.idCategoria === producto.categoria?.categoriaPadre?.idCategoria);
+      if (tieneCategoriaPadre && producto.categoriaPadre) {
+        const categoriaSeleccionada = categorias.find(c => c.idCategoria === producto.categoriaPadre?.idCategoria);
         if (categoriaSeleccionada?.subCategorias) {
           setSubcategorias(categoriaSeleccionada.subCategorias);
         }
@@ -281,13 +314,42 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       if (!formData.codigoIdentificacion.trim()) {
         throw new Error('El código de identificación es requerido');
       }      // Encontrar objetos de categorías y proveedor
-      const categoriaSeleccionada = formData.subcategoriaId 
-        ? categorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)
-        : categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
+      let categoriaSeleccionada: Categoria | undefined = undefined;
+      let categoriaPadreSeleccionada: Categoria | undefined = undefined;
+
+      if (formData.subcategoriaId) {
+        // Caso 1: Si hay una subcategoría seleccionada
+        categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)!;
+        categoriaPadreSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
+        
+        console.log('📂 Usando subcategoría como categoría principal:', categoriaSeleccionada?.nombre);
+        console.log('📁 Categoría padre seleccionada:', categoriaPadreSeleccionada?.nombre);
+      } else {
+        // Caso 2: Si solo hay categoría principal seleccionada
+        const categoriaPrincipal = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId)!;
+        
+        if (!categoriaPrincipal) {
+          throw new Error('Debe seleccionar una categoría válida');
+        }
+        
+        // Verificar si la categoría principal tiene subcategorías
+        if (categoriaPrincipal.subCategorias && categoriaPrincipal.subCategorias.length > 0) {
+          // Si tiene subcategorías, entonces es una categoría padre y necesita una subcategoría
+          throw new Error('Debe seleccionar una subcategoría para esta categoría principal');
+        } else {
+          // Si no tiene subcategorías, se configura SOLO como categoría padre
+          // categoria queda como undefined (null) y categoriaPadre toma la categoría principal
+          categoriaSeleccionada = undefined;
+          categoriaPadreSeleccionada = categoriaPrincipal;
+          
+          console.log('📁 Categoría principal sin hijos - configurando SOLO como categoriaPadre:', categoriaPrincipal?.nombre);
+        }
+      }
+
       const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
 
-      if (!categoriaSeleccionada || !proveedor) {
-        throw new Error('Debe seleccionar una categoría y un proveedor válidos');
+      if (!proveedor) {
+        throw new Error('Debe seleccionar un proveedor válido');
       }
 
       // Crear objeto producto
@@ -297,6 +359,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         nombre: formData.nombre,
         sexo: formData.sexo || undefined,
         categoria: categoriaSeleccionada,
+        categoriaPadre: categoriaPadreSeleccionada,
         marca: formData.marca || undefined,
         proveedor,
         cantidad: cantidadTotal,

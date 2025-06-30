@@ -63,3 +63,4 @@ public class ContrasenaSeguraValidator implements ConstraintValidator<Contrasena
         return esValida;
     }
 }
+
