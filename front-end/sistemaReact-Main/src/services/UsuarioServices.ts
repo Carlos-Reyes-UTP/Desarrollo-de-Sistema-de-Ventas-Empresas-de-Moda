@@ -5,18 +5,32 @@ import { RUTAS_USUARIOS, RUTAS_AUTENTICACION } from '../config/apiConfig';
 export const ServicioUsuarios = {
   verificarDisponibilidadUsuario: async (nombreUsuario: string, idUsuarioActual?: number): Promise<boolean> => {
     console.log('Verificando disponibilidad de nombre de usuario:', nombreUsuario);
+    console.log('ID usuario actual (edición):', idUsuarioActual);
     try {
       // Obtenemos todos los usuarios para verificar manualmente
       const usuarios = await ServicioUsuarios.obtenerUsuariosConRoles();
+      console.log('Total de usuarios obtenidos:', usuarios.length);
       
       // Filtramos buscando un usuario con el mismo nombre, excluyendo el usuario actual en edición
-      const usuarioExistente = usuarios.find(u => 
-        u.usuario.toLowerCase() === nombreUsuario.toLowerCase() && 
-        u.id !== idUsuarioActual
-      );
+      const usuarioExistente = usuarios.find(u => {
+        const mismoNombre = u.usuario?.toLowerCase() === nombreUsuario.toLowerCase();
+        const esElMismo = u.id === idUsuarioActual;
+        
+        console.log(`Comparando: "${u.usuario}" (ID: ${u.id}) vs "${nombreUsuario}" (ID actual: ${idUsuarioActual})`);
+        console.log(`  - Mismo nombre: ${mismoNombre}`);
+        console.log(`  - Es el mismo ID: ${esElMismo}`);
+        
+        // Solo consideramos conflicto si hay mismo nombre Y no es el mismo usuario
+        return mismoNombre && !esElMismo;
+      });
+      
+      console.log('Usuario existente encontrado:', usuarioExistente);
       
       // Si no hay ningún usuario con este nombre (o es el mismo que estamos editando), está disponible
-      return !usuarioExistente;
+      const disponible = !usuarioExistente;
+      console.log('Resultado final: disponible =', disponible);
+      
+      return disponible;
     } catch (error) {
       console.error('Error al verificar disponibilidad de usuario:', error);
       // En caso de error, asumimos que no está disponible por precaución

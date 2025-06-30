@@ -385,9 +385,11 @@ const GestionUsuarios = () => {
     } else {
       setFormUsuario(prev => ({ ...prev, [name]: value }));
       
-      // Verificar disponibilidad del nombre de usuario si es ese campo el que cambió
+      // Para el campo de usuario, solo limpiar el estado de verificación
+      // La verificación real se hará en onBlur
       if (name === 'usuario') {
-        verificarDisponibilidadUsuario(value);
+        setUsuarioDisponible(null);
+        setVerificandoUsuario(false);
       }
     }
   };
@@ -569,29 +571,39 @@ const GestionUsuarios = () => {
 
   // Función para verificar la disponibilidad del nombre de usuario
   const verificarDisponibilidadUsuario = async (nombreUsuario: string) => {
+    console.log('--- INICIANDO VERIFICACIÓN ---');
+    console.log('Nombre de usuario a verificar:', nombreUsuario);
+    console.log('Modo edición:', modoEdicion);
+    console.log('Usuario editando:', usuarioEditando);
+    
     // Evitar verificaciones innecesarias si el nombre no ha cambiado
     if (modoEdicion && usuarioEditando && usuarioEditando.usuario === nombreUsuario) {
+      console.log('El nombre no ha cambiado, marcando como disponible');
       setUsuarioDisponible(true);
       return;
     }
 
     if (!nombreUsuario.trim()) {
+      console.log('Nombre vacío, marcando como null');
       setUsuarioDisponible(null);
       return;
     }
 
+    console.log('Iniciando verificación en el servidor...');
     setVerificandoUsuario(true);
     try {
       const estaDisponible = await ServicioUsuarios.verificarDisponibilidadUsuario(
         nombreUsuario, 
         modoEdicion && usuarioEditando ? usuarioEditando.id : undefined
       );
+      console.log('Resultado de la verificación:', estaDisponible);
       setUsuarioDisponible(estaDisponible);
     } catch (error) {
       console.error('Error al verificar disponibilidad:', error);
       setUsuarioDisponible(false);
     } finally {
       setVerificandoUsuario(false);
+      console.log('--- FIN VERIFICACIÓN ---');
     }
   };
     

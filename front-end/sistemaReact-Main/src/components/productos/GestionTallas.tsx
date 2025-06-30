@@ -8,6 +8,7 @@ const GestionTallas: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFormulario, setShowFormulario] = useState(false);
+  const [cerrandoModal, setCerrandoModal] = useState(false);
   const [tallaEditar, setTallaEditar] = useState<Talla | null>(null);
   const [error, setError] = useState<string | null>(null);
   // Formulario
@@ -32,6 +33,19 @@ const GestionTallas: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Función para cerrar modal con animación
+  const cerrarModalConAnimacion = () => {
+    setCerrandoModal(true);
+    setTimeout(() => {
+      setShowFormulario(false);
+      setCerrandoModal(false);
+      // Limpiar el formulario
+      setFormData({ nombreTalla: '', descripcion: '', orden: '' });
+      setTallaEditar(null);
+      setError(null);
+    }, 300); // Duración de la animación
   };
 
   const handleBuscar = async () => {
@@ -69,9 +83,7 @@ const GestionTallas: React.FC = () => {
         await TallaService.createTalla(tallaData);
       }
       
-      setShowFormulario(false);
-      setTallaEditar(null);
-      setFormData({ nombreTalla: '', descripcion: '', orden: '' });
+      cerrarModalConAnimacion();
       cargarTallas();
     } catch (err) {
       setError('Error al guardar talla');
@@ -119,65 +131,92 @@ const GestionTallas: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Gestión de Tallas</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-100 p-3 rounded-lg">
+            <Ruler className="w-8 h-8 text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Gestión de Tallas</h1>
+            <p className="text-gray-600">Administra las tallas de tu inventario</p>
+          </div>
+        </div>
         <button
           onClick={handleNuevo}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-5 h-5" />
           Nueva Talla
         </button>
       </div>
 
+      {/* Mensaje de error */}
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
           {error}
         </div>
       )}
 
-      {/* Búsqueda */}
-      <div className="bg-white rounded-lg shadow-md p-4 mb-6">
+      {/* Barra de búsqueda */}
+      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
         <div className="flex gap-4">
-          <div className="flex-1 flex">
+          <div className="flex-1 relative">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar tallas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            <button
-              onClick={handleBuscar}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-colors"
-            >
-              <Search className="w-4 h-4" />
-            </button>
           </div>
-          <div className="text-sm text-gray-600 flex items-center">
-            Total: {tallasFiltradas.length} tallas
-          </div>
+          <button
+            onClick={handleBuscar}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Search className="w-4 h-4" />
+            Buscar
+          </button>
         </div>
       </div>
 
       {/* Tabla de tallas */}
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+        {loading ? (
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="text-gray-600 mt-2">Cargando tallas...</p>
+          </div>
+        ) : tallasFiltradas.length === 0 ? (
+          <div className="p-8 text-center">
+            <Ruler className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600">No se encontraron tallas</p>
+            <button
+              onClick={handleNuevo}
+              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Crear primera talla
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Orden
+                  Talla
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Nombre
-                </th>                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Descripción
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Orden
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
@@ -185,6 +224,26 @@ const GestionTallas: React.FC = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {tallasFiltradas.map((talla, index) => (
                 <tr key={talla.idTalla} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                        <Ruler className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {talla.nombreTalla}
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          ID: {talla.idTalla}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm text-gray-900">
+                      {talla.descripcion || 'N/A'}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-900">
@@ -212,27 +271,20 @@ const GestionTallas: React.FC = () => {
                         </button>
                       </div>
                     </div>
-                  </td>                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{talla.nombreTalla}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">
-                      {talla.descripcion || 'N/A'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex items-center space-x-2">
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleEditar(talla)}
-                        className="text-blue-600 hover:text-blue-900 p-1 rounded"
-                        title="Editar"
+                        className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+                        title="Editar talla"
                       >
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => talla.idTalla && handleEliminar(talla.idTalla)}
-                        className="text-red-600 hover:text-red-900 p-1 rounded"
-                        title="Eliminar"
+                        className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+                        title="Eliminar talla"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -242,46 +294,60 @@ const GestionTallas: React.FC = () => {
               ))}
             </tbody>
           </table>
-        </div>
-
-        {tallasFiltradas.length === 0 && (
-          <div className="text-center py-12">
-            <Ruler className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay tallas</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? 'No se encontraron tallas que coincidan con la búsqueda.' : 'Comienza creando una nueva talla.'}
-            </p>
           </div>
         )}
       </div>
 
+      {/* Estadísticas */}
+      <div className="mt-6 bg-white rounded-lg shadow-sm border p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-gray-600">
+            <Ruler className="w-4 h-4" />
+            <span className="text-sm">Total de tallas: {tallasFiltradas.length}</span>
+          </div>
+          <div className="text-sm text-gray-500">
+            Última actualización: {new Date().toLocaleString()}
+          </div>
+        </div>
+      </div>
+
       {/* Modal Formulario */}
       {showFormulario && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {tallaEditar ? 'Editar Talla' : 'Nueva Talla'}
-              </h2>
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+          <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-out ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  {tallaEditar ? (
+                    <Edit className="w-5 h-5 text-blue-600" />
+                  ) : (
+                    <Ruler className="w-5 h-5 text-blue-600" />
+                  )}
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {tallaEditar ? 'Editar Talla' : 'Nueva Talla'}
+                </h2>
+              </div>
               <button
-                onClick={() => setShowFormulario(false)}
-                className="text-gray-400 hover:text-gray-600"
+                onClick={() => cerrarModalConAnimacion()}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre de la Talla *
-                </label>                <input
+                </label>
+                <input
                   type="text"
                   value={formData.nombreTalla}
                   onChange={(e) => setFormData(prev => ({ ...prev, nombreTalla: e.target.value }))}
                   required
                   placeholder="Ej: Extra Grande, 42, XL"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
               </div>
 
@@ -294,7 +360,7 @@ const GestionTallas: React.FC = () => {
                   value={formData.descripcion}
                   onChange={(e) => setFormData(prev => ({ ...prev, descripcion: e.target.value }))}
                   placeholder="Descripción adicional de la talla"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Información adicional sobre la talla
@@ -311,27 +377,27 @@ const GestionTallas: React.FC = () => {
                   onChange={(e) => setFormData(prev => ({ ...prev, orden: e.target.value }))}
                   min="1"
                   placeholder="Orden de aparición (1, 2, 3...)"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   Determina el orden en que aparecen las tallas (menor número = primero)
                 </p>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setShowFormulario(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg"
+                  onClick={() => cerrarModalConAnimacion()}
+                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
-                  Guardar
+                  {tallaEditar ? 'Actualizar' : 'Guardar'}
                 </button>
               </div>
             </form>
