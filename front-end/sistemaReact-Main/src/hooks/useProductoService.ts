@@ -1,3 +1,4 @@
+import { useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProductoService } from '../services/ProductoServices';
 
@@ -5,29 +6,39 @@ export const useProductoService = () => {
   const { usuario } = useAuth();
   
   // Get the user's primary role
-  const getUserRole = (): string | undefined => {
+  const getUserRole = useCallback((): string | undefined => {
     if (!usuario || !usuario.roles || usuario.roles.length === 0) {
       return undefined;
     }
     // Return the first role (could be enhanced to handle multiple roles)
     return usuario.roles[0].nombreRol;
-  };
+  }, [usuario]);
 
-  const userRole = getUserRole();
+  const userRole = useMemo(() => getUserRole(), [getUserRole]);
 
-  return {
-    // Role-aware read operations
-    getAllProductos: () => ProductoService.getAllProductos(userRole),
-    getProductoById: (id: number) => ProductoService.getProductoById(id, userRole),
-    getProductosByCodigo: (codigo: string) => ProductoService.getProductosByCodigo(codigo, userRole),    getProductosByNombre: (nombre: string) => ProductoService.getProductosByNombre(nombre, userRole),
-    buscarProductos: (termino: string) => ProductoService.buscarProductos(termino, userRole),
-    buscarProductosCompleto: (termino: string) => ProductoService.buscarProductosCompleto(termino, userRole),
+  // Memoize the functions to prevent unnecessary re-renders
+  const getAllProductos = useCallback(() => ProductoService.getAllProductos(userRole), [userRole]);
+  const getProductoById = useCallback((id: number) => ProductoService.getProductoById(id, userRole), [userRole]);
+  const getProductosByCodigo = useCallback((codigo: string) => ProductoService.getProductosByCodigo(codigo, userRole), [userRole]);
+  const getProductosByNombre = useCallback((nombre: string) => ProductoService.getProductosByNombre(nombre, userRole), [userRole]);
+  const buscarProductos = useCallback((termino: string) => ProductoService.buscarProductos(termino, userRole), [userRole]);
+  const buscarProductosCompleto = useCallback((termino: string) => ProductoService.buscarProductosCompleto(termino, userRole), [userRole]);
+
+  return useMemo(() => ({
+    // Role-aware read operations (memoized)
+    getAllProductos,
+    getProductoById,
+    getProductosByCodigo,
+    getProductosByNombre,
+    buscarProductos,
+    buscarProductosCompleto,
     
     // Write operations (only for authorized roles)
     createProducto: ProductoService.createProducto,
     updateProducto: ProductoService.updateProducto,
     deleteProducto: ProductoService.deleteProducto,
-      // Legacy operations (maintain backward compatibility)
+    
+    // Legacy operations (maintain backward compatibility)
     getProductosByCategoria: ProductoService.getProductosByCategoria,
     getProductosByProveedor: ProductoService.getProductosByProveedor,
     
@@ -38,5 +49,13 @@ export const useProductoService = () => {
     isAdmin: userRole === 'ROLE_ADMIN',
     isCajero: userRole === 'ROLE_CAJERO',
     isAlmacenero: userRole === 'ROLE_ALMACENERO',
-  };
+  }), [
+    getAllProductos,
+    getProductoById,
+    getProductosByCodigo,
+    getProductosByNombre,
+    buscarProductos,
+    buscarProductosCompleto,
+    userRole
+  ]);
 };

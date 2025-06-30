@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
-  BarChart3,
   DollarSign,
   Users,
   Package,
   CreditCard,
-  TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
   AlertCircle,
@@ -28,11 +26,6 @@ import type { Proveedor } from '../interfaces/Proveedor';
 
 const DashboardAdmin = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
-  
-  // Si aún está cargando la autenticación, mostrar pantalla de carga
-  if (authLoading) {
-    return <AuthLoadingScreen message="Cargando dashboard administrativo..." />;
-  }
   
   // Estados para los datos
   const [periodo, setPeriodo] = useState('hoy');
@@ -122,6 +115,11 @@ const DashboardAdmin = () => {
     };    
     cargarDatos();
   }, [periodo, isReady, isAuthenticated]);
+  
+  // Si aún está cargando la autenticación, mostrar pantalla de carga
+  if (authLoading) {
+    return <AuthLoadingScreen message="Cargando dashboard administrativo..." />;
+  }
   
   // Calcular métricas a partir de los datos de ventas
   const calcularMetricas = (ventasData: Venta[]) => {

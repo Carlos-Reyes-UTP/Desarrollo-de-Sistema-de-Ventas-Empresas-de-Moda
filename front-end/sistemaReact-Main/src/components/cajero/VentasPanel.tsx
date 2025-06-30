@@ -11,7 +11,7 @@ import type { DetalleVentaInput } from '../../interfaces/DetalleVenta';
 const VentasPanel = () => {
   const { isReady, isAuthenticated } = useAuthReady();
   // Get role-aware product service methods
-  const productoService = useProductoService();
+  const { getAllProductos, getProductosByNombre, getProductosByCodigo } = useProductoService();
   
   // --------------------------------------------------------------------------------------------
   // A. ESTADO DEL COMPONENTE
@@ -56,7 +56,7 @@ const VentasPanel = () => {
         setMensajeInfoVista("Cargando productos...");
         
         // Usar el hook personalizado que maneja roles automáticamente
-        const data = await productoService.getAllProductos();
+        const data = await getAllProductos();
         setProductosCargados(data);
         setProductosFiltradosVista(data);
         
@@ -74,7 +74,7 @@ const VentasPanel = () => {
       }
     };
     cargarTodosLosProductos();
-  }, [isReady, isAuthenticated, productoService]);
+  }, [isReady, isAuthenticated, getAllProductos]);
 
   useEffect(() => {
     if (!cargandoProductosIniciales && !cargandoBusquedaAccion) { 
@@ -116,7 +116,7 @@ const VentasPanel = () => {
       // Combinamos búsquedas por nombre y código para tener un resultado más completo
       let resultados: Producto[] = [];      try {
         // Buscar por nombre
-        const productosPorNombre = await productoService.getProductosByNombre(terminoBusqueda);
+        const productosPorNombre = await getProductosByNombre(terminoBusqueda);
         if (productosPorNombre && productosPorNombre.length > 0) {
           resultados = [...productosPorNombre];
         }
@@ -126,7 +126,7 @@ const VentasPanel = () => {
       
       try {
         // Buscar por código si es posible
-        const productosPorCodigo = await productoService.getProductosByCodigo(terminoBusqueda);
+        const productosPorCodigo = await getProductosByCodigo(terminoBusqueda);
         if (productosPorCodigo && productosPorCodigo.length > 0) {
           // Eliminar duplicados si ya existen en resultados
           const productosCodSinDuplicados = productosPorCodigo.filter(
@@ -161,7 +161,7 @@ const VentasPanel = () => {
       setMensajeInfoVista(`Procesando código "${codigoScaneado}"...`);
       
       // Usar el hook personalizado que maneja roles automáticamente
-      const productos = await productoService.getProductosByCodigo(codigoScaneado.trim());
+      const productos = await getProductosByCodigo(codigoScaneado.trim());
       const productoEncontrado = productos && productos.length > 0 ? productos[0] : null;
       
       if (productoEncontrado) {
