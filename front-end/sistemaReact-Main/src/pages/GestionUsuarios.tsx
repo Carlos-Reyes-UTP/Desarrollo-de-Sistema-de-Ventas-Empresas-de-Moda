@@ -3,7 +3,6 @@ import {
   Users,
   Search,
   Edit,
-  Trash2,
   UserPlus,
   AlertCircle,
   Loader2,
@@ -40,6 +39,7 @@ const GestionUsuarios = () => {
   const [ordenAscendente, setOrdenAscendente] = useState(true);
     // Estados para el modal de usuario
   const [mostrarModal, setMostrarModal] = useState(false);
+  const [cerrandoModal, setCerrandoModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [cambiarPassword, setCambiarPassword] = useState(false); // Nuevo estado para controlar si se quiere cambiar la contraseña
@@ -197,6 +197,31 @@ const GestionUsuarios = () => {
     }
 
     return usuario;
+  };
+
+  // Función para cerrar modal con animación
+  const cerrarModalConAnimacion = () => {
+    setCerrandoModal(true);
+    setTimeout(() => {
+      setMostrarModal(false);
+      setCerrandoModal(false);
+      // Limpiar el formulario
+      setFormUsuario({
+        usuario: '',
+        password: '',
+        confirmPassword: '',
+        activo: true,
+        roles: []
+      });
+      setModoEdicion(false);
+      setUsuarioEditando(null);
+      setCambiarPassword(false);
+      setUsuarioDisponible(null);
+      setVerificandoUsuario(false);
+      setMostrarPassword(false);
+      setMostrarConfirmPassword(false);
+      setError(null);
+    }, 300); // Duración de la animación
   };
 
   // Función para cargar usuarios desde el servicio
@@ -455,7 +480,7 @@ const GestionUsuarios = () => {
         mostrarMensaje('Usuario creado exitosamente', 'success');
       }
       
-      setMostrarModal(false);
+      cerrarModalConAnimacion();
       cargarUsuarios();    } catch (err: any) {
       console.error('Error al guardar usuario:', err);
       
@@ -965,8 +990,8 @@ const GestionUsuarios = () => {
       
       {/* Modal de Usuario */}
       {mostrarModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all">
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+          <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-out ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             {/* Header */}
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div className="flex items-center space-x-3">
@@ -982,7 +1007,7 @@ const GestionUsuarios = () => {
                 </h2>
               </div>
               <button
-                onClick={() => setMostrarModal(false)}
+                onClick={() => cerrarModalConAnimacion()}
                 className="text-gray-400 hover:text-gray-500 transition-colors"
               >
                 <X size={20} />
@@ -1284,7 +1309,7 @@ const GestionUsuarios = () => {
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={() => setMostrarModal(false)}
+                  onClick={() => cerrarModalConAnimacion()}
                   className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Cancelar
