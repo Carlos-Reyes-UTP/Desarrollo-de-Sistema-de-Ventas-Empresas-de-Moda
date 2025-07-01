@@ -70,17 +70,50 @@ const DashboardAdmin = () => {
         const productosData = Array.isArray(productosResponse) ? productosResponse : [];
         setProductos(productosData);
         
-        // Cargar ventas (podríamos filtrar por fecha según el periodo)
-        // Para propósitos de demostración, solo cargamos todas las ventas
-        const fechaActual = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        // Cargar ventas según el período seleccionado
         let ventasData: Venta[] = [];
         
         try {
-          // Intentar obtener ventas por fecha (si está implementado)
-          const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaActual);
-          ventasData = Array.isArray(ventasResponse) ? ventasResponse : [];
+          if (periodo === 'hoy') {
+            // Cargar solo las ventas del día actual
+            const fechaActual = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+            console.log('Cargando ventas del día:', fechaActual);
+            const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaActual);
+            ventasData = Array.isArray(ventasResponse) ? ventasResponse : [];
+            console.log(`Ventas del día cargadas: ${ventasData.length}`);
+          } else if (periodo === 'semana') {
+            // Cargar todas las ventas y filtrar los últimos 7 días
+            console.log('Cargando ventas de la última semana');
+            const todasLasVentas = await VentaService.obtenerTodasVentas();
+            const todasVentasArray = Array.isArray(todasLasVentas) ? todasLasVentas : [];
+            
+            const fechaActual = new Date();
+            const hace7Dias = new Date();
+            hace7Dias.setDate(fechaActual.getDate() - 7);
+            
+            ventasData = todasVentasArray.filter(venta => {
+              const fechaVenta = new Date(venta.fechaVenta);
+              return fechaVenta >= hace7Dias && fechaVenta <= fechaActual;
+            });
+            console.log(`Ventas de la semana cargadas: ${ventasData.length}`);
+          } else if (periodo === 'mes') {
+            // Cargar todas las ventas y filtrar el mes actual
+            console.log('Cargando ventas del mes actual');
+            const todasLasVentas = await VentaService.obtenerTodasVentas();
+            const todasVentasArray = Array.isArray(todasLasVentas) ? todasLasVentas : [];
+            
+            const fechaActual = new Date();
+            const inicioDelMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1);
+            const finDelMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0);
+            
+            ventasData = todasVentasArray.filter(venta => {
+              const fechaVenta = new Date(venta.fechaVenta);
+              return fechaVenta >= inicioDelMes && fechaVenta <= finDelMes;
+            });
+            console.log(`Ventas del mes cargadas: ${ventasData.length}`);
+          }
         } catch (error) {
-          console.log('No se pudieron obtener ventas por fecha, cargando todas las ventas');
+          console.log('Error al cargar ventas específicas, cargando todas las ventas como fallback');
           const ventasResponse = await VentaService.obtenerTodasVentas();
           ventasData = Array.isArray(ventasResponse) ? ventasResponse : [];
         }
@@ -203,25 +236,75 @@ const DashboardAdmin = () => {
     setActividadReciente(actividad.slice(0, 10)); // Tomar los 10 más recientes
   };
   
-  // Generar datos para los gráficos
+  // Generar datos para los gráficos según el período seleccionado
   const generarDatosGraficos = (ventasData: Venta[]) => {
     // Si no hay ventas, establecer valores por defecto
     if (!ventasData || ventasData.length === 0) {
-      setDatosVentas([0, 0, 0, 0, 0, 0, 0]);
+      if (periodo === 'hoy') {
+        setDatosVentas([0]); // Solo el día actual
+      } else if (periodo === 'semana') {
+        setDatosVentas([0, 0, 0, 0, 0, 0, 0]); // 7 días de la semana
+      } else {
+        setDatosVentas([0, 0, 0, 0]); // 4 semanas del mes
+      }
       return;
     }
-    
-    // Agrupar ventas por día de la semana
-    const diasSemana = [0, 0, 0, 0, 0, 0, 0]; // Lun, Mar, Mié, Jue, Vie, Sáb, Dom
-    
-    ventasData.forEach(venta => {
-      const fecha = new Date(venta.fechaVenta);
-      const diaSemana = fecha.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
-      const indexAjustado = diaSemana === 0 ? 6 : diaSemana - 1; // Convertir a: 0 = lunes, ..., 6 = domingo
-      diasSemana[indexAjustado] += (venta.totalVentas ?? 0);
-    });
-    
-    setDatosVentas(diasSemana);
+
+    if (periodo === 'hoy') {
+      // Para "hoy", mostrar el total del día
+      const totalDelDia = ventasData.reduce((sum, venta) => sum + (venta.totalVentas ?? 0), 0);
+      setDatosVentas([totalDelDia]);
+    } else if (periodo === 'semana') {
+      // Para "semana", agrupar por días de la semana (últimos 7 días)
+      const diasSemana = [0, 0, 0, 0, 0, 0, 0]; // Lun, Mar, Mié, Jue, Vie, Sáb, Dom
+      
+      ventasData.forEach(venta => {
+        const fecha = new Date(venta.fechaVenta);
+        const diaSemana = fecha.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
+        const indexAjustado = diaSemana === 0 ? 6 : diaSemana - 1; // Convertir a: 0 = lunes, ..., 6 = domingo
+        diasSemana[indexAjustado] += (venta.totalVentas ?? 0);
+      });
+      
+      setDatosVentas(diasSemana);
+    } else if (periodo === 'mes') {
+      // Para "mes", agrupar por semanas del mes
+      const fechaActual = new Date();
+      const inicioDelMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1);
+      const finDelMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0);
+      
+      // Dividir el mes en 4 semanas aproximadas
+      const semanasMes = [0, 0, 0, 0];
+      
+      ventasData.forEach(venta => {
+        const fechaVenta = new Date(venta.fechaVenta);
+        if (fechaVenta >= inicioDelMes && fechaVenta <= finDelMes) {
+          const diaDelMes = fechaVenta.getDate();
+          let semanaIndex = Math.floor((diaDelMes - 1) / 7); // Dividir en semanas de 7 días
+          semanaIndex = Math.min(semanaIndex, 3); // Asegurar que no exceda el índice 3
+          semanasMes[semanaIndex] += (venta.totalVentas ?? 0);
+        }
+      });
+      
+      setDatosVentas(semanasMes);
+    }
+  };
+
+  // Obtener etiquetas para el gráfico según el período
+  const obtenerEtiquetasGrafico = () => {
+    if (periodo === 'hoy') {
+      return ['Hoy'];
+    } else if (periodo === 'semana') {
+      return ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    } else if (periodo === 'mes') {
+      return ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+    }
+    return [];
+  };
+
+  // Calcular el valor máximo para el eje Y del gráfico
+  const obtenerValorMaximoGrafico = () => {
+    const maxValue = Math.max(...datosVentas, 100);
+    return Math.ceil(maxValue / 100) * 100; // Redondear hacia arriba a la centena más cercana
   };
 
   // Obtener la fecha actual con formato
@@ -396,26 +479,37 @@ const DashboardAdmin = () => {
           <div className="h-64 relative">
             {/* Gráfico de barras con datos reales */}
             <div className="absolute inset-0 flex items-end justify-around pb-10 px-6">
-              {datosVentas.map((valor, i) => (
-                <div key={i} className="flex flex-col items-center">
-                  <div 
-                    className="w-12 bg-blue-500 rounded-t-md transition-all duration-500 ease-in-out"
-                    style={{ height: `${Math.min(valor, 200)}px` }}
-                  ></div>
-                  <div className="text-xs text-gray-500 mt-2">
-                    {['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'][i]}
+              {datosVentas.map((valor, i) => {
+                const etiquetas = obtenerEtiquetasGrafico();
+                const maxValue = obtenerValorMaximoGrafico();
+                const alturaPixeles = maxValue > 0 ? Math.min((valor / maxValue) * 200, 200) : 0;
+                
+                return (
+                  <div key={`${periodo}-${i}`} className="flex flex-col items-center">
+                    <div 
+                      className="w-12 bg-blue-500 rounded-t-md transition-all duration-500 ease-in-out"
+                      style={{ height: `${alturaPixeles}px` }}
+                      title={`${etiquetas[i] || ''}: S/${valor.toFixed(2)}`}
+                    ></div>
+                    <div className="text-xs text-gray-500 mt-2">
+                      {etiquetas[i] || ''}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
-            {/* Eje Y */}
+            {/* Eje Y dinámico */}
             <div className="absolute left-0 inset-y-0 flex flex-col justify-between py-4">
-              <div className="text-xs text-gray-400">S/100</div>
-              <div className="text-xs text-gray-400">S/75</div>
-              <div className="text-xs text-gray-400">S/50</div>
-              <div className="text-xs text-gray-400">S/25</div>
-              <div className="text-xs text-gray-400">S/0</div>
+              {(() => {
+                const maxValue = obtenerValorMaximoGrafico();
+                const steps = [maxValue, maxValue * 0.75, maxValue * 0.5, maxValue * 0.25, 0];
+                return steps.map((value, index) => (
+                  <div key={index} className="text-xs text-gray-400">
+                    S/{value.toFixed(0)}
+                  </div>
+                ));
+              })()}
             </div>
             
             {/* Líneas de guía */}

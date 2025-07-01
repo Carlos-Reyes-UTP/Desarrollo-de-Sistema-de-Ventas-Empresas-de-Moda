@@ -5,6 +5,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -30,6 +31,7 @@ public class Venta {
     @NotNull
     @ManyToOne
     @JoinColumn(name = "id_usuario", nullable = false)
+    @JsonIgnoreProperties({"password", "venta", "roles", "authorities", "enabled", "accountNonExpired", "accountNonLocked", "credentialsNonExpired"})  // Solo incluir campos seguros del usuario
     private Usuario usuario;
 
     @NotNull

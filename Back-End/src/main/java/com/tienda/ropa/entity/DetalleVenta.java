@@ -2,6 +2,7 @@ package com.tienda.ropa.entity;
 
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -20,6 +21,7 @@ public class DetalleVenta {
 
     @ManyToOne
     @JoinColumn(name = "id_venta", nullable = false)
+    @JsonBackReference
     private Venta venta;
 
     @ManyToOne

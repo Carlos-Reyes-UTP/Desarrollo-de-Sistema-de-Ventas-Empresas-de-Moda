@@ -66,7 +66,7 @@ apiClient.interceptors.request.use(
     }
     
     // Si la URL ya incluye la BASE_URL, la convertimos en relativa
-    if (config.url && config.url.startsWith(BASE_URL_CONSTANTE)) {
+    if (config.url?.startsWith(BASE_URL_CONSTANTE)) {
       config.url = config.url.substring(BASE_URL_CONSTANTE.length);
     }
     

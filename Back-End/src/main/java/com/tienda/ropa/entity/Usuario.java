@@ -1,6 +1,7 @@
 package com.tienda.ropa.entity;
 
 import com.tienda.ropa.agregates.validation.ContrasenaSegura;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
@@ -77,6 +78,7 @@ public class Usuario implements UserDetails {
     }
 
     @OneToMany(mappedBy = "usuario")
+    @JsonIgnore  // Evita la referencia circular en la serialización JSON
     private Collection<Venta> venta;
 
     public Collection<Venta> getVenta() {
