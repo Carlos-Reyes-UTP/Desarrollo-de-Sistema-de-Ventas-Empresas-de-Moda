@@ -25,10 +25,12 @@ export interface Producto {
 }
 
 export interface ProductoVenta { // Producto tal como está en el carrito de venta
-  idProducto: number;
+  idProductoVariante: number; // Ahora usamos el ID de la variante
+  idProducto: number; // Mantenemos el ID del producto para referencia
   codigo: string;
   descripcion: string; // Usaremos producto.nombre para esto
-  talla: string;
+  talla: string; // Ahora tendrá la talla real de la variante
+  color: string; // Añadimos el color de la variante
   cantidad: number;
   precio: number; // El precioUnitario aplicado (podría tener descuentos)
   total: number;

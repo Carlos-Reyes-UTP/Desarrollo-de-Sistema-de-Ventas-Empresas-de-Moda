@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2 } from 'lucide-react';
-import { useProductoService } from '../../hooks/useProductoService';
+import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
 import { useAuthReady } from '../../hooks/useAuthReady';
 import { ClienteService } from '../../services/ClienteServices';
-import type { Producto, ProductoVenta } from '../../interfaces/Producto';
+import type { ProductoVenta } from '../../interfaces/Producto';
+import type { ProductoVariante } from '../../interfaces/ProductoVariante';
 import type { Cliente } from '../../interfaces/Cliente';
 import type { VentaInput } from '../../interfaces/Venta';
 import type { DetalleVentaInput } from '../../interfaces/DetalleVenta';
 
 const VentasPanel = () => {
   const { isReady, isAuthenticated } = useAuthReady();
-  // Get role-aware product service methods
-  const { getAllProductos, getProductosByNombre, getProductosByCodigo } = useProductoService();
+  // Get role-aware product variante service methods
+  const { getAllVariantes, obtenerVariantesPorProducto, obtenerVariantePorId } = useProductoVarianteService();
   
   // --------------------------------------------------------------------------------------------
   // A. ESTADO DEL COMPONENTE
@@ -22,8 +23,8 @@ const VentasPanel = () => {
   const [documentoCliente, setDocumentoCliente] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState<'DNI' | 'RUC'>('DNI');
   
-  const [productosCargados, setProductosCargados] = useState<Producto[]>([]);
-  const [productosFiltradosVista, setProductosFiltradosVista] = useState<Producto[]>([]);
+  const [variantesCargadas, setVariantesCargadas] = useState<ProductoVariante[]>([]);
+  const [variantesFiltradas, setVariantesFiltradas] = useState<ProductoVariante[]>([]);
   const [productosSeleccionadosVenta, setProductosSeleccionadosVenta] = useState<ProductoVenta[]>([]);
   
   const [metodoPago, setMetodoPago] = useState('');
@@ -50,45 +51,48 @@ const VentasPanel = () => {
       return;
     }
     
-    const cargarTodosLosProductos = async () => {
+    const cargarTodasLasVariantes = async () => {
       try {
         setCargandoProductosIniciales(true);
         setErrorGlobal(null);
-        setMensajeInfoVista("Cargando productos...");
+        setMensajeInfoVista("Cargando variantes de productos...");
         
         // Usar el hook personalizado que maneja roles automáticamente
-        const data = await getAllProductos();
-        setProductosCargados(data);
-        setProductosFiltradosVista(data);
+        const data = await getAllVariantes();
+        setVariantesCargadas(data);
+        setVariantesFiltradas(data);
         
         if (data.length === 0) { 
-          setMensajeInfoVista("No hay productos disponibles o el servicio no está conectado.");
+          setMensajeInfoVista("No hay variantes de productos disponibles o el servicio no está conectado.");
         } else {
           setMensajeInfoVista(null);
         }
       } catch (err: any) {
-        console.error('Error en cargarTodosLosProductos:', err);
-        setErrorGlobal(err.message || 'No se pudieron cargar los productos.');
+        console.error('Error en cargarTodasLasVariantes:', err);
+        setErrorGlobal(err.message || 'No se pudieron cargar las variantes de productos.');
         setMensajeInfoVista(null);
       } finally {
         setCargandoProductosIniciales(false);
       }
     };
-    cargarTodosLosProductos();
-  }, [isReady, isAuthenticated, getAllProductos]);
+    cargarTodasLasVariantes();
+  }, [isReady, isAuthenticated, getAllVariantes]);
 
   useEffect(() => {
     if (!cargandoProductosIniciales && !cargandoBusquedaAccion) { 
       if (busqueda.trim() === '') {
-        setProductosFiltradosVista(productosCargados); 
+        setVariantesFiltradas(variantesCargadas); 
         setMensajeInfoVista(null);
       } else {
         const terminoLower = busqueda.toLowerCase();
-        const filtrados = productosCargados.filter(
-          p => p.nombre.toLowerCase().includes(terminoLower) ||
-               p.codigoIdentificacion.toLowerCase().includes(terminoLower)
+        const filtrados = variantesCargadas.filter(
+          v => 
+            v.producto.nombre.toLowerCase().includes(terminoLower) ||
+            (v.codigoBarrasVariante && v.codigoBarrasVariante.toLowerCase().includes(terminoLower)) ||
+            (v.talla.nombreTalla && v.talla.nombreTalla.toLowerCase().includes(terminoLower)) ||
+            (v.color.nombre && v.color.nombre.toLowerCase().includes(terminoLower))
         );
-        setProductosFiltradosVista(filtrados);
+        setVariantesFiltradas(filtrados);
         
         if (filtrados.length === 0 && busqueda.trim() !== '') { 
             setMensajeInfoVista(`No hay coincidencias locales para "${busqueda}". Prueba "Buscar DB".`);
@@ -97,7 +101,7 @@ const VentasPanel = () => {
         }
       }
     }
-  }, [busqueda, productosCargados, cargandoProductosIniciales, cargandoBusquedaAccion]);
+  }, [busqueda, variantesCargadas, cargandoProductosIniciales, cargandoBusquedaAccion]);
 
   // --------------------------------------------------------------------------------------------
   // C. MANEJADORES DE LÓGICA DE PRODUCTOS Y VENTA
@@ -105,7 +109,7 @@ const VentasPanel = () => {
   const handleBuscarEnServicio = async () => {
     const terminoBusqueda = busqueda.trim();
     if (terminoBusqueda === '') {
-      setProductosFiltradosVista(productosCargados); 
+      setVariantesFiltradas(variantesCargadas); 
       setMensajeInfoVista(null);
       return;
     }
@@ -114,37 +118,41 @@ const VentasPanel = () => {
       setErrorGlobal(null);
       setMensajeInfoVista(`Buscando "${terminoBusqueda}" en DB...`);
       
-      // Combinamos búsquedas por nombre y código para tener un resultado más completo
-      let resultados: Producto[] = [];      try {
-        // Buscar por nombre
-        const productosPorNombre = await getProductosByNombre(terminoBusqueda);
-        if (productosPorNombre && productosPorNombre.length > 0) {
-          resultados = [...productosPorNombre];
-        }
-      } catch (err) {
-        console.log("Error al buscar por nombre, continuando con búsqueda por código...");
-      }
+      // En este caso, ya tenemos todas las variantes cargadas previamente
+      // así que simplemente volvemos a filtrar con un criterio más estricto
+      const terminoLower = terminoBusqueda.toLowerCase();
       
-      try {
-        // Buscar por código si es posible
-        const productosPorCodigo = await getProductosByCodigo(terminoBusqueda);
-        if (productosPorCodigo && productosPorCodigo.length > 0) {
-          // Eliminar duplicados si ya existen en resultados
-          const productosCodSinDuplicados = productosPorCodigo.filter(
-            (prodCod: Producto) => !resultados.some(prod => prod.idProducto === prodCod.idProducto)
-          );
-          resultados = [...resultados, ...productosCodSinDuplicados];
-        }
-      } catch (err) {
-        console.log("Error al buscar por código, continuando...");
-      }
+      // Filtrar variantes que coincidan exactamente con el término de búsqueda
+      const variantesExactas = variantesCargadas.filter(
+        v => 
+          v.codigoBarrasVariante === terminoBusqueda ||
+          v.producto.codigoIdentificacion === terminoBusqueda ||
+          v.producto.nombre.toLowerCase() === terminoLower ||
+          v.color.nombre.toLowerCase() === terminoLower ||
+          v.talla.nombreTalla.toLowerCase() === terminoLower
+      );
       
-      setProductosFiltradosVista(resultados);
-      
-      if (resultados.length === 0) {
-        setMensajeInfoVista(`No se encontraron productos para "${terminoBusqueda}" en la base de datos.`);
-      } else {
+      if (variantesExactas.length > 0) {
+        setVariantesFiltradas(variantesExactas);
         setMensajeInfoVista(null);
+      } else {
+        // Si no hay coincidencias exactas, mostrar todas las coincidencias parciales
+        const variantesParciales = variantesCargadas.filter(
+          v => 
+            (v.codigoBarrasVariante && v.codigoBarrasVariante.includes(terminoBusqueda)) ||
+            v.producto.codigoIdentificacion.includes(terminoBusqueda) ||
+            v.producto.nombre.toLowerCase().includes(terminoLower) ||
+            v.color.nombre.toLowerCase().includes(terminoLower) ||
+            v.talla.nombreTalla.toLowerCase().includes(terminoLower)
+        );
+        
+        setVariantesFiltradas(variantesParciales);
+        
+        if (variantesParciales.length === 0) {
+          setMensajeInfoVista(`No se encontraron variantes para "${terminoBusqueda}" en la base de datos.`);
+        } else {
+          setMensajeInfoVista(null);
+        }
       }
     } catch (err: any) {
       console.error('Error en handleBuscarEnServicio:', err);
@@ -161,17 +169,19 @@ const VentasPanel = () => {
       setErrorGlobal(null);
       setMensajeInfoVista(`Procesando código "${codigoScaneado}"...`);
       
-      // Usar el hook personalizado que maneja roles automáticamente
-      const productos = await getProductosByCodigo(codigoScaneado.trim());
-      const productoEncontrado = productos && productos.length > 0 ? productos[0] : null;
+      // Buscar la variante que coincida exactamente con el código de barras
+      const codigoLimpio = codigoScaneado.trim();
+      const varianteEncontrada = variantesCargadas.find(
+        v => v.codigoBarrasVariante === codigoLimpio
+      );
       
-      if (productoEncontrado) {
-        agregarProductoAVentaInterno(productoEncontrado, productoEncontrado.precioUnitario);
+      if (varianteEncontrada) {
+        agregarVarianteAVenta(varianteEncontrada);
         setBusqueda(''); 
-        setMensajeInfoVista(`${productoEncontrado.nombre} agregado.`);
+        setMensajeInfoVista(`${varianteEncontrada.producto.nombre} - ${varianteEncontrada.color.nombre} - ${varianteEncontrada.talla.nombreTalla} agregado.`);
         setTimeout(() => setMensajeInfoVista(null), 2000);
       } else {
-        setErrorGlobal(`No se encontró producto con código "${codigoScaneado}".`);
+        setErrorGlobal(`No se encontró variante con código "${codigoScaneado}".`);
         setMensajeInfoVista(null);
       }
     } catch (err: any) {
@@ -242,68 +252,70 @@ const VentasPanel = () => {
     }
   };
 
-  const agregarProductoAVentaInterno = (producto: Producto, precioAplicado: number) => {
+  const agregarVarianteAVenta = (variante: ProductoVariante) => {
     setErrorGlobal(null);
-    if (producto.cantidad <= 0) {
-      setErrorGlobal(`El producto ${producto.nombre} está agotado.`);
+    if (variante.cantidad <= 0) {
+      setErrorGlobal(`La variante ${variante.producto.nombre} - ${variante.color.nombre} - ${variante.talla.nombreTalla} está agotada.`);
       return;
     }
 
-    const productoExistente = productosSeleccionadosVenta.find(item => item.idProducto === producto.idProducto);
+    const varianteExistente = productosSeleccionadosVenta.find(item => item.idProductoVariante === variante.idProductoVariante);
     
-    if (productoExistente) {
-      if (productoExistente.cantidad >= producto.cantidad) {
-        setErrorGlobal(`No hay más stock de ${producto.nombre}. Stock: ${producto.cantidad}. En carrito: ${productoExistente.cantidad}.`);
+    if (varianteExistente) {
+      if (varianteExistente.cantidad >= variante.cantidad) {
+        setErrorGlobal(`No hay más stock de ${variante.producto.nombre} - ${variante.color.nombre} - ${variante.talla.nombreTalla}. Stock: ${variante.cantidad}. En carrito: ${varianteExistente.cantidad}.`);
         return;
       }
       setProductosSeleccionadosVenta(prev => prev.map(item => 
-        item.idProducto === producto.idProducto 
+        item.idProductoVariante === variante.idProductoVariante 
           ? { ...item, cantidad: item.cantidad + 1, total: (item.cantidad + 1) * item.precio } 
           : item
       ));
-    } else {      setProductosSeleccionadosVenta(prev => [...prev, {
-        idProducto: producto.idProducto!,
-        codigo: producto.codigoIdentificacion,
-        descripcion: producto.nombre,
-        talla: 'Única', // La interfaz Producto no tiene talla, usamos valor por defecto
+    } else {
+      setProductosSeleccionadosVenta(prev => [...prev, {
+        idProductoVariante: variante.idProductoVariante!,
+        idProducto: variante.producto.idProducto!,
+        codigo: variante.codigoBarrasVariante || variante.producto.codigoIdentificacion,
+        descripcion: variante.producto.nombre,
+        talla: variante.talla.nombreTalla,
+        color: variante.color.nombre,
         cantidad: 1,
-        precio: precioAplicado, 
-        total: precioAplicado
+        precio: variante.producto.precioUnitario, 
+        total: variante.producto.precioUnitario
       }]);
     }
   };
 
-  const handleSeleccionarProductoDeLista = (producto: Producto) => {
-    // Usar el precio unitario directamente
-    agregarProductoAVentaInterno(producto, producto.precioUnitario);
+  const handleSeleccionarVarianteDeLista = (variante: ProductoVariante) => {
+    // Usar el precio unitario del producto asociado a la variante
+    agregarVarianteAVenta(variante);
   };
 
-  const handleEliminarProductoDeVenta = (idProducto: number) => {
-    setProductosSeleccionadosVenta(prev => prev.filter(item => item.idProducto !== idProducto));
+  const handleEliminarProductoDeVenta = (idProductoVariante: number) => {
+    setProductosSeleccionadosVenta(prev => prev.filter(item => item.idProductoVariante !== idProductoVariante));
   };
 
-  const handleActualizarCantidadEnVenta = (idProducto: number, nuevaCantidad: number) => {
-    const productoOriginal = productosCargados.find(p => p.idProducto === idProducto) 
-      || productosFiltradosVista.find(p => p.idProducto === idProducto);
+  const handleActualizarCantidadEnVenta = (idProductoVariante: number, nuevaCantidad: number) => {
+    const varianteOriginal = variantesCargadas.find(v => v.idProductoVariante === idProductoVariante);
       
-    if (!productoOriginal) {
-      setErrorGlobal("Error crítico: Producto no encontrado para actualizar stock.");
+    if (!varianteOriginal) {
+      setErrorGlobal("Error crítico: Variante no encontrada para actualizar stock.");
       return;
     }
     
     if (nuevaCantidad <= 0) {
-      handleEliminarProductoDeVenta(idProducto);
+      handleEliminarProductoDeVenta(idProductoVariante);
       return;
     }
     
-    if (nuevaCantidad > productoOriginal.cantidad) {
-      setErrorGlobal(`Stock máximo para ${productoOriginal.nombre} es ${productoOriginal.cantidad}.`);
+    if (nuevaCantidad > varianteOriginal.cantidad) {
+      setErrorGlobal(`Stock máximo para ${varianteOriginal.producto.nombre} - ${varianteOriginal.color.nombre} - ${varianteOriginal.talla.nombreTalla} es ${varianteOriginal.cantidad}.`);
       return; 
     }
     
     setErrorGlobal(null);
     setProductosSeleccionadosVenta(prev => prev.map(item => 
-      item.idProducto === idProducto 
+      item.idProductoVariante === idProductoVariante 
         ? { ...item, cantidad: nuevaCantidad, total: nuevaCantidad * item.precio } 
         : item
     ));
@@ -399,9 +411,9 @@ const VentasPanel = () => {
         }
       }
       
-      // Preparamos los detalles de la venta según la interfaz DetalleVentaInput
+      // Preparamos los detalles de la venta según la interfaz DetalleVentaInput actualizada
       const detallesVenta: DetalleVentaInput[] = productosSeleccionadosVenta.map(item => ({
-        producto: { idProducto: item.idProducto },
+        productoVariante: { idProductoVariante: item.idProductoVariante },
         cantidad: item.cantidad,
         precioUnitario: item.precio
       }));
@@ -426,19 +438,20 @@ const VentasPanel = () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Actualizamos el stock local
-      const productosActualizados = productosCargados.map(p => {
-        const vendido = productosSeleccionadosVenta.find(ps => ps.idProducto === p.idProducto);
-        return vendido ? { ...p, cantidad: p.cantidad - vendido.cantidad } : p;
+      const variantesActualizadas = variantesCargadas.map(v => {
+        const vendido = productosSeleccionadosVenta.find(ps => ps.idProductoVariante === v.idProductoVariante);
+        return vendido ? { ...v, cantidad: v.cantidad - vendido.cantidad } : v;
       });
-      setProductosCargados(productosActualizados);
+      setVariantesCargadas(variantesActualizadas);
       
       // Preparamos datos para la boleta
       const datosBoletaVista = {
         cliente,
         metodoPago,
         productos: productosSeleccionadosVenta.map(item => ({
+          idProductoVariante: item.idProductoVariante,
           idProducto: item.idProducto,
-          descripcion: item.descripcion,
+          descripcion: `${item.descripcion} - ${item.color} - ${item.talla}`,
           cantidad: item.cantidad,
           precioUnitarioAplicado: item.precio,
           totalParcial: item.total,
@@ -742,26 +755,32 @@ const VentasPanel = () => {
                 <div className="flex-grow flex justify-center items-center text-gray-500"><Loader2 className="animate-spin text-indigo-500 mr-2" size={24}/>Cargando lista inicial...</div>
               ) : cargandoBusquedaAccion ? (
                  <div className="flex-grow flex justify-center items-center text-gray-500"><Loader2 className="animate-spin text-indigo-500 mr-2" size={24}/>{mensajeInfoVista || "Buscando..."}</div>
-              ) : productosFiltradosVista.length > 0 ? (
+              ) : variantesFiltradas.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
-                  {productosFiltradosVista.map(p => (
+                  {variantesFiltradas.map(v => (
                     <div 
-                      key={p.idProducto} 
+                      key={v.idProductoVariante} 
                       className="border bg-white rounded-md p-2 sm:p-3 cursor-pointer hover:shadow-lg hover:border-indigo-500 transition-all"
-                      onClick={() => handleSeleccionarProductoDeLista(p)}
+                      onClick={() => handleSeleccionarVarianteDeLista(v)}
                     >
-                      <p className="font-medium text-xs sm:text-sm truncate" title={p.nombre}>{p.nombre}</p>
-                      <p className="text-[10px] sm:text-xs text-gray-500">Código: {p.codigoIdentificacion}</p>
-                      <p className={`text-[10px] sm:text-xs font-semibold ${p.cantidad > 5 ? 'text-green-600' : p.cantidad > 0 ? 'text-orange-500' : 'text-red-600'}`}>
-                        Stock: {p.cantidad}
+                      <p className="font-medium text-xs sm:text-sm truncate" title={v.producto.nombre}>{v.producto.nombre}</p>
+                      <div className="flex justify-between text-[10px] sm:text-xs">
+                        <span className="text-gray-600">{v.color.nombre}</span>
+                        <span className="text-gray-600">Talla: {v.talla.nombreTalla}</span>
+                      </div>
+                      <p className="text-[10px] sm:text-xs text-gray-500">
+                        {v.codigoBarrasVariante || v.producto.codigoIdentificacion}
                       </p>
-                      <p className="text-sm font-semibold text-indigo-600 mt-1">S/{p.precioUnitario.toFixed(2)}</p>
+                      <p className={`text-[10px] sm:text-xs font-semibold ${v.cantidad > 5 ? 'text-green-600' : v.cantidad > 0 ? 'text-orange-500' : 'text-red-600'}`}>
+                        Stock: {v.cantidad}
+                      </p>
+                      <p className="text-sm font-semibold text-indigo-600 mt-1">S/{v.producto.precioUnitario.toFixed(2)}</p>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="flex-grow flex justify-center items-center text-center text-gray-500 p-4">
-                    {mensajeInfoVista || "No se encontraron productos. Intente otra búsqueda o verifique la conexión."}
+                    {mensajeInfoVista || "No se encontraron variantes de productos. Intente otra búsqueda o verifique la conexión."}
                 </div>
               )}
             </div>
@@ -782,18 +801,23 @@ const VentasPanel = () => {
                   </tr></thead>
                   <tbody className="bg-white divide-y divide-gray-200">
                     {productosSeleccionadosVenta.map(p => (
-                      <tr key={p.idProducto} className="hover:bg-gray-50">
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-700 max-w-[100px] sm:max-w-[150px] truncate" title={p.descripcion}>{p.descripcion}</td>
+                      <tr key={p.idProductoVariante} className="hover:bg-gray-50">
+                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-700 max-w-[100px] sm:max-w-[150px] truncate" title={`${p.descripcion} - ${p.color} - ${p.talla}`}>
+                          <div>
+                            <span className="font-medium">{p.descripcion}</span>
+                            <div className="text-[9px] text-gray-500">Talla: {p.talla} - Color: {p.color}</div>
+                          </div>
+                        </td>
                         <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
                           <div className="flex items-center justify-center">
-                            <button className="text-red-600 hover:text-red-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProducto, p.cantidad - 1)}>-</button>
+                            <button className="text-red-600 hover:text-red-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad - 1)}>-</button>
                             <span className="mx-1.5 w-5 text-center font-medium">{p.cantidad}</span>
-                            <button className="text-green-600 hover:text-green-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProducto, p.cantidad + 1)}>+</button>
+                            <button className="text-green-600 hover:text-green-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad + 1)}>+</button>
                           </div>
                         </td>
                         <td className="px-2 py-1.5 whitespace-nowrap text-xs text-right font-medium">S/{p.total.toFixed(2)}</td>
                         <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
-                          <button className="text-red-500 hover:text-red-700" onClick={() => handleEliminarProductoDeVenta(p.idProducto)}><X size={14} /></button>
+                          <button className="text-red-500 hover:text-red-700" onClick={() => handleEliminarProductoDeVenta(p.idProductoVariante)}><X size={14} /></button>
                         </td>
                       </tr>
                     ))}

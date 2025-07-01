@@ -1,16 +1,13 @@
-import type { Producto } from './Producto';
+import type { ProductoVariante } from './ProductoVariante';
 
-
-
-export interface DetalleVenta extends Omit<DetalleVentaInput, 'producto'> {
+export interface DetalleVenta extends Omit<DetalleVentaInput, 'productoVariante'> {
   idDetalleVenta?: number;
-  producto: Producto; // Al recibir, vendrá el objeto completo
+  productoVariante: ProductoVariante; // Al recibir, vendrá el objeto completo
   subtotal?: number;
 }
 
 export interface DetalleVentaInput { 
-  producto: { idProducto: number }; 
+  productoVariante: { idProductoVariante: number }; 
   cantidad: number;
   precioUnitario: number; 
- 
 }
