@@ -19,6 +19,7 @@ const VentasPanel = () => {
   // A. ESTADO DEL COMPONENTE
   // --------------------------------------------------------------------------------------------
   const [busqueda, setBusqueda] = useState('');
+  const [tipoBusqueda, setTipoBusqueda] = useState<'nombre' | 'codigo'>('nombre');
   const [cliente, setCliente] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [documentoCliente, setDocumentoCliente] = useState('');
@@ -86,23 +87,32 @@ const VentasPanel = () => {
         setMensajeInfoVista(null);
       } else {
         const terminoLower = busqueda.toLowerCase();
-        const filtrados = variantesCargadas.filter(
-          v => 
-            v.producto.nombre.toLowerCase().includes(terminoLower) ||
+        let filtrados: ProductoVariante[] = [];
+        
+        if (tipoBusqueda === 'nombre') {
+          // Buscar por nombre del producto
+          filtrados = variantesCargadas.filter(v => 
+            v.producto.nombre.toLowerCase().includes(terminoLower)
+          );
+        } else if (tipoBusqueda === 'codigo') {
+          // Buscar por código de barras de variante o código de identificación del producto
+          filtrados = variantesCargadas.filter(v => 
             (v.codigoBarrasVariante && v.codigoBarrasVariante.toLowerCase().includes(terminoLower)) ||
-            (v.talla.nombreTalla && v.talla.nombreTalla.toLowerCase().includes(terminoLower)) ||
-            (v.color.nombre && v.color.nombre.toLowerCase().includes(terminoLower))
-        );
+            (v.producto.codigoIdentificacion && v.producto.codigoIdentificacion.toLowerCase().includes(terminoLower))
+          );
+        }
+        
         setVariantesFiltradas(filtrados);
         
         if (filtrados.length === 0 && busqueda.trim() !== '') { 
-            setMensajeInfoVista(`No hay coincidencias locales para "${busqueda}". Prueba "Buscar DB".`);
+            const tipoBusquedaTexto = tipoBusqueda === 'nombre' ? 'nombre' : 'código';
+            setMensajeInfoVista(`No hay coincidencias locales para "${busqueda}" en ${tipoBusquedaTexto}. Prueba "Buscar DB".`);
         } else if (filtrados.length > 0 || busqueda.trim() === '') { 
             setMensajeInfoVista(null);
         }
       }
     }
-  }, [busqueda, variantesCargadas, cargandoProductosIniciales, cargandoBusquedaAccion]);
+  }, [busqueda, tipoBusqueda, variantesCargadas, cargandoProductosIniciales, cargandoBusquedaAccion]);
 
   // --------------------------------------------------------------------------------------------
   // C. MANEJADORES DE LÓGICA DE PRODUCTOS Y VENTA
@@ -757,16 +767,33 @@ const VentasPanel = () => {
         <div className="lg:col-span-7 bg-white rounded-lg shadow-md">
           <div className="p-3 sm:p-4 border-b"><h2 className="text-lg sm:text-xl font-semibold text-gray-800">Buscar Productos</h2></div>
           <div className="p-3 sm:p-4">
+            {/* Selector de tipo de búsqueda */}
+            <div className="mb-3">
+              <label htmlFor="tipoBusqueda" className="block text-sm font-medium text-gray-700 mb-2">
+                Buscar por:
+              </label>
+              <select
+                id="tipoBusqueda"
+                value={tipoBusqueda}
+                onChange={(e) => setTipoBusqueda(e.target.value as 'nombre' | 'codigo')}
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
+              >
+                <option value="nombre">Nombre del producto</option>
+                <option value="codigo">Código de barras</option>
+              </select>
+            </div>
+            
+            {/* Barra de búsqueda */}
             <div className="relative mb-4">
               <input 
                 type="text" 
                 className="w-full pl-10 pr-24 sm:pr-28 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Nombre, código o escanear..." 
+                placeholder={tipoBusqueda === 'nombre' ? "Nombre del producto..." : "Código de barras..."} 
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && busqueda.trim()) {
-                    if (/^[A-Za-z0-9-]{4,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" ")) {
+                    if (tipoBusqueda === 'codigo' || (/^[A-Za-z0-9-]{4,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" "))) {
                         handleBuscarPorCodigoExacto(busqueda.trim());
                     } else {
                         handleBuscarEnServicio();
