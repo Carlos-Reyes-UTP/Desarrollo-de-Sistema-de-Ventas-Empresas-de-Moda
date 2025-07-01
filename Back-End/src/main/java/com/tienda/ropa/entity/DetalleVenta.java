@@ -1,9 +1,15 @@
 package com.tienda.ropa.entity;
 
-import jakarta.persistence.*;
-import lombok.Data;
-import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.validation.constraints.NotNull;
+import lombok.Data;
 
 @Data
 @Entity
@@ -17,17 +23,14 @@ public class DetalleVenta {
     private Venta venta;
 
     @ManyToOne
-    @JoinColumn(name = "id_producto", nullable = false)
-    private Producto producto;
+    @JoinColumn(name = "id_producto_variante", nullable = false)
+    private ProductoVariante productoVariante;
 
     @NotNull
     private int cantidad;
 
     @NotNull
     private BigDecimal precioUnitario;
-
-    private BigDecimal Subtotal;
-
 
     // Métodos manuales
 
@@ -43,12 +46,17 @@ public class DetalleVenta {
         this.idDetalleVenta = idDetalleVenta;
     }
 
-    public Producto getProducto() {
-        return producto;
+    public ProductoVariante getProductoVariante() {
+        return productoVariante;
     }
 
-    public void setProducto(Producto producto) {
-        this.producto = producto;
+    public void setProductoVariante(ProductoVariante productoVariante) {
+        this.productoVariante = productoVariante;
+    }
+
+    // Método conveniente para obtener el producto base a través de la variante
+    public Producto getProducto() {
+        return productoVariante != null ? productoVariante.getProducto() : null;
     }
 
     public int getCantidad() {
