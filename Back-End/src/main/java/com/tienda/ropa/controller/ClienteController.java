@@ -2,6 +2,7 @@ package com.tienda.ropa.controller;
 
 import java.util.List;
 
+import com.tienda.ropa.service.ApiExternoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -13,6 +14,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tienda.ropa.dto.ReniecResponseDTO;
+import com.tienda.ropa.dto.SunatResponseDTO;
 import com.tienda.ropa.entity.Cliente;
 import com.tienda.ropa.service.ClienteService;
 
@@ -23,6 +26,9 @@ public class ClienteController {
     @Autowired
     private ClienteService clienteService;
     
+    @Autowired
+    private ApiExternoService apiExternoService;
+
     @GetMapping
     public List<Cliente> getAllClientes() {
         return clienteService.getAllClientes();
@@ -35,6 +41,9 @@ public class ClienteController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
     
+    /**
+     * Endpoint general que se mantiene por compatibilidad con código existente
+     */
     @GetMapping("/documento/{numero}")
     public ResponseEntity<Cliente> getClienteByDocumento(@PathVariable String numero) {
         return clienteService.getClienteByNumeroDocumento(numero)
@@ -42,6 +51,28 @@ public class ClienteController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
     
+    /**
+     * Nuevo endpoint específico para consulta de DNI
+     * Si no existe el cliente, consulta a RENIEC y lo guarda en la BD
+     */
+    @GetMapping("/documento/dni/{numero}")
+    public ResponseEntity<Cliente> getClienteByDni(@PathVariable String numero) {
+        return clienteService.getClienteByDni(numero)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Nuevo endpoint específico para consulta de RUC
+     * Si no existe el cliente, consulta a SUNAT y lo guarda en la BD
+     */
+    @GetMapping("/documento/ruc/{numero}")
+    public ResponseEntity<Cliente> getClienteByRuc(@PathVariable String numero) {
+        return clienteService.getClienteByRuc(numero)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PostMapping
     public Cliente createCliente(@RequestBody Cliente cliente) {
         return clienteService.saveCliente(cliente);
