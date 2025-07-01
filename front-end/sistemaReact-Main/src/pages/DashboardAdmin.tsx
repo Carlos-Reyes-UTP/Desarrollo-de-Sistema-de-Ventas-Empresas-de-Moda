@@ -464,62 +464,100 @@ const DashboardAdmin = () => {
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-lg font-semibold text-gray-900">Ventas del periodo</h2>
-            <div className="flex gap-2">
+            <div className="flex gap-4">
               <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-                <span className="text-xs text-gray-600">Este periodo</span>
+                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 mr-2 shadow-sm"></div>
+                <span className="text-xs text-gray-600 font-medium">Ventas ({periodo})</span>
               </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
-                <span className="text-xs text-gray-600">Periodo anterior</span>
+              <div className="flex items-center text-xs text-gray-500">
+                Total: S/{metricasVenta.totalVentas.toFixed(2)}
               </div>
             </div>
           </div>
           
-          <div className="h-64 relative">
-            {/* Gráfico de barras con datos reales */}
-            <div className="absolute inset-0 flex items-end justify-around pb-10 px-6">
-              {datosVentas.map((valor, i) => {
-                const etiquetas = obtenerEtiquetasGrafico();
-                const maxValue = obtenerValorMaximoGrafico();
-                const alturaPixeles = maxValue > 0 ? Math.min((valor / maxValue) * 200, 200) : 0;
+          <div className="h-64 relative bg-gradient-to-t from-gray-50 to-transparent rounded-lg">
+            {/* Mensaje cuando no hay datos */}
+            {datosVentas.length === 0 || datosVentas.every(v => v === 0) ? (
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-gray-400 mb-2">
+                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                  </div>
+                  <p className="text-gray-500 text-sm">No hay datos de ventas para mostrar</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    {periodo === 'hoy' ? 'Aún no hay ventas hoy' : 
+                     periodo === 'semana' ? 'No hay ventas esta semana' : 
+                     'No hay ventas este mes'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Líneas de guía horizontales */}
+                <div className="absolute inset-0 flex flex-col justify-between py-4 pointer-events-none">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="border-b border-gray-100 opacity-50 w-full"></div>
+                  ))}
+                </div>
                 
-                return (
-                  <div key={`${periodo}-${i}`} className="flex flex-col items-center">
-                    <div 
-                      className="w-12 bg-blue-500 rounded-t-md transition-all duration-500 ease-in-out"
-                      style={{ height: `${alturaPixeles}px` }}
-                      title={`${etiquetas[i] || ''}: S/${valor.toFixed(2)}`}
-                    ></div>
-                    <div className="text-xs text-gray-500 mt-2">
-                      {etiquetas[i] || ''}
-                    </div>
+                {/* Gráfico de barras con datos reales */}
+                <div className="absolute inset-0 flex items-end justify-center pb-8 px-4">
+                  <div className="flex items-end justify-center gap-2 sm:gap-3 md:gap-4 w-full max-w-4xl">
+                    {datosVentas.map((valor, i) => {
+                      const etiquetas = obtenerEtiquetasGrafico();
+                      const maxValue = obtenerValorMaximoGrafico();
+                      const alturaPixeles = maxValue > 0 ? Math.max((valor / maxValue) * 180, 4) : 4;
+                      
+                      return (
+                        <div key={`${periodo}-${i}`} className="flex flex-col items-center group">
+                          {/* Tooltip */}
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute -top-12 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-10">
+                            {etiquetas[i] || ''}: S/{valor.toFixed(2)}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                          </div>
+                          
+                          {/* Barra */}
+                          <div 
+                            className="w-8 sm:w-10 md:w-12 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg shadow-lg hover:from-blue-600 hover:to-blue-500 transition-all duration-300 ease-out hover:scale-105 cursor-pointer"
+                            style={{ 
+                              height: `${alturaPixeles}px`,
+                              minHeight: '4px'
+                            }}
+                          ></div>
+                          
+                          {/* Etiqueta */}
+                          <div className="text-xs text-gray-600 mt-2 text-center font-medium">
+                            {etiquetas[i] || ''}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-            
-            {/* Eje Y dinámico */}
-            <div className="absolute left-0 inset-y-0 flex flex-col justify-between py-4">
-              {(() => {
-                const maxValue = obtenerValorMaximoGrafico();
-                const steps = [maxValue, maxValue * 0.75, maxValue * 0.5, maxValue * 0.25, 0];
-                return steps.map((value, index) => (
-                  <div key={index} className="text-xs text-gray-400">
-                    S/{value.toFixed(0)}
-                  </div>
-                ));
-              })()}
-            </div>
-            
-            {/* Líneas de guía */}
-            <div className="absolute inset-0 flex flex-col justify-between py-4 pointer-events-none">
-              <div className="border-b border-gray-100 h-0"></div>
-              <div className="border-b border-gray-100 h-0"></div>
-              <div className="border-b border-gray-100 h-0"></div>
-              <div className="border-b border-gray-100 h-0"></div>
-              <div className="border-b border-gray-100 h-0"></div>
-            </div>
+                </div>
+                
+                {/* Eje Y dinámico mejorado */}
+                <div className="absolute left-2 inset-y-0 flex flex-col justify-between py-4 pr-2">
+                  {(() => {
+                    const maxValue = obtenerValorMaximoGrafico();
+                    if (maxValue === 0) {
+                      return [0, 0, 0, 0, 0].map((_, index) => (
+                        <div key={index} className="text-xs text-gray-400 font-medium">
+                          S/0
+                        </div>
+                      ));
+                    }
+                    const steps = [maxValue, maxValue * 0.75, maxValue * 0.5, maxValue * 0.25, 0];
+                    return steps.map((value, index) => (
+                      <div key={index} className="text-xs text-gray-500 font-medium bg-white px-1 rounded">
+                        S/{value >= 1000 ? (value/1000).toFixed(1) + 'k' : value.toFixed(0)}
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </>
+            )}
           </div>
         </div>
         
