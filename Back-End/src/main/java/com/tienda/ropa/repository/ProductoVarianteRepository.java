@@ -25,4 +25,15 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
 
     @Query("SELECT SUM(pv.cantidad) FROM ProductoVariante pv WHERE pv.producto.idProducto = :idProducto")
     Integer getTotalCantidadByProducto(Long idProducto);
+
+    @Query("SELECT pv.idProductoVariante, pv.codigoBarrasVariante, pv.cantidad, " +
+           "p.idProducto, p.nombre, p.sexo, p.codigoIdentificacion, p.precioUnitario, " +
+           "t.idTalla, t.nombreTalla, " +
+           "c.idColor, c.nombre " +
+           "FROM ProductoVariante pv " +
+           "JOIN pv.producto p " +
+           "JOIN pv.talla t " +
+           "JOIN pv.color c " +
+           "ORDER BY p.nombre, t.nombreTalla, c.nombre")
+    List<Object[]> findAllVariantesConInformacionCompleta();
 }

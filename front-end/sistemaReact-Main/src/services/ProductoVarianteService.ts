@@ -3,7 +3,7 @@ import { AxiosError } from 'axios';
 import type { ProductoVariante } from '../interfaces/ProductoVariante';
 import type { Color } from '../interfaces/Color';
 import type { Talla } from '../interfaces/Talla';
-import { RUTAS_VARIANTES } from '../config/apiConfig';
+import { RUTAS_VARIANTES, RUTAS_PRODUCTOS } from '../config/apiConfig';
 
 export const ProductoVarianteService = {    // Crear nueva variante
   crearVariante: async (variante: Omit<ProductoVariante, 'idVariante'>): Promise<ProductoVariante> => {
@@ -243,6 +243,98 @@ export const ProductoVarianteService = {    // Crear nueva variante
       } else if (error.response?.status === 403) {
         throw new Error('Error de permisos: No tienes autorización para migrar el producto. Esta acción requiere rol de Almacenero o Administrador.');
       }
+      throw error;
+    }
+  },
+
+  // Obtener todas las variantes (optimizado para cajero)
+  obtenerTodasLasVariantes: async (userRole?: string): Promise<ProductoVariante[]> => {
+    try {
+      console.log("DEBUG: obtenerTodasLasVariantes called with userRole:", userRole);
+      console.log("DEBUG: Comparing userRole === 'ROLE_CAJERO':", userRole === 'ROLE_CAJERO');
+      
+      // Si es cajero, usar endpoint optimizado
+      if (userRole === 'ROLE_CAJERO') {
+        console.log("DEBUG: Usando endpoint de cajero:", RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+        const response = await apiClient.get<ProductoVariante[]>(RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+        
+        // Normalizar IDs para consistencia
+        const variantes = response.data.map(variante => {
+          if (variante.idProductoVariante && !variante.idVariante) {
+            variante.idVariante = variante.idProductoVariante;
+          }
+          return variante;
+        });
+        
+        console.log(`DEBUG: Se obtuvieron ${variantes.length} variantes desde endpoint del cajero`);
+        return variantes;
+      } else {
+        console.log("DEBUG: Intentando endpoint de almacenero:", RUTAS_VARIANTES.BASE);
+        console.log("DEBUG: userRole is not ROLE_CAJERO, it is:", userRole);
+        
+        try {
+          // Para otros roles, usar endpoint de almacenero (método original)
+          const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.BASE);
+          console.log(`DEBUG: Se obtuvieron ${response.data.length} variantes desde endpoint del almacenero`);
+          return response.data;
+        } catch (almaceneroError: any) {
+          console.log("DEBUG: Error con endpoint de almacenero, intentando con cajero como fallback");
+          
+          // Si falla el endpoint de almacenero (403), usar el de cajero como fallback
+          if (almaceneroError.response?.status === 403) {
+            console.log("DEBUG: Usando endpoint de cajero como fallback:", RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+            const response = await apiClient.get<ProductoVariante[]>(RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+            
+            // Normalizar IDs para consistencia
+            const variantes = response.data.map(variante => {
+              if (variante.idProductoVariante && !variante.idVariante) {
+                variante.idVariante = variante.idProductoVariante;
+              }
+              return variante;
+            });
+            
+            console.log(`DEBUG: Se obtuvieron ${variantes.length} variantes desde endpoint del cajero (fallback)`);
+            return variantes;
+          }
+          
+          throw almaceneroError;
+        }
+      }
+    } catch (error) {
+      console.error("DEBUG: Error al obtener todas las variantes:", error);
+      throw error;
+    }
+  },
+
+  // Disminuir cantidad de variante (para ventas del cajero)
+  disminuirCantidadVariante: async (id: number, cantidad: number, userRole?: string): Promise<ProductoVariante> => {
+    try {
+      console.log(`Disminuyendo ${cantidad} unidades de la variante ID: ${id}`);
+      
+      // Si es cajero, usar endpoint específico del cajero
+      if (userRole === 'ROLE_CAJERO') {
+        const response = await apiClient.patch<ProductoVariante>(
+          RUTAS_PRODUCTOS.CAJERO.DISMINUIR_VARIANTE(id),
+          null,
+          { params: { cantidad } }
+        );
+        return response.data;
+      } else {
+        // Para otros roles, usar endpoint de almacenero
+        const response = await apiClient.patch<ProductoVariante>(
+          RUTAS_VARIANTES.ACTUALIZAR_CANTIDAD(id),
+          null,
+          { params: { cantidad } }
+        );
+        return response.data;
+      }
+    } catch (error: any) {
+      if (error.response?.status === 400) {
+        throw new Error('Stock insuficiente para realizar la venta');
+      } else if (error.response?.status === 404) {
+        throw new Error(`No se encontró la variante con ID: ${id}`);
+      }
+      console.error(`Error al disminuir cantidad de variante ${id}:`, error);
       throw error;
     }
   },

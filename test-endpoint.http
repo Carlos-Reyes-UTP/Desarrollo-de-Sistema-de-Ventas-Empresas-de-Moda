@@ -1,0 +1,11 @@
+### Prueba del endpoint de variantes para cajero
+GET http://localhost:8080/api/cajero/productos/variantes
+Content-Type: application/json
+
+### Prueba del endpoint de obtener variante por ID
+GET http://localhost:8080/api/cajero/productos/variantes/1
+Content-Type: application/json
+
+### Prueba del endpoint de variantes por producto
+GET http://localhost:8080/api/cajero/productos/variantes/producto/1
+Content-Type: application/json

@@ -33,6 +33,18 @@ public interface ProductoVarianteService {
     Optional<ProductoVariante> obtenerVariantePorId(Long idVariante);
 
     /**
+     * Obtener todas las variantes de productos disponibles
+     * @return Lista de todas las variantes
+     */
+    List<ProductoVariante> obtenerTodasLasVariantes();
+
+    /**
+     * Obtener todas las variantes con información completa del producto para el cajero
+     * @return Lista de todas las variantes con información del producto
+     */
+    List<Object[]> obtenerTodasLasVariantesParaCajero();
+
+    /**
      * Obtener todas las variantes de un producto
      * @param idProducto ID del producto
      * @return Lista de variantes

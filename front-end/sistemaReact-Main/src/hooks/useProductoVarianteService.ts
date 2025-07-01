@@ -1,22 +1,30 @@
 import { useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProductoVarianteService } from '../services/ProductoVarianteService';
-import { ProductoService } from '../services/ProductoServices';
-import type { Producto } from '../interfaces/Producto';
 
 export const useProductoVarianteService = () => {
   const { usuario } = useAuth();
   
   // Get the user's primary role
   const getUserRole = useCallback((): string | undefined => {
+    console.log("DEBUG: getUserRole called. usuario:", usuario);
+    console.log("DEBUG: usuario?.roles:", usuario?.roles);
+    
     if (!usuario?.roles?.length) {
+      console.log("DEBUG: No roles found");
       return undefined;
     }
     // Return the first role (could be enhanced to handle multiple roles)
-    return usuario.roles[0].nombreRol;
+    const role = usuario.roles[0].nombreRol;
+    console.log("DEBUG: Found role:", role);
+    return role;
   }, [usuario]);
 
-  const userRole = useMemo(() => getUserRole(), [getUserRole]);
+  const userRole = useMemo(() => {
+    const role = getUserRole();
+    console.log("DEBUG: userRole computed as:", role);
+    return role;
+  }, [getUserRole]);
 
   // Memoize the functions to prevent unnecessary re-renders
   const obtenerVariantesPorProducto = useCallback(
@@ -32,43 +40,9 @@ export const useProductoVarianteService = () => {
   // Método personalizado para obtener todas las variantes disponibles
   const getAllVariantes = useCallback(async () => {
     try {
-      // Primero, obtenemos todos los productos
-      const productos = await ProductoService.getAllProductos(userRole);
-      
-      if (!productos || productos.length === 0) {
-        console.warn("No se encontraron productos para obtener variantes");
-        return [];
-      }
-      
-      // Luego obtenemos las variantes para cada producto
-      const variantesPromises = productos.map((producto: { idProducto?: number }) => {
-        if (!producto?.idProducto) {
-          console.warn("Producto sin ID encontrado:", producto);
-          return Promise.resolve([]);
-        }
-        
-        return ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto)
-          .catch(err => {
-            console.warn(`Error al obtener variantes para producto ID=${producto.idProducto}:`, err);
-            return [];
-          });
-      });
-      
-      // Esperamos todas las promesas y aplanamos el array resultante
-      const variantesArrays = await Promise.all(variantesPromises);
-      const todasVariantes = variantesArrays.flat();
-      
-      // Inspeccionar las primeras variantes para diagnóstico
-      console.log("Inspeccionando primeras variantes:", todasVariantes.slice(0, 2));
-      
-      // En lugar de filtrar o modificar las variantes, vamos a ser más permisivos
-      // y simplemente aceptar todas las variantes que tengan un ID, ignorando validaciones complejas
-      const todasLasVariantes = todasVariantes.filter(variante => 
-        variante && (variante.idProductoVariante || variante.idVariante)
-      );
-      
-      console.log(`Se obtuvieron ${todasLasVariantes.length} variantes válidas de ${todasVariantes.length} totales`);
-      return todasLasVariantes;
+      // Usar el nuevo método optimizado del servicio
+      const variantes = await ProductoVarianteService.obtenerTodasLasVariantes(userRole);
+      return variantes;
     } catch (error) {
       console.error("Error al obtener todas las variantes:", error);
       throw error;
@@ -84,6 +58,8 @@ export const useProductoVarianteService = () => {
     // Write operations
     crearVariante: ProductoVarianteService.crearVariante,
     actualizarVariante: ProductoVarianteService.actualizarVariante,
+    disminuirCantidadVariante: (id: number, cantidad: number) => 
+      ProductoVarianteService.disminuirCantidadVariante(id, cantidad, userRole),
     
     // User info
     userRole,

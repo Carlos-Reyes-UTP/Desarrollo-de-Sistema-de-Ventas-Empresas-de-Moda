@@ -41,6 +41,11 @@ export const RUTAS_PRODUCTOS = {
     POR_CODIGO: (codigo: string) => `${API_BASE_URL}/api/cajero/productos/codigo/${encodeURIComponent(codigo)}`,
     POR_NOMBRE: (nombre: string) => `${API_BASE_URL}/api/cajero/productos/nombre/${encodeURIComponent(nombre)}`,
     BUSCAR: (termino: string) => `${API_BASE_URL}/api/cajero/productos/buscar?termino=${encodeURIComponent(termino)}`,
+    // Nuevas rutas para variantes
+    VARIANTES: `${API_BASE_URL}/api/cajero/productos/variantes`,
+    VARIANTE_POR_ID: (id: number) => `${API_BASE_URL}/api/cajero/productos/variantes/${id}`,
+    VARIANTES_POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/cajero/productos/variantes/producto/${idProducto}`,
+    DISMINUIR_VARIANTE: (id: number) => `${API_BASE_URL}/api/cajero/productos/variantes/${id}/disminuir`,
   }
 };
 

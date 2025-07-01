@@ -3,6 +3,7 @@ import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, Ch
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
 import { useAuthReady } from '../../hooks/useAuthReady';
 import { ClienteService } from '../../services/ClienteServices';
+import { VentaService } from '../../services/VentaServices';
 import type { ProductoVenta } from '../../interfaces/Producto';
 import type { ProductoVariante } from '../../interfaces/ProductoVariante';
 import type { Cliente } from '../../interfaces/Cliente';
@@ -12,7 +13,7 @@ import type { DetalleVentaInput } from '../../interfaces/DetalleVenta';
 const VentasPanel = () => {
   const { isReady, isAuthenticated } = useAuthReady();
   // Get role-aware product variante service methods
-  const { getAllVariantes, obtenerVariantesPorProducto, obtenerVariantePorId } = useProductoVarianteService();
+  const { getAllVariantes, disminuirCantidadVariante } = useProductoVarianteService();
   
   // --------------------------------------------------------------------------------------------
   // A. ESTADO DEL COMPONENTE
@@ -454,18 +455,27 @@ const VentasPanel = () => {
       console.log('Enviando datos de venta final al backend:', ventaParaEnviar);
       
       // Registrar la venta usando el servicio
-      // Comentado porque puede requerir ajustes según tu backend
-      // const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
+      const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
+      console.log('Venta registrada exitosamente:', ventaRegistrada);
       
-      // Simulamos envío (quitar en producción)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Actualizar el stock de las variantes usando el nuevo método
+      for (const item of productosSeleccionadosVenta) {
+        if (item.idProductoVariante) {
+          try {
+            await disminuirCantidadVariante(item.idProductoVariante, item.cantidad);
+          } catch (error) {
+            console.warn(`No se pudo actualizar el stock de la variante ${item.idProductoVariante}:`, error);
+          }
+        }
+      }
       
-      // Actualizamos el stock local
+      // Actualizar el stock local de las variantes
       const variantesActualizadas = variantesCargadas.map(v => {
         const vendido = productosSeleccionadosVenta.find(ps => ps.idProductoVariante === v.idProductoVariante);
         return vendido ? { ...v, cantidad: v.cantidad - vendido.cantidad } : v;
       });
       setVariantesCargadas(variantesActualizadas);
+      setVariantesFiltradas(variantesActualizadas);
       
       // Preparamos datos para la boleta
       const datosBoletaVista = {

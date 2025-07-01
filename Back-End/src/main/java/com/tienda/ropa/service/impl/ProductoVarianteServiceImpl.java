@@ -71,6 +71,16 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     }
 
     @Override
+    public List<ProductoVariante> obtenerTodasLasVariantes() {
+        return productoVarianteRepository.findAll();
+    }
+
+    @Override
+    public List<Object[]> obtenerTodasLasVariantesParaCajero() {
+        return productoVarianteRepository.findAllVariantesConInformacionCompleta();
+    }
+
+    @Override
     public List<ProductoVariante> obtenerVariantesPorProducto(Long idProducto) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
