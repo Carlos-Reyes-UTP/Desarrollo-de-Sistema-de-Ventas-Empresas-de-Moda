@@ -135,7 +135,7 @@ const DashboardAdmin = () => {
     }
     
     // Calcular total de ventas
-    const totalVentas = ventasData.reduce((sum, venta) => sum + venta.totalVentas, 0);
+    const totalVentas = ventasData.reduce((sum, venta) => sum + (venta.totalVentas ?? 0), 0);
     
     // Calcular total de productos vendidos
     const productosVendidos = ventasData.reduce((sum, venta) => {
@@ -150,7 +150,11 @@ const DashboardAdmin = () => {
     const ticketPromedio = ventasData.length > 0 ? totalVentas / ventasData.length : 0;
     
     // Clientes únicos (basados en el ID del cliente)
-    const clientesUnicos = new Set(ventasData.map(venta => venta.cliente.idCliente)).size;
+    const clientesUnicos = new Set(
+      ventasData
+        .map(venta => venta.cliente?.idCliente) // Obtener IDs de clientes, puede ser undefined
+        .filter(id => id !== undefined) // Filtrar undefined
+    ).size;
     
     setMetricasVenta({
       totalVentas,
@@ -185,9 +189,9 @@ const DashboardAdmin = () => {
       .map(venta => ({
         tipo: 'venta',
         titulo: 'Venta registrada',
-        detalle: `Venta #${venta.idVenta} - S/ ${venta.totalVentas.toFixed(2)}`,
+        detalle: `Venta #${venta.idVenta} - S/ ${(venta.totalVentas ?? 0).toFixed(2)}`,
         fecha: new Date(venta.fechaVenta).toLocaleDateString(),
-        usuario: venta.usuario.usuario,
+        usuario: venta.usuario?.usuario ?? 'Usuario desconocido',
         estado: 'Completado',
         icono: 'venta'
       }));
@@ -214,7 +218,7 @@ const DashboardAdmin = () => {
       const fecha = new Date(venta.fechaVenta);
       const diaSemana = fecha.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
       const indexAjustado = diaSemana === 0 ? 6 : diaSemana - 1; // Convertir a: 0 = lunes, ..., 6 = domingo
-      diasSemana[indexAjustado] += venta.totalVentas;
+      diasSemana[indexAjustado] += (venta.totalVentas ?? 0);
     });
     
     setDatosVentas(diasSemana);

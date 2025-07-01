@@ -16,8 +16,8 @@ export interface VentaInput { // Para la creación de una venta
 
 export interface Venta {
   idVenta?: number;
-  usuario: Usuario;
-  cliente: Cliente;
+  usuario?: Usuario; // Opcional porque puede estar undefined en algunos casos
+  cliente?: Cliente; // Opcional porque puede estar undefined en algunos casos
   metodoPago: MetodoPago;
   tipoComprobante: string;
   fechaVenta: string; // Formato YYYY-MM-DD
