@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Save, X, Building2, Users } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Save, X, Building2, Users, Loader2 } from 'lucide-react';
 import type { Proveedor } from '../../interfaces/Proveedor';
 import { ProveedorService } from '../../services/ProveedorServices';
 
@@ -11,6 +11,7 @@ const GestionProveedores: React.FC = () => {
   const [cerrandoModal, setCerrandoModal] = useState(false);
   const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [buscandoProveedor, setBuscandoProveedor] = useState(false);
 
   // Formulario
   const [formData, setFormData] = useState({
@@ -71,6 +72,57 @@ const GestionProveedores: React.FC = () => {
     }
   };
 
+  const verificarRUC = async () => {
+    if (!formData.ruc.trim()) {
+      setError('Ingrese un RUC para buscar');
+      return;
+    }
+    
+    // Validar formato RUC (11 dígitos)
+    if (!/^\d{11}$/.test(formData.ruc)) {
+      setError('El RUC debe tener 11 dígitos');
+      return;
+    }
+
+    setError(null);
+    setBuscandoProveedor(true);
+    
+    try {
+      // Verificar si el proveedor ya existe
+      const proveedoresExistentes = await ProveedorService.obtenerTodosProveedores();
+      const existente = proveedoresExistentes.find(p => p.ruc === formData.ruc);
+      
+      if (existente) {
+        setError(`El proveedor con RUC ${formData.ruc} ya existe como "${existente.nombre}"`);
+        setBuscandoProveedor(false);
+        return;
+      }
+      
+      // Si no existe, buscar en la API externa
+      try {
+        const proveedorEncontrado = await ProveedorService.obtenerProveedorPorRUC(formData.ruc);
+        
+        if (proveedorEncontrado) {
+          setFormData({
+            ...formData,
+            nombre: proveedorEncontrado.nombre
+          });
+          setError(null);
+        } else {
+          setError('No se encontró información del proveedor con este RUC');
+        }
+      } catch (err) {
+        console.error('Error al buscar proveedor por RUC:', err);
+        setError('Error al buscar información del proveedor');
+      }
+    } catch (err) {
+      console.error('Error al verificar RUC:', err);
+      setError('Error al verificar el RUC');
+    } finally {
+      setBuscandoProveedor(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -92,6 +144,17 @@ const GestionProveedores: React.FC = () => {
     }
 
     try {
+      // Si no estamos en modo edición, verificar que el RUC no esté ya registrado
+      if (!proveedorEditar) {
+        const proveedoresExistentes = await ProveedorService.obtenerTodosProveedores();
+        const existente = proveedoresExistentes.find(p => p.ruc === formData.ruc);
+        
+        if (existente) {
+          setError(`El proveedor con RUC ${formData.ruc} ya existe como "${existente.nombre}"`);
+          return;
+        }
+      }
+
       if (proveedorEditar?.idProveedor) {
         await ProveedorService.actualizarProveedor(proveedorEditar.idProveedor, {
           ...formData,
@@ -133,7 +196,7 @@ const GestionProveedores: React.FC = () => {
     setProveedorEditar(proveedor);
     setFormData({
       nombre: proveedor.nombre,
-      ruc: proveedor.ruc
+      ruc: proveedor.ruc // El RUC estará deshabilitado en modo edición
     });
     setShowFormulario(true);
     setError(null);
@@ -188,7 +251,7 @@ const GestionProveedores: React.FC = () => {
               placeholder="Buscar por nombre o RUC..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -201,13 +264,6 @@ const GestionProveedores: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Mensaje de error */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-          {error}
-        </div>
-      )}
 
       {/* Formulario Modal */}
       {showFormulario && (
@@ -235,11 +291,59 @@ const GestionProveedores: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Mensaje de error dentro del modal */}
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+                  {error}
+                </div>
+              )}
+              
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="ruc-input" className="block text-sm font-medium text-gray-700 mb-1">
+                  RUC *
+                </label>
+                <div className="flex">
+                  <input
+                    id="ruc-input"
+                    type="text"
+                    value={formData.ruc}
+                    onChange={(e) => {
+                      // Solo permitir dígitos
+                      if (e.target.value === '' || /^\d+$/.test(e.target.value)) {
+                        setFormData({ ...formData, ruc: e.target.value });
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 rounded-l-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    placeholder="12345678901"
+                    maxLength={11}
+                    disabled={!!proveedorEditar} // Deshabilitar en modo edición
+                    required
+                  />
+                  {!proveedorEditar && (
+                    <button
+                      type="button"
+                      onClick={verificarRUC}
+                      disabled={buscandoProveedor || formData.ruc.length !== 11}
+                      className="px-3 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-r-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center disabled:bg-blue-400"
+                    >
+                      {buscandoProveedor ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-1" />
+                      ) : (
+                        <Search className="w-4 h-4 mr-1" />
+                      )}
+                      Verificar
+                    </button>
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Debe contener 11 dígitos</p>
+              </div>
+
+              <div>
+                <label htmlFor="nombre-input" className="block text-sm font-medium text-gray-700 mb-1">
                   Nombre *
                 </label>
                 <input
+                  id="nombre-input"
                   type="text"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
@@ -247,23 +351,6 @@ const GestionProveedores: React.FC = () => {
                   placeholder="Nombre del proveedor"
                   required
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  RUC *
-                </label>
-                <input
-                  type="text"
-                  value={formData.ruc}
-                  onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="12345678901"
-                  maxLength={11}
-                  pattern="[0-9]{11}"
-                  required
-                />
-                <p className="text-xs text-gray-500 mt-1">Debe contener 11 dígitos</p>
               </div>
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
@@ -289,12 +376,14 @@ const GestionProveedores: React.FC = () => {
 
       {/* Tabla de proveedores */}
       <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        {loading ? (
+        {loading && (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
             <p className="text-gray-600 mt-2">Cargando proveedores...</p>
           </div>
-        ) : proveedores.length === 0 ? (
+        )}
+        
+        {!loading && proveedores.length === 0 && (
           <div className="p-8 text-center">
             <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">No se encontraron proveedores</p>
@@ -306,7 +395,9 @@ const GestionProveedores: React.FC = () => {
               Crear primer proveedor
             </button>
           </div>
-        ) : (
+        )}
+        
+        {!loading && proveedores.length > 0 && (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50">

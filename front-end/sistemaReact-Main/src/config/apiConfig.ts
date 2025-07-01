@@ -71,6 +71,7 @@ export const RUTAS_PROVEEDORES = {
   BASE: `${API_BASE_URL}/api/almacenero/proveedores`,
   POR_ID: (id: number) => `${API_BASE_URL}/api/almacenero/proveedores/${id}`,
   POR_NOMBRE: (nombre: string) => `${API_BASE_URL}/api/almacenero/proveedores/nombre/${encodeURIComponent(nombre)}`,
+  POR_RUC: (ruc: string) => `${API_BASE_URL}/api/almacenero/proveedores/buscar/${encodeURIComponent(ruc)}`,
 };
 
 // Rutas de Clientes

@@ -36,4 +36,14 @@ export const ProveedorService = {
       throw error;
     }
   },
+  
+  obtenerProveedorPorRUC: async (ruc: string): Promise<Proveedor | null> => {
+    try {
+      const response = await apiClient.get<Proveedor>(RUTAS_PROVEEDORES.POR_RUC(ruc));
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) return null;
+      throw error;
+    }
+  },
 };
