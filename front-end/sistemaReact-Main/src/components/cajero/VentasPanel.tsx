@@ -398,6 +398,23 @@ const VentasPanel = () => {
     setErrorGlobal(null);
 
     try {
+      // Obtener el ID del usuario actual desde el localStorage o token
+      const token = localStorage.getItem('token');
+      let usuarioId = 1; // valor por defecto
+      
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          // El payload puede contener el ID del usuario en diferentes campos
+          usuarioId = payload.userId || payload.id || payload.sub || 1;
+          if (typeof usuarioId === 'string') {
+            usuarioId = parseInt(usuarioId) || 1;
+          }
+        } catch (err) {
+          console.warn('No se pudo obtener el ID del usuario del token, usando 1 como default');
+        }
+      }
+      
       // Primero verificamos si el cliente ya está registrado
       let clienteId = clienteSeleccionado?.idCliente;
       
@@ -454,7 +471,7 @@ const VentasPanel = () => {
       
       // Creamos el objeto de venta según la interfaz VentaInput
       const ventaParaEnviar: VentaInput = {
-        usuario: { id: 1 }, // ID del usuario actual (podría venir del contexto de autenticación)
+        usuario: { id: usuarioId }, // Usar el ID obtenido del token
         cliente: { idCliente: clienteId || 1 }, // Usamos el ID obtenido o uno por defecto
         metodoPago: { idMetodoPago: obtenerIdMetodoPago(metodoPago) },
         tipoComprobante: 'BOLETA', // Por defecto
@@ -787,13 +804,17 @@ const VentasPanel = () => {
             <div className="relative mb-4">
               <input 
                 type="text" 
-                className="w-full pl-10 pr-24 sm:pr-28 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full pl-10 pr-32 sm:pr-36 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                 placeholder={tipoBusqueda === 'nombre' ? "Nombre del producto..." : "Código de barras..."} 
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && busqueda.trim()) {
-                    if (tipoBusqueda === 'codigo' || (/^[A-Za-z0-9-]{4,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" "))) {
+                    // Mejorar la detección de códigos de barras
+                    const esPosibleCodigo = tipoBusqueda === 'codigo' || 
+                      (/^[A-Za-z0-9-_]{6,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" "));
+                    
+                    if (esPosibleCodigo) {
                         handleBuscarPorCodigoExacto(busqueda.trim());
                     } else {
                         handleBuscarEnServicio();
@@ -802,6 +823,19 @@ const VentasPanel = () => {
                 }} 
               />
               <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              {busqueda && (
+                <button 
+                  className="absolute right-20 sm:right-24 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={() => {
+                    setBusqueda('');
+                    setVariantesFiltradas(variantesCargadas);
+                    setMensajeInfoVista(null);
+                  }}
+                  title="Limpiar búsqueda"
+                >
+                  <X size={16} />
+                </button>
+              )}
               <button 
                 className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs sm:text-sm px-2.5 sm:px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:bg-gray-300"
                 onClick={handleBuscarEnServicio} 
@@ -818,24 +852,37 @@ const VentasPanel = () => {
               ) : variantesFiltradas.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
                   {variantesFiltradas.map(v => (
-                    <div 
+                    <button
                       key={v.idProductoVariante} 
-                      className="border bg-white rounded-md p-2 sm:p-3 cursor-pointer hover:shadow-lg hover:border-indigo-500 transition-all"
+                      className="border bg-white rounded-md p-2 sm:p-3 cursor-pointer hover:shadow-lg hover:border-indigo-500 transition-all text-left focus:outline-none focus:ring-2 focus:ring-indigo-500"
                       onClick={() => handleSeleccionarVarianteDeLista(v)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          handleSeleccionarVarianteDeLista(v);
+                        }
+                      }}
+                      aria-label={`Agregar ${v.producto?.nombre ?? 'Producto'} - ${v.color?.nombre ?? 'Sin color'} - Talla ${v.talla?.nombreTalla ?? 'Única'} al carrito`}
                     >
-                      <p className="font-medium text-xs sm:text-sm truncate" title={v.producto?.nombre || 'Producto sin nombre'}>{v.producto?.nombre || 'Producto sin nombre'}</p>
+                      <p className="font-medium text-xs sm:text-sm truncate" title={v.producto?.nombre ?? 'Producto sin nombre'}>{v.producto?.nombre ?? 'Producto sin nombre'}</p>
                       <div className="flex justify-between text-[10px] sm:text-xs">
-                        <span className="text-gray-600">{v.color?.nombre || 'Sin color'}</span>
-                        <span className="text-gray-600">Talla: {v.talla?.nombreTalla || 'Única'}</span>
+                        <span className="text-gray-600">{v.color?.nombre ?? 'Sin color'}</span>
+                        <span className="text-gray-600">Talla: {v.talla?.nombreTalla ?? 'Única'}</span>
                       </div>
                       <p className="text-[10px] sm:text-xs text-gray-500">
-                        {v.codigoBarrasVariante || (v.producto && v.producto.codigoIdentificacion) || 'Sin código'}
+                        {v.codigoBarrasVariante ?? v.producto?.codigoIdentificacion ?? 'Sin código'}
                       </p>
-                      <p className={`text-[10px] sm:text-xs font-semibold ${v.cantidad > 5 ? 'text-green-600' : v.cantidad > 0 ? 'text-orange-500' : 'text-red-600'}`}>
-                        Stock: {v.cantidad || 0}
+                      <p className={`text-[10px] sm:text-xs font-semibold ${
+                        v.cantidad > 5 
+                          ? 'text-green-600' 
+                          : v.cantidad > 0 
+                            ? 'text-orange-500' 
+                            : 'text-red-600'
+                      }`}>
+                        Stock: {v.cantidad ?? 0}
                       </p>
-                      <p className="text-sm font-semibold text-indigo-600 mt-1">S/{(v.producto?.precioUnitario || 0).toFixed(2)}</p>
-                    </div>
+                      <p className="text-sm font-semibold text-indigo-600 mt-1">S/{(v.producto?.precioUnitario ?? 0).toFixed(2)}</p>
+                    </button>
                   ))}
                 </div>
               ) : (
