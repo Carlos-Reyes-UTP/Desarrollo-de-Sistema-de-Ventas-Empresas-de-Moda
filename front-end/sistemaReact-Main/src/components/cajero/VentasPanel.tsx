@@ -188,6 +188,29 @@ const VentasPanel = () => {
       setErrorGlobal("Ingrese un número de documento para buscar al cliente.");
       return;
     }
+
+    const numeroDocumento = documentoCliente.trim();
+    
+    // Validaciones según el tipo de documento
+    if (tipoDocumento === 'DNI') {
+      if (numeroDocumento.length !== 8) {
+        setErrorGlobal("El DNI debe tener exactamente 8 dígitos.");
+        return;
+      }
+      if (!/^\d+$/.test(numeroDocumento)) {
+        setErrorGlobal("El DNI debe contener solo números.");
+        return;
+      }
+    } else if (tipoDocumento === 'RUC') {
+      if (numeroDocumento.length !== 11) {
+        setErrorGlobal("El RUC debe tener exactamente 11 dígitos.");
+        return;
+      }
+      if (!/^\d+$/.test(numeroDocumento)) {
+        setErrorGlobal("El RUC debe contener solo números.");
+        return;
+      }
+    }
     
     try {
       setCargandoBusquedaAccion(true);
@@ -196,9 +219,9 @@ const VentasPanel = () => {
       let clienteEncontrado = null;
       
       if (tipoDocumento === 'DNI') {
-        clienteEncontrado = await ClienteService.obtenerClientePorDNI(documentoCliente.trim());
+        clienteEncontrado = await ClienteService.obtenerClientePorDNI(numeroDocumento);
       } else if (tipoDocumento === 'RUC') {
-        clienteEncontrado = await ClienteService.obtenerClientePorRUC(documentoCliente.trim());
+        clienteEncontrado = await ClienteService.obtenerClientePorRUC(numeroDocumento);
       }
       
       if (clienteEncontrado) {
@@ -335,14 +358,41 @@ const VentasPanel = () => {
       // Si no hay cliente seleccionado pero tenemos nombre, intentamos crear uno nuevo
       if (!clienteId && cliente.trim()) {
         try {
+          const numeroDocumento = documentoCliente.trim();
+          let documentoValido = true;
+          let valorDocumento = numeroDocumento;
+          
+          // Validación del documento según tipo
+          if (tipoDocumento === 'DNI') {
+            if (numeroDocumento && (numeroDocumento.length !== 8 || !/^\d+$/.test(numeroDocumento))) {
+              documentoValido = false;
+              valorDocumento = '00000000'; // DNI por defecto
+              console.warn('Se usará un DNI por defecto porque el valor ingresado no es válido');
+            } else if (!numeroDocumento) {
+              valorDocumento = '00000000'; // DNI por defecto
+            }
+          } else { // RUC
+            if (numeroDocumento && (numeroDocumento.length !== 11 || !/^\d+$/.test(numeroDocumento))) {
+              documentoValido = false;
+              valorDocumento = '00000000000'; // RUC por defecto
+              console.warn('Se usará un RUC por defecto porque el valor ingresado no es válido');
+            } else if (!numeroDocumento) {
+              valorDocumento = '00000000000'; // RUC por defecto
+            }
+          }
+          
           // Crear cliente nuevo con datos básicos
           const nuevoCliente = await ClienteService.crearCliente({
             nombreCliente: cliente,
             tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
-            numeroDocumento: documentoCliente.trim() || (tipoDocumento === 'DNI' ? '00000000' : '00000000000') // DNI o RUC por defecto según el tipo
+            numeroDocumento: valorDocumento
           });
           
           clienteId = nuevoCliente.idCliente;
+          
+          if (!documentoValido) {
+            console.warn('Se creó el cliente con un documento por defecto debido a formato inválido');
+          }
         } catch (err) {
           console.error('Error al crear cliente nuevo:', err);
           // Seguimos adelante con clienteId en null, el backend deberá manejar este caso
@@ -588,7 +638,11 @@ const VentasPanel = () => {
               <select 
                 className="px-2 py-2 border border-gray-300 border-r-0 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500"
                 value={tipoDocumento}
-                onChange={(e) => setTipoDocumento(e.target.value as 'DNI' | 'RUC')}
+                onChange={(e) => {
+                  setTipoDocumento(e.target.value as 'DNI' | 'RUC');
+                  setDocumentoCliente(''); // Limpiar el documento al cambiar el tipo
+                  setErrorGlobal(null);
+                }}
               >
                 <option value="DNI">DNI</option>
                 <option value="RUC">RUC</option>
@@ -596,20 +650,54 @@ const VentasPanel = () => {
               <input 
                 id="documentoClienteInput" 
                 type="text" 
-                className="w-full px-3 py-2 border border-gray-300 rounded-none focus:ring-indigo-500 focus:border-indigo-500"
+                className={`w-full px-3 py-2 border border-gray-300 rounded-none focus:ring-indigo-500 focus:border-indigo-500 ${
+                  documentoCliente && 
+                  ((tipoDocumento === 'DNI' && (documentoCliente.length !== 8 || !/^\d+$/.test(documentoCliente))) || 
+                   (tipoDocumento === 'RUC' && (documentoCliente.length !== 11 || !/^\d+$/.test(documentoCliente)))) 
+                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
+                  : ''
+                }`}
                 value={documentoCliente} 
-                onChange={(e) => setDocumentoCliente(e.target.value)} 
-                placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI" : "Ingrese RUC"} 
+                onChange={(e) => {
+                  const value = e.target.value;
+                  
+                  // Solo permitir números en el input
+                  if (value === '' || /^\d+$/.test(value)) {
+                    setDocumentoCliente(value);
+                    
+                    // Limpiar error si el formato es correcto o si está vacío
+                    if (value === '' || 
+                        (tipoDocumento === 'DNI' && value.length === 8) || 
+                        (tipoDocumento === 'RUC' && value.length === 11)) {
+                      setErrorGlobal(null);
+                    }
+                  }
+                }}
+                placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI (8 dígitos)" : "Ingrese RUC (11 dígitos)"} 
+                maxLength={tipoDocumento === 'DNI' ? 8 : 11}
               />
               <button 
                 onClick={handleBuscarCliente}
-                disabled={cargandoBusquedaAccion || !documentoCliente.trim()} 
+                disabled={cargandoBusquedaAccion || 
+                         !documentoCliente.trim() || 
+                         (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
+                         (tipoDocumento === 'RUC' && documentoCliente.length !== 11)} 
                 className="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 h-[42px] flex items-center justify-center disabled:bg-gray-400"
               >
                 {cargandoBusquedaAccion && documentoCliente ? <Loader2 className="animate-spin" size={20}/> : <Search size={18}/>}
                 <span className="ml-1 hidden sm:inline">Buscar</span>
               </button>
             </div>
+            {documentoCliente && (
+              (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
+              (tipoDocumento === 'RUC' && documentoCliente.length !== 11) ? (
+                <p className="mt-1 text-xs text-red-500">
+                  {tipoDocumento === 'DNI' 
+                    ? `El DNI debe tener exactamente 8 dígitos (Actual: ${documentoCliente.length})` 
+                    : `El RUC debe tener exactamente 11 dígitos (Actual: ${documentoCliente.length})`}
+                </p>
+              ) : null
+            )}
           </div>
         </div>
         {clienteSeleccionado && (
