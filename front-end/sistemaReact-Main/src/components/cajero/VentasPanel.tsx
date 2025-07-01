@@ -355,9 +355,11 @@ const VentasPanel = () => {
     ));
   };
 
-  const subtotalVenta = productosSeleccionadosVenta.reduce((acc, item) => acc + item.total, 0);
-  const igvVenta = subtotalVenta * 0.18; 
-  const totalGeneralVenta = subtotalVenta + igvVenta;
+  const totalConIgvIncluido = productosSeleccionadosVenta.reduce((acc, item) => acc + item.total, 0);
+  // El precio de los productos ya incluye IGV, por lo que extraemos el IGV del total
+  const subtotalVenta = totalConIgvIncluido / 1.18; // Monto sin IGV
+  const igvVenta = totalConIgvIncluido - subtotalVenta; // IGV extraído
+  const totalGeneralVenta = totalConIgvIncluido; // Total original (ya incluye IGV)
 
   // --------------------------------------------------------------------------------------------
   // D. MANEJADORES DE LÓGICA DE PAGO Y FINALIZACIÓN
