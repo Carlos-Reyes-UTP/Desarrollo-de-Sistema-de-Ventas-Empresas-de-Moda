@@ -20,6 +20,7 @@ const VentasPanel = () => {
   const [cliente, setCliente] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [documentoCliente, setDocumentoCliente] = useState('');
+  const [tipoDocumento, setTipoDocumento] = useState<'DNI' | 'RUC'>('DNI');
   
   const [productosCargados, setProductosCargados] = useState<Producto[]>([]);
   const [productosFiltradosVista, setProductosFiltradosVista] = useState<Producto[]>([]);
@@ -192,7 +193,13 @@ const VentasPanel = () => {
       setCargandoBusquedaAccion(true);
       setErrorGlobal(null);
       
-      const clienteEncontrado = await ClienteService.obtenerClientePorDocumento(documentoCliente.trim());
+      let clienteEncontrado = null;
+      
+      if (tipoDocumento === 'DNI') {
+        clienteEncontrado = await ClienteService.obtenerClientePorDNI(documentoCliente.trim());
+      } else if (tipoDocumento === 'RUC') {
+        clienteEncontrado = await ClienteService.obtenerClientePorRUC(documentoCliente.trim());
+      }
       
       if (clienteEncontrado) {
         setClienteSeleccionado(clienteEncontrado);
@@ -331,8 +338,8 @@ const VentasPanel = () => {
           // Crear cliente nuevo con datos básicos
           const nuevoCliente = await ClienteService.crearCliente({
             nombreCliente: cliente,
-            tipoCliente: 'NORMAL',
-            numeroDocumento: documentoCliente.trim() || '00000000' // DNI por defecto o vacío
+            tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
+            numeroDocumento: documentoCliente.trim() || (tipoDocumento === 'DNI' ? '00000000' : '00000000000') // DNI o RUC por defecto según el tipo
           });
           
           clienteId = nuevoCliente.idCliente;
@@ -577,23 +584,33 @@ const VentasPanel = () => {
         <div className="flex items-end">
           <div className="flex-grow">
             <label htmlFor="documentoClienteInput" className="block mb-1 text-sm font-medium text-gray-700">Documento Cliente:</label>
-            <input 
-              id="documentoClienteInput" 
-              type="text" 
-              className="w-full px-3 py-2 border border-gray-300 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500"
-              value={documentoCliente} 
-              onChange={(e) => setDocumentoCliente(e.target.value)} 
-              placeholder="DNI o RUC" 
-            />
+            <div className="flex">
+              <select 
+                className="px-2 py-2 border border-gray-300 border-r-0 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500"
+                value={tipoDocumento}
+                onChange={(e) => setTipoDocumento(e.target.value as 'DNI' | 'RUC')}
+              >
+                <option value="DNI">DNI</option>
+                <option value="RUC">RUC</option>
+              </select>
+              <input 
+                id="documentoClienteInput" 
+                type="text" 
+                className="w-full px-3 py-2 border border-gray-300 rounded-none focus:ring-indigo-500 focus:border-indigo-500"
+                value={documentoCliente} 
+                onChange={(e) => setDocumentoCliente(e.target.value)} 
+                placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI" : "Ingrese RUC"} 
+              />
+              <button 
+                onClick={handleBuscarCliente}
+                disabled={cargandoBusquedaAccion || !documentoCliente.trim()} 
+                className="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 h-[42px] flex items-center justify-center disabled:bg-gray-400"
+              >
+                {cargandoBusquedaAccion && documentoCliente ? <Loader2 className="animate-spin" size={20}/> : <Search size={18}/>}
+                <span className="ml-1 hidden sm:inline">Buscar</span>
+              </button>
+            </div>
           </div>
-          <button 
-            onClick={handleBuscarCliente}
-            disabled={cargandoBusquedaAccion || !documentoCliente.trim()} 
-            className="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 h-[42px] flex items-center justify-center disabled:bg-gray-400"
-          >
-            {cargandoBusquedaAccion && documentoCliente ? <Loader2 className="animate-spin" size={20}/> : <Search size={18}/>}
-            <span className="ml-1 hidden sm:inline">Buscar</span>
-          </button>
         </div>
         {clienteSeleccionado && (
           <div className="lg:col-span-2 mt-2 text-sm p-2 rounded-md bg-green-100 text-green-700">

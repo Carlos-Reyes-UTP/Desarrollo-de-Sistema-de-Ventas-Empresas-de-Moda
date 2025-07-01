@@ -78,6 +78,8 @@ export const RUTAS_CLIENTES = {
   BASE: `${API_BASE_URL}/api/cajero/clientes`,
   POR_ID: (id: number) => `${API_BASE_URL}/api/cajero/clientes/${id}`,
   POR_DOCUMENTO: (numeroDocumento: string) => `${API_BASE_URL}/api/cajero/clientes/documento/${encodeURIComponent(numeroDocumento)}`,
+  POR_DNI: (numero: string) => `${API_BASE_URL}/api/cajero/clientes/documento/dni/${encodeURIComponent(numero)}`,
+  POR_RUC: (numero: string) => `${API_BASE_URL}/api/cajero/clientes/documento/ruc/${encodeURIComponent(numero)}`,
 };
 
 // Rutas de Métodos de Pago (TODO: Implementar controlador en backend)

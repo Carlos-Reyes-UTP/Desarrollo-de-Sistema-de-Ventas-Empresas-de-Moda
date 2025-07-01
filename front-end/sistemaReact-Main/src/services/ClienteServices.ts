@@ -41,4 +41,24 @@ export const ClienteService = {
       throw error;
     }
   },
+  
+  obtenerClientePorDNI: async (numero: string): Promise<Cliente | null> => {
+    try {
+      const response = await apiClient.get<Cliente>(RUTAS_CLIENTES.POR_DNI(numero));
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) return null;
+      throw error;
+    }
+  },
+  
+  obtenerClientePorRUC: async (numero: string): Promise<Cliente | null> => {
+    try {
+      const response = await apiClient.get<Cliente>(RUTAS_CLIENTES.POR_RUC(numero));
+      return response.data;
+    } catch (error: any) {
+      if (error.response && error.response.status === 404) return null;
+      throw error;
+    }
+  },
 };

@@ -53,7 +53,7 @@ public class ApiExternoService {
      * Consulta información de un RUC en SUNAT
      */
     public Mono<SunatResponseDTO> consultarRuc(String ruc) {
-        return webClient.post()
+        return webClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .path("/v2/sunat/ruc")
                         .queryParam("numero", ruc)
