@@ -171,14 +171,22 @@ const VentasPanel = () => {
       
       // Buscar la variante que coincida exactamente con el código de barras
       const codigoLimpio = codigoScaneado.trim();
-      const varianteEncontrada = variantesCargadas.find(
-        v => v.codigoBarrasVariante === codigoLimpio
+      
+      // Buscar por código de barras de variante o por código de identificación de producto
+      const varianteEncontrada = variantesCargadas.find(v => 
+        v.codigoBarrasVariante === codigoLimpio || 
+        (v.producto && v.producto.codigoIdentificacion === codigoLimpio)
       );
       
       if (varianteEncontrada) {
         agregarVarianteAVenta(varianteEncontrada);
         setBusqueda(''); 
-        setMensajeInfoVista(`${varianteEncontrada.producto.nombre} - ${varianteEncontrada.color.nombre} - ${varianteEncontrada.talla.nombreTalla} agregado.`);
+        
+        const nombreProducto = varianteEncontrada.producto?.nombre || 'Producto';
+        const nombreColor = varianteEncontrada.color?.nombre || 'Sin color';
+        const nombreTalla = varianteEncontrada.talla?.nombreTalla || 'Talla única';
+        
+        setMensajeInfoVista(`${nombreProducto} - ${nombreColor} - ${nombreTalla} agregado.`);
         setTimeout(() => setMensajeInfoVista(null), 2000);
       } else {
         setErrorGlobal(`No se encontró variante con código "${codigoScaneado}".`);
@@ -254,34 +262,49 @@ const VentasPanel = () => {
 
   const agregarVarianteAVenta = (variante: ProductoVariante) => {
     setErrorGlobal(null);
-    if (variante.cantidad <= 0) {
-      setErrorGlobal(`La variante ${variante.producto.nombre} - ${variante.color.nombre} - ${variante.talla.nombreTalla} está agotada.`);
+    
+    // Asegurarnos que la variante tiene cantidad y no está agotada
+    const cantidad = variante.cantidad || 0;
+    if (cantidad <= 0) {
+      setErrorGlobal(`La variante ${variante.producto?.nombre || 'Sin nombre'} - ${variante.color?.nombre || 'Sin color'} - ${variante.talla?.nombreTalla || 'Talla única'} está agotada.`);
       return;
     }
 
-    const varianteExistente = productosSeleccionadosVenta.find(item => item.idProductoVariante === variante.idProductoVariante);
+    // Asegurarse de que tenemos un ID de variante válido
+    const idVariante = variante.idProductoVariante || variante.idVariante;
+    if (!idVariante) {
+      setErrorGlobal('Esta variante no tiene un identificador válido y no puede ser agregada a la venta.');
+      return;
+    }
+
+    const varianteExistente = productosSeleccionadosVenta.find(item => 
+      item.idProductoVariante === idVariante
+    );
     
     if (varianteExistente) {
-      if (varianteExistente.cantidad >= variante.cantidad) {
-        setErrorGlobal(`No hay más stock de ${variante.producto.nombre} - ${variante.color.nombre} - ${variante.talla.nombreTalla}. Stock: ${variante.cantidad}. En carrito: ${varianteExistente.cantidad}.`);
+      if (varianteExistente.cantidad >= cantidad) {
+        setErrorGlobal(`No hay más stock de ${variante.producto?.nombre || 'Producto'} - ${variante.color?.nombre || 'Sin color'} - ${variante.talla?.nombreTalla || 'Talla única'}. Stock: ${cantidad}. En carrito: ${varianteExistente.cantidad}.`);
         return;
       }
       setProductosSeleccionadosVenta(prev => prev.map(item => 
-        item.idProductoVariante === variante.idProductoVariante 
+        item.idProductoVariante === idVariante 
           ? { ...item, cantidad: item.cantidad + 1, total: (item.cantidad + 1) * item.precio } 
           : item
       ));
     } else {
+      // Precio unitario del producto o valor por defecto si no existe
+      const precioUnitario = variante.producto?.precioUnitario || 0;
+      
       setProductosSeleccionadosVenta(prev => [...prev, {
-        idProductoVariante: variante.idProductoVariante!,
-        idProducto: variante.producto.idProducto!,
-        codigo: variante.codigoBarrasVariante || variante.producto.codigoIdentificacion,
-        descripcion: variante.producto.nombre,
-        talla: variante.talla.nombreTalla,
-        color: variante.color.nombre,
+        idProductoVariante: idVariante,
+        idProducto: variante.producto?.idProducto || 0,
+        codigo: variante.codigoBarrasVariante || (variante.producto?.codigoIdentificacion || 'Sin código'),
+        descripcion: variante.producto?.nombre || 'Producto sin nombre',
+        talla: variante.talla?.nombreTalla || 'Única',
+        color: variante.color?.nombre || 'Sin color',
         cantidad: 1,
-        precio: variante.producto.precioUnitario, 
-        total: variante.producto.precioUnitario
+        precio: precioUnitario,
+        total: precioUnitario
       }]);
     }
   };
@@ -763,18 +786,18 @@ const VentasPanel = () => {
                       className="border bg-white rounded-md p-2 sm:p-3 cursor-pointer hover:shadow-lg hover:border-indigo-500 transition-all"
                       onClick={() => handleSeleccionarVarianteDeLista(v)}
                     >
-                      <p className="font-medium text-xs sm:text-sm truncate" title={v.producto.nombre}>{v.producto.nombre}</p>
+                      <p className="font-medium text-xs sm:text-sm truncate" title={v.producto?.nombre || 'Producto sin nombre'}>{v.producto?.nombre || 'Producto sin nombre'}</p>
                       <div className="flex justify-between text-[10px] sm:text-xs">
-                        <span className="text-gray-600">{v.color.nombre}</span>
-                        <span className="text-gray-600">Talla: {v.talla.nombreTalla}</span>
+                        <span className="text-gray-600">{v.color?.nombre || 'Sin color'}</span>
+                        <span className="text-gray-600">Talla: {v.talla?.nombreTalla || 'Única'}</span>
                       </div>
                       <p className="text-[10px] sm:text-xs text-gray-500">
-                        {v.codigoBarrasVariante || v.producto.codigoIdentificacion}
+                        {v.codigoBarrasVariante || (v.producto && v.producto.codigoIdentificacion) || 'Sin código'}
                       </p>
                       <p className={`text-[10px] sm:text-xs font-semibold ${v.cantidad > 5 ? 'text-green-600' : v.cantidad > 0 ? 'text-orange-500' : 'text-red-600'}`}>
-                        Stock: {v.cantidad}
+                        Stock: {v.cantidad || 0}
                       </p>
-                      <p className="text-sm font-semibold text-indigo-600 mt-1">S/{v.producto.precioUnitario.toFixed(2)}</p>
+                      <p className="text-sm font-semibold text-indigo-600 mt-1">S/{(v.producto?.precioUnitario || 0).toFixed(2)}</p>
                     </div>
                   ))}
                 </div>

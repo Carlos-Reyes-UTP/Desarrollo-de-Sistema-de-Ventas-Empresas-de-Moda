@@ -56,11 +56,18 @@ export const useProductoVarianteService = () => {
       
       // Esperamos todas las promesas y aplanamos el array resultante
       const variantesArrays = await Promise.all(variantesPromises);
-      const todasLasVariantes = variantesArrays.flat().filter(variante => 
-        variante && variante.producto && variante.talla && variante.color
+      const todasVariantes = variantesArrays.flat();
+      
+      // Inspeccionar las primeras variantes para diagnóstico
+      console.log("Inspeccionando primeras variantes:", todasVariantes.slice(0, 2));
+      
+      // En lugar de filtrar o modificar las variantes, vamos a ser más permisivos
+      // y simplemente aceptar todas las variantes que tengan un ID, ignorando validaciones complejas
+      const todasLasVariantes = todasVariantes.filter(variante => 
+        variante && (variante.idProductoVariante || variante.idVariante)
       );
       
-      console.log(`Se obtuvieron ${todasLasVariantes.length} variantes válidas de ${variantesArrays.flat().length} totales`);
+      console.log(`Se obtuvieron ${todasLasVariantes.length} variantes válidas de ${todasVariantes.length} totales`);
       return todasLasVariantes;
     } catch (error) {
       console.error("Error al obtener todas las variantes:", error);

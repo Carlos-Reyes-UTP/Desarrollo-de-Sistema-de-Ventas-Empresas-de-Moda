@@ -91,6 +91,19 @@ export const ProductoVarianteService = {    // Crear nueva variante
       console.log(`Obteniendo variantes para producto ID: ${idProducto}`);
       const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.POR_PRODUCTO(idProducto));
       
+      // Imprimir la estructura de las primeras variantes recibidas para diagnóstico
+      if (response.data.length > 0) {
+        const primerVariante = response.data[0];
+        console.log(`Estructura de la primera variante para producto ${idProducto}:`, {
+          idVariante: primerVariante.idVariante,
+          idProductoVariante: primerVariante.idProductoVariante,
+          tieneProducto: !!primerVariante.producto,
+          tieneTalla: !!primerVariante.talla,
+          tieneColor: !!primerVariante.color,
+          propiedadesCompletas: Object.keys(primerVariante)
+        });
+      }
+      
       // Normalizar IDs y eliminar duplicados
       const variantesMapeadas = response.data.map(variante => {
         // Priorizar idProductoVariante como ID principal, sincronizar con idVariante
