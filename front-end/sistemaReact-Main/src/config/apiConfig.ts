@@ -69,6 +69,7 @@ export const RUTAS_VENTAS = {
   DETALLES: (id: number) => `${API_BASE_URL}/api/cajero/ventas/${id}/detalles`,
   POR_FECHA: (fecha: string) => `${API_BASE_URL}/api/cajero/ventas/fecha/${fecha}`,
   POR_CLIENTE: (idCliente: number) => `${API_BASE_URL}/api/cajero/ventas/cliente/${idCliente}`,
+  USUARIO_ACTUAL: `${API_BASE_URL}/api/cajero/ventas/usuario-actual`,
 };
 
 // Rutas de Proveedores

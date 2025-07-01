@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -46,7 +48,6 @@ public class VentaController {
     @PostMapping
     public Venta crearVenta(@RequestBody Map<String, Object> ventaInput) {
         // Extraer datos del mapa de entrada
-        Map<String, Object> usuarioInput = (Map<String, Object>) ventaInput.get("usuario");
         Map<String, Object> clienteInput = (Map<String, Object>) ventaInput.get("cliente");
         Map<String, Object> metodoPagoInput = (Map<String, Object>) ventaInput.get("metodoPago");
         String tipoComprobante = (String) ventaInput.get("tipoComprobante");
@@ -56,10 +57,8 @@ public class VentaController {
         // Crear entidad Venta
         Venta venta = new Venta();
         
-        // Obtener y asignar usuario
-        Long usuarioId = Long.valueOf(usuarioInput.get("id").toString());
-        Usuario usuario = usuarioRepository.findById(usuarioId)
-            .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        // Obtener usuario actual desde el contexto de seguridad (autenticación)
+        Usuario usuario = obtenerUsuarioActualDesdeContexto();
         venta.setUsuario(usuario);
         
         // Obtener y asignar cliente
@@ -132,5 +131,33 @@ public class VentaController {
     @GetMapping("/{id}/detalles")
     public Optional<Venta> obtenerVentaConDetalles(@PathVariable Long id) {
         return ventaService.obtenerVentaConDetalles(id);
+    }
+
+    /**
+     * Obtiene el usuario actual basándose en el contexto de seguridad
+     */
+    @GetMapping("/usuario-actual")
+    public Map<String, Object> obtenerUsuarioActual() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String nombreUsuario = authentication.getName();
+        
+        Usuario usuario = usuarioRepository.findByUsuario(nombreUsuario)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + nombreUsuario));
+        
+        return Map.of(
+            "id", usuario.getId(),
+            "usuario", usuario.getUsuario()
+        );
+    }
+
+    /**
+     * Método helper para obtener el usuario actual desde el contexto de seguridad
+     */
+    private Usuario obtenerUsuarioActualDesdeContexto() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String nombreUsuario = authentication.getName();
+        
+        return usuarioRepository.findByUsuario(nombreUsuario)
+            .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + nombreUsuario));
     }
 }

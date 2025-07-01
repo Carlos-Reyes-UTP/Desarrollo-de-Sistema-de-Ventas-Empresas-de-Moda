@@ -5,7 +5,7 @@ import type { DetalleVenta } from "./DetalleVenta";
 import type { DetalleVentaInput } from "./DetalleVenta";
 
 export interface VentaInput { // Para la creación de una venta
-  usuario: { id: number }; // Solo el ID del usuario
+  // usuario se obtiene automáticamente del contexto de seguridad en el backend
   cliente: { idCliente: number }; // Solo el ID del cliente
   metodoPago: { idMetodoPago: number }; // Solo el ID del método de pago
   tipoComprobante: string;

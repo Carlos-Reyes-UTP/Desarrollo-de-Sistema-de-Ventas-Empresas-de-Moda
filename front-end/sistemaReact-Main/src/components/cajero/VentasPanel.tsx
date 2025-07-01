@@ -398,22 +398,9 @@ const VentasPanel = () => {
     setErrorGlobal(null);
 
     try {
-      // Obtener el ID del usuario actual desde el localStorage o token
-      const token = localStorage.getItem('token');
-      let usuarioId = 1; // valor por defecto
-      
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split('.')[1]));
-          // El payload puede contener el ID del usuario en diferentes campos
-          usuarioId = payload.userId || payload.id || payload.sub || 1;
-          if (typeof usuarioId === 'string') {
-            usuarioId = parseInt(usuarioId) || 1;
-          }
-        } catch (err) {
-          console.warn('No se pudo obtener el ID del usuario del token, usando 1 como default');
-        }
-      }
+      // Obtener el usuario actual desde el backend (ya no necesitamos el ID del token)
+      const usuarioActual = await VentaService.obtenerUsuarioActual();
+      console.log('Usuario actual obtenido:', usuarioActual);
       
       // Primero verificamos si el cliente ya está registrado
       let clienteId = clienteSeleccionado?.idCliente;
@@ -469,9 +456,9 @@ const VentasPanel = () => {
         precioUnitario: item.precio
       }));
       
-      // Creamos el objeto de venta según la interfaz VentaInput
+      // Creamos el objeto de venta según la interfaz VentaInput actualizada
+      // El usuario se obtiene automáticamente del contexto de seguridad en el backend
       const ventaParaEnviar: VentaInput = {
-        usuario: { id: usuarioId }, // Usar el ID obtenido del token
         cliente: { idCliente: clienteId || 1 }, // Usamos el ID obtenido o uno por defecto
         metodoPago: { idMetodoPago: obtenerIdMetodoPago(metodoPago) },
         tipoComprobante: 'BOLETA', // Por defecto
@@ -480,6 +467,7 @@ const VentasPanel = () => {
       };
       
       console.log('Enviando datos de venta final al backend:', ventaParaEnviar);
+      console.log('Usuario actual que realizará la venta:', usuarioActual);
       
       // Registrar la venta usando el servicio
       const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
@@ -508,6 +496,7 @@ const VentasPanel = () => {
       const datosBoletaVista = {
         cliente,
         metodoPago,
+        usuarioVendedor: usuarioActual.usuario, // Incluimos el usuario que realizó la venta
         productos: productosSeleccionadosVenta.map(item => ({
           idProductoVariante: item.idProductoVariante,
           idProducto: item.idProducto,
@@ -584,6 +573,7 @@ const VentasPanel = () => {
         <p><strong>Fecha:</strong> ${fechaFormateada}</p>
         <p><strong>Cliente:</strong> ${cliente || 'Varios'}</p>
         <p><strong>Método Pago:</strong> ${mp.charAt(0).toUpperCase() + mp.slice(1)}</p>
+        <p><strong>Vendedor:</strong> ${datosVentaParaBoleta.usuarioVendedor}</p>
         <hr/>
         <table><thead><tr>
           <th>Cant.</th><th>Descripción</th><th class="text-right">P.U.</th><th class="text-right">Total</th>

@@ -43,4 +43,9 @@ export const VentaService = {
       throw error;
     }
   },
+
+  obtenerUsuarioActual: async (): Promise<{ id: number; usuario: string }> => {
+    const response = await apiClient.get<{ id: number; usuario: string }>(RUTAS_VENTAS.USUARIO_ACTUAL);
+    return response.data;
+  },
 };
