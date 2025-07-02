@@ -778,6 +778,20 @@ const VentasPanel = () => {
     setMetodoPago('');
     setVariantesConPreciosCompletos(new Map());
   };
+
+  // Función para limpiar solo el cliente y carrito (mantener búsqueda de productos)
+  const limpiarCliente = () => {
+    setCliente('');
+    setDocumentoCliente('');
+    setClienteSeleccionado(null);
+    setEsMayorista(false);
+    setVerificandoMayorista(false);
+    setProductosSeleccionadosVenta([]);
+    setVariantesConPreciosCompletos(new Map());
+    setErrorGlobal(null);
+    setMensajeInfoVista('Cliente y carrito limpiados correctamente');
+    setTimeout(() => setMensajeInfoVista(null), 3000);
+  };
   
   // Función auxiliar para obtener el ID de método de pago basado en el string
   const obtenerIdMetodoPago = (metodo: string): number => {
@@ -1383,7 +1397,7 @@ const VentasPanel = () => {
                       esMayorista ? 'text-purple-600' : 'text-green-600'
                     }`} />
                   </div>
-                  <div>
+                  <div className="flex-1">
                     <p className={`font-medium ${
                       esMayorista ? 'text-purple-900' : 'text-green-900'
                     }`}>
@@ -1400,13 +1414,25 @@ const VentasPanel = () => {
                   </div>
                 </div>
                 
-                {esMayorista && (
-                  <div className="flex items-center gap-2 bg-purple-100 px-3 py-1 rounded-full">
-                    <Users className="h-4 w-4 text-purple-600" />
-                    <span className="text-sm font-semibold text-purple-700">MAYORISTA</span>
-                    <span className="text-xs text-purple-600">Precios especiales</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  {esMayorista && (
+                    <div className="flex items-center gap-2 bg-purple-100 px-3 py-1 rounded-full">
+                      <Users className="h-4 w-4 text-purple-600" />
+                      <span className="text-sm font-semibold text-purple-700">MAYORISTA</span>
+                      <span className="text-xs text-purple-600">Precios especiales</span>
+                    </div>
+                  )}
+                  
+                  {/* Botón para limpiar cliente */}
+                  <button
+                    onClick={limpiarCliente}
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors duration-200"
+                    title="Limpiar cliente y carrito"
+                  >
+                    <X className="h-4 w-4" />
+                    <span className="hidden sm:inline">Limpiar</span>
+                  </button>
+                </div>
               </div>
             </div>
           )}
