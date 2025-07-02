@@ -7,7 +7,8 @@ import {
   Crown,
   Loader2,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Trash2
 } from 'lucide-react';
 
 // Importar servicios
@@ -41,11 +42,13 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const [buscandoClientes, setBuscandoClientes] = useState(false);
   const [verificandoMayorista, setVerificandoMayorista] = useState(false);
   const [convirtiendoMayorista, setConvirtiendoMayorista] = useState(false);
+  const [eliminandoMayorista, setEliminandoMayorista] = useState(false);
   
   // Estados de resultado
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState<string | null>(null);
   const [mostrarConfirmacionExito, setMostrarConfirmacionExito] = useState(false);
+  const [mostrarConfirmacionEliminacion, setMostrarConfirmacionEliminacion] = useState(false);
 
   // Función para buscar clientes
   const buscarClientes = useCallback(async (termino: string) => {
@@ -152,6 +155,58 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     }
   };
 
+  // Función para eliminar mayorista
+  const eliminarMayorista = async () => {
+    if (!clienteSeleccionado?.idCliente) return;
+
+    setEliminandoMayorista(true);
+    setError(null);
+    setExito(null);
+
+    try {
+      // Primero obtener el mayorista por documento para conseguir su ID
+      const mayorista = await MayoristaService.obtenerMayoristaPorDocumento(clienteSeleccionado.numeroDocumento);
+      
+      if (!mayorista) {
+        setError('No se encontró el mayorista para eliminar.');
+        return;
+      }
+
+      // Eliminar el mayorista
+      const eliminado = await MayoristaService.eliminarMayorista(mayorista.idMayorista ?? mayorista.idCliente);
+      
+      if (eliminado) {
+        setExito(`¡Mayorista eliminado exitosamente! ${clienteSeleccionado.nombreCliente} ya no es mayorista.`);
+        setEsMayorista(false);
+        setMostrarConfirmacionEliminacion(true);
+        
+        // Ejecutar callback de éxito si existe
+        if (onSuccess) {
+          // Crear un objeto vacío para indicar eliminación
+          onSuccess({} as MayoristaDTO);
+        }
+
+        // Cerrar modal después de 3 segundos
+        setTimeout(() => {
+          resetModal();
+          onClose();
+        }, 3000);
+      } else {
+        setError('No se pudo eliminar el mayorista. Intente nuevamente.');
+      }
+
+    } catch (error: any) {
+      console.error('Error al eliminar mayorista:', error);
+      if (error.response?.status === 404) {
+        setError('No se encontró el mayorista para eliminar.');
+      } else {
+        setError('Error al eliminar mayorista. Intente nuevamente.');
+      }
+    } finally {
+      setEliminandoMayorista(false);
+    }
+  };
+
   // Función para resetear el modal
   const resetModal = () => {
     setSearchTerm('');
@@ -161,9 +216,11 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     setError(null);
     setExito(null);
     setMostrarConfirmacionExito(false);
+    setMostrarConfirmacionEliminacion(false);
     setBuscandoClientes(false);
     setVerificandoMayorista(false);
     setConvirtiendoMayorista(false);
+    setEliminandoMayorista(false);
   };
 
   // Efecto para buscar clientes cuando cambia el término de búsqueda
@@ -231,6 +288,27 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
                 <p className="text-sm text-green-700">
                   <strong>Código de mayorista:</strong> {exito?.split('Código: ')[1]}
+                </p>
+              </div>
+              <div className="flex items-center justify-center text-sm text-gray-500">
+                <Loader2 className="animate-spin mr-2" size={16} />
+                <span>Cerrando automáticamente...</span>
+              </div>
+            </div>
+          ) : mostrarConfirmacionEliminacion ? (
+            <div className="text-center py-8">
+              <div className="mx-auto flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+                <Trash2 className="w-8 h-8 text-red-600" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                ¡Mayorista eliminado exitosamente!
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {clienteSeleccionado?.nombreCliente} ya no es un cliente mayorista
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p className="text-sm text-red-700">
+                  El estatus de mayorista ha sido removido correctamente
                 </p>
               </div>
               <div className="flex items-center justify-center text-sm text-gray-500">
@@ -345,9 +423,29 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                         {/* Estado del mayorista */}
                         <div className="border-t border-gray-200 pt-4">
                           {esMayorista ? (
-                            <div className="flex items-center space-x-2 text-orange-600 bg-orange-50 p-3 rounded-lg">
-                              <AlertCircle size={20} />
-                              <span className="font-medium">Este cliente ya es mayorista</span>
+                            <div className="space-y-3">
+                              <div className="flex items-center space-x-2 text-orange-600 bg-orange-50 p-3 rounded-lg">
+                                <AlertCircle size={20} />
+                                <span className="font-medium">Este cliente ya es mayorista</span>
+                              </div>
+                              {/* Botón para eliminar mayorista */}
+                              <button
+                                onClick={eliminarMayorista}
+                                disabled={eliminandoMayorista || verificandoMayorista}
+                                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {eliminandoMayorista ? (
+                                  <>
+                                    <Loader2 className="animate-spin" size={16} />
+                                    <span>Eliminando...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Trash2 size={16} />
+                                    <span>Eliminar Estatus de Mayorista</span>
+                                  </>
+                                )}
+                              </button>
                             </div>
                           ) : (
                             <div className="flex items-center space-x-2 text-green-600 bg-green-50 p-3 rounded-lg">
@@ -389,14 +487,14 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                     onClose();
                   }}
                   className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-                  disabled={convirtiendoMayorista}
+                  disabled={convirtiendoMayorista || eliminandoMayorista}
                 >
                   Cancelar
                 </button>
                 
                 <button
                   onClick={convertirAMayorista}
-                  disabled={!clienteSeleccionado || esMayorista || convirtiendoMayorista || !!exito}
+                  disabled={!clienteSeleccionado || esMayorista || convirtiendoMayorista || eliminandoMayorista || !!exito}
                   className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                 >
                   {convirtiendoMayorista ? (

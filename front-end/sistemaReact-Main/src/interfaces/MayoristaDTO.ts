@@ -1,4 +1,5 @@
 export interface MayoristaDTO {
+  idMayorista?: number; // ID único del mayorista para operaciones como eliminar
   idCliente: number;
   codigoMayorista: string;
   nombreCliente: string;
