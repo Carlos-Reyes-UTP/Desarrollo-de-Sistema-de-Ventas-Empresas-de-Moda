@@ -28,7 +28,7 @@ const DashboardAdmin = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
   
   // Estados para los datos
-  const [periodo, setPeriodo] = useState('hoy');
+  const [periodo] = useState('semana'); // Fijo en semana
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -122,7 +122,6 @@ const DashboardAdmin = () => {
         
         // Cargar usuarios con roles
         const usuariosResponse = await ServicioUsuarios.obtenerUsuariosConRoles();
-        console.log('Usuarios con roles obtenidos:', usuariosResponse);
         
         // Convertir usuarios del backend al formato del frontend
         const usuariosData: Usuario[] = Array.isArray(usuariosResponse) 
@@ -138,7 +137,6 @@ const DashboardAdmin = () => {
             }))
           : [];
         
-        console.log('Usuarios convertidos para frontend:', usuariosData);
         setUsuarios(usuariosData);
         
         // Cargar proveedores
@@ -403,7 +401,7 @@ const DashboardAdmin = () => {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      {/* Cabecera con título y selector de período */}
+      {/* Cabecera con título */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -414,33 +412,6 @@ const DashboardAdmin = () => {
           </div>
           <p className="text-gray-500 mt-1">{obtenerFecha()}</p>
         </div>
-        
-        <div className="bg-white border border-gray-200 rounded-lg flex p-1 shadow-sm">
-          <button 
-            className={`px-3 py-1.5 text-sm font-medium rounded-md ${
-              periodo === 'hoy' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
-            }`}
-            onClick={() => setPeriodo('hoy')}
-          >
-            Hoy
-          </button>
-          <button 
-            className={`px-3 py-1.5 text-sm font-medium rounded-md ${
-              periodo === 'semana' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
-            }`}
-            onClick={() => setPeriodo('semana')}
-          >
-            Esta semana
-          </button>
-          <button 
-            className={`px-3 py-1.5 text-sm font-medium rounded-md ${
-              periodo === 'mes' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-gray-100'
-            }`}
-            onClick={() => setPeriodo('mes')}
-          >
-            Este mes
-          </button>
-        </div>
       </div>
 
       {/* Sección de métricas */}
@@ -448,7 +419,7 @@ const DashboardAdmin = () => {
         <TarjetaMetrica 
           titulo="Ventas totales" 
           valor={`S/ ${metricasVenta.totalVentas.toFixed(2)}`}
-          descripcion={periodo === 'hoy' ? 'Ventas del día' : periodo === 'semana' ? 'Ventas de la semana' : 'Ventas del mes'}
+          descripcion="Ventas de la semana"
           icono={<DollarSign size={20} className="text-green-600" />}
           tendencia={{ valor: "8.2%", positiva: true }}
         />
@@ -479,11 +450,11 @@ const DashboardAdmin = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
         <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Ventas del periodo</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Ventas de la semana</h2>
             <div className="flex gap-4">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 mr-2 shadow-sm"></div>
-                <span className="text-xs text-gray-600 font-medium">Ventas ({periodo})</span>
+                <span className="text-xs text-gray-600 font-medium">Ventas (semana)</span>
               </div>
               <div className="flex items-center text-xs text-gray-500">
                 Total: S/{metricasVenta.totalVentas.toFixed(2)}
@@ -502,11 +473,7 @@ const DashboardAdmin = () => {
                     </svg>
                   </div>
                   <p className="text-gray-500 text-sm">No hay datos de ventas para mostrar</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    {periodo === 'hoy' ? 'Aún no hay ventas hoy' : 
-                     periodo === 'semana' ? 'No hay ventas esta semana' : 
-                     'No hay ventas este mes'}
-                  </p>
+                  <p className="text-gray-400 text-xs mt-1">No hay ventas esta semana</p>
                 </div>
               </div>
             ) : (
@@ -613,13 +580,9 @@ const DashboardAdmin = () => {
               { rol: 'ALMACENERO', icono: '📦', color: 'blue', nombre: 'Almaceneros' },
               { rol: 'CAJERO', icono: '💰', color: 'purple', nombre: 'Cajeros' }
             ].map(({ rol, icono, color, nombre }) => {
-              const usuariosConRol = usuarios.filter(u => {
-                const tieneRol = u.roles && u.roles.some(r => r.nombreRol === rol);
-                console.log(`Usuario ${u.usuario} - Roles:`, u.roles, `- Tiene rol ${rol}:`, tieneRol);
-                return tieneRol;
-              });
-              
-              console.log(`Usuarios con rol ${rol}:`, usuariosConRol.length, usuariosConRol);
+              const usuariosConRol = usuarios.filter(u => 
+                u.roles && u.roles.some(r => r.nombreRol === rol)
+              );
               
               const porcentaje = usuarios.length > 0 
                 ? (usuariosConRol.length / usuarios.length) * 100 
