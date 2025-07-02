@@ -17,6 +17,7 @@ import { ServicioUsuarios } from '../services/UsuarioServices';
 import { ProveedorService } from '../services/ProveedorServices';
 import { useAuthReady } from '../hooks/useAuthReady';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
+import ModalHacerMayorista from '../components/mayoristas/ModalHacerMayorista';
 
 // Importar tipos
 import type { Producto } from '../interfaces/Producto';
@@ -51,6 +52,9 @@ const DashboardAdmin = () => {
   
   // Estados para los gráficos
   const [datosVentas, setDatosVentas] = useState<number[]>([]);
+  
+  // Estado para el modal de mayorista
+  const [modalMayoristaAbierto, setModalMayoristaAbierto] = useState(false);
   
   // Estados para top clientes
   const [topClientes, setTopClientes] = useState<{id: number, nombre: string, totalCompras: number}[]>([]);
@@ -751,7 +755,10 @@ const DashboardAdmin = () => {
             {/* Botón para hacer mayorista un cliente */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex justify-center">
-                <button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center space-x-2">
+                <button 
+                  onClick={() => setModalMayoristaAbierto(true)}
+                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
+                >
                   <Users size={18} />
                   <span>Hacer mayorista un cliente</span>
                 </button>
@@ -872,6 +879,16 @@ const DashboardAdmin = () => {
           </button>
         </div>
       </div>
+      
+      {/* Modal para hacer mayorista un cliente */}
+      <ModalHacerMayorista
+        isOpen={modalMayoristaAbierto}
+        onClose={() => setModalMayoristaAbierto(false)}
+        onSuccess={() => {
+          setModalMayoristaAbierto(false);
+          // Opcional: recargar datos si es necesario
+        }}
+      />
     </div>
   );
 };
