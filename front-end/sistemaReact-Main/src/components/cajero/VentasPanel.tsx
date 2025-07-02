@@ -23,7 +23,7 @@ const VentasPanel = () => {
   // A. ESTADO DEL COMPONENTE
   // --------------------------------------------------------------------------------------------
   const [busqueda, setBusqueda] = useState('');
-  const [tipoBusqueda, setTipoBusqueda] = useState<'nombre' | 'codigo'>('nombre');
+  const [tipoBusqueda, setTipoBusqueda] = useState<'nombre' | 'codigo'>('codigo');
   const [cliente, setCliente] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [esMayorista, setEsMayorista] = useState(false);
@@ -1295,20 +1295,6 @@ const VentasPanel = () => {
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div>
-              <label htmlFor="clienteInput" className="block mb-2 text-sm font-medium text-gray-700">
-                Nombre del Cliente:
-              </label>
-              <input 
-                id="clienteInput" 
-                type="text" 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                value={cliente} 
-                onChange={(e) => setCliente(e.target.value)} 
-                placeholder="Ingrese el nombre del cliente..." 
-              />
-            </div>
-            
-            <div>
               <label htmlFor="documentoClienteInput" className="block mb-2 text-sm font-medium text-gray-700">
                 Documento del Cliente:
               </label>
@@ -1379,6 +1365,20 @@ const VentasPanel = () => {
                   </p>
                 ) : null
               )}
+            </div>
+            
+            <div>
+              <label htmlFor="clienteInput" className="block mb-2 text-sm font-medium text-gray-700">
+                Nombre del Cliente:
+              </label>
+              <input 
+                id="clienteInput" 
+                type="text" 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                value={cliente} 
+                onChange={(e) => setCliente(e.target.value)} 
+                placeholder="Ingrese el nombre del cliente..." 
+              />
             </div>
           </div>
           
