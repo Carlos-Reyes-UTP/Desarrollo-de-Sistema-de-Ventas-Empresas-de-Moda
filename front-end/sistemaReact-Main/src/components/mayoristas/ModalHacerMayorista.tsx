@@ -4,8 +4,6 @@ import {
   X, 
   User, 
   FileText, 
-  Phone, 
-  Calendar,
   Crown,
   Loader2,
   CheckCircle,
@@ -57,7 +55,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     setError(null);
 
     try {
-      // Buscar por documento primero
+      // Buscar por documento primero (silencioso si no encuentra)
       const clientePorDocumento = await ClienteService.obtenerClientePorDocumento(termino);
       
       if (clientePorDocumento) {
@@ -87,7 +85,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       const esMayoristaResult = await MayoristaService.esMayorista(cliente.numeroDocumento);
       setEsMayorista(esMayoristaResult);
     } catch (error) {
-      console.error('Error al verificar mayorista:', error);
+      // Error silencioso - asumimos que no es mayorista si hay error
+      console.warn('No se pudo verificar el estado de mayorista:', error);
       setEsMayorista(false);
     } finally {
       setVerificandoMayorista(false);
@@ -104,7 +103,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
   // Función para convertir a mayorista
   const convertirAMayorista = async () => {
-    if (!clienteSeleccionado || clienteSeleccionado.idCliente === undefined) return;
+    if (!clienteSeleccionado?.idCliente) return;
 
     setConvirtiendoMayorista(true);
     setError(null);

@@ -104,7 +104,7 @@ apiClient.interceptors.response.use(
       }
 
       // Otros estados
-      if (status !== 401 && status < 500) {
+      if (status !== 401 && status !== 404 && status < 500) {
         console.error(`Error ${status}:`, error.response.data?.message || error.response.data?.error || 'Error en la solicitud');
       }
     } else if (error.request) {
