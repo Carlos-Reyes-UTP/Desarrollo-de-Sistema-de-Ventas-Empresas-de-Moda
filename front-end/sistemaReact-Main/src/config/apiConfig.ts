@@ -191,3 +191,12 @@ export const RUTAS_CODIGOS_BARRAS_V1 = {
   GENERAR_VARIANTE: (idVariante: number) => `${API_BASE_URL}/api/v1/codigos-barras/generar/variante/${idVariante}`,
 };
 
+// Rutas de Mayoristas
+export const RUTAS_MAYORISTAS = {
+  BASE: `${API_BASE_URL}/api/admin/mayoristas`,
+  POR_ID: (id: number) => `${API_BASE_URL}/api/admin/mayoristas/${id}`,
+  POR_CODIGO: (codigo: string) => `${API_BASE_URL}/api/admin/mayoristas/codigo/${encodeURIComponent(codigo)}`,
+  POR_DOCUMENTO: (numeroDocumento: string) => `${API_BASE_URL}/api/admin/mayoristas/documento/${encodeURIComponent(numeroDocumento)}`,
+  CREAR_DE_CLIENTE: (idCliente: number) => `${API_BASE_URL}/api/admin/mayoristas/cliente/${idCliente}`,
+};
+
