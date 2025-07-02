@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import { ClienteService } from '../../services/ClienteServices';
 import { VentaService } from '../../services/VentaServices';
 import { ProductoService } from '../../services/ProductoServices';
+import { MayoristaService } from '../../services/MayoristaService';
 import type { ProductoVenta } from '../../interfaces/Producto';
 import type { ProductoVariante } from '../../interfaces/ProductoVariante';
 import type { Cliente } from '../../interfaces/Cliente';
@@ -25,6 +26,8 @@ const VentasPanel = () => {
   const [tipoBusqueda, setTipoBusqueda] = useState<'nombre' | 'codigo'>('nombre');
   const [cliente, setCliente] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
+  const [esMayorista, setEsMayorista] = useState(false);
+  const [verificandoMayorista, setVerificandoMayorista] = useState(false);
   const [documentoCliente, setDocumentoCliente] = useState('');
   const [tipoDocumento, setTipoDocumento] = useState<'DNI' | 'RUC'>('DNI');
   
@@ -119,6 +122,31 @@ const VentasPanel = () => {
     }
   }, [busqueda, tipoBusqueda, variantesCargadas, cargandoProductosIniciales, cargandoBusquedaAccion]);
 
+  // Efecto para recalcular precios del carrito cuando cambia el estado de mayorista
+  useEffect(() => {
+    if (productosSeleccionadosVenta.length > 0) {
+      console.log('🔄 Recalculando precios del carrito - Cliente mayorista:', esMayorista);
+      
+      setProductosSeleccionadosVenta(prev => prev.map(item => {
+        // Obtener la variante con precios completos
+        const varianteCompleta = variantesConPreciosCompletos.get(item.idProductoVariante);
+        
+        if (varianteCompleta) {
+          // Calcular nuevo precio según el estado de mayorista
+          const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteCompleta, item.cantidad);
+          
+          return {
+            ...item,
+            precio: nuevoPrecio,
+            total: item.cantidad * nuevoPrecio
+          };
+        }
+        
+        return item;
+      }));
+    }
+  }, [esMayorista]); // Se ejecuta cuando cambia el estado de mayorista
+
   // --------------------------------------------------------------------------------------------
   // C. MANEJADORES DE LÓGICA DE PRODUCTOS Y VENTA
   // --------------------------------------------------------------------------------------------
@@ -136,6 +164,17 @@ const VentasPanel = () => {
     const precioMediaDocena = producto.precioMediaDocena;
     const precioDocena = producto.precioDocena;
     
+    // ⭐ LÓGICA ESPECIAL PARA MAYORISTAS
+    // Si el cliente es mayorista, siempre usar precio de docena si existe
+    if (esMayorista && precioDocena != null && precioDocena > 0) {
+      return {
+        precio: precioDocena,
+        precioOriginal: precioUnitario,
+        tipoDescuento: 'mayorista'
+      };
+    }
+    
+    // LÓGICA NORMAL PARA CLIENTES REGULARES
     // Si es 12 o más unidades y existe precio por docena
     if (cantidad >= 12 && precioDocena != null && precioDocena > 0) {
       return {
@@ -174,6 +213,8 @@ const VentasPanel = () => {
   // Función para obtener el texto del tipo de descuento
   const obtenerTextoDescuento = (tipoDescuento: string | null, cantidad: number) => {
     switch (tipoDescuento) {
+      case 'mayorista':
+        return `Precio mayorista (${cantidad} unid.)`;
       case 'docena':
         return `Precio por docena (${cantidad} unid.)`;
       case 'mediaDocena':
@@ -276,9 +317,31 @@ const VentasPanel = () => {
       setMensajeInfoVista(null);
     } finally {
       setCargandoBusquedaAccion(false);
+    }  };
+  
+  // Función para verificar si un cliente es mayorista
+  const verificarEsMayorista = async (numeroDocumento: string) => {
+    setVerificandoMayorista(true);
+    try {
+      console.log('🔍 Verificando si el cliente es mayorista:', numeroDocumento);
+      const resultado = await MayoristaService.esMayorista(numeroDocumento);
+      setEsMayorista(resultado);
+      
+      if (resultado) {
+        console.log('👑 Cliente es MAYORISTA - Aplicando precios de docena');
+        setMensajeInfoVista('✨ Cliente mayorista detectado - Precios especiales aplicados');
+        setTimeout(() => setMensajeInfoVista(null), 4000);
+      } else {
+        console.log('👤 Cliente regular - Precios normales');
+      }
+    } catch (error) {
+      console.warn('Error al verificar mayorista:', error);
+      setEsMayorista(false);
+    } finally {
+      setVerificandoMayorista(false);
     }
   };
-
+  
   const handleBuscarCliente = async () => {
     if (!documentoCliente.trim()) {
       setErrorGlobal("Ingrese un número de documento para buscar al cliente.");
@@ -324,6 +387,10 @@ const VentasPanel = () => {
         setClienteSeleccionado(clienteEncontrado);
         setCliente(clienteEncontrado.nombreCliente);
         setMensajeInfoVista(`Cliente encontrado: ${clienteEncontrado.nombreCliente}`);
+        
+        // Verificar si el cliente es mayorista
+        await verificarEsMayorista(clienteEncontrado.numeroDocumento);
+        
         setTimeout(() => setMensajeInfoVista(null), 3000);
       } else {
         setErrorGlobal("Cliente no encontrado. ¿Desea registrarlo?");
@@ -343,6 +410,12 @@ const VentasPanel = () => {
     setCargandoAgregarProducto(true);
     
     try {
+      // Verificar que hay un cliente seleccionado antes de agregar productos
+      if (!clienteSeleccionado) {
+        setErrorGlobal('⚠️ Debe seleccionar un cliente antes de agregar productos al carrito.');
+        return;
+      }
+
       // Asegurarnos que la variante tiene cantidad y no está agotada
       const cantidad = variante.cantidad || 0;
       if (cantidad <= 0) {
@@ -698,6 +771,8 @@ const VentasPanel = () => {
     setCliente('');
     setDocumentoCliente('');
     setClienteSeleccionado(null);
+    setEsMayorista(false);
+    setVerificandoMayorista(false);
     setBusqueda('');
     setProductosSeleccionadosVenta([]);
     setMetodoPago('');
@@ -1294,17 +1369,44 @@ const VentasPanel = () => {
           </div>
           
           {clienteSeleccionado && (
-            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2">
-                <div className="p-1 bg-green-100 rounded-full">
-                  <CheckCircle className="h-4 w-4 text-green-600" />
+            <div className={`mt-4 p-4 rounded-lg border ${
+              esMayorista 
+                ? 'bg-gradient-to-r from-purple-50 to-indigo-50 border-purple-200' 
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-1 rounded-full ${
+                    esMayorista ? 'bg-purple-100' : 'bg-green-100'
+                  }`}>
+                    <CheckCircle className={`h-4 w-4 ${
+                      esMayorista ? 'text-purple-600' : 'text-green-600'
+                    }`} />
+                  </div>
+                  <div>
+                    <p className={`font-medium ${
+                      esMayorista ? 'text-purple-900' : 'text-green-900'
+                    }`}>
+                      Cliente encontrado
+                      {verificandoMayorista && (
+                        <Loader2 className="inline ml-2 animate-spin h-3 w-3" />
+                      )}
+                    </p>
+                    <p className={`text-sm ${
+                      esMayorista ? 'text-purple-700' : 'text-green-700'
+                    }`}>
+                      {clienteSeleccionado.nombreCliente} - Tipo: {clienteSeleccionado.tipoCliente}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-green-900">Cliente encontrado</p>
-                  <p className="text-sm text-green-700">
-                    {clienteSeleccionado.nombreCliente} - Tipo: {clienteSeleccionado.tipoCliente}
-                  </p>
-                </div>
+                
+                {esMayorista && (
+                  <div className="flex items-center gap-2 bg-purple-100 px-3 py-1 rounded-full">
+                    <Users className="h-4 w-4 text-purple-600" />
+                    <span className="text-sm font-semibold text-purple-700">MAYORISTA</span>
+                    <span className="text-xs text-purple-600">Precios especiales</span>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1404,6 +1506,24 @@ const VentasPanel = () => {
                   </button>
                 </div>
               </div>
+              
+              {/* Mensaje de advertencia cuando no hay cliente seleccionado */}
+              {!clienteSeleccionado && (
+                <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 rounded-full">
+                      <AlertCircle className="h-5 w-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-amber-900">Cliente requerido</h3>
+                      <p className="text-sm text-amber-700">
+                        Debe seleccionar un cliente antes de agregar productos al carrito.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              
               {/* Lista de productos con diseño mejorado */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 min-h-[300px] max-h-96 overflow-y-auto">
                 {cargandoProductosIniciales ? (
@@ -1422,19 +1542,39 @@ const VentasPanel = () => {
                     {variantesFiltradas.map(v => (
                       <div
                         key={v.idProductoVariante} 
-                        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-lg hover:border-blue-300 transition-all group transform hover:scale-105"
-                        onClick={() => handleSeleccionarVarianteDeLista(v)}
+                        className={`bg-white border border-gray-200 rounded-lg p-4 transition-all ${
+                          clienteSeleccionado 
+                            ? 'cursor-pointer hover:shadow-lg hover:border-blue-300 group transform hover:scale-105' 
+                            : 'cursor-not-allowed opacity-60 bg-gray-50'
+                        }`}
+                        onClick={() => {
+                          if (clienteSeleccionado) {
+                            handleSeleccionarVarianteDeLista(v);
+                          }
+                        }}
                       >
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <h3 className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-blue-600 transition-colors line-clamp-2" title={v.producto?.nombre ?? 'Producto sin nombre'}>
+                            <h3 className={`font-semibold text-sm mb-1 transition-colors line-clamp-2 ${
+                              clienteSeleccionado 
+                                ? 'text-gray-900 group-hover:text-blue-600' 
+                                : 'text-gray-500'
+                            }`} title={v.producto?.nombre ?? 'Producto sin nombre'}>
                               {v.producto?.nombre ?? 'Producto sin nombre'}
                             </h3>
                             <div className="flex flex-wrap gap-2 text-xs">
-                              <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                              <span className={`px-2 py-1 rounded-full ${
+                                clienteSeleccionado 
+                                  ? 'bg-gray-100 text-gray-700' 
+                                  : 'bg-gray-200 text-gray-500'
+                              }`}>
                                 {v.color?.nombre ?? 'Sin color'}
                               </span>
-                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                              <span className={`px-2 py-1 rounded-full ${
+                                clienteSeleccionado 
+                                  ? 'bg-blue-100 text-blue-700' 
+                                  : 'bg-gray-200 text-gray-500'
+                              }`}>
                                 Talla {v.talla?.nombreTalla ?? 'Única'}
                               </span>
                             </div>
@@ -1442,31 +1582,41 @@ const VentasPanel = () => {
                         </div>
                         
                         <div className="space-y-2">
-                          <p className="text-xs text-gray-500 font-mono">
+                          <p className={`text-xs font-mono ${
+                            clienteSeleccionado ? 'text-gray-500' : 'text-gray-400'
+                          }`}>
                             {v.codigoBarrasVariante ?? v.producto?.codigoIdentificacion ?? 'Sin código'}
                           </p>
                           
                           <div className="flex justify-between items-center">
                             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                              v.cantidad > 5 
-                                ? 'bg-green-100 text-green-700' 
-                                : v.cantidad > 0 
-                                  ? 'bg-yellow-100 text-yellow-700' 
-                                  : 'bg-red-100 text-red-700'
+                              !clienteSeleccionado 
+                                ? 'bg-gray-200 text-gray-500'
+                                : v.cantidad > 5 
+                                  ? 'bg-green-100 text-green-700' 
+                                  : v.cantidad > 0 
+                                    ? 'bg-yellow-100 text-yellow-700' 
+                                    : 'bg-red-100 text-red-700'
                             }`}>
                               Stock: {v.cantidad ?? 0}
                             </span>
                             
-                            <span className="text-sm font-bold text-blue-600">
+                            <span className={`text-sm font-bold ${
+                              clienteSeleccionado ? 'text-blue-600' : 'text-gray-400'
+                            }`}>
                               S/{(v.producto?.precioUnitario ?? 0).toFixed(2)}
                             </span>
                           </div>
                         </div>
                         
                         <div className="mt-3 pt-3 border-t border-gray-100">
-                          <div className="flex items-center justify-center text-xs text-blue-600 font-medium group-hover:text-blue-700">
+                          <div className={`flex items-center justify-center text-xs font-medium ${
+                            clienteSeleccionado 
+                              ? 'text-blue-600 group-hover:text-blue-700' 
+                              : 'text-gray-400'
+                          }`}>
                             <DollarSign size={14} className="mr-1" />
-                            Agregar al carrito
+                            {clienteSeleccionado ? 'Agregar al carrito' : 'Selecciona un cliente primero'}
                           </div>
                         </div>
                       </div>
