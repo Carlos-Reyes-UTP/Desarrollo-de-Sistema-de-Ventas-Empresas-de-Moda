@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2 } from 'lucide-react';
+import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Users } from 'lucide-react';
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
 import { useAuthReady } from '../../hooks/useAuthReady';
 import { useAuth } from '../../context/AuthContext';
@@ -756,25 +756,77 @@ const VentasPanel = () => {
   // E. DEFINICIÓN DE MÉTODOS DE PAGO (Para la UI)
   // --------------------------------------------------------------------------------------------
   const paymentMethods = [
-    { id: 'efectivo', name: 'Efectivo', icon: <DollarSign size={18} className="mr-1 sm:mr-2"/> },
-    { id: 'tarjeta', name: 'Tarjeta', icon: <CreditCard size={18} className="mr-1 sm:mr-2"/> },
-    { id: 'yape', name: 'Yape', icon: <Smartphone size={18} className="mr-1 sm:mr-2"/> },
-    { id: 'plin', name: 'Plin', icon: <Smartphone size={18} className="mr-1 sm:mr-2"/> },
+    { 
+      id: 'efectivo', 
+      name: 'Efectivo', 
+      icon: (isSelected: boolean) => (
+        <DollarSign size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+      )
+    },
+    { 
+      id: 'tarjeta', 
+      name: 'Tarjeta', 
+      icon: (isSelected: boolean) => (
+        <CreditCard size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+      )
+    },
+    { 
+      id: 'yape', 
+      name: 'Yape', 
+      icon: (isSelected: boolean) => (
+        <Smartphone size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+      )
+    },
+    { 
+      id: 'plin', 
+      name: 'Plin', 
+      icon: (isSelected: boolean) => (
+        <Smartphone size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+      )
+    },
   ];
 
   // --------------------------------------------------------------------------------------------
   // F. RENDERIZADO DEL COMPONENTE (JSX)
   // --------------------------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-gray-100 p-2 sm:p-4">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      {/* Cabecera del Panel de Ventas */}
+      <div className="max-w-7xl mx-auto mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <DollarSign className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Sistema de Ventas</h1>
+                <p className="text-sm text-gray-600 mt-1">Gestiona las ventas y procesa pagos</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+              Cajero Activo
+            </span>
+          </div>
+        </div>
+      </div>
+
       {/* Notificación Global de Errores */}
       {errorGlobal && (
-        <div className="fixed top-4 right-4 z-[100] mb-4 p-3 bg-red-100 border-l-4 border-red-500 text-red-700 text-sm shadow-lg rounded-md w-auto max-w-md">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 text-red-500 flex-shrink-0" />
-            <span className="flex-grow">{errorGlobal}</span>
-            <button onClick={() => setErrorGlobal(null)} className="ml-2 text-red-500 hover:text-red-700 flex-shrink-0">
-              <X size={18} />
+        <div className="fixed top-4 right-4 z-[100] mb-4 p-4 bg-red-50 border border-red-200 text-red-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
+          <div className="flex items-start">
+            <div className="p-1 bg-red-100 rounded-lg mr-3 flex-shrink-0">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+            </div>
+            <div className="flex-grow">
+              <h4 className="font-medium text-red-900 mb-1">Error</h4>
+              <span className="text-red-700">{errorGlobal}</span>
+            </div>
+            <button onClick={() => setErrorGlobal(null)} className="ml-2 text-red-400 hover:text-red-600 flex-shrink-0 p-1 rounded-lg hover:bg-red-100 transition-colors">
+              <X size={16} />
             </button>
           </div>
         </div>
@@ -782,39 +834,67 @@ const VentasPanel = () => {
       
       {/* Notificación Global de Información */}
       {mensajeInfoVista && ( 
-         <div className="fixed top-16 right-4 z-[100] mb-4 p-3 bg-blue-100 border-l-4 border-blue-500 text-blue-700 text-sm shadow-lg rounded-md w-auto max-w-md animate-pulse">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" /> 
-            <span className="flex-grow">{mensajeInfoVista}</span>
-            <button onClick={() => setMensajeInfoVista(null)} className="ml-2 text-blue-500 hover:text-blue-700 flex-shrink-0">
-              <X size={18} />
+         <div className="fixed top-20 right-4 z-[100] mb-4 p-4 bg-blue-50 border border-blue-200 text-blue-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
+          <div className="flex items-start">
+            <div className="p-1 bg-blue-100 rounded-lg mr-3 flex-shrink-0">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+            </div>
+            <div className="flex-grow">
+              <h4 className="font-medium text-blue-900 mb-1">Información</h4>
+              <span className="text-blue-700">{mensajeInfoVista}</span>
+            </div>
+            <button onClick={() => setMensajeInfoVista(null)} className="ml-2 text-blue-400 hover:text-blue-600 flex-shrink-0 p-1 rounded-lg hover:bg-blue-100 transition-colors">
+              <X size={16} />
             </button>
           </div>
         </div>
       )}
 
-      {/* MODALES */}
+      {/* MODALES MEJORADOS */}
       {mostrarModalQR && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-6 rounded-lg shadow-xl text-center max-w-sm w-full">
-            <h3 className="text-xl font-semibold mb-2">Pagar con {qrDataModal.tipo}</h3>
-            <p className="text-gray-600 mb-4">Escanee el código QR para pagar <span className="font-bold">S/{totalGeneralVenta.toFixed(2)}</span>.</p>
-            <div className="flex justify-center my-4">
-              {/* Usando la librería estándar de QR (necesitarás importar la correcta) */}
+        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full animate-scaleIn">
+            <div className="mb-6">
+              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                <Smartphone className="w-8 h-8 text-blue-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Pagar con {qrDataModal.tipo}</h3>
+              <p className="text-gray-600">Escanea el código QR para pagar</p>
+              <p className="text-2xl font-bold text-blue-600 mt-2">S/{totalGeneralVenta.toFixed(2)}</p>
+            </div>
+            
+            <div className="bg-white p-4 rounded-xl border-2 border-gray-100 mb-6">
               <img 
                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrDataModal.url)}`} 
                 alt="QR Code"
-                className="border rounded"
+                className="w-full h-auto rounded-lg"
               />
             </div>
-            <p className="text-xs text-gray-500 mb-4">Escanee con la aplicación {qrDataModal.tipo}.</p>
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setMostrarModalQR(false)} className="w-1/2 py-2 px-4 border rounded-md hover:bg-gray-100">Cancelar</button>
+            
+            <p className="text-sm text-gray-500 mb-6">
+              Abre la aplicación {qrDataModal.tipo} y escanea el código
+            </p>
+            
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setMostrarModalQR(false)} 
+                className="flex-1 py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancelar
+              </button>
               <button 
                 onClick={ejecutarFinalizacionVenta} 
                 disabled={cargandoProcesoVenta}
-                className="w-1/2 py-2 px-4 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 flex items-center justify-center">
-                {cargandoProcesoVenta ? <Loader2 className="animate-spin mr-2"/> : <CheckCircle className="mr-2"/>} Confirmar Pago
+                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-400 transition-colors font-medium flex items-center justify-center gap-2"
+              >
+                {cargandoProcesoVenta ? (
+                  <Loader2 className="animate-spin w-5 h-5"/>
+                ) : (
+                  <>
+                    <CheckCircle className="w-5 h-5"/>
+                    Confirmar
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -822,18 +902,51 @@ const VentasPanel = () => {
       )}
 
       {mostrarModalBoleta && datosVentaParaBoleta && (
-         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
-            <div className="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+         <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full animate-scaleIn">
                 <div className="text-center">
-                    <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-                    <h3 className="text-2xl font-semibold text-gray-800 mb-2">¡Venta Registrada Exitosamente!</h3>
-                    <p className="text-gray-600 mb-1">Cliente: <span className="font-medium">{datosVentaParaBoleta.cliente}</span></p>
-                    <p className="text-gray-600 mb-4">Total Pagado: <span className="font-bold text-lg">S/{datosVentaParaBoleta.totalGeneral.toFixed(2)}</span></p>
+                    <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
+                      <CheckCircle className="w-8 h-8 text-green-600" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">¡Venta Completada!</h3>
+                    
+                    <div className="bg-gray-50 rounded-xl p-4 mb-6">
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Cliente:</span>
+                          <span className="font-medium text-gray-900">{datosVentaParaBoleta.cliente}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Método de pago:</span>
+                          <span className="font-medium text-gray-900 capitalize">{datosVentaParaBoleta.metodoPago}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Vendedor:</span>
+                          <span className="font-medium text-gray-900">{datosVentaParaBoleta.usuarioVendedor}</span>
+                        </div>
+                        <div className="border-t border-gray-200 pt-2 mt-3">
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gray-900">Total Pagado:</span>
+                            <span className="text-2xl font-bold text-green-600">S/{datosVentaParaBoleta.totalGeneral.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                 </div>
-                <div className="mt-6 flex flex-col sm:flex-row gap-3">
-                    <button onClick={() => setMostrarModalBoleta(false)} className="w-full sm:w-1/2 py-2.5 px-4 border rounded-md hover:bg-gray-100">Cerrar</button>
-                    <button onClick={handleImprimirBoleta} className="w-full sm:w-1/2 py-2.5 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center justify-center">
-                        <Printer size={18} className="mr-2"/> Imprimir Boleta
+                
+                <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={handleImprimirBoleta} 
+                      className="w-full py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                    >
+                        <Printer className="w-5 h-5"/>
+                        Imprimir Boleta
+                    </button>
+                    <button 
+                      onClick={() => setMostrarModalBoleta(false)} 
+                      className="w-full py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                    >
+                        Cerrar
                     </button>
                 </div>
             </div>
@@ -841,290 +954,496 @@ const VentasPanel = () => {
       )}
       
       {/* LAYOUT PRINCIPAL DE LA PÁGINA */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-5 p-3 sm:p-4 bg-white rounded-lg shadow">
-        <div>
-          <label htmlFor="clienteInput" className="block mb-1 text-sm font-medium text-gray-700">Cliente:</label>
-          <input 
-            id="clienteInput" 
-            type="text" 
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-            value={cliente} 
-            onChange={(e) => setCliente(e.target.value)} 
-            placeholder="Nombre del cliente (Ej: Juan Pérez)" 
-          />
-        </div>
-        <div className="flex items-end">
-          <div className="flex-grow">
-            <label htmlFor="documentoClienteInput" className="block mb-1 text-sm font-medium text-gray-700">Documento Cliente:</label>
-            <div className="flex">
-              <select 
-                className="px-2 py-2 border border-gray-300 border-r-0 rounded-l-md focus:ring-indigo-500 focus:border-indigo-500"
-                value={tipoDocumento}
-                onChange={(e) => {
-                  setTipoDocumento(e.target.value as 'DNI' | 'RUC');
-                  setDocumentoCliente(''); // Limpiar el documento al cambiar el tipo
-                  setErrorGlobal(null);
-                }}
-              >
-                <option value="DNI">DNI</option>
-                <option value="RUC">RUC</option>
-              </select>
-              <input 
-                id="documentoClienteInput" 
-                type="text" 
-                className={`w-full px-3 py-2 border border-gray-300 rounded-none focus:ring-indigo-500 focus:border-indigo-500 ${
-                  documentoCliente && 
-                  ((tipoDocumento === 'DNI' && (documentoCliente.length !== 8 || !/^\d+$/.test(documentoCliente))) || 
-                   (tipoDocumento === 'RUC' && (documentoCliente.length !== 11 || !/^\d+$/.test(documentoCliente)))) 
-                  ? 'border-red-500 focus:ring-red-500 focus:border-red-500' 
-                  : ''
-                }`}
-                value={documentoCliente} 
-                onChange={(e) => {
-                  const value = e.target.value;
-                  
-                  // Solo permitir números en el input
-                  if (value === '' || /^\d+$/.test(value)) {
-                    setDocumentoCliente(value);
-                    
-                    // Limpiar error si el formato es correcto o si está vacío
-                    if (value === '' || 
-                        (tipoDocumento === 'DNI' && value.length === 8) || 
-                        (tipoDocumento === 'RUC' && value.length === 11)) {
-                      setErrorGlobal(null);
-                    }
-                  }
-                }}
-                placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI (8 dígitos)" : "Ingrese RUC (11 dígitos)"} 
-                maxLength={tipoDocumento === 'DNI' ? 8 : 11}
-              />
-              <button 
-                onClick={handleBuscarCliente}
-                disabled={cargandoBusquedaAccion || 
-                         !documentoCliente.trim() || 
-                         (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
-                         (tipoDocumento === 'RUC' && documentoCliente.length !== 11)} 
-                className="px-3 py-2 bg-indigo-600 text-white rounded-r-md hover:bg-indigo-700 h-[42px] flex items-center justify-center disabled:bg-gray-400"
-              >
-                {cargandoBusquedaAccion && documentoCliente ? <Loader2 className="animate-spin" size={20}/> : <Search size={18}/>}
-                <span className="ml-1 hidden sm:inline">Buscar</span>
-              </button>
+      <div className="max-w-7xl mx-auto">
+        {/* Sección de Información del Cliente */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Users className="h-5 w-5 text-blue-600" />
             </div>
-            {documentoCliente && (
-              (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
-              (tipoDocumento === 'RUC' && documentoCliente.length !== 11) ? (
-                <p className="mt-1 text-xs text-red-500">
-                  {tipoDocumento === 'DNI' 
-                    ? `El DNI debe tener exactamente 8 dígitos (Actual: ${documentoCliente.length})` 
-                    : `El RUC debe tener exactamente 11 dígitos (Actual: ${documentoCliente.length})`}
-                </p>
-              ) : null
-            )}
+            <h2 className="text-lg font-semibold text-gray-900">Información del Cliente</h2>
           </div>
-        </div>
-        {clienteSeleccionado && (
-          <div className="lg:col-span-2 mt-2 text-sm p-2 rounded-md bg-green-100 text-green-700">
-            Cliente encontrado: {clienteSeleccionado.nombreCliente} - Tipo: {clienteSeleccionado.tipoCliente}
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
-        <div className="lg:col-span-7 bg-white rounded-lg shadow-md">
-          <div className="p-3 sm:p-4 border-b"><h2 className="text-lg sm:text-xl font-semibold text-gray-800">Buscar Productos</h2></div>
-          <div className="p-3 sm:p-4">
-            {/* Selector de tipo de búsqueda */}
-            <div className="mb-3">
-              <label htmlFor="tipoBusqueda" className="block text-sm font-medium text-gray-700 mb-2">
-                Buscar por:
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <label htmlFor="clienteInput" className="block mb-2 text-sm font-medium text-gray-700">
+                Nombre del Cliente:
               </label>
-              <select
-                id="tipoBusqueda"
-                value={tipoBusqueda}
-                onChange={(e) => setTipoBusqueda(e.target.value as 'nombre' | 'codigo')}
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="nombre">Nombre del producto</option>
-                <option value="codigo">Código de barras</option>
-              </select>
+              <input 
+                id="clienteInput" 
+                type="text" 
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                value={cliente} 
+                onChange={(e) => setCliente(e.target.value)} 
+                placeholder="Ingrese el nombre del cliente..." 
+              />
             </div>
             
-            {/* Barra de búsqueda */}
-            <div className="relative mb-4">
-              <input 
-                type="text" 
-                className="w-full pl-10 pr-32 sm:pr-36 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder={tipoBusqueda === 'nombre' ? "Nombre del producto..." : "Código de barras..."} 
-                value={busqueda}
-                onChange={(e) => setBusqueda(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && busqueda.trim()) {
-                    // Mejorar la detección de códigos de barras
-                    const esPosibleCodigo = tipoBusqueda === 'codigo' || 
-                      (/^[A-Za-z0-9-_]{6,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" "));
-                    
-                    if (esPosibleCodigo) {
-                        handleBuscarPorCodigoExacto(busqueda.trim());
-                    } else {
-                        handleBuscarEnServicio();
-                    }
-                  }
-                }} 
-              />
-              <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              {busqueda && (
-                <button 
-                  className="absolute right-20 sm:right-24 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  onClick={() => {
-                    setBusqueda('');
-                    setVariantesFiltradas(variantesCargadas);
-                    setMensajeInfoVista(null);
+            <div>
+              <label htmlFor="documentoClienteInput" className="block mb-2 text-sm font-medium text-gray-700">
+                Documento del Cliente:
+              </label>
+              <div className="flex">
+                <select 
+                  className="px-4 py-3 border border-gray-300 border-r-0 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 font-medium text-gray-700"
+                  value={tipoDocumento}
+                  onChange={(e) => {
+                    setTipoDocumento(e.target.value as 'DNI' | 'RUC');
+                    setDocumentoCliente('');
+                    setErrorGlobal(null);
                   }}
-                  title="Limpiar búsqueda"
                 >
-                  <X size={16} />
+                  <option value="DNI">DNI</option>
+                  <option value="RUC">RUC</option>
+                </select>
+                <input 
+                  id="documentoClienteInput" 
+                  type="text" 
+                  className={`flex-1 px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                    documentoCliente && 
+                    ((tipoDocumento === 'DNI' && (documentoCliente.length !== 8 || !/^\d+$/.test(documentoCliente))) || 
+                     (tipoDocumento === 'RUC' && (documentoCliente.length !== 11 || !/^\d+$/.test(documentoCliente)))) 
+                    ? 'border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50' 
+                    : ''
+                  }`}
+                  value={documentoCliente} 
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    
+                    if (value === '' || /^\d+$/.test(value)) {
+                      setDocumentoCliente(value);
+                      
+                      if (value === '' || 
+                          (tipoDocumento === 'DNI' && value.length === 8) || 
+                          (tipoDocumento === 'RUC' && value.length === 11)) {
+                        setErrorGlobal(null);
+                      }
+                    }
+                  }}
+                  placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI (8 dígitos)" : "Ingrese RUC (11 dígitos)"} 
+                  maxLength={tipoDocumento === 'DNI' ? 8 : 11}
+                />
+                <button 
+                  onClick={handleBuscarCliente}
+                  disabled={cargandoBusquedaAccion || 
+                           !documentoCliente.trim() || 
+                           (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
+                           (tipoDocumento === 'RUC' && documentoCliente.length !== 11)} 
+                  className="px-4 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                >
+                  {cargandoBusquedaAccion && documentoCliente ? (
+                    <Loader2 className="animate-spin" size={18}/>
+                  ) : (
+                    <Search size={18}/>
+                  )}
+                  <span className="hidden sm:inline">Buscar</span>
                 </button>
-              )}
-              <button 
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs sm:text-sm px-2.5 sm:px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600 disabled:bg-gray-300"
-                onClick={handleBuscarEnServicio} 
-                disabled={cargandoBusquedaAccion || !busqueda.trim()}
-              >
-                {cargandoBusquedaAccion && busqueda ? <Loader2 className="animate-spin" size={16}/> : 'Buscar DB'}
-              </button>
-            </div>
-            <div className="overflow-y-auto max-h-72 sm:max-h-96 border border-gray-200 rounded-md p-2 bg-gray-50 min-h-[200px] flex flex-col">
-              {cargandoProductosIniciales ? (
-                <div className="flex-grow flex justify-center items-center text-gray-500"><Loader2 className="animate-spin text-indigo-500 mr-2" size={24}/>Cargando lista inicial...</div>
-              ) : cargandoBusquedaAccion ? (
-                 <div className="flex-grow flex justify-center items-center text-gray-500"><Loader2 className="animate-spin text-indigo-500 mr-2" size={24}/>{mensajeInfoVista || "Buscando..."}</div>
-              ) : variantesFiltradas.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3">
-                  {variantesFiltradas.map(v => (
-                    <button
-                      key={v.idProductoVariante} 
-                      className="border bg-white rounded-md p-2 sm:p-3 cursor-pointer hover:shadow-lg hover:border-indigo-500 transition-all text-left focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      onClick={() => handleSeleccionarVarianteDeLista(v)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          handleSeleccionarVarianteDeLista(v);
-                        }
-                      }}
-                      aria-label={`Agregar ${v.producto?.nombre ?? 'Producto'} - ${v.color?.nombre ?? 'Sin color'} - Talla ${v.talla?.nombreTalla ?? 'Única'} al carrito`}
-                    >
-                      <p className="font-medium text-xs sm:text-sm truncate" title={v.producto?.nombre ?? 'Producto sin nombre'}>{v.producto?.nombre ?? 'Producto sin nombre'}</p>
-                      <div className="flex justify-between text-[10px] sm:text-xs">
-                        <span className="text-gray-600">{v.color?.nombre ?? 'Sin color'}</span>
-                        <span className="text-gray-600">Talla: {v.talla?.nombreTalla ?? 'Única'}</span>
-                      </div>
-                      <p className="text-[10px] sm:text-xs text-gray-500">
-                        {v.codigoBarrasVariante ?? v.producto?.codigoIdentificacion ?? 'Sin código'}
-                      </p>
-                      <p className={`text-[10px] sm:text-xs font-semibold ${
-                        v.cantidad > 5 
-                          ? 'text-green-600' 
-                          : v.cantidad > 0 
-                            ? 'text-orange-500' 
-                            : 'text-red-600'
-                      }`}>
-                        Stock: {v.cantidad ?? 0}
-                      </p>
-                      <p className="text-sm font-semibold text-indigo-600 mt-1">S/{(v.producto?.precioUnitario ?? 0).toFixed(2)}</p>
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="flex-grow flex justify-center items-center text-center text-gray-500 p-4">
-                    {mensajeInfoVista || "No se encontraron variantes de productos. Intente otra búsqueda o verifique la conexión."}
-                </div>
+              </div>
+              
+              {documentoCliente && (
+                (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
+                (tipoDocumento === 'RUC' && documentoCliente.length !== 11) ? (
+                  <p className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
+                    <span className="font-medium">Formato incorrecto:</span> {tipoDocumento === 'DNI' 
+                      ? `El DNI debe tener exactamente 8 dígitos (Actual: ${documentoCliente.length})` 
+                      : `El RUC debe tener exactamente 11 dígitos (Actual: ${documentoCliente.length})`}
+                  </p>
+                ) : null
               )}
             </div>
           </div>
+          
+          {clienteSeleccionado && (
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center gap-2">
+                <div className="p-1 bg-green-100 rounded-full">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-green-900">Cliente encontrado</p>
+                  <p className="text-sm text-green-700">
+                    {clienteSeleccionado.nombreCliente} - Tipo: {clienteSeleccionado.tipoCliente}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        <div className="lg:col-span-5 flex flex-col">
-          <div className="bg-white rounded-lg shadow-md flex-1 flex flex-col">
-            <div className="p-3 sm:p-4 border-b"><h2 className="text-lg sm:text-xl font-semibold text-gray-800">Resumen de Venta</h2></div>
-            <div className="p-3 sm:p-4 flex flex-col flex-grow justify-between">
-              <div className="overflow-auto max-h-60 sm:max-h-[calc(100vh-580px)] min-h-[150px]"> 
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50 sticky top-0 z-10"><tr>
-                    <th className="px-2 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Descripción</th>
-                    <th className="px-1 py-2 text-center text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Cant.</th>
-                    <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Precio</th>
-                    <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th className="px-1 py-2 text-center text-[10px] sm:text-xs font-medium text-gray-500 uppercase"></th>
-                  </tr></thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {productosSeleccionadosVenta.map((p, index) => {
-                      // Buscar primero la variante con precios completos, si no está usar la original
-                      const varianteConPrecios = variantesConPreciosCompletos.get(p.idProductoVariante);
-                      const varianteAUsar = varianteConPrecios || variantesCargadas.find(v => v.idProductoVariante === p.idProductoVariante);
-                      const preciosInfo = calcularPrecioSegunCantidad(varianteAUsar, p.cantidad);
-                      
-                      return (
-                        <tr key={`${p.idProductoVariante}-${index}`} className="hover:bg-gray-50">
-                          <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-700 max-w-[100px] sm:max-w-[120px] truncate" title={`${p.descripcion} - ${p.color} - ${p.talla}`}>
-                            <div>
-                              <span className="font-medium">{p.descripcion}</span>
-                              <div className="text-[9px] text-gray-500">Talla: {p.talla} - Color: {p.color}</div>
-                            </div>
-                          </td>
-                          <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
-                            <div className="flex items-center justify-center">
-                              <button className="text-red-600 hover:text-red-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad - 1)}>-</button>
-                              <span className="mx-1.5 w-5 text-center font-medium">{p.cantidad}</span>
-                              <button className="text-green-600 hover:text-green-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad + 1)}>+</button>
-                            </div>
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap text-xs text-right">
-                            <div className="flex flex-col items-end">
-                              {preciosInfo.tipoDescuento ? (
-                                <>
-                                  <span className="line-through text-gray-400 text-[10px]">S/{preciosInfo.precioOriginal.toFixed(2)}</span>
-                                  <span className="font-medium text-green-600">S/{preciosInfo.precio.toFixed(2)}</span>
-                                  <span className="text-[9px] text-green-600">{obtenerTextoDescuento(preciosInfo.tipoDescuento, p.cantidad)}</span>
-                                </>
-                              ) : (
-                                <span className="font-medium">S/{preciosInfo.precio.toFixed(2)}</span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-2 py-1.5 whitespace-nowrap text-xs text-right font-medium">S/{(preciosInfo.precio * p.cantidad).toFixed(2)}</td>
-                          <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
-                            <button className="text-red-500 hover:text-red-700" onClick={() => handleEliminarProductoDeVenta(p.idProductoVariante)}><X size={14} /></button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                    {productosSeleccionadosVenta.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">Agregue productos a la venta.</td></tr>}
-                  </tbody>
-                </table>
-              </div>
-              <div className="mt-auto pt-3 sm:pt-4"> 
-                <div className="border-t border-gray-200 pt-3 sm:pt-4">
-                  <div className="flex justify-between mb-1 text-xs sm:text-sm"><span className="font-medium text-gray-600">Subtotal:</span><span className="font-medium">S/{subtotalVenta.toFixed(2)}</span></div>
-                  <div className="flex justify-between mb-1 text-xs sm:text-sm"><span className="font-medium text-gray-600">IGV (18%):</span><span className="font-medium">S/{igvVenta.toFixed(2)}</span></div>
-                  <div className="flex justify-between font-bold text-base sm:text-lg mt-1.5"><span className="text-gray-800">Total General:</span><span className="text-indigo-600">S/{totalGeneralVenta.toFixed(2)}</span></div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Panel de Búsqueda de Productos */}
+          <div className="lg:col-span-7 bg-white rounded-xl shadow-sm border border-gray-100">
+            <div className="p-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <Search className="h-5 w-5 text-purple-600" />
                 </div>
-                <div className="mt-3 sm:mt-4">
-                  <h3 className="text-xs sm:text-sm font-medium text-gray-700 mb-1.5">Métodos de pago</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 sm:gap-2 mb-3 sm:mb-4">
-                    {paymentMethods.map(method => (
-                      <button key={method.id}
-                        className={`flex items-center justify-center text-[10px] sm:text-xs px-1.5 py-1.5 sm:px-2 sm:py-2 border rounded-md transition-all duration-150 ease-in-out focus:outline-none focus:ring-2 focus:ring-offset-1 ${metodoPago === method.id ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg transform scale-105' : 'bg-white border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50 focus:ring-indigo-500'}`}
-                        onClick={() => setMetodoPago(method.id)}>
-                        {method.icon} {method.name}
-                      </button>
+                <h2 className="text-lg font-semibold text-gray-900">Buscar Productos</h2>
+              </div>
+            </div>
+            
+            <div className="p-6">
+              {/* Selector de tipo de búsqueda */}
+              <div className="mb-4">
+                <label htmlFor="tipoBusqueda" className="block text-sm font-medium text-gray-700 mb-3">
+                  Buscar por:
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setTipoBusqueda('nombre')}
+                    className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                      tipoBusqueda === 'nombre'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    📝 Nombre del producto
+                  </button>
+                  <button
+                    onClick={() => setTipoBusqueda('codigo')}
+                    className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
+                      tipoBusqueda === 'codigo'
+                        ? 'border-blue-500 bg-blue-50 text-blue-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    🔍 Código de barras
+                  </button>
+                </div>
+              </div>
+              
+              {/* Barra de búsqueda mejorada */}
+              <div className="relative mb-6">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Search size={20} className="text-gray-400" />
+                </div>
+                <input 
+                  type="text" 
+                  className="w-full pl-12 pr-28 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-500"
+                  placeholder={tipoBusqueda === 'nombre' ? "Buscar por nombre del producto..." : "Escanear o escribir código de barras..."} 
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && busqueda.trim()) {
+                      const esPosibleCodigo = tipoBusqueda === 'codigo' || 
+                        (/^[A-Za-z0-9-_]{6,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" "));
+                      
+                      if (esPosibleCodigo) {
+                          handleBuscarPorCodigoExacto(busqueda.trim());
+                      } else {
+                          handleBuscarEnServicio();
+                      }
+                    }
+                  }} 
+                />
+                
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2">
+                  {busqueda && (
+                    <button 
+                      className="mr-2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      onClick={() => {
+                        setBusqueda('');
+                        setVariantesFiltradas(variantesCargadas);
+                        setMensajeInfoVista(null);
+                      }}
+                      title="Limpiar búsqueda"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                  <button 
+                    className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    onClick={handleBuscarEnServicio} 
+                    disabled={cargandoBusquedaAccion || !busqueda.trim()}
+                  >
+                    {cargandoBusquedaAccion && busqueda ? (
+                      <Loader2 className="animate-spin" size={16}/>
+                    ) : (
+                      'Buscar DB'
+                    )}
+                  </button>
+                </div>
+              </div>
+              {/* Lista de productos con diseño mejorado */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 min-h-[300px] max-h-96 overflow-y-auto">
+                {cargandoProductosIniciales ? (
+                  <div className="flex flex-col justify-center items-center h-64 text-gray-500">
+                    <Loader2 className="animate-spin text-blue-600 mb-4" size={32}/>
+                    <p className="font-medium">Cargando productos...</p>
+                    <p className="text-sm text-gray-400">Por favor espere</p>
+                  </div>
+                ) : cargandoBusquedaAccion ? (
+                   <div className="flex flex-col justify-center items-center h-64 text-gray-500">
+                    <Loader2 className="animate-spin text-blue-600 mb-4" size={32}/>
+                    <p className="font-medium">{mensajeInfoVista || "Buscando..."}</p>
+                  </div>
+                ) : variantesFiltradas.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {variantesFiltradas.map(v => (
+                      <div
+                        key={v.idProductoVariante} 
+                        className="bg-white border border-gray-200 rounded-lg p-4 cursor-pointer hover:shadow-lg hover:border-blue-300 transition-all group transform hover:scale-105"
+                        onClick={() => handleSeleccionarVarianteDeLista(v)}
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex-1">
+                            <h3 className="font-semibold text-gray-900 text-sm mb-1 group-hover:text-blue-600 transition-colors line-clamp-2" title={v.producto?.nombre ?? 'Producto sin nombre'}>
+                              {v.producto?.nombre ?? 'Producto sin nombre'}
+                            </h3>
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                {v.color?.nombre ?? 'Sin color'}
+                              </span>
+                              <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                Talla {v.talla?.nombreTalla ?? 'Única'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-500 font-mono">
+                            {v.codigoBarrasVariante ?? v.producto?.codigoIdentificacion ?? 'Sin código'}
+                          </p>
+                          
+                          <div className="flex justify-between items-center">
+                            <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                              v.cantidad > 5 
+                                ? 'bg-green-100 text-green-700' 
+                                : v.cantidad > 0 
+                                  ? 'bg-yellow-100 text-yellow-700' 
+                                  : 'bg-red-100 text-red-700'
+                            }`}>
+                              Stock: {v.cantidad ?? 0}
+                            </span>
+                            
+                            <span className="text-sm font-bold text-blue-600">
+                              S/{(v.producto?.precioUnitario ?? 0).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="mt-3 pt-3 border-t border-gray-100">
+                          <div className="flex items-center justify-center text-xs text-blue-600 font-medium group-hover:text-blue-700">
+                            <DollarSign size={14} className="mr-1" />
+                            Agregar al carrito
+                          </div>
+                        </div>
+                      </div>
                     ))}
                   </div>
-                  <button onClick={handleProcesarVentaFinal}
+                ) : (
+                  <div className="flex flex-col justify-center items-center h-64 text-center">
+                    <div className="bg-gray-100 rounded-full p-4 mb-4">
+                      <Search className="h-8 w-8 text-gray-400" />
+                    </div>
+                    <h3 className="font-medium text-gray-900 mb-2">No se encontraron productos</h3>
+                    <p className="text-sm text-gray-500 mb-4">
+                      {mensajeInfoVista || "No hay productos que coincidan con tu búsqueda"}
+                    </p>
+                    <button 
+                      onClick={() => {
+                        setBusqueda('');
+                        setVariantesFiltradas(variantesCargadas);
+                        setMensajeInfoVista(null);
+                      }}
+                      className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Limpiar filtros
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Panel del Carrito de Ventas */}
+          <div className="lg:col-span-5 flex flex-col">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col">
+              <div className="p-6 border-b border-gray-100">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Carrito de Ventas</h2>
+                    <p className="text-sm text-gray-600">
+                      {productosSeleccionadosVenta.length} productos agregados
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-6 flex flex-col flex-grow">
+                {/* Lista de productos en el carrito */}
+                <div className="flex-grow overflow-auto mb-6">
+                  {productosSeleccionadosVenta.length > 0 ? (
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2 carrito-scroll">
+                      {productosSeleccionadosVenta.map((p, index) => {
+                        const varianteConPrecios = variantesConPreciosCompletos.get(p.idProductoVariante);
+                        const varianteAUsar = varianteConPrecios || variantesCargadas.find(v => v.idProductoVariante === p.idProductoVariante);
+                        const preciosInfo = calcularPrecioSegunCantidad(varianteAUsar, p.cantidad);
+                        
+                        return (
+                          <div key={`${p.idProductoVariante}-${index}`} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                            <div className="flex justify-between items-start mb-3">
+                              <div className="flex-1 min-w-0">
+                                <h3 className="font-semibold text-gray-900 text-sm mb-1 truncate" title={p.descripcion}>
+                                  {p.descripcion}
+                                </h3>
+                                <div className="flex flex-wrap gap-2 text-xs">
+                                  <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                    {p.color}
+                                  </span>
+                                  <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                                    Talla {p.talla}
+                                  </span>
+                                </div>
+                              </div>
+                              <button 
+                                onClick={() => handleEliminarProductoDeVenta(p.idProductoVariante)}
+                                className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-colors"
+                                title="Eliminar producto"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                            
+                            <div className="flex justify-between items-center">
+                              <div className="flex items-center gap-3">
+                                <div className="flex items-center bg-white border border-gray-300 rounded-lg">
+                                  <button 
+                                    onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad - 1)}
+                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-l-lg transition-colors"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="px-3 py-2 font-medium text-gray-900 min-w-[3rem] text-center">
+                                    {p.cantidad}
+                                  </span>
+                                  <button 
+                                    onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad + 1)}
+                                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-r-lg transition-colors"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              <div className="text-right">
+                                {preciosInfo.tipoDescuento ? (
+                                  <div>
+                                    <div className="text-xs text-gray-500 line-through">
+                                      S/{preciosInfo.precioOriginal.toFixed(2)} c/u
+                                    </div>
+                                    <div className="font-bold text-green-600">
+                                      S/{preciosInfo.precio.toFixed(2)} c/u
+                                    </div>
+                                    <div className="text-xs text-green-600 font-medium">
+                                      {obtenerTextoDescuento(preciosInfo.tipoDescuento, p.cantidad)}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="font-bold text-gray-900">
+                                    S/{preciosInfo.precio.toFixed(2)} c/u
+                                  </div>
+                                )}
+                                <div className="text-sm text-gray-600 mt-1">
+                                  Total: <span className="font-semibold">S/{(preciosInfo.precio * p.cantidad).toFixed(2)}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col justify-center items-center h-48 text-center">
+                      <div className="bg-gray-100 rounded-full p-4 mb-4">
+                        <DollarSign className="h-8 w-8 text-gray-400" />
+                      </div>
+                      <h3 className="font-medium text-gray-900 mb-2">Carrito vacío</h3>
+                      <p className="text-sm text-gray-500">
+                        Agrega productos desde el panel de búsqueda
+                      </p>
+                    </div>
+                  )}
+                </div>
+                {/* Resumen de totales */}
+                <div className="border-t border-gray-200 pt-6">
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 className="font-semibold text-gray-900 mb-3">Resumen del Pedido</h3>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">Subtotal:</span>
+                        <span className="font-medium">S/{subtotalVenta.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-600">IGV (18%):</span>
+                        <span className="font-medium">S/{igvVenta.toFixed(2)}</span>
+                      </div>
+                      <div className="border-t border-gray-300 pt-2 mt-3">
+                        <div className="flex justify-between">
+                          <span className="font-bold text-lg text-gray-900">Total General:</span>
+                          <span className="font-bold text-lg text-blue-600">S/{totalGeneralVenta.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Métodos de pago */}
+                  <div className="mb-6">
+                    <h3 className="font-semibold text-gray-900 mb-3">Método de Pago</h3>
+                    <div className="grid grid-cols-2 gap-3">
+                      {paymentMethods.map(method => (
+                        <button key={method.id}
+                          className={`flex items-center justify-center text-sm px-4 py-3 border rounded-lg transition-all duration-200 font-medium ${
+                            metodoPago === method.id 
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-lg transform scale-105' 
+                              : 'bg-white border-gray-300 text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600'
+                          }`}
+                          onClick={() => setMetodoPago(method.id)}
+                        >
+                          <div className="mr-2">
+                            {method.icon(metodoPago === method.id)}
+                          </div>
+                          {method.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {/* Botón de finalizar venta */}
+                  <button 
+                    onClick={handleProcesarVentaFinal}
                     disabled={cargandoProcesoVenta || !metodoPago || !cliente.trim() || productosSeleccionadosVenta.length === 0}
-                    className="w-full py-2.5 sm:py-3 rounded-md font-semibold text-sm sm:text-base bg-green-600 hover:bg-green-700 text-white disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center">
-                    {cargandoProcesoVenta ? <Loader2 className="animate-spin mr-2" size={20}/> : null}
-                    {cargandoProcesoVenta ? 'Procesando Venta...' : 'Procesar y Finalizar Venta'}
+                    className="w-full py-4 rounded-xl font-semibold text-lg bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white disabled:from-gray-400 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center gap-3"
+                  >
+                    {cargandoProcesoVenta ? (
+                      <>
+                        <Loader2 className="animate-spin" size={24}/>
+                        Procesando Venta...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle size={24}/>
+                        Procesar y Finalizar Venta
+                      </>
+                    )}
                   </button>
+                  
+                  {/* Información adicional */}
+                  {(!metodoPago || !cliente.trim() || productosSeleccionadosVenta.length === 0) && (
+                    <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-800">
+                        {!cliente.trim() && "• Ingrese el nombre del cliente"}
+                        {!metodoPago && !cliente.trim() && <br />}
+                        {!metodoPago && "• Seleccione un método de pago"}
+                        {productosSeleccionadosVenta.length === 0 && (!metodoPago || !cliente.trim()) && <br />}
+                        {productosSeleccionadosVenta.length === 0 && "• Agregue productos al carrito"}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
