@@ -703,61 +703,61 @@ const DashboardAdmin = () => {
             <p className="text-gray-400 text-xs mt-1">No hay ventas registradas con clientes</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {topClientes.map((cliente, index) => (
-              <div key={cliente.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300">
-                <div className="flex items-center space-x-4">
-                  <div className="relative">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
-                      index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
-                      index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
-                      index === 2 ? 'bg-gradient-to-r from-amber-600 to-amber-700' :
-                      'bg-gradient-to-r from-blue-400 to-blue-500'
-                    }`}>
-                      {index + 1}
-                    </div>
-                    {index < 3 && (
-                      <div className="absolute -top-1 -right-1">
-                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+          <>
+            <div className="space-y-4">
+              {topClientes.map((cliente, index) => (
+                <div key={cliente.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300">
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
+                        index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                        index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                        index === 2 ? 'bg-gradient-to-r from-amber-600 to-amber-700' :
+                        'bg-gradient-to-r from-blue-400 to-blue-500'
+                      }`}>
+                        {index + 1}
                       </div>
-                    )}
+                      {index < 3 && (
+                        <div className="absolute -top-1 -right-1">
+                          {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">{cliente.nombre}</h3>
+                      <p className="text-sm text-gray-500">Cliente #{cliente.id}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{cliente.nombre}</h3>
-                    <p className="text-sm text-gray-500">Cliente #{cliente.id}</p>
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-gray-900">
+                        S/ {cliente.totalCompras.toFixed(2)}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Total comprado
+                      </div>
+                    </div>
+                    <button 
+                      className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-md hover:shadow-lg"
+                      title="Ver detalles del cliente"
+                    >
+                      <ArrowUpRight size={16} />
+                    </button>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-bold text-gray-900">
-                    S/ {cliente.totalCompras.toFixed(2)}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    Total comprado
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        
-        {/* Resumen estadístico */}
-        {topClientes.length > 0 && (
-          <div className="mt-6 pt-4 border-t border-gray-200">
-            <div className="grid grid-cols-2 gap-4 text-center">
-              <div className="bg-blue-50 rounded-lg p-3">
-                <div className="text-lg font-bold text-blue-600">
-                  S/ {topClientes.reduce((sum, cliente) => sum + cliente.totalCompras, 0).toFixed(2)}
-                </div>
-                <div className="text-xs text-gray-600">Total acumulado</div>
-              </div>
-              <div className="bg-green-50 rounded-lg p-3">
-                <div className="text-lg font-bold text-green-600">
-                  S/ {(topClientes.reduce((sum, cliente) => sum + cliente.totalCompras, 0) / topClientes.length).toFixed(2)}
-                </div>
-                <div className="text-xs text-gray-600">Promedio por cliente</div>
+              ))}
+            </div>
+            
+            {/* Botón para hacer mayorista un cliente */}
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="flex justify-center">
+                <button className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center space-x-2">
+                  <Users size={18} />
+                  <span>Hacer mayorista un cliente</span>
+                </button>
               </div>
             </div>
-          </div>
+          </>
         )}
       </div>
 
