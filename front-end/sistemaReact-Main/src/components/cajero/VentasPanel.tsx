@@ -816,7 +816,7 @@ const VentasPanel = () => {
 
       {/* Notificación Global de Errores */}
       {errorGlobal && (
-        <div className="fixed top-4 right-4 z-[100] mb-4 p-4 bg-red-50 border border-red-200 text-red-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
+        <div className="fixed top-4 right-4 z-[100] mb-4 p-4 bg-red-50 bg-opacity-95 backdrop-blur-sm border border-red-200 text-red-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
           <div className="flex items-start">
             <div className="p-1 bg-red-100 rounded-lg mr-3 flex-shrink-0">
               <AlertCircle className="h-4 w-4 text-red-600" />
@@ -834,7 +834,7 @@ const VentasPanel = () => {
       
       {/* Notificación Global de Información */}
       {mensajeInfoVista && ( 
-         <div className="fixed top-20 right-4 z-[100] mb-4 p-4 bg-blue-50 border border-blue-200 text-blue-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
+         <div className="fixed top-20 right-4 z-[100] mb-4 p-4 bg-blue-50 bg-opacity-95 backdrop-blur-sm border border-blue-200 text-blue-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
           <div className="flex items-start">
             <div className="p-1 bg-blue-100 rounded-lg mr-3 flex-shrink-0">
               <AlertCircle className="h-4 w-4 text-blue-600" />
@@ -852,7 +852,7 @@ const VentasPanel = () => {
 
       {/* MODALES MEJORADOS */}
       {mostrarModalQR && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
           <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full animate-scaleIn">
             <div className="mb-6">
               <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
@@ -902,7 +902,7 @@ const VentasPanel = () => {
       )}
 
       {mostrarModalBoleta && datosVentaParaBoleta && (
-         <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
             <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full animate-scaleIn">
                 <div className="text-center">
                     <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
