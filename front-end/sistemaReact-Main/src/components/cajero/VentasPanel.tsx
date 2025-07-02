@@ -512,9 +512,9 @@ const VentasPanel = () => {
     // que ya incluye los descuentos por volumen aplicados cuando se agregó al carrito
     return acc + item.total;
   }, 0);
-  // El precio de los productos ya incluye IGV, por lo que extraemos el IGV del total
+  // Los precios ya incluyen IGV, por lo que extraemos el IGV del total
   const subtotalVenta = totalConIgvIncluido / 1.18; // Monto sin IGV
-  const igvVenta = totalConIgvIncluido - subtotalVenta; // IGV extraído
+  const igvVenta = totalConIgvIncluido - subtotalVenta; // IGV extraído (18% del subtotal)
   const totalGeneralVenta = totalConIgvIncluido; // Total original (ya incluye IGV)
 
   // --------------------------------------------------------------------------------------------
@@ -669,8 +669,8 @@ const VentasPanel = () => {
             precioOriginal: preciosInfo?.precioOriginal || item.precio,
             tipoDescuento: preciosInfo?.tipoDescuento || null,
             totalParcial: item.total,
-            // Calcular ahorro si hay descuento
-            ahorro: preciosInfo?.tipoDescuento ? 
+            // Calcular ahorro correctamente: diferencia entre precio original y precio aplicado por cantidad
+            ahorro: preciosInfo?.tipoDescuento && preciosInfo.precioOriginal > preciosInfo.precio ? 
               (preciosInfo.precioOriginal - preciosInfo.precio) * item.cantidad : 0
           };
         }),
@@ -716,7 +716,7 @@ const VentasPanel = () => {
   };
   const handleImprimirBoleta = () => { 
     if (!datosVentaParaBoleta) return;
-    const { cliente, productos: productosBoleta, subtotal, totalGeneral, fechaHora, metodoPago: mp } = datosVentaParaBoleta;
+    const { cliente, productos: productosBoleta, totalGeneral, fechaHora, metodoPago: mp } = datosVentaParaBoleta;
     const fechaFormateada = new Date(fechaHora).toLocaleString('es-PE', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -745,8 +745,9 @@ const VentasPanel = () => {
     `;
     }).join('');
 
-    // Calcular el ahorro total
-    const ahorroTotal = productosBoleta.reduce((acc: number, p: any) => acc + (p.ahorro ?? 0), 0);
+    // Recalcular valores para asegurar consistencia en la boleta
+    const subtotalCalculado = totalGeneral / 1.18; // Subtotal sin IGV
+    const igvCalculado = totalGeneral - subtotalCalculado; // IGV del total
 
     const boletaHtml = `
       <html>
@@ -898,21 +899,6 @@ const VentasPanel = () => {
               font-weight: bold;
               color: #000;
             }
-            .savings-total {
-              background: #f5f5f5;
-              border: 1px solid #ccc;
-              padding: 3px 6px;
-              margin: 3px 0;
-              font-size: 9px;
-            }
-            .savings-total .total-label {
-              color: #333;
-              font-weight: bold;
-            }
-            .savings-highlight {
-              color: #000 !important;
-              font-weight: bold;
-            }
             .footer {
               text-align: center;
               color: #333;
@@ -971,18 +957,12 @@ const VentasPanel = () => {
             <div class="totals-section">
               <div class="total-row">
                 <span class="total-label">Subtotal (sin IGV):</span>
-                <span class="total-value">S/${subtotal.toFixed(2)}</span>
+                <span class="total-value">S/${subtotalCalculado.toFixed(2)}</span>
               </div>
               <div class="total-row">
                 <span class="total-label">IGV (18%):</span>
-                <span class="total-value">S/${igvVenta.toFixed(2)}</span>
+                <span class="total-value">S/${igvCalculado.toFixed(2)}</span>
               </div>
-              ${ahorroTotal > 0 ? `
-              <div class="total-row savings-total">
-                <span class="total-label">Descuentos aplicados:</span>
-                <span class="total-value savings-highlight">S/${ahorroTotal.toFixed(2)}</span>
-              </div>
-              ` : ''}
               <div class="total-row final-total">
                 <span class="total-label">TOTAL A PAGAR:</span>
                 <span class="total-value">S/${totalGeneral.toFixed(2)}</span>
@@ -1004,7 +984,7 @@ const VentasPanel = () => {
         </body>
       </html>`;
     
-    const boletaWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes');
+    const boletaWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes,left=' + (screen.width/2 - 200) + ',top=' + (screen.height/2 - 300));
     if (boletaWindow) {
       boletaWindow.document.write(boletaHtml);
       boletaWindow.document.close();
