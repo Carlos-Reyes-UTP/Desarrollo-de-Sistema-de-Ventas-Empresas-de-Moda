@@ -650,19 +650,30 @@ const VentasPanel = () => {
       setVariantesCargadas(variantesActualizadas);
       setVariantesFiltradas(variantesActualizadas);
       
-      // Preparamos datos para la boleta
+      // Preparamos datos para la boleta con información de descuentos
       const datosBoletaVista = {
         cliente,
         metodoPago,
         usuarioVendedor: usuarioActual.usuario, // Incluimos el usuario que realizó la venta
-        productos: productosSeleccionadosVenta.map(item => ({
-          idProductoVariante: item.idProductoVariante,
-          idProducto: item.idProducto,
-          descripcion: `${item.descripcion} - ${item.color} - ${item.talla}`,
-          cantidad: item.cantidad,
-          precioUnitarioAplicado: item.precio,
-          totalParcial: item.total,
-        })),
+        productos: productosSeleccionadosVenta.map(item => {
+          // Obtener información de descuentos para cada producto
+          const varianteConPrecios = variantesConPreciosCompletos.get(item.idProductoVariante);
+          const preciosInfo = varianteConPrecios ? calcularPrecioSegunCantidad(varianteConPrecios, item.cantidad) : null;
+          
+          return {
+            idProductoVariante: item.idProductoVariante,
+            idProducto: item.idProducto,
+            descripcion: `${item.descripcion} - ${item.color} - ${item.talla}`,
+            cantidad: item.cantidad,
+            precioUnitarioAplicado: item.precio,
+            precioOriginal: preciosInfo?.precioOriginal || item.precio,
+            tipoDescuento: preciosInfo?.tipoDescuento || null,
+            totalParcial: item.total,
+            // Calcular ahorro si hay descuento
+            ahorro: preciosInfo?.tipoDescuento ? 
+              (preciosInfo.precioOriginal - preciosInfo.precio) * item.cantidad : 0
+          };
+        }),
         subtotal: subtotalVenta,
         igv: igvVenta,
         totalGeneral: totalGeneralVenta,
@@ -703,52 +714,301 @@ const VentasPanel = () => {
       default: return 1; // Efectivo por defecto
     }
   };
-    const handleImprimirBoleta = () => { 
+  const handleImprimirBoleta = () => { 
     if (!datosVentaParaBoleta) return;
     const { cliente, productos: productosBoleta, subtotal, totalGeneral, fechaHora, metodoPago: mp } = datosVentaParaBoleta;
-    const fechaFormateada = new Date(fechaHora).toLocaleString('es-PE', { dateStyle: 'short', timeStyle: 'short'});
+    const fechaFormateada = new Date(fechaHora).toLocaleString('es-PE', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit', 
+      minute: '2-digit'
+    });
     
-    let itemsHtml = productosBoleta.map((p: any) => `
-      <tr>
-        <td style="border: 1px solid #ddd; padding: 5px; font-size:10px;">${p.cantidad}</td>
-        <td style="border: 1px solid #ddd; padding: 5px; font-size:10px;">${p.descripcion}</td>
-        <td style="border: 1px solid #ddd; padding: 5px; text-align: right; font-size:10px;">S/${p.precioUnitarioAplicado.toFixed(2)}</td>
-        <td style="border: 1px solid #ddd; padding: 5px; text-align: right; font-size:10px;">S/${p.totalParcial.toFixed(2)}</td>
-      </tr>`).join('');
+    let itemsHtml = productosBoleta.map((p: any, index: number) => {
+      // Determinar si hay descuento aplicado de manera simple
+      const hayDescuento = p.tipoDescuento && p.precioOriginal > p.precioUnitarioAplicado;
+      
+      return `
+      <div class="item">
+        <div class="item-header">
+          <span class="item-name">${p.descripcion}</span>
+          <span class="item-total">S/${p.totalParcial.toFixed(2)}</span>
+        </div>
+        <div class="item-details">
+          <span class="item-quantity">Cant: ${p.cantidad}</span>
+          <span class="item-price">@ S/${p.precioUnitarioAplicado.toFixed(2)}</span>
+          ${hayDescuento ? '<span class="discount-applied">*Descuento aplicado</span>' : ''}
+        </div>
+        ${index < productosBoleta.length - 1 ? '<div class="item-separator"></div>' : ''}
+      </div>
+    `;
+    }).join('');
+
+    // Calcular el ahorro total
+    const ahorroTotal = productosBoleta.reduce((acc: number, p: any) => acc + (p.ahorro ?? 0), 0);
 
     const boletaHtml = `
-      <html><head><title>Boleta de Venta</title><style>
-        body { font-family: 'Arial Narrow', Arial, sans-serif; margin: 0; padding:10px; font-size: 11px; width: 280px; }
-        .container { border: 1px solid #555; padding: 10px; }
-        h2 { text-align: center; margin: 0 0 8px 0; font-size: 14px; }
-        p { margin: 3px 0; } strong { font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin: 8px 0; }
-        th, td { text-align: left; padding: 3px; font-size: 10px;}
-        .text-right { text-align: right; }
-        .total-row td { font-weight: bold; border-top: 1px dashed #333; padding-top: 4px;}
-        hr { border: none; border-top: 1px dashed #777; margin: 8px 0; }
-      </style></head><body><div class="container">
-        <h2>BOLETA DE VENTA</h2>
-        <p><strong>Fecha:</strong> ${fechaFormateada}</p>
-        <p><strong>Cliente:</strong> ${cliente || 'Varios'}</p>
-        <p><strong>Método Pago:</strong> ${mp.charAt(0).toUpperCase() + mp.slice(1)}</p>
-        <p><strong>Vendedor:</strong> ${datosVentaParaBoleta.usuarioVendedor}</p>
-        <hr/>
-        <table><thead><tr>
-          <th>Cant.</th><th>Descripción</th><th class="text-right">P.U.</th><th class="text-right">Total</th>
-        </tr></thead><tbody>${itemsHtml}</tbody></table>
-        <hr/>
-        <table>
-          <tr><td>Subtotal:</td><td class="text-right">S/${subtotal.toFixed(2)}</td></tr>
-          <tr><td>IGV (18%):</td><td class="text-right">S/${igvVenta.toFixed(2)}</td></tr>
-          <tr class="total-row"><td>TOTAL:</td><td class="text-right">S/${totalGeneral.toFixed(2)}</td></tr>
-        </table>
-        <p style="text-align:center; font-size:9px; margin-top:10px;">¡Gracias por su compra!</p>
-      </div><script>setTimeout(() => { window.print(); }, 200);</script></body></html>`;
+      <html>
+        <head>
+          <title>Boleta de Venta - ${cliente}</title>
+          <meta charset="UTF-8">
+          <style>
+            body { 
+              font-family: 'Arial', sans-serif; 
+              margin: 0; 
+              padding: 20px; 
+              font-size: 12px; 
+              line-height: 1.4;
+              color: #000;
+              background: #fff;
+            }
+            .receipt { 
+              background: white;
+              max-width: 300px; 
+              margin: 0 auto;
+              padding: 20px;
+              border: 1px solid #000;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 2px solid #000;
+              padding-bottom: 16px;
+              margin-bottom: 16px;
+            }
+            .company-name {
+              font-size: 16px;
+              font-weight: bold;
+              color: #000;
+              margin-bottom: 4px;
+            }
+            .receipt-title {
+              font-size: 12px;
+              color: #000;
+              text-transform: uppercase;
+              letter-spacing: 1px;
+            }
+            .info-section {
+              margin-bottom: 16px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 4px;
+              font-size: 10px;
+            }
+            .info-label {
+              color: #000;
+              font-weight: normal;
+            }
+            .info-value {
+              color: #000;
+              font-weight: bold;
+            }
+            .products-section {
+              margin-bottom: 16px;
+            }
+            .section-title {
+              font-size: 11px;
+              font-weight: bold;
+              color: #000;
+              margin-bottom: 10px;
+              text-transform: uppercase;
+              border-bottom: 1px solid #000;
+              padding-bottom: 2px;
+            }
+            .item {
+              margin-bottom: 10px;
+              padding-bottom: 8px;
+            }
+            .item-header {
+              display: flex;
+              justify-content: space-between;
+              align-items: flex-start;
+              margin-bottom: 4px;
+            }
+            .item-name {
+              font-weight: bold;
+              color: #000;
+              font-size: 10px;
+              flex: 1;
+              margin-right: 8px;
+              line-height: 1.2;
+            }
+            .item-total {
+              font-weight: bold;
+              color: #000;
+              font-size: 11px;
+              white-space: nowrap;
+            }
+            .item-details {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 9px;
+              color: #333;
+            }
+            .item-quantity {
+              font-weight: normal;
+            }
+            .item-price {
+              font-weight: normal;
+            }
+            .discount-applied {
+              font-size: 8px;
+              color: #666;
+              font-style: italic;
+            }
+            .item-separator {
+              height: 1px;
+              background: #ccc;
+              margin: 6px 0;
+            }
+            .totals-section {
+              border-top: 2px solid #000;
+              padding-top: 12px;
+              margin-bottom: 16px;
+            }
+            .total-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 4px;
+              font-size: 10px;
+            }
+            .total-label {
+              color: #000;
+              font-weight: normal;
+            }
+            .total-value {
+              font-weight: bold;
+              color: #000;
+            }
+            .final-total {
+              border-top: 1px dashed #000;
+              padding-top: 6px;
+              margin-top: 6px;
+            }
+            .final-total .total-label {
+              font-size: 12px;
+              font-weight: bold;
+              color: #000;
+            }
+            .final-total .total-value {
+              font-size: 14px;
+              font-weight: bold;
+              color: #000;
+            }
+            .savings-total {
+              background: #f5f5f5;
+              border: 1px solid #ccc;
+              padding: 3px 6px;
+              margin: 3px 0;
+              font-size: 9px;
+            }
+            .savings-total .total-label {
+              color: #333;
+              font-weight: bold;
+            }
+            .savings-highlight {
+              color: #000 !important;
+              font-weight: bold;
+            }
+            .footer {
+              text-align: center;
+              color: #333;
+              font-size: 9px;
+              border-top: 1px solid #ccc;
+              padding-top: 12px;
+              line-height: 1.4;
+            }
+            .thank-you {
+              font-weight: bold;
+              color: #000;
+              margin-bottom: 6px;
+            }
+            @media print {
+              body { 
+                background: white;
+                padding: 0;
+              }
+              .receipt {
+                border: none;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="receipt">
+            <div class="header">
+              <div class="company-name">SISTEMA DE VENTAS</div>
+              <div class="receipt-title">Boleta de Venta</div>
+            </div>
+            
+            <div class="info-section">
+              <div class="info-row">
+                <span class="info-label">Fecha y Hora:</span>
+                <span class="info-value">${fechaFormateada}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Cliente:</span>
+                <span class="info-value">${cliente ?? 'Público General'}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Método de Pago:</span>
+                <span class="info-value">${mp.charAt(0).toUpperCase() + mp.slice(1)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Atendido por:</span>
+                <span class="info-value">${datosVentaParaBoleta.usuarioVendedor}</span>
+              </div>
+            </div>
+            
+            <div class="products-section">
+              <div class="section-title">Productos</div>
+              ${itemsHtml}
+            </div>
+            
+            <div class="totals-section">
+              <div class="total-row">
+                <span class="total-label">Subtotal (sin IGV):</span>
+                <span class="total-value">S/${subtotal.toFixed(2)}</span>
+              </div>
+              <div class="total-row">
+                <span class="total-label">IGV (18%):</span>
+                <span class="total-value">S/${igvVenta.toFixed(2)}</span>
+              </div>
+              ${ahorroTotal > 0 ? `
+              <div class="total-row savings-total">
+                <span class="total-label">Descuentos aplicados:</span>
+                <span class="total-value savings-highlight">S/${ahorroTotal.toFixed(2)}</span>
+              </div>
+              ` : ''}
+              <div class="total-row final-total">
+                <span class="total-label">TOTAL A PAGAR:</span>
+                <span class="total-value">S/${totalGeneral.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div class="footer">
+              <div class="thank-you">¡Gracias por su compra!</div>
+              <div>Conserve este comprobante</div>
+              <div>para cualquier reclamo o garantía</div>
+            </div>
+          </div>
+          
+          <script>
+            setTimeout(() => { 
+              window.print(); 
+            }, 500);
+          </script>
+        </body>
+      </html>`;
     
-    const boletaWindow = window.open('', '_blank', 'width=320,height=500,scrollbars=yes,resizable=yes');
-    boletaWindow?.document.write(boletaHtml);
-    boletaWindow?.document.close();
+    const boletaWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes');
+    if (boletaWindow) {
+      boletaWindow.document.write(boletaHtml);
+      boletaWindow.document.close();
+    }
     setMostrarModalBoleta(false);
   };
 
