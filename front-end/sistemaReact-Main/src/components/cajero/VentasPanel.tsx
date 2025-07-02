@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2 } from 'lucide-react';
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
 import { useAuthReady } from '../../hooks/useAuthReady';
+import { useAuth } from '../../context/AuthContext';
 import { ClienteService } from '../../services/ClienteServices';
 import { VentaService } from '../../services/VentaServices';
+import { ProductoService } from '../../services/ProductoServices';
 import type { ProductoVenta } from '../../interfaces/Producto';
 import type { ProductoVariante } from '../../interfaces/ProductoVariante';
 import type { Cliente } from '../../interfaces/Cliente';
@@ -12,6 +14,7 @@ import type { DetalleVentaInput } from '../../interfaces/DetalleVenta';
 
 const VentasPanel = () => {
   const { isReady, isAuthenticated } = useAuthReady();
+  const { usuario } = useAuth();
   // Get role-aware product variante service methods
   const { getAllVariantes, disminuirCantidadVariante } = useProductoVarianteService();
   
@@ -28,12 +31,14 @@ const VentasPanel = () => {
   const [variantesCargadas, setVariantesCargadas] = useState<ProductoVariante[]>([]);
   const [variantesFiltradas, setVariantesFiltradas] = useState<ProductoVariante[]>([]);
   const [productosSeleccionadosVenta, setProductosSeleccionadosVenta] = useState<ProductoVenta[]>([]);
+  const [variantesConPreciosCompletos, setVariantesConPreciosCompletos] = useState<Map<number, ProductoVariante>>(new Map());
   
   const [metodoPago, setMetodoPago] = useState('');
   
   const [cargandoProductosIniciales, setCargandoProductosIniciales] = useState(true);
   const [cargandoBusquedaAccion, setCargandoBusquedaAccion] = useState(false);
   const [cargandoProcesoVenta, setCargandoProcesoVenta] = useState(false);
+  const [cargandoAgregarProducto, setCargandoAgregarProducto] = useState(false);
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null);
   const [mensajeInfoVista, setMensajeInfoVista] = useState<string | null>(null);
 
@@ -71,7 +76,7 @@ const VentasPanel = () => {
         }
       } catch (err: any) {
         console.error('Error en cargarTodasLasVariantes:', err);
-        setErrorGlobal(err.message || 'No se pudieron cargar las variantes de productos.');
+        setErrorGlobal(err.message ?? 'No se pudieron cargar las variantes de productos.');
         setMensajeInfoVista(null);
       } finally {
         setCargandoProductosIniciales(false);
@@ -117,6 +122,68 @@ const VentasPanel = () => {
   // --------------------------------------------------------------------------------------------
   // C. MANEJADORES DE LÓGICA DE PRODUCTOS Y VENTA
   // --------------------------------------------------------------------------------------------
+  
+  // Función para calcular el precio según la cantidad
+  const calcularPrecioSegunCantidad = (variante: any, cantidad: number) => {
+    if (!variante?.producto) {
+      return { precio: 0, precioOriginal: 0, tipoDescuento: null };
+    }
+    
+    // Los precios están en la entidad Producto, no en ProductoVariante
+    const producto = variante.producto;
+    const precioUnitario = producto.precioUnitario ?? 0;
+    const precioCuarto = producto.precioCuarto;
+    const precioMediaDocena = producto.precioMediaDocena;
+    const precioDocena = producto.precioDocena;
+    
+    // Si es 12 o más unidades y existe precio por docena
+    if (cantidad >= 12 && precioDocena != null && precioDocena > 0) {
+      return {
+        precio: precioDocena,
+        precioOriginal: precioUnitario,
+        tipoDescuento: 'docena'
+      };
+    }
+    
+    // Si es 6 o más unidades y existe precio por media docena
+    if (cantidad >= 6 && precioMediaDocena != null && precioMediaDocena > 0) {
+      return {
+        precio: precioMediaDocena,
+        precioOriginal: precioUnitario,
+        tipoDescuento: 'mediaDocena'
+      };
+    }
+    
+    // Si es 3 o más unidades y existe precio por cuarto
+    if (cantidad >= 3 && precioCuarto != null && precioCuarto > 0) {
+      return {
+        precio: precioCuarto,
+        precioOriginal: precioUnitario,
+        tipoDescuento: 'cuarto'
+      };
+    }
+    
+    // Precio unitario para cantidades menores o cuando no hay otros precios
+    return {
+      precio: precioUnitario,
+      precioOriginal: precioUnitario,
+      tipoDescuento: null
+    };
+  };
+  
+  // Función para obtener el texto del tipo de descuento
+  const obtenerTextoDescuento = (tipoDescuento: string | null, cantidad: number) => {
+    switch (tipoDescuento) {
+      case 'docena':
+        return `Precio por docena (${cantidad} unid.)`;
+      case 'mediaDocena':
+        return `Precio por media docena (${cantidad} unid.)`;
+      case 'cuarto':
+        return `Precio por cuarto (${cantidad} unid.)`;
+      default:
+        return `Precio unitario`;
+    }
+  };
   const handleBuscarEnServicio = async () => {
     const terminoBusqueda = busqueda.trim();
     if (terminoBusqueda === '') {
@@ -167,7 +234,7 @@ const VentasPanel = () => {
       }
     } catch (err: any) {
       console.error('Error en handleBuscarEnServicio:', err);
-      setErrorGlobal(err.message || 'Error al buscar en la base de datos.');
+      setErrorGlobal(err.message ?? 'Error al buscar en la base de datos.');
       setMensajeInfoVista(null);
     } finally {
       setCargandoBusquedaAccion(false);
@@ -190,7 +257,7 @@ const VentasPanel = () => {
       );
       
       if (varianteEncontrada) {
-        agregarVarianteAVenta(varianteEncontrada);
+        await agregarVarianteAVenta(varianteEncontrada);
         setBusqueda(''); 
         
         const nombreProducto = varianteEncontrada.producto?.nombre || 'Producto';
@@ -205,7 +272,7 @@ const VentasPanel = () => {
       }
     } catch (err: any) {
       console.error('Error en handleBuscarPorCodigoExacto:', err);
-      setErrorGlobal(err.message || `Error al procesar código "${codigoScaneado}".`);
+      setErrorGlobal(err.message ?? `Error al procesar código "${codigoScaneado}".`);
       setMensajeInfoVista(null);
     } finally {
       setCargandoBusquedaAccion(false);
@@ -271,65 +338,119 @@ const VentasPanel = () => {
     }
   };
 
-  const agregarVarianteAVenta = (variante: ProductoVariante) => {
+  const agregarVarianteAVenta = async (variante: ProductoVariante) => {
     setErrorGlobal(null);
+    setCargandoAgregarProducto(true);
     
-    // Asegurarnos que la variante tiene cantidad y no está agotada
-    const cantidad = variante.cantidad || 0;
-    if (cantidad <= 0) {
-      setErrorGlobal(`La variante ${variante.producto?.nombre || 'Sin nombre'} - ${variante.color?.nombre || 'Sin color'} - ${variante.talla?.nombreTalla || 'Talla única'} está agotada.`);
-      return;
-    }
-
-    // Asegurarse de que tenemos un ID de variante válido
-    const idVariante = variante.idProductoVariante || variante.idVariante;
-    if (!idVariante) {
-      setErrorGlobal('Esta variante no tiene un identificador válido y no puede ser agregada a la venta.');
-      return;
-    }
-
-    const varianteExistente = productosSeleccionadosVenta.find(item => 
-      item.idProductoVariante === idVariante
-    );
-    
-    if (varianteExistente) {
-      if (varianteExistente.cantidad >= cantidad) {
-        setErrorGlobal(`No hay más stock de ${variante.producto?.nombre || 'Producto'} - ${variante.color?.nombre || 'Sin color'} - ${variante.talla?.nombreTalla || 'Talla única'}. Stock: ${cantidad}. En carrito: ${varianteExistente.cantidad}.`);
+    try {
+      // Asegurarnos que la variante tiene cantidad y no está agotada
+      const cantidad = variante.cantidad || 0;
+      if (cantidad <= 0) {
+        const nombreProducto = (variante as any).nombre || variante.producto?.nombre || 'Sin nombre';
+        setErrorGlobal(`La variante ${nombreProducto} está agotada.`);
         return;
       }
-      setProductosSeleccionadosVenta(prev => prev.map(item => 
-        item.idProductoVariante === idVariante 
-          ? { ...item, cantidad: item.cantidad + 1, total: (item.cantidad + 1) * item.precio } 
-          : item
-      ));
-    } else {
-      // Precio unitario del producto o valor por defecto si no existe
-      const precioUnitario = variante.producto?.precioUnitario || 0;
+
+      // Asegurarse de que tenemos un ID de variante válido
+      const idVariante = variante.idProductoVariante ?? variante.idVariante;
+      if (!idVariante) {
+        setErrorGlobal('Esta variante no tiene un identificador válido y no puede ser agregada a la venta.');
+        return;
+      }
+
+      // Verificar si ya existe en el carrito
+      const varianteExistente = productosSeleccionadosVenta.find(item => 
+        item.idProductoVariante === idVariante
+      );
       
-      setProductosSeleccionadosVenta(prev => [...prev, {
-        idProductoVariante: idVariante,
-        idProducto: variante.producto?.idProducto || 0,
-        codigo: variante.codigoBarrasVariante || (variante.producto?.codigoIdentificacion || 'Sin código'),
-        descripcion: variante.producto?.nombre || 'Producto sin nombre',
-        talla: variante.talla?.nombreTalla || 'Única',
-        color: variante.color?.nombre || 'Sin color',
-        cantidad: 1,
-        precio: precioUnitario,
-        total: precioUnitario
-      }]);
+      // Obtener el producto completo por su ID para tener acceso a todos los precios de volumen
+      let productoCompleto = variante.producto;
+      let varianteConPreciosCompletos = variante;
+      
+      try {
+        if (variante.producto?.idProducto) {
+          const userRole = usuario?.roles?.[0]?.nombreRol;
+          productoCompleto = await ProductoService.getProductoById(variante.producto.idProducto, userRole);
+          
+          // Crear una nueva variante con los precios completos del producto
+          varianteConPreciosCompletos = {
+            ...variante,
+            producto: productoCompleto
+          };
+          
+          // Guardar la variante con precios completos en el estado
+          setVariantesConPreciosCompletos(prev => new Map(prev.set(idVariante, varianteConPreciosCompletos)));
+          
+          console.log('✅ Producto completo obtenido con precios de volumen:', {
+            producto: productoCompleto.nombre,
+            precioUnitario: productoCompleto.precioUnitario,
+            precioCuarto: productoCompleto.precioCuarto,
+            precioMediaDocena: productoCompleto.precioMediaDocena,
+            precioDocena: productoCompleto.precioDocena
+          });
+        }
+      } catch (error) {
+        console.warn('No se pudo obtener el producto completo, usando datos existentes:', error);
+        // Continuamos con los datos que ya tenemos
+      }
+      
+      if (varianteExistente) {
+        if (varianteExistente.cantidad >= cantidad) {
+          setErrorGlobal(`No hay más stock de ${varianteConPreciosCompletos.producto?.nombre || 'Producto'} - ${varianteConPreciosCompletos.color?.nombre || 'Sin color'} - ${varianteConPreciosCompletos.talla?.nombreTalla || 'Talla única'}. Stock: ${cantidad}. En carrito: ${varianteExistente.cantidad}.`);
+          return;
+        }
+        
+        // Calcular nuevo precio según la nueva cantidad
+        const nuevaCantidad = varianteExistente.cantidad + 1;
+        const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, nuevaCantidad);
+        
+        setProductosSeleccionadosVenta(prev => prev.map(item => 
+          item.idProductoVariante === idVariante 
+            ? { 
+                ...item, 
+                cantidad: nuevaCantidad, 
+                precio: nuevoPrecio,
+                total: nuevaCantidad * nuevoPrecio 
+              } 
+            : item
+        ));
+      } else {
+        // Calcular precio para 1 unidad
+        const { precio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, 1);
+        
+        setProductosSeleccionadosVenta(prev => [...prev, {
+          idProductoVariante: idVariante,
+          idProducto: varianteConPreciosCompletos.producto?.idProducto ?? 0,
+          codigo: varianteConPreciosCompletos.codigoBarrasVariante ?? varianteConPreciosCompletos.producto?.codigoBarras ?? varianteConPreciosCompletos.producto?.codigoIdentificacion ?? 'Sin código',
+          descripcion: varianteConPreciosCompletos.producto?.nombre ?? 'Producto sin nombre',
+          talla: varianteConPreciosCompletos.talla?.nombreTalla ?? 'Única',
+          color: varianteConPreciosCompletos.color?.nombre ?? 'Sin color',
+          cantidad: 1,
+          precio: precio,
+          total: precio
+        }]);
+      }
+    } finally {
+      setCargandoAgregarProducto(false);
     }
   };
 
-  const handleSeleccionarVarianteDeLista = (variante: ProductoVariante) => {
+  const handleSeleccionarVarianteDeLista = async (variante: ProductoVariante) => {
     // Usar el precio unitario del producto asociado a la variante
-    agregarVarianteAVenta(variante);
+    await agregarVarianteAVenta(variante);
   };
 
   const handleEliminarProductoDeVenta = (idProductoVariante: number) => {
     setProductosSeleccionadosVenta(prev => prev.filter(item => item.idProductoVariante !== idProductoVariante));
+    // También limpiar la variante con precios completos
+    setVariantesConPreciosCompletos(prev => {
+      const nuevaMap = new Map(prev);
+      nuevaMap.delete(idProductoVariante);
+      return nuevaMap;
+    });
   };
 
-  const handleActualizarCantidadEnVenta = (idProductoVariante: number, nuevaCantidad: number) => {
+  const handleActualizarCantidadEnVenta = async (idProductoVariante: number, nuevaCantidad: number) => {
     const varianteOriginal = variantesCargadas.find(v => v.idProductoVariante === idProductoVariante);
       
     if (!varianteOriginal) {
@@ -348,14 +469,49 @@ const VentasPanel = () => {
     }
     
     setErrorGlobal(null);
+    
+    // Obtener el producto completo para tener acceso a todos los precios de volumen
+    let varianteConPreciosCompletos = varianteOriginal;
+    
+    try {
+      if (varianteOriginal.producto?.idProducto) {
+        const userRole = usuario?.roles?.[0]?.nombreRol;
+        const productoCompleto = await ProductoService.getProductoById(varianteOriginal.producto.idProducto, userRole);
+        
+        // Crear una nueva variante con los precios completos del producto
+        varianteConPreciosCompletos = {
+          ...varianteOriginal,
+          producto: productoCompleto
+        };
+        
+        // Guardar la variante con precios completos en el estado
+        setVariantesConPreciosCompletos(prev => new Map(prev.set(idProductoVariante, varianteConPreciosCompletos)));
+      }
+    } catch (error) {
+      console.warn('No se pudo obtener el producto completo para actualizar cantidad, usando datos existentes:', error);
+      // Continuamos con los datos que ya tenemos
+    }
+    
+    // Calcular nuevo precio según la nueva cantidad
+    const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, nuevaCantidad);
+    
     setProductosSeleccionadosVenta(prev => prev.map(item => 
       item.idProductoVariante === idProductoVariante 
-        ? { ...item, cantidad: nuevaCantidad, total: nuevaCantidad * item.precio } 
+        ? { 
+            ...item, 
+            cantidad: nuevaCantidad, 
+            precio: nuevoPrecio,
+            total: nuevaCantidad * nuevoPrecio 
+          } 
         : item
     ));
   };
 
-  const totalConIgvIncluido = productosSeleccionadosVenta.reduce((acc, item) => acc + item.total, 0);
+  const totalConIgvIncluido = productosSeleccionadosVenta.reduce((acc, item) => {
+    // Para el cálculo del total, usamos el precio ya calculado y guardado en el item
+    // que ya incluye los descuentos por volumen aplicados cuando se agregó al carrito
+    return acc + item.total;
+  }, 0);
   // El precio de los productos ya incluye IGV, por lo que extraemos el IGV del total
   const subtotalVenta = totalConIgvIncluido / 1.18; // Monto sin IGV
   const igvVenta = totalConIgvIncluido - subtotalVenta; // IGV extraído
@@ -534,6 +690,7 @@ const VentasPanel = () => {
     setBusqueda('');
     setProductosSeleccionadosVenta([]);
     setMetodoPago('');
+    setVariantesConPreciosCompletos(new Map());
   };
   
   // Función auxiliar para obtener el ID de método de pago basado en el string
@@ -895,32 +1052,53 @@ const VentasPanel = () => {
                   <thead className="bg-gray-50 sticky top-0 z-10"><tr>
                     <th className="px-2 py-2 text-left text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Descripción</th>
                     <th className="px-1 py-2 text-center text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Cant.</th>
+                    <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Precio</th>
                     <th className="px-2 py-2 text-right text-[10px] sm:text-xs font-medium text-gray-500 uppercase">Total</th>
                     <th className="px-1 py-2 text-center text-[10px] sm:text-xs font-medium text-gray-500 uppercase"></th>
                   </tr></thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {productosSeleccionadosVenta.map(p => (
-                      <tr key={p.idProductoVariante} className="hover:bg-gray-50">
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-700 max-w-[100px] sm:max-w-[150px] truncate" title={`${p.descripcion} - ${p.color} - ${p.talla}`}>
-                          <div>
-                            <span className="font-medium">{p.descripcion}</span>
-                            <div className="text-[9px] text-gray-500">Talla: {p.talla} - Color: {p.color}</div>
-                          </div>
-                        </td>
-                        <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
-                          <div className="flex items-center justify-center">
-                            <button className="text-red-600 hover:text-red-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad - 1)}>-</button>
-                            <span className="mx-1.5 w-5 text-center font-medium">{p.cantidad}</span>
-                            <button className="text-green-600 hover:text-green-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad + 1)}>+</button>
-                          </div>
-                        </td>
-                        <td className="px-2 py-1.5 whitespace-nowrap text-xs text-right font-medium">S/{p.total.toFixed(2)}</td>
-                        <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
-                          <button className="text-red-500 hover:text-red-700" onClick={() => handleEliminarProductoDeVenta(p.idProductoVariante)}><X size={14} /></button>
-                        </td>
-                      </tr>
-                    ))}
-                    {productosSeleccionadosVenta.length === 0 && <tr><td colSpan={4} className="px-4 py-10 text-center text-sm text-gray-400">Agregue productos a la venta.</td></tr>}
+                    {productosSeleccionadosVenta.map(p => {
+                      // Buscar primero la variante con precios completos, si no está usar la original
+                      const varianteConPrecios = variantesConPreciosCompletos.get(p.idProductoVariante);
+                      const varianteAUsar = varianteConPrecios || variantesCargadas.find(v => v.idProductoVariante === p.idProductoVariante);
+                      const preciosInfo = calcularPrecioSegunCantidad(varianteAUsar, p.cantidad);
+                      
+                      return (
+                        <tr key={p.idProductoVariante} className="hover:bg-gray-50">
+                          <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-700 max-w-[100px] sm:max-w-[120px] truncate" title={`${p.descripcion} - ${p.color} - ${p.talla}`}>
+                            <div>
+                              <span className="font-medium">{p.descripcion}</span>
+                              <div className="text-[9px] text-gray-500">Talla: {p.talla} - Color: {p.color}</div>
+                            </div>
+                          </td>
+                          <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
+                            <div className="flex items-center justify-center">
+                              <button className="text-red-600 hover:text-red-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad - 1)}>-</button>
+                              <span className="mx-1.5 w-5 text-center font-medium">{p.cantidad}</span>
+                              <button className="text-green-600 hover:text-green-800 p-0.5" onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad + 1)}>+</button>
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 whitespace-nowrap text-xs text-right">
+                            <div className="flex flex-col items-end">
+                              {preciosInfo.tipoDescuento ? (
+                                <>
+                                  <span className="line-through text-gray-400 text-[10px]">S/{preciosInfo.precioOriginal.toFixed(2)}</span>
+                                  <span className="font-medium text-green-600">S/{preciosInfo.precio.toFixed(2)}</span>
+                                  <span className="text-[9px] text-green-600">{obtenerTextoDescuento(preciosInfo.tipoDescuento, p.cantidad)}</span>
+                                </>
+                              ) : (
+                                <span className="font-medium">S/{preciosInfo.precio.toFixed(2)}</span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-2 py-1.5 whitespace-nowrap text-xs text-right font-medium">S/{(preciosInfo.precio * p.cantidad).toFixed(2)}</td>
+                          <td className="px-1 py-1.5 whitespace-nowrap text-xs text-center">
+                            <button className="text-red-500 hover:text-red-700" onClick={() => handleEliminarProductoDeVenta(p.idProductoVariante)}><X size={14} /></button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                    {productosSeleccionadosVenta.length === 0 && <tr><td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">Agregue productos a la venta.</td></tr>}
                   </tbody>
                 </table>
               </div>

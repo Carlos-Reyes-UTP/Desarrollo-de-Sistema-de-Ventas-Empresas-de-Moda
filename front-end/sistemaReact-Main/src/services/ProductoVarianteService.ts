@@ -251,54 +251,47 @@ export const ProductoVarianteService = {    // Crear nueva variante
   obtenerTodasLasVariantes: async (userRole?: string): Promise<ProductoVariante[]> => {
     try {
       console.log("DEBUG: obtenerTodasLasVariantes called with userRole:", userRole);
-      console.log("DEBUG: Comparing userRole === 'ROLE_CAJERO':", userRole === 'ROLE_CAJERO');
       
-      // Si es cajero, usar endpoint optimizado
-      if (userRole === 'ROLE_CAJERO') {
-        console.log("DEBUG: Usando endpoint de cajero:", RUTAS_PRODUCTOS.CAJERO.VARIANTES);
-        const response = await apiClient.get<ProductoVariante[]>(RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+      // TEMPORAL: Usar siempre el endpoint completo del almacenero hasta que 
+      // el endpoint del cajero incluya los precios de volumen
+      console.log("DEBUG: Usando endpoint completo del almacenero para obtener precios de volumen");
+      
+      try {
+        const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.BASE);
+        console.log(`DEBUG: Se obtuvieron ${response.data.length} variantes con datos completos`);
         
-        // Normalizar IDs para consistencia
-        const variantes = response.data.map(variante => {
-          if (variante.idProductoVariante && !variante.idVariante) {
-            variante.idVariante = variante.idProductoVariante;
-          }
-          return variante;
-        });
-        
-        console.log(`DEBUG: Se obtuvieron ${variantes.length} variantes desde endpoint del cajero`);
-        return variantes;
-      } else {
-        console.log("DEBUG: Intentando endpoint de almacenero:", RUTAS_VARIANTES.BASE);
-        console.log("DEBUG: userRole is not ROLE_CAJERO, it is:", userRole);
-        
-        try {
-          // Para otros roles, usar endpoint de almacenero (método original)
-          const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.BASE);
-          console.log(`DEBUG: Se obtuvieron ${response.data.length} variantes desde endpoint del almacenero`);
-          return response.data;
-        } catch (almaceneroError: any) {
-          console.log("DEBUG: Error con endpoint de almacenero, intentando con cajero como fallback");
-          
-          // Si falla el endpoint de almacenero (403), usar el de cajero como fallback
-          if (almaceneroError.response?.status === 403) {
-            console.log("DEBUG: Usando endpoint de cajero como fallback:", RUTAS_PRODUCTOS.CAJERO.VARIANTES);
-            const response = await apiClient.get<ProductoVariante[]>(RUTAS_PRODUCTOS.CAJERO.VARIANTES);
-            
-            // Normalizar IDs para consistencia
-            const variantes = response.data.map(variante => {
-              if (variante.idProductoVariante && !variante.idVariante) {
-                variante.idVariante = variante.idProductoVariante;
-              }
-              return variante;
-            });
-            
-            console.log(`DEBUG: Se obtuvieron ${variantes.length} variantes desde endpoint del cajero (fallback)`);
-            return variantes;
-          }
-          
-          throw almaceneroError;
+        // Log de la primera variante para verificar que tiene precios de volumen
+        if (response.data.length > 0) {
+          const primerVariante = response.data[0];
+          console.log("DEBUG: Primera variante con precios de volumen:", {
+            producto: primerVariante.producto,
+            campos_producto: primerVariante.producto ? Object.keys(primerVariante.producto) : 'NO HAY PRODUCTO'
+          });
         }
+        
+        return response.data;
+      } catch (almaceneroError: any) {
+        console.log("DEBUG: Error con endpoint de almacenero, intentando con cajero como fallback");
+        
+        // Si falla el endpoint de almacenero (403), usar el de cajero como fallback
+        if (almaceneroError.response?.status === 403) {
+          console.log("DEBUG: Usando endpoint de cajero como fallback:", RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+          const response = await apiClient.get<ProductoVariante[]>(RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+          
+          // Normalizar IDs para consistencia
+          const variantes = response.data.map(variante => {
+            if (variante.idProductoVariante && !variante.idVariante) {
+              variante.idVariante = variante.idProductoVariante;
+            }
+            return variante;
+          });
+          
+          console.log(`DEBUG: Se obtuvieron ${variantes.length} variantes desde endpoint del cajero (fallback)`);
+          console.warn("⚠️ ADVERTENCIA: Los precios de volumen pueden no estar disponibles con el endpoint del cajero");
+          return variantes;
+        }
+        
+        throw almaceneroError;
       }
     } catch (error) {
       console.error("DEBUG: Error al obtener todas las variantes:", error);
