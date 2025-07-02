@@ -120,9 +120,25 @@ const DashboardAdmin = () => {
         
         setVentas(ventasData);
         
-        // Cargar usuarios
-        const usuariosResponse = await ServicioUsuarios.obtenerTodos();
-        const usuariosData = Array.isArray(usuariosResponse) ? usuariosResponse : [];
+        // Cargar usuarios con roles
+        const usuariosResponse = await ServicioUsuarios.obtenerUsuariosConRoles();
+        console.log('Usuarios con roles obtenidos:', usuariosResponse);
+        
+        // Convertir usuarios del backend al formato del frontend
+        const usuariosData: Usuario[] = Array.isArray(usuariosResponse) 
+          ? usuariosResponse.map((usuarioBackend: any) => ({
+              id: usuarioBackend.id,
+              usuario: usuarioBackend.usuario,
+              activo: usuarioBackend.activo ?? true,
+              roles: Array.isArray(usuarioBackend.roles) 
+                ? usuarioBackend.roles.map((rolStr: string) => ({
+                    nombreRol: rolStr.replace('ROLE_', '') as any
+                  }))
+                : []
+            }))
+          : [];
+        
+        console.log('Usuarios convertidos para frontend:', usuariosData);
         setUsuarios(usuariosData);
         
         // Cargar proveedores
@@ -562,19 +578,28 @@ const DashboardAdmin = () => {
         </div>
         
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-5">Estadísticas de Usuarios</h2>
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="text-lg font-semibold text-gray-900">Estadísticas de Usuarios</h2>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              Total: {usuarios.length}
+            </span>
+          </div>
           
-          <div className="space-y-6">
-            <div>
-              <div className="flex justify-between mb-2">
-                <span className="text-sm text-gray-500">Usuarios activos</span>
-                <span className="text-sm font-medium">
+          <div className="space-y-4">
+            {/* Usuarios activos */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-3 rounded-lg border border-green-100">
+              <div className="flex justify-between items-center mb-2">
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                  <span className="text-sm font-medium text-gray-700">Usuarios activos</span>
+                </div>
+                <span className="text-sm font-semibold text-green-700">
                   {usuarios.filter(u => u.activo).length} / {usuarios.length}
                 </span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
+              <div className="w-full bg-green-200 rounded-full h-2">
                 <div 
-                  className="bg-green-500 h-2 rounded-full" 
+                  className="bg-gradient-to-r from-green-500 to-green-400 h-2 rounded-full transition-all duration-500" 
                   style={{ 
                     width: `${usuarios.length > 0 ? (usuarios.filter(u => u.activo).length / usuarios.length) * 100 : 0}%` 
                   }}
@@ -583,34 +608,69 @@ const DashboardAdmin = () => {
             </div>
             
             {/* Distribución de usuarios por rol */}
-            {['ADMIN', 'ALMACENERO', 'CAJERO'].map((rol, index) => {
-              const usuariosConRol = usuarios.filter(u => 
-                u.roles && u.roles.some(r => r.nombreRol === rol)
-              );
+            {[
+              { rol: 'ADMIN', icono: '👑', color: 'amber', nombre: 'Administradores' },
+              { rol: 'ALMACENERO', icono: '📦', color: 'blue', nombre: 'Almaceneros' },
+              { rol: 'CAJERO', icono: '💰', color: 'purple', nombre: 'Cajeros' }
+            ].map(({ rol, icono, color, nombre }) => {
+              const usuariosConRol = usuarios.filter(u => {
+                const tieneRol = u.roles && u.roles.some(r => r.nombreRol === rol);
+                console.log(`Usuario ${u.usuario} - Roles:`, u.roles, `- Tiene rol ${rol}:`, tieneRol);
+                return tieneRol;
+              });
+              
+              console.log(`Usuarios con rol ${rol}:`, usuariosConRol.length, usuariosConRol);
               
               const porcentaje = usuarios.length > 0 
                 ? (usuariosConRol.length / usuarios.length) * 100 
                 : 0;
               
-              const colores = ['bg-yellow-500', 'bg-blue-500', 'bg-purple-500'];
+              const colorClasses = {
+                amber: { bg: 'bg-amber-50', border: 'border-amber-100', bar: 'bg-gradient-to-r from-amber-500 to-yellow-400', barBg: 'bg-amber-200', text: 'text-amber-700' },
+                blue: { bg: 'bg-blue-50', border: 'border-blue-100', bar: 'bg-gradient-to-r from-blue-500 to-blue-400', barBg: 'bg-blue-200', text: 'text-blue-700' },
+                purple: { bg: 'bg-purple-50', border: 'border-purple-100', bar: 'bg-gradient-to-r from-purple-500 to-purple-400', barBg: 'bg-purple-200', text: 'text-purple-700' }
+              };
+              
+              const colorClass = colorClasses[color as keyof typeof colorClasses];
               
               return (
-                <div key={rol}>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm text-gray-500">{rol}</span>
-                    <span className="text-sm font-medium">
-                      {usuariosConRol.length} / {usuarios.length}
+                <div key={rol} className={`${colorClass.bg} p-3 rounded-lg border ${colorClass.border}`}>
+                  <div className="flex justify-between items-center mb-2">
+                    <div className="flex items-center">
+                      <span className="mr-2 text-sm">{icono}</span>
+                      <span className="text-sm font-medium text-gray-700">{nombre}</span>
+                    </div>
+                    <span className={`text-sm font-semibold ${colorClass.text}`}>
+                      {usuariosConRol.length} ({porcentaje.toFixed(0)}%)
                     </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className={`w-full ${colorClass.barBg} rounded-full h-2`}>
                     <div 
-                      className={`${colores[index]} h-2 rounded-full`} 
+                      className={`${colorClass.bar} h-2 rounded-full transition-all duration-500`} 
                       style={{ width: `${porcentaje}%` }}
                     ></div>
                   </div>
                 </div>
               );
             })}
+            
+            {/* Información adicional */}
+            <div className="pt-2 border-t border-gray-100">
+              <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                <div className="text-center">
+                  <div className="font-medium text-gray-700">
+                    {usuarios.filter(u => !u.activo).length}
+                  </div>
+                  <div>Inactivos</div>
+                </div>
+                <div className="text-center">
+                  <div className="font-medium text-gray-700">
+                    {usuarios.filter(u => u.activo && u.roles && u.roles.length > 1).length}
+                  </div>
+                  <div>Multi-rol</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
