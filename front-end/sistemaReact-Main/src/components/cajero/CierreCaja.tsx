@@ -19,7 +19,6 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
   const [efectivoContado, setEfectivoContado] = useState<string>('');
   const [tarjetaContado, setTarjetaContado] = useState<string>('');
   const [yapeContado, setYapeContado] = useState<string>('');
-  const [montoFinalCaja, setMontoFinalCaja] = useState<string>('');
   const [observaciones, setObservaciones] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,18 +52,23 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
           const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaActual);
           ventasDelDia = Array.isArray(ventasResponse) ? ventasResponse : [];
           console.log(`Ventas del día cargadas: ${ventasDelDia.length}`);
-        } catch (error) {
-          console.log('Error al cargar ventas por fecha, intentando cargar todas las ventas');
-          const todasLasVentas = await VentaService.obtenerTodasVentas();
-          const todasVentasArray = Array.isArray(todasLasVentas) ? todasLasVentas : [];
-          
-          // Filtrar solo las ventas del día actual
-          const fechaHoy = new Date();
-          ventasDelDia = todasVentasArray.filter(venta => {
-            const fechaVenta = new Date(venta.fechaVenta);
-            return fechaVenta.toDateString() === fechaHoy.toDateString();
-          });
-          console.log(`Ventas del día filtradas: ${ventasDelDia.length}`);
+        } catch (ventasError) {
+          console.log('Error al cargar ventas por fecha, intentando cargar todas las ventas:', ventasError);
+          try {
+            const todasLasVentas = await VentaService.obtenerTodasVentas();
+            const todasVentasArray = Array.isArray(todasLasVentas) ? todasLasVentas : [];
+            
+            // Filtrar solo las ventas del día actual
+            const fechaHoy = new Date();
+            ventasDelDia = todasVentasArray.filter(venta => {
+              const fechaVenta = new Date(venta.fechaVenta);
+              return fechaVenta.toDateString() === fechaHoy.toDateString();
+            });
+            console.log(`Ventas del día filtradas: ${ventasDelDia.length}`);
+          } catch (todasVentasError) {
+            console.error('Error al cargar todas las ventas:', todasVentasError);
+            ventasDelDia = [];
+          }
         }
         
         // Calcular totales usando la misma lógica del dashboard
@@ -173,10 +177,6 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
       setError('El monto de Yape/Plin debe ser un valor válido');
       return false;
     }
-    if (!montoFinalCaja || parseFloat(montoFinalCaja) < 0) {
-      setError('El monto final en caja debe ser un valor válido');
-      return false;
-    }
     return true;
   };
 
@@ -185,21 +185,23 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
     const tarjContado = parseFloat(tarjetaContado) || 0;
     const yapeContadoNum = parseFloat(yapeContado) || 0;
     const montoInicialNum = parseFloat(montoInicial) || 0;
-    const montoFinal = parseFloat(montoFinalCaja) || 0;
 
     const diferenciasEfectivo = efecContado - efectivoVentas;
     const diferenciasTarjeta = tarjContado - tarjetaVentas;
     const diferenciasYape = yapeContadoNum - yapeVentas;
     
+    // Efectivo esperado = monto inicial + ventas en efectivo
     const efectivoEsperado = montoInicialNum + efectivoVentas;
-    const diferenciaCaja = montoFinal - efectivoEsperado;
+    
+    // Discrepancia en caja = efectivo contado - efectivo esperado
+    const discrepanciaCaja = efecContado - efectivoEsperado;
 
     return {
       diferenciasEfectivo,
       diferenciasTarjeta,
       diferenciasYape,
-      diferenciaCaja,
-      efectivoEsperado
+      efectivoEsperado,
+      discrepanciaCaja
     };
   };
 
@@ -236,7 +238,6 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
         efectivoContado: parseFloat(efectivoContado),
         tarjetaContado: parseFloat(tarjetaContado),
         yapeContado: parseFloat(yapeContado),
-        montoFinalCaja: parseFloat(montoFinalCaja),
         observaciones,
         diferencias
       };
@@ -275,7 +276,8 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
           <h4 style="margin: 0 0 10px 0; text-align: center;">RESUMEN DE CAJA</h4>
           <p style="margin: 3px 0;">Monto Inicial: S/ ${datosCierre.montoInicial.toFixed(2)}</p>
           <p style="margin: 3px 0;">Total Ventas: S/ ${datosCierre.totalVentas.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Monto Final: S/ ${datosCierre.montoFinalCaja.toFixed(2)}</p>
+          <p style="margin: 3px 0;">Efectivo Esperado: S/ ${datosCierre.diferencias.efectivoEsperado.toFixed(2)}</p>
+          <p style="margin: 3px 0;">Efectivo Contado: S/ ${datosCierre.efectivoContado.toFixed(2)}</p>
         </div>
         
         <div style="margin: 15px 0;">
@@ -293,11 +295,25 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
         </div>
         
         <div style="border-top: 1px solid #333; padding-top: 10px; margin-top: 15px;">
-          <h4 style="margin: 0 0 10px 0;">DIFERENCIAS</h4>
+          <h4 style="margin: 0 0 10px 0;">DIFERENCIAS POR MÉTODO</h4>
           <p style="margin: 3px 0;">Efectivo: S/ ${datosCierre.diferencias.diferenciasEfectivo.toFixed(2)}</p>
           <p style="margin: 3px 0;">Tarjeta: S/ ${datosCierre.diferencias.diferenciasTarjeta.toFixed(2)}</p>
           <p style="margin: 3px 0;">Yape/Plin: S/ ${datosCierre.diferencias.diferenciasYape.toFixed(2)}</p>
-          <p style="margin: 3px 0;"><strong>Caja: S/ ${datosCierre.diferencias.diferenciaCaja.toFixed(2)}</strong></p>
+          
+          <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 10px;">
+            <h4 style="margin: 0 0 5px 0; text-align: center;">RESULTADO FINAL</h4>
+            <p style="margin: 3px 0; text-align: center;"><strong>
+              ${(() => {
+                if (datosCierre.diferencias.discrepanciaCaja === 0) {
+                  return 'CAJA CUADRADA ✓';
+                } else if (datosCierre.diferencias.discrepanciaCaja > 0) {
+                  return `SOBRANTE: S/ ${datosCierre.diferencias.discrepanciaCaja.toFixed(2)}`;
+                } else {
+                  return `FALTANTE: S/ ${Math.abs(datosCierre.diferencias.discrepanciaCaja).toFixed(2)}`;
+                }
+              })()}
+            </strong></p>
+          </div>
         </div>
         
         ${datosCierre.observaciones ? `
@@ -316,7 +332,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
     const ventanaImpresion = window.open('', '_blank');
     if (ventanaImpresion) {
-      ventanaImpresion.document.write(`
+      const htmlContent = `
         <html>
           <head>
             <title>Comprobante de Cierre de Caja</title>
@@ -331,8 +347,9 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
             ${contenidoImpresion}
           </body>
         </html>
-      `);
-      ventanaImpresion.document.close();
+      `;
+      
+      ventanaImpresion.document.documentElement.innerHTML = htmlContent;
     }
   };
 
@@ -366,13 +383,15 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   <p className="font-semibold text-green-600">S/ {datosCierre.totalVentas.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Monto Final:</p>
-                  <p className="font-semibold text-blue-600">S/ {datosCierre.montoFinalCaja.toFixed(2)}</p>
+                  <p className="text-gray-600">Efectivo Esperado:</p>
+                  <p className="font-semibold text-blue-600">S/ {datosCierre.diferencias.efectivoEsperado.toFixed(2)}</p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Diferencia Caja:</p>
-                  <p className={`font-semibold ${getDifferenceColor(datosCierre.diferencias.diferenciaCaja)}`}>
-                    S/ {datosCierre.diferencias.diferenciaCaja.toFixed(2)}
+                  <p className="text-gray-600">Discrepancia Caja:</p>
+                  <p className={`font-semibold ${getDifferenceColor(datosCierre.diferencias.discrepanciaCaja)}`}>
+                    S/ {datosCierre.diferencias.discrepanciaCaja.toFixed(2)}
+                    {datosCierre.diferencias.discrepanciaCaja > 0 && ' (Sobrante)'}
+                    {datosCierre.diferencias.discrepanciaCaja < 0 && ' (Faltante)'}
                   </p>
                 </div>
               </div>
@@ -438,12 +457,13 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Usuario */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="usuario-cajero" className="block text-sm font-medium text-gray-700">
                   Cajero
                 </label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <input
+                    id="usuario-cajero"
                     type="text"
                     value={usuario?.usuario ?? 'Usuario actual'}
                     readOnly
@@ -454,12 +474,13 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Fecha de apertura */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="fecha-apertura" className="block text-sm font-medium text-gray-700">
                   Fecha de Apertura
                 </label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <input
+                    id="fecha-apertura"
                     type="text"
                     value={fechaApertura}
                     onChange={(e) => setFechaApertura(e.target.value)}
@@ -472,12 +493,13 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Fecha de cierre */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="fecha-cierre" className="block text-sm font-medium text-gray-700">
                   Fecha de Cierre
                 </label>
                 <div className="relative">
                   <Clock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <input
+                    id="fecha-cierre"
                     type="text"
                     value={fechaCierre}
                     readOnly
@@ -498,13 +520,14 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Monto inicial */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="monto-inicial" className="block text-sm font-medium text-gray-700">
                   Monto Inicial
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="monto-inicial"
                     type="number"
                     step="0.01"
                     min="0"
@@ -518,13 +541,14 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Total ventas */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="total-ventas" className="block text-sm font-medium text-gray-700">
                   Total Ventas del Día
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="total-ventas"
                     type="text"
                     value={totalVentas.toFixed(2)}
                     readOnly
@@ -535,13 +559,14 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Efectivo ventas */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="efectivo-ventas" className="block text-sm font-medium text-gray-700">
                   Efectivo (Ventas)
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="efectivo-ventas"
                     type="text"
                     value={efectivoVentas.toFixed(2)}
                     readOnly
@@ -552,13 +577,14 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Tarjeta ventas */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="tarjeta-ventas" className="block text-sm font-medium text-gray-700">
                   Tarjeta (Ventas)
                 </label>
                 <div className="relative">
                   <CreditCard className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="tarjeta-ventas"
                     type="text"
                     value={tarjetaVentas.toFixed(2)}
                     readOnly
@@ -569,13 +595,14 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Yape ventas */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="yape-ventas" className="block text-sm font-medium text-gray-700">
                   Yape/Plin (Ventas)
                 </label>
                 <div className="relative">
                   <Smartphone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="yape-ventas"
                     type="text"
                     value={yapeVentas.toFixed(2)}
                     readOnly
@@ -593,16 +620,17 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
               Conteo Realizado
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Efectivo contado */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="efectivo-contado" className="block text-sm font-medium text-gray-700">
                   Efectivo Contado
                 </label>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="efectivo-contado"
                     type="number"
                     step="0.01"
                     min="0"
@@ -616,13 +644,14 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Tarjeta contado */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="tarjeta-contado" className="block text-sm font-medium text-gray-700">
                   Tarjeta Contado
                 </label>
                 <div className="relative">
                   <CreditCard className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="tarjeta-contado"
                     type="number"
                     step="0.01"
                     min="0"
@@ -636,13 +665,14 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
               {/* Yape contado */}
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
+                <label htmlFor="yape-contado" className="block text-sm font-medium text-gray-700">
                   Yape/Plin Contado
                 </label>
                 <div className="relative">
                   <Smartphone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
                   <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
                   <input
+                    id="yape-contado"
                     type="number"
                     step="0.01"
                     min="0"
@@ -653,28 +683,63 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   />
                 </div>
               </div>
+            </div>
+          </div>
 
-              {/* Monto final en caja */}
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Monto Final en Caja
-                </label>
-                <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={montoFinalCaja}
-                    onChange={(e) => setMontoFinalCaja(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
-                    required
-                  />
+          {/* Resumen de diferencias en tiempo real */}
+          {(efectivoContado || tarjetaContado || yapeContado) && (
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 mt-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                <Calculator className="h-5 w-5 mr-2 text-purple-600" />
+                Resumen de Diferencias
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
+                <div className="text-center">
+                  <p className="text-gray-600 font-medium">Efectivo Esperado</p>
+                  <p className="text-lg font-bold text-blue-600">
+                    S/ {((parseFloat(montoInicial) || 0) + efectivoVentas).toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-600 font-medium">Efectivo Contado</p>
+                  <p className="text-lg font-bold text-purple-600">
+                    S/ {(parseFloat(efectivoContado) || 0).toFixed(2)}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-600 font-medium">Discrepancia</p>
+                  <p className={`text-lg font-bold ${
+                    (() => {
+                      const discrepancia = (parseFloat(efectivoContado) || 0) - ((parseFloat(montoInicial) || 0) + efectivoVentas);
+                      if (discrepancia === 0) return 'text-green-600';
+                      if (discrepancia > 0) return 'text-blue-600';
+                      return 'text-red-600';
+                    })()
+                  }`}>
+                    {(() => {
+                      const discrepancia = (parseFloat(efectivoContado) || 0) - ((parseFloat(montoInicial) || 0) + efectivoVentas);
+                      if (discrepancia === 0) return '✓ Cuadrada';
+                      return `S/ ${discrepancia.toFixed(2)} ${discrepancia > 0 ? '(Sobrante)' : '(Faltante)'}`;
+                    })()}
+                  </p>
+                </div>
+                <div className="text-center">
+                  <p className="text-gray-600 font-medium">Estado</p>
+                  <p className={`text-sm font-medium px-3 py-1 rounded-full inline-block ${
+                    (() => {
+                      const discrepancia = (parseFloat(efectivoContado) || 0) - ((parseFloat(montoInicial) || 0) + efectivoVentas);
+                      return discrepancia === 0 ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
+                    })()
+                  }`}>
+                    {(() => {
+                      const discrepancia = (parseFloat(efectivoContado) || 0) - ((parseFloat(montoInicial) || 0) + efectivoVentas);
+                      return discrepancia === 0 ? 'Correcto' : 'Revisar';
+                    })()}
+                  </p>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Observaciones */}
           <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
@@ -683,10 +748,11 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
             </h2>
             
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">
+              <label htmlFor="observaciones" className="block text-sm font-medium text-gray-700">
                 Comentarios adicionales (opcional)
               </label>
               <textarea
+                id="observaciones"
                 rows={4}
                 value={observaciones}
                 onChange={(e) => setObservaciones(e.target.value)}
