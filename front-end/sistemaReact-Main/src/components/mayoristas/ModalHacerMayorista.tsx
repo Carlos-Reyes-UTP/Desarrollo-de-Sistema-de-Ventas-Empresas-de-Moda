@@ -250,28 +250,28 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
+      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
         
         {/* Header */}
-        <div className="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4 flex justify-between items-center">
+        <div className="bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-white/10">
           <div className="flex items-center space-x-3">
-            <Crown className="text-white" size={24} />
-            <h2 className="text-xl font-bold text-white">Hacer Cliente Mayorista</h2>
+            <Crown className="text-white drop-shadow-md" size={24} />
+            <h2 className="text-xl font-bold text-white drop-shadow-sm">Gestionar Cliente Mayorista</h2>
           </div>
           <button
             onClick={() => {
               resetModal();
               onClose();
             }}
-            className="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors"
+            className="text-white hover:text-gray-200 hover:bg-black hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Contenido */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
+        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)] bg-gradient-to-br from-white/50 to-gray-50/50 backdrop-blur-sm">
           
           {/* Pantalla de confirmación de éxito */}
           {mostrarConfirmacionExito ? (
@@ -345,7 +345,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                         }
                       }}
                       placeholder="Buscar por nombre o número de documento..."
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                      className="w-full pl-10 pr-4 py-3 border-2 border-gray-300/70 bg-white/80 backdrop-blur-sm rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 focus:bg-white/90 transition-all duration-200 placeholder-gray-500 shadow-sm"
                     />
                     {buscandoClientes && (
                       <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 animate-spin" size={20} />
@@ -365,7 +365,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                       <button
                         key={cliente.idCliente}
                         onClick={() => seleccionarCliente(cliente)}
-                        className="w-full text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 focus:bg-gray-50 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                        className="w-full text-left p-4 border border-gray-300/60 bg-white/70 backdrop-blur-sm rounded-lg hover:bg-white/90 focus:bg-white/90 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-all duration-200 shadow-sm hover:shadow-md"
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -391,7 +391,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                     <p className="text-sm font-medium text-gray-700 mb-4">Cliente Seleccionado</p>
                   )}
                   
-                  <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-gray-200/60 shadow-lg">
                     {verificandoMayorista ? (
                       <div className="flex items-center justify-center py-4">
                         <Loader2 className="animate-spin text-green-500 mr-2" size={20} />
@@ -432,7 +432,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                               <button
                                 onClick={eliminarMayorista}
                                 disabled={eliminandoMayorista || verificandoMayorista}
-                                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                               >
                                 {eliminandoMayorista ? (
                                   <>
@@ -462,7 +462,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
               {/* Mensajes de error y éxito */}
               {error && (
-                <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                <div className="mb-4 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-lg shadow-sm">
                   <div className="flex items-center space-x-2 text-red-600">
                     <AlertCircle size={20} />
                     <span className="font-medium">{error}</span>
@@ -471,7 +471,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               )}
 
               {exito && !mostrarConfirmacionExito && (
-                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="mb-4 p-4 bg-green-50/80 backdrop-blur-sm border border-green-200/50 rounded-lg shadow-sm">
                   <div className="flex items-center space-x-2 text-green-600">
                     <CheckCircle size={20} />
                     <span className="font-medium">{exito}</span>
@@ -480,13 +480,13 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               )}
 
               {/* Botones de acción */}
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200/50 bg-white/30 backdrop-blur-sm rounded-lg p-4 mt-6">
                 <button
                   onClick={() => {
                     resetModal();
                     onClose();
                   }}
-                  className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                  className="px-6 py-3 border border-gray-300/70 bg-white/70 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/90 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
                   disabled={convirtiendoMayorista || eliminandoMayorista}
                 >
                   Cancelar
@@ -495,7 +495,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 <button
                   onClick={convertirAMayorista}
                   disabled={!clienteSeleccionado || esMayorista || convirtiendoMayorista || eliminandoMayorista || !!exito}
-                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                  className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl backdrop-blur-sm"
                 >
                   {convirtiendoMayorista ? (
                     <>
