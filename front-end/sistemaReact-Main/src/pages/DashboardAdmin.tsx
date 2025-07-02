@@ -52,6 +52,9 @@ const DashboardAdmin = () => {
   // Estados para los gráficos
   const [datosVentas, setDatosVentas] = useState<number[]>([]);
   
+  // Estados para top clientes
+  const [topClientes, setTopClientes] = useState<{id: number, nombre: string, totalCompras: number}[]>([]);
+  
   // Cargar datos al montar el componente o cambiar el periodo
   useEffect(() => {
     if (!isReady) return;
@@ -152,6 +155,9 @@ const DashboardAdmin = () => {
         
         // Generar datos de gráficos
         generarDatosGraficos(ventasData);
+        
+        // Calcular top 5 clientes
+        calcularTopClientes(ventasData);
         
       } catch (error) {
         console.error('Error al cargar datos:', error);
@@ -301,6 +307,47 @@ const DashboardAdmin = () => {
       
       setDatosVentas(semanasMes);
     }
+  };
+
+  // Calcular top 5 clientes compradores
+  const calcularTopClientes = (ventasData: Venta[]) => {
+    if (!ventasData || ventasData.length === 0) {
+      setTopClientes([]);
+      return;
+    }
+
+    // Agrupar ventas por cliente y sumar totales
+    const clientesMap = new Map<number, {nombre: string, totalCompras: number}>();
+    
+    ventasData.forEach(venta => {
+      if (venta.cliente?.idCliente) {
+        const clienteId = venta.cliente.idCliente;
+        const clienteNombre = venta.cliente.nombreCliente;
+        const totalVenta = venta.totalVentas ?? 0;
+        
+        if (clientesMap.has(clienteId)) {
+          const cliente = clientesMap.get(clienteId)!;
+          cliente.totalCompras += totalVenta;
+        } else {
+          clientesMap.set(clienteId, {
+            nombre: clienteNombre,
+            totalCompras: totalVenta
+          });
+        }
+      }
+    });
+
+    // Convertir a array y ordenar por total de compras descendente
+    const clientesArray = Array.from(clientesMap.entries()).map(([id, data]) => ({
+      id,
+      nombre: data.nombre,
+      totalCompras: data.totalCompras
+    }));
+
+    clientesArray.sort((a, b) => b.totalCompras - a.totalCompras);
+
+    // Tomar los primeros 5
+    setTopClientes(clientesArray.slice(0, 5));
   };
 
   // Obtener etiquetas para el gráfico según el período
@@ -636,6 +683,82 @@ const DashboardAdmin = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Top 5 Clientes Compradores */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-gray-900">Top 5 Clientes Compradores</h2>
+          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+            {periodo === 'semana' ? 'Esta semana' : periodo === 'mes' ? 'Este mes' : 'Hoy'}
+          </span>
+        </div>
+        
+        {topClientes.length === 0 ? (
+          <div className="text-center py-10 text-gray-500">
+            <div className="text-gray-400 mb-2">
+              <Users size={48} className="mx-auto" />
+            </div>
+            <p className="text-gray-500 text-sm">No hay datos de clientes para mostrar</p>
+            <p className="text-gray-400 text-xs mt-1">No hay ventas registradas con clientes</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {topClientes.map((cliente, index) => (
+              <div key={cliente.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300">
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${
+                      index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500' :
+                      index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' :
+                      index === 2 ? 'bg-gradient-to-r from-amber-600 to-amber-700' :
+                      'bg-gradient-to-r from-blue-400 to-blue-500'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    {index < 3 && (
+                      <div className="absolute -top-1 -right-1">
+                        {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">{cliente.nombre}</h3>
+                    <p className="text-sm text-gray-500">Cliente #{cliente.id}</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-lg font-bold text-gray-900">
+                    S/ {cliente.totalCompras.toFixed(2)}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Total comprado
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        
+        {/* Resumen estadístico */}
+        {topClientes.length > 0 && (
+          <div className="mt-6 pt-4 border-t border-gray-200">
+            <div className="grid grid-cols-2 gap-4 text-center">
+              <div className="bg-blue-50 rounded-lg p-3">
+                <div className="text-lg font-bold text-blue-600">
+                  S/ {topClientes.reduce((sum, cliente) => sum + cliente.totalCompras, 0).toFixed(2)}
+                </div>
+                <div className="text-xs text-gray-600">Total acumulado</div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-3">
+                <div className="text-lg font-bold text-green-600">
+                  S/ {(topClientes.reduce((sum, cliente) => sum + cliente.totalCompras, 0) / topClientes.length).toFixed(2)}
+                </div>
+                <div className="text-xs text-gray-600">Promedio por cliente</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Actividad reciente */}
