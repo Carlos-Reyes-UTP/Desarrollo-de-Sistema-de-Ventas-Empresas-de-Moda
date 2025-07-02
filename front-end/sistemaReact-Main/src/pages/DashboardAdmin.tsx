@@ -171,8 +171,8 @@ const DashboardAdmin = () => {
         // Calcular métricas de ventas
         calcularMetricas(ventasData);
         
-        // Generar actividad reciente combinando diferentes tipos de datos
-        generarActividadReciente(productosData, ventasData, usuariosData);
+        // Generar actividad reciente solo con las últimas ventas
+        generarActividadReciente(ventasData);
         
         // Generar datos de gráficos
         generarDatosGraficos(ventasData);
@@ -238,28 +238,12 @@ const DashboardAdmin = () => {
     });
   };
   
-  // Generar actividad reciente combinando diferentes datos
-  const generarActividadReciente = (productos: Producto[], ventas: Venta[], usuarios: Usuario[]) => {
-    const actividad = [];
-    
-    // Añadir productos recientes (últimos 5)
-    const productosRecientes = [...productos]
-      .sort((a, b) => (b.idProducto || 0) - (a.idProducto || 0))
-      .slice(0, 5)
-      .map(producto => ({
-        tipo: 'producto',
-        titulo: 'Producto añadido',
-        detalle: `${producto.nombre} - ID #${producto.idProducto}`,
-        fecha: new Date().toLocaleDateString(), // En un caso real, esto vendría de la base de datos
-        usuario: 'Sistema', // En un caso real, esto sería el usuario que lo añadió
-        estado: 'Completado',
-        icono: 'producto'
-      }));
-    
-    // Añadir ventas recientes (últimas 5)
+  // Generar actividad reciente solo con las últimas ventas
+  const generarActividadReciente = (ventas: Venta[]) => {
+    // Solo mostrar las últimas 7 ventas
     const ventasRecientes = [...ventas]
       .sort((a, b) => new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime())
-      .slice(0, 5)
+      .slice(0, 7)
       .map(venta => ({
         tipo: 'venta',
         titulo: 'Venta registrada',
@@ -270,11 +254,7 @@ const DashboardAdmin = () => {
         icono: 'venta'
       }));
     
-    // Combinar y ordenar por fecha más reciente
-    actividad.push(...productosRecientes, ...ventasRecientes);
-    actividad.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
-    
-    setActividadReciente(actividad.slice(0, 10)); // Tomar los 10 más recientes
+    setActividadReciente(ventasRecientes);
   };
   
   // Generar datos para los gráficos según el período seleccionado
