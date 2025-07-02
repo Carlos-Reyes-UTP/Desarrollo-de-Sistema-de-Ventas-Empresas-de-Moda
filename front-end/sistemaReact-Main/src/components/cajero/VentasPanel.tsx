@@ -358,11 +358,6 @@ const VentasPanel = () => {
         return;
       }
 
-      // Verificar si ya existe en el carrito
-      const varianteExistente = productosSeleccionadosVenta.find(item => 
-        item.idProductoVariante === idVariante
-      );
-      
       // Obtener el producto completo por su ID para tener acceso a todos los precios de volumen
       let productoCompleto = variante.producto;
       let varianteConPreciosCompletos = variante;
@@ -394,42 +389,47 @@ const VentasPanel = () => {
         // Continuamos con los datos que ya tenemos
       }
       
-      if (varianteExistente) {
-        if (varianteExistente.cantidad >= cantidad) {
-          setErrorGlobal(`No hay más stock de ${varianteConPreciosCompletos.producto?.nombre || 'Producto'} - ${varianteConPreciosCompletos.color?.nombre || 'Sin color'} - ${varianteConPreciosCompletos.talla?.nombreTalla || 'Talla única'}. Stock: ${cantidad}. En carrito: ${varianteExistente.cantidad}.`);
-          return;
+      // Verificar nuevamente si ya existe en el carrito (por si cambió durante la carga del producto)
+      setProductosSeleccionadosVenta(prev => {
+        const varianteExistente = prev.find(item => item.idProductoVariante === idVariante);
+        
+        if (varianteExistente) {
+          if (varianteExistente.cantidad >= cantidad) {
+            setErrorGlobal(`No hay más stock de ${varianteConPreciosCompletos.producto?.nombre || 'Producto'} - ${varianteConPreciosCompletos.color?.nombre || 'Sin color'} - ${varianteConPreciosCompletos.talla?.nombreTalla || 'Talla única'}. Stock: ${cantidad}. En carrito: ${varianteExistente.cantidad}.`);
+            return prev; // No cambiar el estado
+          }
+          
+          // Calcular nuevo precio según la nueva cantidad
+          const nuevaCantidad = varianteExistente.cantidad + 1;
+          const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, nuevaCantidad);
+          
+          return prev.map(item => 
+            item.idProductoVariante === idVariante 
+              ? { 
+                  ...item, 
+                  cantidad: nuevaCantidad, 
+                  precio: nuevoPrecio,
+                  total: nuevaCantidad * nuevoPrecio 
+                } 
+              : item
+          );
+        } else {
+          // Calcular precio para 1 unidad
+          const { precio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, 1);
+          
+          return [...prev, {
+            idProductoVariante: idVariante,
+            idProducto: varianteConPreciosCompletos.producto?.idProducto ?? 0,
+            codigo: varianteConPreciosCompletos.codigoBarrasVariante ?? varianteConPreciosCompletos.producto?.codigoBarras ?? varianteConPreciosCompletos.producto?.codigoIdentificacion ?? 'Sin código',
+            descripcion: varianteConPreciosCompletos.producto?.nombre ?? 'Producto sin nombre',
+            talla: varianteConPreciosCompletos.talla?.nombreTalla ?? 'Única',
+            color: varianteConPreciosCompletos.color?.nombre ?? 'Sin color',
+            cantidad: 1,
+            precio: precio,
+            total: precio
+          }];
         }
-        
-        // Calcular nuevo precio según la nueva cantidad
-        const nuevaCantidad = varianteExistente.cantidad + 1;
-        const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, nuevaCantidad);
-        
-        setProductosSeleccionadosVenta(prev => prev.map(item => 
-          item.idProductoVariante === idVariante 
-            ? { 
-                ...item, 
-                cantidad: nuevaCantidad, 
-                precio: nuevoPrecio,
-                total: nuevaCantidad * nuevoPrecio 
-              } 
-            : item
-        ));
-      } else {
-        // Calcular precio para 1 unidad
-        const { precio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, 1);
-        
-        setProductosSeleccionadosVenta(prev => [...prev, {
-          idProductoVariante: idVariante,
-          idProducto: varianteConPreciosCompletos.producto?.idProducto ?? 0,
-          codigo: varianteConPreciosCompletos.codigoBarrasVariante ?? varianteConPreciosCompletos.producto?.codigoBarras ?? varianteConPreciosCompletos.producto?.codigoIdentificacion ?? 'Sin código',
-          descripcion: varianteConPreciosCompletos.producto?.nombre ?? 'Producto sin nombre',
-          talla: varianteConPreciosCompletos.talla?.nombreTalla ?? 'Única',
-          color: varianteConPreciosCompletos.color?.nombre ?? 'Sin color',
-          cantidad: 1,
-          precio: precio,
-          total: precio
-        }]);
-      }
+      });
     } finally {
       setCargandoAgregarProducto(false);
     }
@@ -1057,14 +1057,14 @@ const VentasPanel = () => {
                     <th className="px-1 py-2 text-center text-[10px] sm:text-xs font-medium text-gray-500 uppercase"></th>
                   </tr></thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {productosSeleccionadosVenta.map(p => {
+                    {productosSeleccionadosVenta.map((p, index) => {
                       // Buscar primero la variante con precios completos, si no está usar la original
                       const varianteConPrecios = variantesConPreciosCompletos.get(p.idProductoVariante);
                       const varianteAUsar = varianteConPrecios || variantesCargadas.find(v => v.idProductoVariante === p.idProductoVariante);
                       const preciosInfo = calcularPrecioSegunCantidad(varianteAUsar, p.cantidad);
                       
                       return (
-                        <tr key={p.idProductoVariante} className="hover:bg-gray-50">
+                        <tr key={`${p.idProductoVariante}-${index}`} className="hover:bg-gray-50">
                           <td className="px-2 py-1.5 whitespace-nowrap text-xs text-gray-700 max-w-[100px] sm:max-w-[120px] truncate" title={`${p.descripcion} - ${p.color} - ${p.talla}`}>
                             <div>
                               <span className="font-medium">{p.descripcion}</span>
