@@ -15,6 +15,7 @@ import { ProductoService } from '../services/ProductoServices';
 import { VentaService } from '../services/VentaServices';
 import { ServicioUsuarios } from '../services/UsuarioServices';
 import { ProveedorService } from '../services/ProveedorServices';
+import { ClienteService } from '../services/ClienteServices';
 import { useAuthReady } from '../hooks/useAuthReady';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
 import ModalHacerMayorista from '../components/mayoristas/ModalHacerMayorista';
@@ -24,6 +25,7 @@ import type { Producto } from '../interfaces/Producto';
 import type { Venta } from '../interfaces/Venta';
 import type { Usuario } from '../interfaces/Usuario';
 import type { Proveedor } from '../interfaces/Proveedor';
+import type { Cliente } from '../interfaces/Cliente';
 
 const DashboardAdmin = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
@@ -55,9 +57,24 @@ const DashboardAdmin = () => {
   
   // Estado para el modal de mayorista
   const [modalMayoristaAbierto, setModalMayoristaAbierto] = useState(false);
+  const [clientePreseleccionado, setClientePreseleccionado] = useState<any>(null);
   
   // Estados para top clientes
-  const [topClientes, setTopClientes] = useState<{id: number, nombre: string, totalCompras: number}[]>([]);
+  const [topClientes, setTopClientes] = useState<{id: number, nombre: string, documento: string, tipoCliente: string, totalCompras: number}[]>([]);
+  
+  // Función para abrir modal con cliente preseleccionado
+  const abrirModalConCliente = (cliente: any) => {
+    // Convertir el formato del cliente del dashboard al formato esperado por el modal
+    const clienteFormateado = {
+      idCliente: cliente.id,
+      nombreCliente: cliente.nombre,
+      numeroDocumento: cliente.documento,
+      tipoCliente: cliente.tipoCliente || 'Cliente'
+    };
+    
+    setClientePreseleccionado(clienteFormateado);
+    setModalMayoristaAbierto(true);
+  };
   
   // Cargar datos al montar el componente o cambiar el periodo
   useEffect(() => {
@@ -321,12 +338,14 @@ const DashboardAdmin = () => {
     }
 
     // Agrupar ventas por cliente y sumar totales
-    const clientesMap = new Map<number, {nombre: string, totalCompras: number}>();
+    const clientesMap = new Map<number, {nombre: string, documento: string, tipoCliente: string, totalCompras: number}>();
     
     ventasData.forEach(venta => {
       if (venta.cliente?.idCliente) {
         const clienteId = venta.cliente.idCliente;
         const clienteNombre = venta.cliente.nombreCliente;
+        const clienteDocumento = venta.cliente.numeroDocumento || clienteId.toString();
+        const clienteTipo = venta.cliente.tipoCliente || 'Cliente';
         const totalVenta = venta.totalVentas ?? 0;
         
         if (clientesMap.has(clienteId)) {
@@ -335,6 +354,8 @@ const DashboardAdmin = () => {
         } else {
           clientesMap.set(clienteId, {
             nombre: clienteNombre,
+            documento: clienteDocumento,
+            tipoCliente: clienteTipo,
             totalCompras: totalVenta
           });
         }
@@ -345,6 +366,8 @@ const DashboardAdmin = () => {
     const clientesArray = Array.from(clientesMap.entries()).map(([id, data]) => ({
       id,
       nombre: data.nombre,
+      documento: data.documento,
+      tipoCliente: data.tipoCliente,
       totalCompras: data.totalCompras
     }));
 
@@ -370,6 +393,22 @@ const DashboardAdmin = () => {
   const obtenerValorMaximoGrafico = () => {
     const maxValue = Math.max(...datosVentas, 100);
     return Math.ceil(maxValue / 100) * 100; // Redondear hacia arriba a la centena más cercana
+  };
+
+  // Función para manejar conversión directa a mayorista
+  const manejarConversionDirecta = async (clienteId: number) => {
+    try {
+      // Buscar el cliente completo por ID
+      const cliente = await ClienteService.obtenerClientePorId(clienteId);
+      if (cliente) {
+        setClientePreseleccionado(cliente);
+        setModalMayoristaAbierto(true);
+      } else {
+        console.error('Cliente no encontrado con ID:', clienteId);
+      }
+    } catch (error) {
+      console.error('Error al cargar cliente:', error);
+    }
   };
 
   // Obtener la fecha actual con formato
@@ -742,8 +781,9 @@ const DashboardAdmin = () => {
                       </div>
                     </div>
                     <button 
+                      onClick={() => abrirModalConCliente(cliente)}
                       className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-md hover:shadow-lg"
-                      title="Ver detalles del cliente"
+                      title="Hacer mayorista a este cliente"
                     >
                       <ArrowUpRight size={16} />
                     </button>
@@ -756,7 +796,10 @@ const DashboardAdmin = () => {
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex justify-center">
                 <button 
-                  onClick={() => setModalMayoristaAbierto(true)}
+                  onClick={() => {
+                    setClientePreseleccionado(null);
+                    setModalMayoristaAbierto(true);
+                  }}
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
                 >
                   <Users size={18} />
@@ -883,11 +926,16 @@ const DashboardAdmin = () => {
       {/* Modal para hacer mayorista un cliente */}
       <ModalHacerMayorista
         isOpen={modalMayoristaAbierto}
-        onClose={() => setModalMayoristaAbierto(false)}
+        onClose={() => {
+          setModalMayoristaAbierto(false);
+          setClientePreseleccionado(null);
+        }}
         onSuccess={() => {
           setModalMayoristaAbierto(false);
+          setClientePreseleccionado(null);
           // Opcional: recargar datos si es necesario
         }}
+        clientePreseleccionado={clientePreseleccionado}
       />
     </div>
   );

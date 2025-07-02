@@ -46,9 +46,16 @@ export const MayoristaService = {
    */
   obtenerMayoristaPorDocumento: async (numeroDocumento: string): Promise<MayoristaDTO | null> => {
     try {
+      console.log('🌐 Realizando petición GET a:', RUTAS_MAYORISTAS.POR_DOCUMENTO(numeroDocumento));
       const response = await apiClient.get<MayoristaDTO>(RUTAS_MAYORISTAS.POR_DOCUMENTO(numeroDocumento));
+      console.log('📦 Respuesta del servidor:', response.data);
       return response.data;
     } catch (error: any) {
+      console.log('⚠️ Error en obtenerMayoristaPorDocumento:', {
+        status: error.response?.status,
+        data: error.response?.data,
+        message: error.message
+      });
       if (error.response && error.response.status === 404) return null;
       throw error;
     }
@@ -109,8 +116,18 @@ export const MayoristaService = {
    * ✅ Verifica si un cliente es mayorista por su documento
    */
   esMayorista: async (numeroDocumento: string): Promise<boolean> => {
-    const mayorista = await MayoristaService.obtenerMayoristaPorDocumento(numeroDocumento);
-    return mayorista !== null;
+    try {
+      console.log('🔎 Buscando mayorista con documento:', numeroDocumento);
+      const mayorista = await MayoristaService.obtenerMayoristaPorDocumento(numeroDocumento);
+      console.log('🎯 Mayorista encontrado:', mayorista);
+      const resultado = mayorista !== null;
+      console.log('✅ Es mayorista:', resultado);
+      return resultado;
+    } catch (error) {
+      // Si hay un error (como 404), significa que no es mayorista
+      console.warn(`❌ Error al verificar mayorista para documento ${numeroDocumento}:`, error);
+      return false;
+    }
   },
 
   /**
