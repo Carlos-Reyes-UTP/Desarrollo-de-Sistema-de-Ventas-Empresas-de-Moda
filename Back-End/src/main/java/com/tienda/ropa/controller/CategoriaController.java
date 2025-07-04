@@ -43,13 +43,6 @@ public class CategoriaController {
         return ResponseEntity.ok(categorias);
     }
 
-    // Endpoint temporal para debug - eliminar después de solucionar
-    @GetMapping("/debug")
-    public ResponseEntity<String> debugCategorias() {
-        categoriaService.debugTodasLasCategorias();
-        return ResponseEntity.ok("Debug ejecutado - revisa los logs del servidor");
-    }
-
     // Obtener una categoría por ID
     @GetMapping("/{id}")
     public ResponseEntity<Categoria> obtenerCategoriaPorId(@PathVariable Long id) {

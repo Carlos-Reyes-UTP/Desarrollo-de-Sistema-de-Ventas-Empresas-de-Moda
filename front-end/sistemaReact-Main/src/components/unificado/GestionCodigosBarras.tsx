@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Search, Trash2, BarChart3, Scan, X, AlertCircle, CheckCircle } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { ProductoVariante } from '../../interfaces/ProductoVariante';
-import type { CodigoBarras, CodigoBarrasConDetallesDTO, GenerarCodigoRequest, AsignarCodigoRequest } from '../../interfaces/CodigoBarras';
+import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../interfaces/CodigoBarras';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 
@@ -22,7 +22,6 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
   const [productos, setProductos] = useState<Producto[]>([]);
   const [variantes, setVariantes] = useState<ProductoVariante[]>([]);
   const [codigosBarras, setCodigosBarras] = useState<CodigoBarras[]>([]);
-  const [codigosConDetalles, setCodigosConDetalles] = useState<CodigoBarrasConDetallesDTO[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
 
   // Estados para modales
@@ -98,7 +97,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       console.log('🚀 Iniciando carga optimizada de códigos de barras...');
       
       // ===== MÉTODO OPTIMIZADO: UNA SOLA LLAMADA =====
-      // En lugar de hacer N+1 llamadas, obtenemos todo en una sola consulta
+      // Este método obtiene todos los datos en una sola consulta optimizada
       const codigosConDetallesData = await CodigoBarrasService.obtenerTodosConDetalles();
       
       console.log(`✅ Obtenidos ${codigosConDetallesData.length} códigos con detalles completos`);
@@ -111,14 +110,18 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       for (const codigoConDetalle of codigosConDetallesData) {
         // Extraer información del producto
         const productoInfo = codigoConDetalle.producto;
-        if (!productosMap.has(productoInfo.idProducto)) {          const producto: Producto = {
+        if (!productosMap.has(productoInfo.idProducto)) {
+          const producto: Producto = {
             idProducto: productoInfo.idProducto,
             codigoIdentificacion: productoInfo.codigoIdentificacion,
             nombre: productoInfo.nombre,
             descripcion: productoInfo.descripcion,
             marca: productoInfo.marca,
             sexo: productoInfo.sexo,
-            categoria: codigoConDetalle.categoria,            proveedor: {
+            tipoPublico: 'adulto', // Valor por defecto
+            categoria: codigoConDetalle.categoria,
+            subCategoria2: codigoConDetalle.categoria, // Usar la misma categoría como subcategoría
+            proveedor: {
               ...codigoConDetalle.proveedor,
               ruc: '' // Campo requerido pero no disponible en este contexto
             },
@@ -162,7 +165,6 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       setProductos(Array.from(productosMap.values()));
       setVariantes(Array.from(variantesMap.values()));
       setCodigosBarras(codigosList);
-      setCodigosConDetalles(codigosConDetallesData);
       
       console.log(`📊 Procesamiento completado:`, {
         productos: productosMap.size,
@@ -172,7 +174,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       
     } catch (err: any) {
       console.error('❌ Error al cargar datos optimizados:', err);
-      setError('Error al cargar códigos de barras: ' + (err.message || 'Error desconocido'));
+      setError('Error al cargar códigos de barras: ' + (err.message ?? 'Error desconocido'));
     } finally {
       setLoading(false);
     }
@@ -252,7 +254,8 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       setCodigosBarras(prev => prev.filter(c => c.id !== codigoId));
       setExito('Código eliminado exitosamente');
       setTimeout(() => setExito(null), 3000);
-    } catch (err) {
+    } catch (err: any) {
+      console.error('Error al eliminar código:', err);
       setError('Error al eliminar código');
     }
   };
@@ -290,6 +293,18 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
     setFormAsignar(prev => ({ ...prev, codigo }));
   };
 
+  // Función para obtener las clases CSS del formato
+  const getFormatoColorClass = (formato: string) => {
+    switch (formato) {
+      case 'EAN8':
+        return 'bg-blue-100 text-blue-800';
+      case 'EAN13':
+        return 'bg-green-100 text-green-800';
+      default:
+        return 'bg-purple-100 text-purple-800';
+    }
+  };
+
   const codigosFiltrados = codigosBarras.filter(codigo => {
     const termino = searchTerm.toLowerCase();
     return codigo.codigo.toLowerCase().includes(termino) ||
@@ -301,7 +316,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
   const obtenerNombreEntidad = (codigo: CodigoBarras) => {
     if (codigo.tipo === 'PRODUCTO') {
       const prod = productos.find(p => p.idProducto === codigo.entidadId);
-      return prod?.nombre || 'Producto no encontrado';
+      return prod?.nombre ?? 'Producto no encontrado';
     } else {
       const variante = variantes.find(v => v.idVariante === codigo.entidadId);
       if (variante) {
@@ -394,9 +409,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        codigo.formato === 'EAN8' ? 'bg-blue-100 text-blue-800' :
-                        codigo.formato === 'EAN13' ? 'bg-green-100 text-green-800' :
-                        'bg-purple-100 text-purple-800'
+                        getFormatoColorClass(codigo.formato)
                       }`}>
                         {codigo.formato}
                       </span>
@@ -544,10 +557,11 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 <p className="text-sm text-gray-500">Tipo: {entidadSeleccionada.tipo}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="generar-formato" className="block text-sm font-medium text-gray-700 mb-1">
                   Formato
                 </label>
                 <select
+                  id="generar-formato"
                   value={formGenerar.formato}
                   onChange={(e) => setFormGenerar(prev => ({ ...prev, formato: e.target.value as any }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -597,10 +611,11 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 <p className="text-sm text-gray-500">Tipo: {entidadSeleccionada.tipo}</p>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="asignar-formato" className="block text-sm font-medium text-gray-700 mb-1">
                   Formato
                 </label>
                 <select
+                  id="asignar-formato"
                   value={formAsignar.formato}
                   onChange={(e) => setFormAsignar(prev => ({ ...prev, formato: e.target.value as any }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -611,11 +626,12 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="asignar-codigo" className="block text-sm font-medium text-gray-700 mb-1">
                   Código de Barras
                 </label>
                 <div className="flex gap-2">
                   <input
+                    id="asignar-codigo"
                     type="text"
                     value={formAsignar.codigo}
                     onChange={(e) => setFormAsignar(prev => ({ ...prev, codigo: e.target.value }))}
@@ -672,17 +688,18 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="scanner-input" className="block text-sm font-medium text-gray-700 mb-1">
                   Código de Barras
                 </label>
                 <input
+                  id="scanner-input"
                   type="text"
                   value={scannerInput}
                   onChange={(e) => setScannerInput(e.target.value)}
                   placeholder="Escanea o ingresa el código"
                   autoFocus
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onKeyPress={(e) => e.key === 'Enter' && handleBuscarPorCodigo()}
+                  onKeyDown={(e) => e.key === 'Enter' && handleBuscarPorCodigo()}
                 />
               </div>
               <div className="flex justify-end space-x-3">

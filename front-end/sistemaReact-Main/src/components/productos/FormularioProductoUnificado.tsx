@@ -335,7 +335,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
       if (formData.subcategoriaId) {
         // Caso 1: Si hay una subcategoría seleccionada
-        categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)!;
+        categoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)!;
         categoriaPadreSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
         
         console.log('📂 Usando subcategoría como categoría principal:', categoriaSeleccionada?.nombre);
@@ -972,24 +972,6 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                  </div>
-
-                  {/* Sección de Categorías Jerárquicas */}
-                  <div className="md:col-span-2 mb-4">
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <h4 className="text-sm font-semibold text-blue-800 mb-2">Sistema de Categorías Jerárquico</h4>
-                      <p className="text-xs text-blue-700 mb-2">
-                        Las categorías se organizan en 3 niveles jerárquicos:
-                      </p>
-                      <div className="text-xs text-blue-600 space-y-1">
-                        <div>• <strong>Nivel 1:</strong> Categoría Principal (ej: Ropa Interior, Ropa Invierno)</div>
-                        <div>• <strong>Nivel 2:</strong> Subcategoría (ej: Boxer, Sostén, Calzón)</div>
-                        <div>• <strong>Nivel 3:</strong> Segunda Subcategoría (ej: Tela, Algodón)</div>
-                      </div>
-                      <p className="text-xs text-blue-600 mt-2 italic">
-                        Las opciones se filtran automáticamente según la selección anterior.
-                      </p>
-                    </div>
                   </div>
 
                   <div>

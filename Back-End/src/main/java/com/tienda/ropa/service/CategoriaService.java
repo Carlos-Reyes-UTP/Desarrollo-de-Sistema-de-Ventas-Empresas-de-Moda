@@ -96,32 +96,8 @@ public class CategoriaService {
      */
     public List<Categoria> obtenerCategoriasPrincipales() {
         List<Categoria> principales = categoriaRepository.findByCategoriaPadreIsNull();
-        
-        // Debug: Log para verificar qué se está devolviendo
-        System.out.println("=== DEBUG: obtenerCategoriasPrincipales ===");
-        System.out.println("Total categorías principales encontradas: " + principales.size());
-        for (Categoria cat : principales) {
-            System.out.println("ID: " + cat.getIdCategoria() + ", Nombre: " + cat.getNombre() + 
-                             ", Padre: " + (cat.getCategoriaPadre() != null ? cat.getCategoriaPadre().getIdCategoria() : "NULL"));
-        }
-        System.out.println("=== FIN DEBUG ===");
-        
-        return principales;
-    }
 
-    /**
-     * Método de debug para verificar todas las categorías y su estado de categoria_padre
-     */
-    public void debugTodasLasCategorias() {
-        List<Categoria> todas = categoriaRepository.findAll();
-        System.out.println("=== DEBUG: TODAS LAS CATEGORÍAS ===");
-        System.out.println("Total categorías en BD: " + todas.size());
-        for (Categoria cat : todas) {
-            System.out.println("ID: " + cat.getIdCategoria() + 
-                             ", Nombre: " + cat.getNombre() + 
-                             ", Padre ID: " + (cat.getCategoriaPadre() != null ? cat.getCategoriaPadre().getIdCategoria() : "NULL"));
-        }
-        System.out.println("=== FIN DEBUG TODAS ===");
+        return principales;
     }
 
     /**
