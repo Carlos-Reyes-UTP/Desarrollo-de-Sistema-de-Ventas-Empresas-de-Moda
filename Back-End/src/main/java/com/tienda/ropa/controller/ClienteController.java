@@ -1,9 +1,9 @@
 package com.tienda.ropa.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-import com.tienda.ropa.service.ApiExternoService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,20 +14,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tienda.ropa.dto.ReniecResponseDTO;
-import com.tienda.ropa.dto.SunatResponseDTO;
 import com.tienda.ropa.entity.Cliente;
+import com.tienda.ropa.service.ApiExternoService;
 import com.tienda.ropa.service.ClienteService;
+import com.tienda.ropa.service.MayoristaService;
 
 @RestController
 @RequestMapping("/api/cajero/clientes")
 public class ClienteController {
 
-    @Autowired
-    private ClienteService clienteService;
-    
-    @Autowired
-    private ApiExternoService apiExternoService;
+    private final ClienteService clienteService;
+    private final ApiExternoService apiExternoService;
+    private final MayoristaService mayoristaService;
+
+    public ClienteController(ClienteService clienteService, 
+                           ApiExternoService apiExternoService,
+                           MayoristaService mayoristaService) {
+        this.clienteService = clienteService;
+        this.apiExternoService = apiExternoService;
+        this.mayoristaService = mayoristaService;
+    }
 
     @GetMapping
     public List<Cliente> getAllClientes() {
@@ -89,12 +95,40 @@ public class ClienteController {
     }
     
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCliente(@PathVariable Long id) {
+    public ResponseEntity<Object> deleteCliente(@PathVariable Long id) {
         return clienteService.getClienteById(id)
                 .map(cliente -> {
                     clienteService.deleteCliente(id);
                     return ResponseEntity.ok().build();
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+    
+    /**
+     * Endpoint para verificar si un cliente es mayorista por documento
+     * Permite a los cajeros verificar el estado sin acceso completo a admin endpoints
+     */
+    @GetMapping("/documento/{numeroDocumento}/es-mayorista")
+    public ResponseEntity<Map<String, Object>> verificarClienteEsMayorista(@PathVariable String numeroDocumento) {
+        return clienteService.getClienteByNumeroDocumento(numeroDocumento)
+                .map(cliente -> {
+                    // Verificar si existe un mayorista para este cliente
+                    boolean esMayorista = mayoristaService.obtenerMayoristaPorDocumento(numeroDocumento).isPresent();
+                    
+                    Map<String, Object> respuesta = new HashMap<>();
+                    respuesta.put("numeroDocumento", numeroDocumento);
+                    respuesta.put("esMayorista", esMayorista);
+                    respuesta.put("nombreCliente", cliente.getNombreCliente());
+                    respuesta.put("tipoCliente", cliente.getTipoCliente());
+                    
+                    return ResponseEntity.ok(respuesta);
+                })
+                .orElseGet(() -> {
+                    Map<String, Object> respuesta = new HashMap<>();
+                    respuesta.put("numeroDocumento", numeroDocumento);
+                    respuesta.put("esMayorista", false);
+                    respuesta.put("clienteEncontrado", false);
+                    return ResponseEntity.ok(respuesta);
+                });
     }
 }

@@ -40,14 +40,18 @@ export const useProductoVarianteService = () => {
   // Método personalizado para obtener todas las variantes disponibles
   const getAllVariantes = useCallback(async () => {
     try {
+      console.log("DEBUG: getAllVariantes called. Current userRole:", userRole);
+      console.log("DEBUG: Usuario actual:", usuario);
+      
       // Usar el nuevo método optimizado del servicio
       const variantes = await ProductoVarianteService.obtenerTodasLasVariantes(userRole);
+      console.log("DEBUG: getAllVariantes success. Variantes count:", variantes.length);
       return variantes;
     } catch (error) {
       console.error("Error al obtener todas las variantes:", error);
       throw error;
     }
-  }, [userRole]);
+  }, [userRole, usuario]);
 
   return useMemo(() => ({
     // Read operations (memoized)
@@ -59,7 +63,7 @@ export const useProductoVarianteService = () => {
     crearVariante: ProductoVarianteService.crearVariante,
     actualizarVariante: ProductoVarianteService.actualizarVariante,
     disminuirCantidadVariante: (id: number, cantidad: number) => 
-      ProductoVarianteService.disminuirCantidadVariante(id, cantidad, userRole),
+      ProductoVarianteService.disminuirCantidadVariante(id, cantidad),
     
     // User info
     userRole,

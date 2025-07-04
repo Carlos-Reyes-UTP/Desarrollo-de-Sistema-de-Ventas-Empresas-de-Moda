@@ -1,4 +1,4 @@
-import { RUTAS_MAYORISTAS } from '../config/apiConfig';
+import { RUTAS_MAYORISTAS, RUTAS_CLIENTES } from '../config/apiConfig';
 import apiClient from '../config/apiClient';
 import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../interfaces/MayoristaDTO';
 
@@ -44,19 +44,62 @@ export const MayoristaService = {
    * 📄 Busca un mayorista por el número de documento del cliente
    * GET /api/admin/mayoristas/documento/{numeroDocumento}
    */
-  obtenerMayoristaPorDocumento: async (numeroDocumento: string): Promise<MayoristaDTO | null> => {
+  obtenerMayoristaPorDocumento: async (numeroDocumento: string, userRole?: string): Promise<MayoristaDTO | null> => {
     try {
-      console.log('🌐 Realizando petición GET a:', RUTAS_MAYORISTAS.POR_DOCUMENTO(numeroDocumento));
-      const response = await apiClient.get<MayoristaDTO>(RUTAS_MAYORISTAS.POR_DOCUMENTO(numeroDocumento));
-      console.log('📦 Respuesta del servidor:', response.data);
-      return response.data;
+      console.log('🔍 obtenerMayoristaPorDocumento called with:', { numeroDocumento, userRole });
+      
+      let endpoint: string;
+      
+      // Determinar qué endpoint usar según el rol
+      if (userRole === 'ROLE_CAJERO') {
+        // Para cajeros, usar el nuevo endpoint específico que solo verifica si es mayorista
+        endpoint = RUTAS_CLIENTES.VERIFICAR_MAYORISTA(numeroDocumento);
+        console.log('👤 Usuario cajero detectado, usando endpoint de verificación:', endpoint);
+        
+        const response = await apiClient.get<{
+          numeroDocumento: string;
+          esMayorista: boolean;
+          nombreCliente?: string;
+          tipoCliente?: string;
+          clienteEncontrado?: boolean;
+        }>(endpoint);
+        
+        // Si es mayorista, crear un MayoristaDTO simplificado
+        if (response.data.esMayorista) {
+          return {
+            numeroDocumento: response.data.numeroDocumento,
+            nombreCliente: response.data.nombreCliente || '',
+            tipoCliente: response.data.tipoCliente || '',
+            codigoMayorista: 'CAJERO_ACCESS', // Placeholder ya que el cajero no tiene acceso al código
+            idCliente: 0 // Placeholder
+          };
+        } else {
+          return null; // No es mayorista
+        }
+      } else {
+        // Para administradores y almaceneros, usar el endpoint completo
+        endpoint = RUTAS_MAYORISTAS.POR_DOCUMENTO(numeroDocumento);
+        console.log('� Usuario admin/almacenero detectado, usando endpoint completo:', endpoint);
+        
+        const response = await apiClient.get<MayoristaDTO>(endpoint);
+        return response.data;
+      }
     } catch (error: any) {
       console.log('⚠️ Error en obtenerMayoristaPorDocumento:', {
         status: error.response?.status,
         data: error.response?.data,
         message: error.message
       });
-      if (error.response && error.response.status === 404) return null;
+      
+      if (error.response?.status === 404) {
+        console.log('ℹ️ Mayorista no encontrado para documento:', numeroDocumento);
+        return null;
+      } else if (error.response?.status === 403) {
+        console.warn('⚠️ Error 403: Sin permisos para verificar mayorista');
+        // Si es error 403, asumir que es cliente regular
+        return null;
+      }
+      
       throw error;
     }
   },
@@ -115,16 +158,19 @@ export const MayoristaService = {
   /**
    * ✅ Verifica si un cliente es mayorista por su documento
    */
-  esMayorista: async (numeroDocumento: string): Promise<boolean> => {
+  esMayorista: async (numeroDocumento: string, userRole?: string): Promise<boolean> => {
     try {
       console.log('🔎 Buscando mayorista con documento:', numeroDocumento);
-      const mayorista = await MayoristaService.obtenerMayoristaPorDocumento(numeroDocumento);
+      console.log('👤 Rol del usuario para verificación:', userRole);
+      
+      const mayorista = await MayoristaService.obtenerMayoristaPorDocumento(numeroDocumento, userRole);
       console.log('🎯 Mayorista encontrado:', mayorista);
       const resultado = mayorista !== null;
       console.log('✅ Es mayorista:', resultado);
       return resultado;
-    } catch (error) {
-      // Si hay un error (como 404), significa que no es mayorista
+    } catch (error: any) {
+      // Si hay un error y es 403 con cajero, ya fue manejado en obtenerMayoristaPorDocumento
+      // Para otros errores (como 404), significa que no es mayorista
       console.warn(`❌ Error al verificar mayorista para documento ${numeroDocumento}:`, error);
       return false;
     }

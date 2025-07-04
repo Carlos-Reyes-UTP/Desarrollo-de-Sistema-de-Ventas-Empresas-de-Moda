@@ -328,7 +328,10 @@ const VentasPanel = () => {
     setVerificandoMayorista(true);
     try {
       console.log('🔍 Verificando si el cliente es mayorista:', numeroDocumento);
-      const resultado = await MayoristaService.esMayorista(numeroDocumento);
+      console.log('👤 Rol del usuario actual:', usuario?.roles?.[0]?.nombreRol);
+      
+      const userRole = usuario?.roles?.[0]?.nombreRol;
+      const resultado = await MayoristaService.esMayorista(numeroDocumento, userRole);
       setEsMayorista(resultado);
       
       if (resultado) {

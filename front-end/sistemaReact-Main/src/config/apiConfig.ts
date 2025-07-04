@@ -88,6 +88,7 @@ export const RUTAS_CLIENTES = {
   POR_DOCUMENTO: (numeroDocumento: string) => `${API_BASE_URL}/api/cajero/clientes/documento/${encodeURIComponent(numeroDocumento)}`,
   POR_DNI: (numero: string) => `${API_BASE_URL}/api/cajero/clientes/documento/dni/${encodeURIComponent(numero)}`,
   POR_RUC: (numero: string) => `${API_BASE_URL}/api/cajero/clientes/documento/ruc/${encodeURIComponent(numero)}`,
+  VERIFICAR_MAYORISTA: (numeroDocumento: string) => `${API_BASE_URL}/api/cajero/clientes/documento/${encodeURIComponent(numeroDocumento)}/es-mayorista`,
 };
 
 // Rutas de Métodos de Pago (TODO: Implementar controlador en backend)
