@@ -27,7 +27,6 @@ interface SidebarMenuProps {
   cambiarVista: (vista: string) => void;
   usuario: Usuario | null;
   cerrarSesion: () => void;
-  children?: React.ReactNode;
 }
 
 const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: SidebarMenuProps) => {
@@ -70,27 +69,90 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     };
   }, []);
 
+  // Función helper para determinar la vista y submenús según la ruta
+  const determinarVistaYSubmenu = (path: string) => {
+    const estado = location.state;
+    
+    if (path.includes('/dashboard/admin')) {
+      return { vista: 'dashboard-admin', submenu: { caja: false, admin: false, inventario: false } };
+    }
+    
+    if (path.includes('/dashboard/almacenero')) {
+      return { vista: 'dashboard-almacenero', submenu: { caja: false, admin: false, inventario: false } };
+    }
+    
+    if (path.includes('CajeroSistemaVentas')) {
+      const vista = estado?.view ?? 'ventas';
+      return { vista, submenu: { caja: true, admin: false, inventario: false } };
+    }
+    
+    if (path.includes('/pages/GestionUsuarios')) {
+      return { vista: 'usuarios', submenu: { caja: false, admin: true, inventario: false } };
+    }
+    
+    // Rutas que dependen del rol
+    const rutasRol = [
+      { ruta: '/pages/productos', admin: 'productos-admin', almacenero: 'productos-inventario' },
+      { ruta: '/pages/colores', admin: 'colores-admin', almacenero: 'colores-inventario' },
+      { ruta: '/pages/tallas', admin: 'tallas-admin', almacenero: 'tallas-inventario' },
+      { ruta: '/pages/proveedores', admin: 'proveedores-admin', almacenero: 'proveedores' },
+      { ruta: '/pages/categorias', admin: 'categorias-admin', almacenero: 'categorias' }
+    ];
+    
+    for (const config of rutasRol) {
+      if (path.includes(config.ruta)) {
+        if (tieneRol('ROLE_ADMIN')) {
+          return { vista: config.admin, submenu: { caja: false, admin: true, inventario: false } };
+        } else if (tieneRol('ROLE_ALMACENERO')) {
+          return { vista: config.almacenero, submenu: { caja: false, admin: false, inventario: true } };
+        }
+      }
+    }
+    
+    return null;
+  };
+
   // Detectar cambios en la ruta para actualizar la vista activa
   useEffect(() => {
-    // Extraer la vista de la URL
+    console.log('=== USEEFFECT EJECUTADO ===');
     const path = location.pathname;
+    console.log('SidebarMenu - Ruta detectada:', path);
+    console.log('SidebarMenu - Estado de navegación:', location.state);
+    console.log('SidebarMenu - Vista actual antes del cambio:', vistaActual);
+    console.log('SidebarMenu - Roles del usuario:', { 
+      esAdmin: tieneRol('ROLE_ADMIN'), 
+      esAlmacenero: tieneRol('ROLE_ALMACENERO'),
+      esCajero: tieneRol('ROLE_CAJERO')
+    });
     
-    if (path.includes('admin')) {
-      cambiarVista('dashboard-admin');
-      setMostrarSubmenuAdmin(true);
-    } else if (path.includes('almacenero')) {
-      cambiarVista('dashboard-almacenero');
-      setMostrarSubmenuInventario(true);
-    } else if (path.includes('CajeroSistemaVentas')) {
-      // Si hay un estado con una vista específica de cajero
-      if (location.state && (location.state as any).view) {
-        cambiarVista((location.state as any).view);
-      } else {
-        cambiarVista('ventas');
-      }
-      setMostrarSubmenuCaja(true);
+    const resultado = determinarVistaYSubmenu(path);
+    console.log('SidebarMenu - Resultado determinado:', resultado);
+    
+    if (resultado) {
+      const { vista, submenu } = resultado;
+      
+      console.log('SidebarMenu - Vista determinada:', vista);
+      console.log('SidebarMenu - Submenús a activar:', submenu);
+      
+      // Siempre actualizar vista para asegurar sincronización
+      console.log('SidebarMenu - Llamando cambiarVista con:', vista);
+      cambiarVista(vista);
+      
+      // Actualizar submenús
+      setMostrarSubmenuCaja(submenu.caja);
+      setMostrarSubmenuAdmin(submenu.admin);
+      setMostrarSubmenuInventario(submenu.inventario);
+      
+      console.log('SidebarMenu - Submenús actualizados:', { 
+        caja: submenu.caja, 
+        admin: submenu.admin, 
+        inventario: submenu.inventario 
+      });
+    } else {
+      console.log('SidebarMenu - No se encontró resultado para la ruta:', path);
     }
-  }, [location.pathname, location.state, cambiarVista]);
+    console.log('=== FIN USEEFFECT ===');
+  }, [location.pathname, location.state, tieneRol, cambiarVista]);
 
   const toggleSidebar = () => {
     setSidebarAbierto(!sidebarAbierto);
@@ -110,36 +172,40 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     vista: string; 
     icono: React.ReactNode;
     onClick?: () => void;
-  }) => (
-    <button
-      className={`w-full flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
-        vistaActual === vista
-          ? 'bg-gray-800 text-white shadow-md'
-          : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
-      }`}      onClick={() => {
-        cambiarVista(vista);
-        if (onClick) {
-          onClick();
-        } else {
-          // Solo redirigir a CajeroSistemaVentas para vistas de cajero
-          const vistasDeCarjero = ['apertura', 'ventas', 'cierre'];
-          if (vistasDeCarjero.includes(vista)) {
-            navigate('/pages/CajeroSistemaVentas', { state: { view: vista } });
+  }) => {
+    const esActiva = vistaActual === vista;
+    
+    return (
+      <button
+        className={`w-full flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
+          esActiva
+            ? 'bg-gray-800 text-white shadow-md'
+            : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
+        }`}
+        onClick={() => {
+          console.log(`MenuItem ${texto} clicked: changing view to ${vista}`);
+          cambiarVista(vista);
+          if (onClick) {
+            onClick();
+          } else {
+            // Solo redirigir a CajeroSistemaVentas para vistas de cajero
+            const vistasDeCarjero = ['apertura', 'ventas', 'cierre'];
+            if (vistasDeCarjero.includes(vista)) {
+              navigate('/pages/CajeroSistemaVentas', { state: { view: vista } });
+            }
           }
-          // Para otras vistas que no tienen onClick personalizado, no navegar automáticamente
-          // Esto evita redirecciones incorrectas y permite manejar cada caso específicamente
-        }
-        
-        // En dispositivos móviles, cerrar el sidebar después de la selección
-        if (window.innerWidth < 768) {
-          setSidebarAbierto(false);
-        }
-      }}
-    >
-      {icono}
-      {!sidebarCollapsed && <span className="ml-3 transition-opacity duration-200">{texto}</span>}
-    </button>
-  );
+          
+          // En dispositivos móviles, cerrar el sidebar después de la selección
+          if (window.innerWidth < 768) {
+            setSidebarAbierto(false);
+          }
+        }}
+      >
+        {icono}
+        {!sidebarCollapsed && <span className="ml-3 transition-opacity duration-200">{texto}</span>}
+      </button>
+    );
+  };
 
   // Componente para secciones colapsables
   const SectionTitle = ({ 
@@ -233,7 +299,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
             </div>
             {!sidebarCollapsed && (
               <div className="ml-3 transition-opacity duration-200">
-                <p className="text-sm font-medium text-white">{usuario?.usuario || 'Usuario'}</p>
+                <p className="text-sm font-medium text-white">{usuario?.usuario ?? 'Usuario'}</p>
                 <p className="text-xs text-gray-400">
                   {tieneRol('ROLE_CAJERO') && 'Cajero'}
                   {tieneRol('ROLE_ADMIN') && 'Administrador'}
@@ -352,9 +418,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     vista="reportes-admin" 
                     icono={<BarChart3 size={20} />}
                     onClick={() => {
-                      // TODO: Crear página de reportes para admin
-                      console.log('Navegando a reportes - página pendiente por crear');
-                      // navigate('/pages/ReportesAdmin');
+                      console.log('Navegando a reportes - funcionalidad pendiente');
                     }}
                   />
 
@@ -411,9 +475,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     vista="reportes-inventario" 
                     icono={<BarChart3 size={20} />}
                     onClick={() => {
-                      // TODO: Crear página de reportes de inventario
-                      console.log('Navegando a reportes de inventario - página pendiente por crear');
-                      // navigate('/pages/ReportesInventario');
+                      console.log('Navegando a reportes de inventario - funcionalidad pendiente');
                     }}
                   />
                 </div>

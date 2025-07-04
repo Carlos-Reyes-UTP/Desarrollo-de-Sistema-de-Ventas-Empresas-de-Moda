@@ -5,20 +5,49 @@ import { useAuth } from '../../context/AuthContext';
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const location = useLocation();
-  const { usuario, cerrarSesion } = useAuth();
+  const { usuario, cerrarSesion, tieneRol } = useAuth();
   
   // Determinar la vista inicial basada en la URL actual
   const determinarVistaInicial = () => {
     const path = location.pathname;
+    const estado = location.state;
     
-    if (path.includes('/dashboard/admin')) return 'dashboard-admin';
-    if (path.includes('/dashboard/almacenero')) return 'dashboard-almacenero';
+    console.log('Layout - determinarVistaInicial para ruta:', path);
+    
+    if (path.includes('/dashboard/admin')) {
+      return 'dashboard-admin';
+    }
+    
+    if (path.includes('/dashboard/almacenero')) {
+      return 'dashboard-almacenero';
+    }
+    
     if (path.includes('/pages/CajeroSistemaVentas')) {
-      // Si hay un state con una vista específica de cajero
-      if (location.state && location.state.view) {
-        return location.state.view;
+      const vista = estado?.view ?? 'ventas';
+      return vista;
+    }
+    
+    if (path.includes('/pages/GestionUsuarios')) {
+      return 'usuarios';
+    }
+    
+    // Rutas que dependen del rol
+    const rutasRol = [
+      { ruta: '/pages/productos', admin: 'productos-admin', almacenero: 'productos-inventario' },
+      { ruta: '/pages/colores', admin: 'colores-admin', almacenero: 'colores-inventario' },
+      { ruta: '/pages/tallas', admin: 'tallas-admin', almacenero: 'tallas-inventario' },
+      { ruta: '/pages/proveedores', admin: 'proveedores-admin', almacenero: 'proveedores' },
+      { ruta: '/pages/categorias', admin: 'categorias-admin', almacenero: 'categorias' }
+    ];
+    
+    for (const config of rutasRol) {
+      if (path.includes(config.ruta)) {
+        if (tieneRol?.('ROLE_ADMIN')) {
+          return config.admin;
+        } else if (tieneRol?.('ROLE_ALMACENERO')) {
+          return config.almacenero;
+        }
       }
-      return 'ventas';
     }
     
     return 'ventas'; // Vista por defecto
@@ -28,8 +57,13 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   
   // Actualizar la vista cuando cambie la ubicación
   useEffect(() => {
-    setVistaActual(determinarVistaInicial());
-  }, [location.pathname, location.state]);
+    const nuevaVista = determinarVistaInicial();
+    console.log('Layout - useEffect: nueva vista determinada:', nuevaVista);
+    if (nuevaVista !== vistaActual) {
+      console.log('Layout - Actualizando vista de', vistaActual, 'a', nuevaVista);
+      setVistaActual(nuevaVista);
+    }
+  }, [location.pathname, location.state, tieneRol]);
   
   console.log('Layout renderizado con vista:', vistaActual);
 
