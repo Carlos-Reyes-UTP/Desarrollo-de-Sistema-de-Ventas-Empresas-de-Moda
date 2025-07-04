@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import { Printer, CheckCircle, Clock, User, DollarSign } from 'lucide-react';
 
 interface AperturaCajaProps {
@@ -8,6 +9,7 @@ interface AperturaCajaProps {
 
 const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
   const { usuario } = useAuth();
+  const navigate = useNavigate();
   const [montoApertura, setMontoApertura] = useState<string>('');
   const [fechaHoraApertura, setFechaHoraApertura] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
@@ -246,6 +248,13 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
     setMontoApertura('');
     // NO eliminar datosAperturaCaja del localStorage aquí
     // Los datos se mantendrán hasta el cierre de caja
+    
+    // Navegar al sistema de ventas con el estado correcto para actualizar el sidebar
+    navigate('/pages/CajeroSistemaVentas', { 
+      state: { view: 'ventas' },
+      replace: true 
+    });
+    
     onAperturaCompleta();
   };
 

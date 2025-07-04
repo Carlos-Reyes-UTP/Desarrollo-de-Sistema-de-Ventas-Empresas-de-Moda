@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { VentaService } from '../../services/VentaServices';
 import { Printer, CheckCircle, Clock, User, Calculator } from 'lucide-react';
 import { obtenerDatosApertura, limpiarDatosApertura } from './AperturaCaja';
 
-interface CierreCajaProps {
-  onCierreCompleto: () => void;
-}
-
-const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
+const CierreCaja = () => {
   const { usuario } = useAuth();
+  const navigate = useNavigate();
   const [fechaApertura, setFechaApertura] = useState<string>('');
   const [fechaCierre, setFechaCierre] = useState<string>('');
   const [montoInicial, setMontoInicial] = useState<string>('');
@@ -275,6 +273,15 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
     } finally {
       setCargando(false);
     }
+  };
+
+  // Función para finalizar el cierre y navegar a apertura
+  const finalizarCierre = () => {
+    // Limpiar datos de apertura para permitir una nueva apertura
+    limpiarDatosApertura();
+    
+    // Navegar a apertura de caja con el estado correspondiente
+    navigate('/pages/CajeroSistemaVentas', { state: { view: 'apertura' } });
   };
 
   const imprimirComprobante = () => {
@@ -560,7 +567,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                 Imprimir Comprobante
               </button>
               <button
-                onClick={onCierreCompleto}
+                onClick={finalizarCierre}
                 className="flex-1 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center justify-center shadow-lg hover:shadow-xl transform hover:scale-105"
               >
                 <CheckCircle className="h-5 w-5 mr-2" />
