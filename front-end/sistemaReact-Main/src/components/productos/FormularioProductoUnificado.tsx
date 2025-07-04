@@ -1004,9 +1004,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       required
                     >
                       <option value="">Seleccionar categoría principal</option>
-                      {categorias
-                        .filter(categoria => categoria.esCategoriaPrincipal || !categoria.categoriaPadre)
-                        .map(categoria => (
+                      {categorias.map(categoria => (
                         <option key={categoria.idCategoria} value={categoria.idCategoria}>
                           {categoria.nombre}
                         </option>

@@ -1,14 +1,15 @@
 package com.tienda.ropa.service;
 
-import com.tienda.ropa.dto.CategoriaDTO;
-import com.tienda.ropa.entity.Categoria;
-import com.tienda.ropa.repository.CategoriaRepository;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import com.tienda.ropa.dto.CategoriaDTO;
+import com.tienda.ropa.entity.Categoria;
+import com.tienda.ropa.repository.CategoriaRepository;
 
 @Service
 public class CategoriaService {
@@ -24,12 +25,10 @@ public class CategoriaService {
     public Categoria crearCategoria(CategoriaDTO categoriaDto) {
         Categoria categoria = new Categoria();
         categoria.setNombre(categoriaDto.getNombre());
-
-        // if (categoriaDTO.getCategoriaPadreId() != null) {
-        //     Categoria padre = categoriaRepository.findById(categoriaDTO.getCategoriaPadreId())
-        //         .orElseThrow(() -> new IllegalArgumentException("Categoría padre no encontrada"));
-        //     categoria.setCategoriaPadre(padre);
-        // }
+        
+        // Asegurar que categoriaPadre sea explícitamente null para categorías principales
+        categoria.setCategoriaPadre(null);
+        
         return categoriaRepository.save(categoria);
     }
 
@@ -96,7 +95,33 @@ public class CategoriaService {
      * Obtiene solo las categorías principales (sin categoría padre).
      */
     public List<Categoria> obtenerCategoriasPrincipales() {
-        return categoriaRepository.findByCategoriaPadreIsNull();
+        List<Categoria> principales = categoriaRepository.findByCategoriaPadreIsNull();
+        
+        // Debug: Log para verificar qué se está devolviendo
+        System.out.println("=== DEBUG: obtenerCategoriasPrincipales ===");
+        System.out.println("Total categorías principales encontradas: " + principales.size());
+        for (Categoria cat : principales) {
+            System.out.println("ID: " + cat.getIdCategoria() + ", Nombre: " + cat.getNombre() + 
+                             ", Padre: " + (cat.getCategoriaPadre() != null ? cat.getCategoriaPadre().getIdCategoria() : "NULL"));
+        }
+        System.out.println("=== FIN DEBUG ===");
+        
+        return principales;
+    }
+
+    /**
+     * Método de debug para verificar todas las categorías y su estado de categoria_padre
+     */
+    public void debugTodasLasCategorias() {
+        List<Categoria> todas = categoriaRepository.findAll();
+        System.out.println("=== DEBUG: TODAS LAS CATEGORÍAS ===");
+        System.out.println("Total categorías en BD: " + todas.size());
+        for (Categoria cat : todas) {
+            System.out.println("ID: " + cat.getIdCategoria() + 
+                             ", Nombre: " + cat.getNombre() + 
+                             ", Padre ID: " + (cat.getCategoriaPadre() != null ? cat.getCategoriaPadre().getIdCategoria() : "NULL"));
+        }
+        System.out.println("=== FIN DEBUG TODAS ===");
     }
 
     /**

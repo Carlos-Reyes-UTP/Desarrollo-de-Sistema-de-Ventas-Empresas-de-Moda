@@ -143,7 +143,7 @@ const GestionProductos: React.FC = () => {
       setLoading(true);
       const [productosResponse, categoriasResponse, proveedoresResponse] = await Promise.all([
         ProductoService.getAllProductos('ROLE_ADMIN'),
-        CategoriaService.obtenerTodasCategorias(),
+        CategoriaService.obtenerCategoriasPrincipales(),
         ProveedorService.obtenerTodosProveedores()
       ]);
 
