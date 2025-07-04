@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { VentaService } from '../../services/VentaServices';
 import { Printer, CheckCircle, Clock, User, DollarSign, Calculator, CreditCard, Smartphone } from 'lucide-react';
+import { obtenerDatosApertura, limpiarDatosApertura } from './AperturaCaja';
 
 interface CierreCajaProps {
   onCierreCompleto: () => void;
@@ -42,6 +43,21 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
   useEffect(() => {
     const cargarDatosIniciales = async () => {
       try {
+        // Cargar datos de apertura guardados automáticamente
+        const datosApertura = obtenerDatosApertura();
+        if (datosApertura) {
+          setFechaApertura(datosApertura.fechaHoraApertura);
+          setMontoInicial(datosApertura.montoApertura.toString());
+          console.log('Datos de apertura cargados automáticamente:', datosApertura);
+        } else {
+          console.log('No se encontraron datos de apertura guardados');
+          // Si no hay datos de apertura, mostrar fecha actual como fallback
+          setFechaApertura(obtenerFechaHoraActual());
+        }
+        
+        // Establecer fecha de cierre actual
+        setFechaCierre(obtenerFechaHoraActual());
+        
         // Obtener ventas del día usando el mismo enfoque del dashboard
         const fechaActual = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
         console.log('Cargando ventas del día para cierre:', fechaActual);
@@ -105,19 +121,6 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
         setTarjetaVentas(tarjetaVentasCalc);
         setYapeVentas(yapeVentasCalc);
 
-        // Inicializar fechas
-        setFechaCierre(obtenerFechaHoraActual());
-        
-        // Fecha de apertura editable (por defecto hoy a las 08:00:00)
-        const hoy = new Date();
-        const dia = hoy.getDate().toString().padStart(2, '0');
-        const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
-        const año = hoy.getFullYear();
-        setFechaApertura(`${dia}/${mes}/${año} - 08:00:00`);
-        
-        // Monto inicial por defecto
-        setMontoInicial('500.00');
-        
         console.log('Datos iniciales cargados:', {
           totalVentas: totalVentasCalculado,
           efectivo: efectivoVentasCalc,
@@ -248,6 +251,10 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
       
       setDatosCierre(datosCierreCalculados);
       setCierreExitoso(true);
+      
+      // Limpiar datos de apertura del localStorage después del cierre exitoso
+      limpiarDatosApertura();
+      console.log('Datos de apertura limpiados después del cierre exitoso');
     } catch (err) {
       setError('Ocurrió un error al registrar el cierre de caja');
       console.error(err);
@@ -524,8 +531,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Monto Inicial
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="monto-inicial"
                     type="number"
@@ -533,7 +539,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                     min="0"
                     value={montoInicial}
                     onChange={(e) => setMontoInicial(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -545,14 +551,13 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Total Ventas del Día
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="total-ventas"
                     type="text"
                     value={totalVentas.toFixed(2)}
                     readOnly
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl bg-green-50 font-medium text-green-700"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-green-50 font-medium text-green-700"
                   />
                 </div>
               </div>
@@ -563,14 +568,13 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Efectivo (Ventas)
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="efectivo-ventas"
                     type="text"
                     value={efectivoVentas.toFixed(2)}
                     readOnly
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
                   />
                 </div>
               </div>
@@ -581,14 +585,13 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Tarjeta (Ventas)
                 </label>
                 <div className="relative">
-                  <CreditCard className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="tarjeta-ventas"
                     type="text"
                     value={tarjetaVentas.toFixed(2)}
                     readOnly
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
                   />
                 </div>
               </div>
@@ -599,14 +602,13 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Yape/Plin (Ventas)
                 </label>
                 <div className="relative">
-                  <Smartphone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="yape-ventas"
                     type="text"
                     value={yapeVentas.toFixed(2)}
                     readOnly
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
                   />
                 </div>
               </div>
@@ -627,8 +629,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Efectivo Contado
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="efectivo-contado"
                     type="number"
@@ -636,7 +637,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                     min="0"
                     value={efectivoContado}
                     onChange={(e) => setEfectivoContado(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -648,8 +649,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Tarjeta Contado
                 </label>
                 <div className="relative">
-                  <CreditCard className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="tarjeta-contado"
                     type="number"
@@ -657,7 +657,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                     min="0"
                     value={tarjetaContado}
                     onChange={(e) => setTarjetaContado(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>
@@ -669,8 +669,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   Yape/Plin Contado
                 </label>
                 <div className="relative">
-                  <Smartphone className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <span className="absolute left-8 top-3 text-gray-500 text-sm">S/</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
                   <input
                     id="yape-contado"
                     type="number"
@@ -678,7 +677,7 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                     min="0"
                     value={yapeContado}
                     onChange={(e) => setYapeContado(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-200"
                     required
                   />
                 </div>

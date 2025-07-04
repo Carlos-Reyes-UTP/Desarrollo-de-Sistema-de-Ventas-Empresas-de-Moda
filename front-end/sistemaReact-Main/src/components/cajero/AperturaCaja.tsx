@@ -60,8 +60,22 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
         usuario: usuario?.usuario ?? 'Usuario desconocido',
         fechaHora: fechaHoraApertura,
         monto: parseFloat(montoApertura),
-        numeroOperacion: `APT-${Date.now()}` // Número único de operación
+        numeroOperacion: `APT-${Date.now()}`, // Número único de operación
+        timestamp: new Date().toISOString() // Timestamp para el cierre automático
       };
+      
+      // Guardar datos de apertura en localStorage para el cierre de caja
+      const datosAperturaCaja = {
+        usuario: datos.usuario,
+        fechaHoraApertura: datos.fechaHora,
+        timestampApertura: datos.timestamp,
+        montoApertura: datos.monto,
+        numeroOperacionApertura: datos.numeroOperacion,
+        fechaApertura: new Date().toLocaleDateString('es-ES'),
+        horaApertura: new Date().toLocaleTimeString('es-ES')
+      };
+      
+      localStorage.setItem('datosAperturaCaja', JSON.stringify(datosAperturaCaja));
       
       setDatosApertura(datos);
       setAperturaExitosa(true);
@@ -230,6 +244,8 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
     setAperturaExitosa(false);
     setDatosApertura(null);
     setMontoApertura('');
+    // NO eliminar datosAperturaCaja del localStorage aquí
+    // Los datos se mantendrán hasta el cierre de caja
     onAperturaCompleta();
   };
 
@@ -520,6 +536,17 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
       </div>
     </div>
   );
+};
+
+// Función utilitaria para obtener datos de apertura guardados
+export const obtenerDatosApertura = () => {
+  const datos = localStorage.getItem('datosAperturaCaja');
+  return datos ? JSON.parse(datos) : null;
+};
+
+// Función utilitaria para limpiar datos de apertura después del cierre
+export const limpiarDatosApertura = () => {
+  localStorage.removeItem('datosAperturaCaja');
 };
 
 export default AperturaCaja;
