@@ -12,8 +12,6 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     const path = location.pathname;
     const estado = location.state;
     
-    console.log('Layout - determinarVistaInicial para ruta:', path);
-    
     if (path.includes('/dashboard/admin')) {
       return 'dashboard-admin';
     }
@@ -23,7 +21,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     }
     
     if (path.includes('/pages/CajeroSistemaVentas')) {
-      const vista = estado?.view ?? 'ventas';
+      // Si hay un estado específico, usarlo; si no, para cajeros usar 'apertura' como defecto
+      const vista = estado?.view ?? (tieneRol?.('ROLE_CAJERO') ? 'apertura' : 'ventas');
       return vista;
     }
     
@@ -50,7 +49,12 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
       }
     }
     
-    return 'ventas'; // Vista por defecto
+    // Vista por defecto basada en el rol del usuario
+    if (tieneRol?.('ROLE_CAJERO')) {
+      return 'apertura'; // Los cajeros empiezan en apertura de caja
+    }
+    
+    return 'ventas'; // Vista por defecto para otros roles
   };
   
   const [vistaActual, setVistaActual] = useState(determinarVistaInicial());
@@ -58,14 +62,10 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   // Actualizar la vista cuando cambie la ubicación
   useEffect(() => {
     const nuevaVista = determinarVistaInicial();
-    console.log('Layout - useEffect: nueva vista determinada:', nuevaVista);
     if (nuevaVista !== vistaActual) {
-      console.log('Layout - Actualizando vista de', vistaActual, 'a', nuevaVista);
       setVistaActual(nuevaVista);
     }
   }, [location.pathname, location.state, tieneRol]);
-  
-  console.log('Layout renderizado con vista:', vistaActual);
 
   return (
     <div className="flex h-screen bg-gray-100">

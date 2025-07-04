@@ -82,7 +82,8 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     }
     
     if (path.includes('CajeroSistemaVentas')) {
-      const vista = estado?.view ?? 'ventas';
+      // Si hay un estado específico, usarlo; si no, para cajeros usar 'apertura' como defecto
+      const vista = estado?.view ?? (tieneRol('ROLE_CAJERO') ? 'apertura' : 'ventas');
       return { vista, submenu: { caja: true, admin: false, inventario: false } };
     }
     
@@ -114,44 +115,28 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
 
   // Detectar cambios en la ruta para actualizar la vista activa
   useEffect(() => {
-    console.log('=== USEEFFECT EJECUTADO ===');
     const path = location.pathname;
-    console.log('SidebarMenu - Ruta detectada:', path);
-    console.log('SidebarMenu - Estado de navegación:', location.state);
-    console.log('SidebarMenu - Vista actual antes del cambio:', vistaActual);
-    console.log('SidebarMenu - Roles del usuario:', { 
-      esAdmin: tieneRol('ROLE_ADMIN'), 
-      esAlmacenero: tieneRol('ROLE_ALMACENERO'),
-      esCajero: tieneRol('ROLE_CAJERO')
-    });
-    
     const resultado = determinarVistaYSubmenu(path);
-    console.log('SidebarMenu - Resultado determinado:', resultado);
     
     if (resultado) {
       const { vista, submenu } = resultado;
       
-      console.log('SidebarMenu - Vista determinada:', vista);
-      console.log('SidebarMenu - Submenús a activar:', submenu);
+      // Solo actualizar si es realmente necesario para evitar re-renders
+      if (vista !== vistaActual) {
+        cambiarVista(vista);
+      }
       
-      // Siempre actualizar vista para asegurar sincronización
-      console.log('SidebarMenu - Llamando cambiarVista con:', vista);
-      cambiarVista(vista);
-      
-      // Actualizar submenús
-      setMostrarSubmenuCaja(submenu.caja);
-      setMostrarSubmenuAdmin(submenu.admin);
-      setMostrarSubmenuInventario(submenu.inventario);
-      
-      console.log('SidebarMenu - Submenús actualizados:', { 
-        caja: submenu.caja, 
-        admin: submenu.admin, 
-        inventario: submenu.inventario 
-      });
-    } else {
-      console.log('SidebarMenu - No se encontró resultado para la ruta:', path);
+      // Solo actualizar submenús si han cambiado
+      if (submenu.caja !== mostrarSubmenuCaja) {
+        setMostrarSubmenuCaja(submenu.caja);
+      }
+      if (submenu.admin !== mostrarSubmenuAdmin) {
+        setMostrarSubmenuAdmin(submenu.admin);
+      }
+      if (submenu.inventario !== mostrarSubmenuInventario) {
+        setMostrarSubmenuInventario(submenu.inventario);
+      }
     }
-    console.log('=== FIN USEEFFECT ===');
   }, [location.pathname, location.state, tieneRol, cambiarVista]);
 
   const toggleSidebar = () => {
@@ -183,8 +168,11 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
             : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
         }`}
         onClick={() => {
-          console.log(`MenuItem ${texto} clicked: changing view to ${vista}`);
-          cambiarVista(vista);
+          // Solo llamar cambiarVista si no es la vista actual para evitar re-renders
+          if (vista !== vistaActual) {
+            cambiarVista(vista);
+          }
+          
           if (onClick) {
             onClick();
           } else {

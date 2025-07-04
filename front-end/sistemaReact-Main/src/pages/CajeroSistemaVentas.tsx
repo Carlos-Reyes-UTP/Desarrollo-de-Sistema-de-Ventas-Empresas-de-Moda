@@ -1,26 +1,34 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import AperturaCaja from '../components/cajero/AperturaCaja';
 import CierreCaja from '../components/cajero/CierreCaja';
 import VentasPanel from '../components/cajero/VentasPanel';
 
 const CajeroSistemaVentas = () => {
   const location = useLocation();
-  const [vistaActual, setVistaActual] = useState('ventas');
+  const { tieneRol } = useAuth();
+  
+  // Determinar vista inicial basada en el estado o el rol del usuario
+  const determinarVistaInicial = () => {
+    if (location.state?.view) {
+      return location.state.view;
+    }
+    // Para cajeros sin estado específico, empezar en apertura
+    return tieneRol('ROLE_CAJERO') ? 'apertura' : 'ventas';
+  };
+  
+  const [vistaActual, setVistaActual] = useState(determinarVistaInicial());
 
   useEffect(() => {
     if (location.state?.view) {
       setVistaActual(location.state.view);
+    } else {
+      // Si no hay estado específico, usar vista por defecto basada en el rol
+      const vistaDefecto = tieneRol('ROLE_CAJERO') ? 'apertura' : 'ventas';
+      setVistaActual(vistaDefecto);
     }
-  }, [location.state]);
-
-  // Efecto adicional para sincronizar con el sidebar cuando cambia la URL
-  useEffect(() => {
-    // Si la URL cambió sin state, establecer vista por defecto
-    if (!location.state?.view) {
-      setVistaActual('ventas');
-    }
-  }, [location.pathname, location.state]);
+  }, [location.state, tieneRol]);
 
   const renderContenido = () => {
     switch (vistaActual) {
