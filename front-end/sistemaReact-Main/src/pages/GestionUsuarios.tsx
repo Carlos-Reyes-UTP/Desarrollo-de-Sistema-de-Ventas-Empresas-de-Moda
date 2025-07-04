@@ -474,11 +474,17 @@ const GestionUsuarios = () => {
       } else {
         // Crear nuevo usuario
         const rolSeleccionado = formUsuario.roles[0];
-        await ServicioUsuarios.crear({
+        const datosCreacion = {
           usuario: formUsuario.usuario,
           clave: formUsuario.password,
-          rol: rolSeleccionado
-        });
+          rol: rolSeleccionado,
+          activo: formUsuario.activo  // Enviar el valor booleano directamente
+        };
+        
+        console.log('Datos para crear usuario:', datosCreacion);
+        console.log('Valor de formUsuario.activo:', formUsuario.activo);
+        
+        await ServicioUsuarios.crear(datosCreacion);
         mostrarMensaje('Usuario creado exitosamente', 'success');
       }
       

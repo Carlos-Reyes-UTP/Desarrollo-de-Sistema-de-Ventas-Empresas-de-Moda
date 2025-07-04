@@ -1,8 +1,17 @@
 package com.tienda.ropa.service.impl;
 
-import jakarta.validation.constraints.NotBlank;
-import lombok.RequiredArgsConstructor;
-import com.tienda.ropa.agregates.request.SignInRequest;
+import java.util.HashSet;
+import java.util.Set;
+
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
 import com.tienda.ropa.agregates.request.SignUpRequest;
 import com.tienda.ropa.agregates.response.AuthenticationResponse;
 import com.tienda.ropa.entity.Rol;
@@ -13,17 +22,9 @@ import com.tienda.ropa.repository.UsuarioRepository;
 import com.tienda.ropa.service.AuthenticationService;
 import com.tienda.ropa.service.UsuarioService;
 import com.tienda.ropa.util.JwtUtils;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.Set;
+import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 @Service
@@ -89,7 +90,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .usuario(username)
                 .password(passwordEncoder.encode(password))
                 .roles(roles)
-                .activo(true)
+                .activo(signUpRequest.activo() != null ? signUpRequest.activo() : true) // Usar el valor del request o true por defecto
                 .build();
 
         Usuario userCreated = usuarioRepository.save(user);

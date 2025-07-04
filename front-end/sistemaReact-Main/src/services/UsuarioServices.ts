@@ -81,7 +81,7 @@ export const ServicioUsuarios = {
     }
   },
   
-  crear: async (datosUsuario: { usuario: string, clave: string, rol: string }): Promise<Usuario> => {
+  crear: async (datosUsuario: { usuario: string, clave: string, rol: string, activo?: boolean }): Promise<Usuario> => {
     console.log('Creando usuario:', { ...datosUsuario, clave: '***' }); // Ocultar clave en logs
     
     // Asegurar que el rol tenga el prefijo ROLE_
@@ -90,9 +90,16 @@ export const ServicioUsuarios = {
       : `ROLE_${datosUsuario.rol}`;
     
     try {
+      console.log('Datos que se enviarán al backend:', {
+        ...datosUsuario,
+        rol: rolNormalizado,
+        activo: datosUsuario.activo
+      });
+      
       const respuesta = await apiClient.post<Usuario>(RUTAS_USUARIOS.CREAR, {
         ...datosUsuario,
-        rol: rolNormalizado
+        rol: rolNormalizado,
+        activo: datosUsuario.activo // Enviar el valor exacto sin modificación
       });
 
       if (!respuesta.data) {
