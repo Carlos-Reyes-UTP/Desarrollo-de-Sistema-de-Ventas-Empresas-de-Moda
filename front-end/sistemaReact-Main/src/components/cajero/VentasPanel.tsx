@@ -248,7 +248,8 @@ const VentasPanel = () => {
           v.producto.codigoIdentificacion === terminoBusqueda ||
           v.producto.nombre.toLowerCase() === terminoLower ||
           v.color.nombre.toLowerCase() === terminoLower ||
-          v.talla.nombreTalla.toLowerCase() === terminoLower
+          v.talla.nombreTalla.toLowerCase() === terminoLower ||
+          (v.producto.tipoPublico && v.producto.tipoPublico.toLowerCase() === terminoLower)
       );
       
       if (variantesExactas.length > 0) {
@@ -262,7 +263,8 @@ const VentasPanel = () => {
             v.producto.codigoIdentificacion.includes(terminoBusqueda) ||
             v.producto.nombre.toLowerCase().includes(terminoLower) ||
             v.color.nombre.toLowerCase().includes(terminoLower) ||
-            v.talla.nombreTalla.toLowerCase().includes(terminoLower)
+            v.talla.nombreTalla.toLowerCase().includes(terminoLower) ||
+            (v.producto.tipoPublico && v.producto.tipoPublico.toLowerCase().includes(terminoLower))
         );
         
         setVariantesFiltradas(variantesParciales);
@@ -497,6 +499,7 @@ const VentasPanel = () => {
             descripcion: varianteConPreciosCompletos.producto?.nombre ?? 'Producto sin nombre',
             talla: varianteConPreciosCompletos.talla?.nombreTalla ?? 'Única',
             color: varianteConPreciosCompletos.color?.nombre ?? 'Sin color',
+            tipoPublico: varianteConPreciosCompletos.producto?.tipoPublico ?? 'No especificado',
             cantidad: 1,
             precio: precio,
             total: precio
@@ -736,7 +739,7 @@ const VentasPanel = () => {
           return {
             idProductoVariante: item.idProductoVariante,
             idProducto: item.idProducto,
-            descripcion: `${item.descripcion} - ${item.color} - ${item.talla}`,
+            descripcion: `${item.descripcion} - ${item.color} - ${item.talla}` + (item.tipoPublico ? ` - ${item.tipoPublico}` : ''),
             cantidad: item.cantidad,
             precioUnitarioAplicado: item.precio,
             precioOriginal: preciosInfo?.precioOriginal || item.precio,
@@ -1603,6 +1606,13 @@ const VentasPanel = () => {
                               }`}>
                                 Talla {v.talla?.nombreTalla ?? 'Única'}
                               </span>
+                              <span className={`px-2 py-1 rounded-full ${
+                                clienteSeleccionado 
+                                  ? 'bg-purple-100 text-purple-700' 
+                                  : 'bg-gray-200 text-gray-500'
+                              }`}>
+                                {v.producto?.tipoPublico ?? 'General'}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1714,6 +1724,11 @@ const VentasPanel = () => {
                                   <span className="bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
                                     Talla {p.talla}
                                   </span>
+                                  {p.tipoPublico && (
+                                    <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                      {p.tipoPublico}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <button 

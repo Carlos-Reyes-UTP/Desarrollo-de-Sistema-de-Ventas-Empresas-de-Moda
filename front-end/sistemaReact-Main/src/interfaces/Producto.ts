@@ -33,6 +33,7 @@ export interface ProductoVenta { // Producto tal como está en el carrito de ven
   descripcion: string; // Usaremos producto.nombre para esto
   talla: string; // Ahora tendrá la talla real de la variante
   color: string; // Añadimos el color de la variante
+  tipoPublico?: string; // Tipo de público del producto (niño/adulto)
   cantidad: number;
   precio: number; // El precioUnitario aplicado (podría tener descuentos)
   total: number;

@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   DollarSign,
   Users,
   Package,
   CreditCard,
   ArrowUpRight,
-  ArrowDownRight,
   AlertCircle,
   Loader2
 } from 'lucide-react';
@@ -27,6 +27,7 @@ import type { Proveedor } from '../interfaces/Proveedor';
 
 const DashboardAdmin = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
+  const navigate = useNavigate();
   
   // Estados para los datos
   const [periodo] = useState('semana'); // Fijo en semana
@@ -442,14 +443,12 @@ const DashboardAdmin = () => {
     titulo, 
     valor, 
     descripcion, 
-    icono, 
-    tendencia 
+    icono
   }: { 
     titulo: string; 
     valor: string; 
     descripcion: string; 
-    icono: React.ReactNode; 
-    tendencia?: { valor: string; positiva: boolean }
+    icono: React.ReactNode;
   }) => (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
       <div className="flex justify-between items-start mb-4">
@@ -457,19 +456,7 @@ const DashboardAdmin = () => {
         <div className="p-2 bg-gray-100 rounded-lg">{icono}</div>
       </div>
       <div className="flex items-baseline">
-        <div className="text-2xl font-bold text-gray-900 mr-2">{valor}</div>
-        {tendencia && (
-          <div className={`text-sm font-medium flex items-center ${
-            tendencia.positiva ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {tendencia.positiva ? (
-              <ArrowUpRight size={16} className="mr-1" />
-            ) : (
-              <ArrowDownRight size={16} className="mr-1" />
-            )}
-            {tendencia.valor}
-          </div>
-        )}
+        <div className="text-2xl font-bold text-gray-900">{valor}</div>
       </div>
       <div className="text-sm text-gray-500 mt-1">{descripcion}</div>
     </div>
@@ -527,28 +514,24 @@ const DashboardAdmin = () => {
           valor={`S/ ${metricasVenta.totalVentas.toFixed(2)}`}
           descripcion="Ventas de la semana"
           icono={<DollarSign size={20} className="text-green-600" />}
-          tendencia={{ valor: "8.2%", positiva: true }}
         />
         <TarjetaMetrica 
           titulo="Productos vendidos" 
           valor={metricasVenta.productosVendidos.toString()}
           descripcion="Total de artículos vendidos"
           icono={<Package size={20} className="text-blue-600" />}
-          tendencia={{ valor: "5.1%", positiva: true }}
         />
         <TarjetaMetrica 
           titulo="Clientes nuevos" 
           valor={metricasVenta.clientesNuevos.toString()}
           descripcion="Total de nuevos clientes"
           icono={<Users size={20} className="text-purple-600" />}
-          tendencia={{ valor: "2.5%", positiva: false }}
         />
         <TarjetaMetrica 
           titulo="Ticket promedio" 
           valor={`S/ ${metricasVenta.ticketPromedio.toFixed(2)}`}
           descripcion="Valor promedio de venta"
           icono={<CreditCard size={20} className="text-yellow-600" />}
-          tendencia={{ valor: "3.7%", positiva: true }}
         />
       </div>
 
@@ -568,7 +551,7 @@ const DashboardAdmin = () => {
             </div>
           </div>
           
-          <div className="h-64 relative bg-gradient-to-t from-gray-50 to-transparent rounded-lg">
+          <div className="h-80 relative bg-gradient-to-t from-gray-50 to-transparent rounded-lg">
             {/* Mensaje cuando no hay datos */}
             {datosVentas.length === 0 || datosVentas.every(v => v === 0) ? (
               <div className="absolute inset-0 flex items-center justify-center">
@@ -592,15 +575,15 @@ const DashboardAdmin = () => {
                 </div>
                 
                 {/* Gráfico de barras con datos reales */}
-                <div className="absolute inset-0 flex items-end justify-center pb-8 px-4">
-                  <div className="flex items-end justify-center gap-2 sm:gap-3 md:gap-4 w-full max-w-4xl">
+                <div className="absolute inset-0 flex items-end justify-center pb-8 px-12 pl-16">
+                  <div className="flex items-end justify-between gap-3 sm:gap-4 md:gap-6 w-full max-w-4xl">
                     {datosVentas.map((valor, i) => {
                       const etiquetas = obtenerEtiquetasGrafico();
                       const maxValue = obtenerValorMaximoGrafico();
-                      const alturaPixeles = maxValue > 0 ? Math.max((valor / maxValue) * 180, 4) : 4;
+                      const alturaPixeles = maxValue > 0 ? Math.max((valor / maxValue) * 200, 4) : 4;
                       
                       return (
-                        <div key={`${periodo}-${i}`} className="flex flex-col items-center group">
+                        <div key={`${periodo}-${i}`} className="flex flex-col items-center group flex-1">
                           {/* Tooltip */}
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute -top-12 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-10">
                             {etiquetas[i] || ''}: S/{valor.toFixed(2)}
@@ -609,7 +592,7 @@ const DashboardAdmin = () => {
                           
                           {/* Barra */}
                           <div 
-                            className="w-8 sm:w-10 md:w-12 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg shadow-lg hover:from-blue-600 hover:to-blue-500 transition-all duration-300 ease-out hover:scale-105 cursor-pointer"
+                            className="w-full max-w-14 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg shadow-lg hover:from-blue-600 hover:to-blue-500 transition-all duration-300 ease-out hover:scale-105 cursor-pointer"
                             style={{ 
                               height: `${alturaPixeles}px`,
                               minHeight: '4px'
@@ -627,7 +610,7 @@ const DashboardAdmin = () => {
                 </div>
                 
                 {/* Eje Y dinámico mejorado */}
-                <div className="absolute left-2 inset-y-0 flex flex-col justify-between py-4 pr-2">
+                <div className="absolute left-3 inset-y-0 flex flex-col justify-between py-4 pr-3">
                   {(() => {
                     const maxValue = obtenerValorMaximoGrafico();
                     if (maxValue === 0) {
@@ -978,7 +961,10 @@ const DashboardAdmin = () => {
         )}
         
         <div className="flex justify-center mt-6">
-          <button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+          <button 
+            onClick={() => navigate('/pages/productos')}
+            className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
+          >
             Ver todos los productos
           </button>
         </div>
