@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { VentaService } from '../../services/VentaServices';
-import { Printer, CheckCircle, Clock, User, DollarSign, Calculator, CreditCard, Smartphone } from 'lucide-react';
+import { Printer, CheckCircle, Clock, User, Calculator } from 'lucide-react';
 import { obtenerDatosApertura, limpiarDatosApertura } from './AperturaCaja';
 
 interface CierreCajaProps {
@@ -168,15 +168,29 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
       setError('El monto inicial debe ser un valor válido');
       return false;
     }
-    if (!efectivoContado || parseFloat(efectivoContado) < 0) {
+    // Validar que todos los campos de conteo estén completos
+    if (!efectivoContado || efectivoContado.trim() === '') {
+      setError('Debe completar el conteo de efectivo');
+      return false;
+    }
+    if (!tarjetaContado || tarjetaContado.trim() === '') {
+      setError('Debe completar el conteo de tarjeta');
+      return false;
+    }
+    if (!yapeContado || yapeContado.trim() === '') {
+      setError('Debe completar el conteo de Yape/Plin');
+      return false;
+    }
+    // Validar que sean valores numéricos válidos
+    if (parseFloat(efectivoContado) < 0) {
       setError('El efectivo contado debe ser un valor válido');
       return false;
     }
-    if (!tarjetaContado || parseFloat(tarjetaContado) < 0) {
+    if (parseFloat(tarjetaContado) < 0) {
       setError('El monto de tarjeta debe ser un valor válido');
       return false;
     }
-    if (!yapeContado || parseFloat(yapeContado) < 0) {
+    if (parseFloat(yapeContado) < 0) {
       setError('El monto de Yape/Plin debe ser un valor válido');
       return false;
     }
@@ -265,51 +279,190 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
   const imprimirComprobante = () => {
     if (!datosCierre) return;
-
-    const contenidoImpresion = `
-      <div style="font-family: 'Courier New', monospace; width: 300px; margin: 0 auto; padding: 20px;">
-        <div style="text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 15px;">
-          <h2 style="margin: 0; font-size: 18px;">COMPROBANTE DE CIERRE</h2>
-          <h3 style="margin: 5px 0; font-size: 16px;">SISTEMA DE VENTAS</h3>
-        </div>
-        
-        <div style="margin-bottom: 15px;">
-          <p style="margin: 3px 0;"><strong>Cajero:</strong> ${datosCierre.usuario}</p>
-          <p style="margin: 3px 0;"><strong>Fecha Apertura:</strong> ${datosCierre.fechaApertura}</p>
-          <p style="margin: 3px 0;"><strong>Fecha Cierre:</strong> ${datosCierre.fechaCierre}</p>
-        </div>
-        
-        <div style="border-top: 1px solid #333; border-bottom: 1px solid #333; padding: 10px 0; margin: 15px 0;">
-          <h4 style="margin: 0 0 10px 0; text-align: center;">RESUMEN DE CAJA</h4>
-          <p style="margin: 3px 0;">Monto Inicial: S/ ${datosCierre.montoInicial.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Total Ventas: S/ ${datosCierre.totalVentas.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Efectivo Esperado: S/ ${datosCierre.diferencias.efectivoEsperado.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Efectivo Contado: S/ ${datosCierre.efectivoContado.toFixed(2)}</p>
-        </div>
-        
-        <div style="margin: 15px 0;">
-          <h4 style="margin: 0 0 10px 0;">VENTAS POR MÉTODO</h4>
-          <p style="margin: 3px 0;">Efectivo: S/ ${datosCierre.efectivoVentas.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Tarjeta: S/ ${datosCierre.tarjetaVentas.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Yape/Plin: S/ ${datosCierre.yapeVentas.toFixed(2)}</p>
-        </div>
-        
-        <div style="margin: 15px 0;">
-          <h4 style="margin: 0 0 10px 0;">CONTEO REALIZADO</h4>
-          <p style="margin: 3px 0;">Efectivo: S/ ${datosCierre.efectivoContado.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Tarjeta: S/ ${datosCierre.tarjetaContado.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Yape/Plin: S/ ${datosCierre.yapeContado.toFixed(2)}</p>
-        </div>
-        
-        <div style="border-top: 1px solid #333; padding-top: 10px; margin-top: 15px;">
-          <h4 style="margin: 0 0 10px 0;">DIFERENCIAS POR MÉTODO</h4>
-          <p style="margin: 3px 0;">Efectivo: S/ ${datosCierre.diferencias.diferenciasEfectivo.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Tarjeta: S/ ${datosCierre.diferencias.diferenciasTarjeta.toFixed(2)}</p>
-          <p style="margin: 3px 0;">Yape/Plin: S/ ${datosCierre.diferencias.diferenciasYape.toFixed(2)}</p>
-          
-          <div style="border-top: 1px solid #333; margin-top: 10px; padding-top: 10px;">
-            <h4 style="margin: 0 0 5px 0; text-align: center;">RESULTADO FINAL</h4>
-            <p style="margin: 3px 0; text-align: center;"><strong>
+    
+    const comprobanteHtml = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Comprobante de Cierre de Caja</title>
+          <style>
+            body {
+              font-family: 'Courier New', monospace;
+              font-size: 12px;
+              line-height: 1.4;
+              margin: 0;
+              padding: 20px;
+              background: white;
+            }
+            .comprobante {
+              width: 300px;
+              margin: 0 auto;
+              border: 2px dashed #333;
+              padding: 15px;
+              background: white;
+            }
+            .header {
+              text-align: center;
+              border-bottom: 1px solid #333;
+              padding-bottom: 10px;
+              margin-bottom: 15px;
+            }
+            .company-name {
+              font-size: 16px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .title {
+              font-size: 14px;
+              font-weight: bold;
+              margin-bottom: 5px;
+            }
+            .info-row {
+              display: flex;
+              justify-content: space-between;
+              margin-bottom: 3px;
+              padding: 2px 0;
+            }
+            .info-label {
+              font-weight: normal;
+            }
+            .info-value {
+              font-weight: bold;
+            }
+            .separator {
+              border-top: 1px dashed #333;
+              margin: 10px 0;
+            }
+            .section {
+              margin: 15px 0;
+            }
+            .section-title {
+              font-weight: bold;
+              text-align: center;
+              margin-bottom: 8px;
+              border-bottom: 1px solid #333;
+              padding-bottom: 3px;
+            }
+            .resultado-final {
+              text-align: center;
+              font-size: 14px;
+              font-weight: bold;
+              padding: 8px;
+              border: 2px solid #333;
+              margin: 10px 0;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 15px;
+              font-size: 11px;
+              border-top: 1px solid #333;
+              padding-top: 10px;
+            }
+            .operacion {
+              text-align: center;
+              font-size: 10px;
+              margin-top: 10px;
+              color: #666;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="comprobante">
+            <div class="header">
+              <div class="company-name">SISTEMA DE VENTAS</div>
+              <div class="title">COMPROBANTE DE CIERRE</div>
+              <div>${new Date().toLocaleDateString()}</div>
+            </div>
+            
+            <div class="info-row">
+              <span class="info-label">Cajero:</span>
+              <span class="info-value">${datosCierre.usuario}</span>
+            </div>
+            
+            <div class="info-row">
+              <span class="info-label">F. Apertura:</span>
+              <span class="info-value">${datosCierre.fechaApertura}</span>
+            </div>
+            
+            <div class="info-row">
+              <span class="info-label">F. Cierre:</span>
+              <span class="info-value">${datosCierre.fechaCierre}</span>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <div class="section">
+              <div class="section-title">RESUMEN DE CAJA</div>
+              <div class="info-row">
+                <span class="info-label">Monto Inicial:</span>
+                <span class="info-value">S/ ${datosCierre.montoInicial.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Total Ventas:</span>
+                <span class="info-value">S/ ${datosCierre.totalVentas.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Efectivo Esperado:</span>
+                <span class="info-value">S/ ${datosCierre.diferencias.efectivoEsperado.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <div class="section">
+              <div class="section-title">VENTAS POR MÉTODO</div>
+              <div class="info-row">
+                <span class="info-label">Efectivo:</span>
+                <span class="info-value">S/ ${datosCierre.efectivoVentas.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Tarjeta:</span>
+                <span class="info-value">S/ ${datosCierre.tarjetaVentas.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Yape/Plin:</span>
+                <span class="info-value">S/ ${datosCierre.yapeVentas.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <div class="section">
+              <div class="section-title">CONTEO REALIZADO</div>
+              <div class="info-row">
+                <span class="info-label">Efectivo:</span>
+                <span class="info-value">S/ ${datosCierre.efectivoContado.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Tarjeta:</span>
+                <span class="info-value">S/ ${datosCierre.tarjetaContado.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Yape/Plin:</span>
+                <span class="info-value">S/ ${datosCierre.yapeContado.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div class="separator"></div>
+            
+            <div class="section">
+              <div class="section-title">DIFERENCIAS</div>
+              <div class="info-row">
+                <span class="info-label">Efectivo:</span>
+                <span class="info-value">S/ ${datosCierre.diferencias.diferenciasEfectivo.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Tarjeta:</span>
+                <span class="info-value">S/ ${datosCierre.diferencias.diferenciasTarjeta.toFixed(2)}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Yape/Plin:</span>
+                <span class="info-value">S/ ${datosCierre.diferencias.diferenciasYape.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <div class="resultado-final">
               ${(() => {
                 if (datosCierre.diferencias.discrepanciaCaja === 0) {
                   return 'CAJA CUADRADA ✓';
@@ -319,44 +472,37 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
                   return `FALTANTE: S/ ${Math.abs(datosCierre.diferencias.discrepanciaCaja).toFixed(2)}`;
                 }
               })()}
-            </strong></p>
+            </div>
+            
+            ${datosCierre.observaciones ? `
+              <div class="section">
+                <div class="section-title">OBSERVACIONES</div>
+                <div style="font-size: 11px; text-align: justify;">${datosCierre.observaciones}</div>
+              </div>
+            ` : ''}
+            
+            <div class="footer">
+              <div>CAJA CERRADA CORRECTAMENTE</div>
+              <div style="margin-top: 5px;">Conserve este comprobante</div>
+              <div>para sus registros</div>
+            </div>
+            
+            <div class="operacion">
+              ${new Date().toLocaleString()}
+            </div>
           </div>
-        </div>
-        
-        ${datosCierre.observaciones ? `
-          <div style="margin-top: 15px; border-top: 1px solid #333; padding-top: 10px;">
-            <h4 style="margin: 0 0 5px 0;">OBSERVACIONES</h4>
-            <p style="margin: 0; font-size: 12px;">${datosCierre.observaciones}</p>
-          </div>
-        ` : ''}
-        
-        <div style="text-align: center; margin-top: 20px; border-top: 2px solid #333; padding-top: 10px;">
-          <p style="margin: 0; font-size: 12px;">Gracias por usar nuestro sistema</p>
-          <p style="margin: 5px 0 0 0; font-size: 10px;">${new Date().toLocaleString()}</p>
-        </div>
-      </div>
-    `;
-
-    const ventanaImpresion = window.open('', '_blank');
+          
+          <script>
+            setTimeout(() => { 
+              window.print(); 
+            }, 500);
+          </script>
+        </body>
+      </html>`;
+    
+    const ventanaImpresion = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes,left=' + (screen.width/2 - 200) + ',top=' + (screen.height/2 - 300));
     if (ventanaImpresion) {
-      const htmlContent = `
-        <html>
-          <head>
-            <title>Comprobante de Cierre de Caja</title>
-            <style>
-              @media print {
-                body { margin: 0; }
-                @page { size: auto; margin: 0mm; }
-              }
-            </style>
-          </head>
-          <body onload="window.print(); window.close();">
-            ${contenidoImpresion}
-          </body>
-        </html>
-      `;
-      
-      ventanaImpresion.document.documentElement.innerHTML = htmlContent;
+      ventanaImpresion.document.body.innerHTML = comprobanteHtml;
     }
   };
 
@@ -428,26 +574,33 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-2">
-            Cierre de Caja
-          </h1>
-          <p className="text-gray-600">Registre el cierre diario de operaciones</p>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="max-w-4xl mx-auto">
+        {/* Cabecera mejorada */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-3 bg-green-100 rounded-xl">
+              <Calculator className="h-8 w-8 text-green-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Cierre de Caja</h1>
+              <p className="text-gray-600 mt-1">Registre el cierre diario de operaciones</p>
+            </div>
+          </div>
         </div>
 
         {/* Mensaje de error */}
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-500 p-4 rounded-lg shadow-sm">
-            <div className="flex items-center">
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 rounded-lg shadow-sm">
+            <div className="flex items-start">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                 </svg>
               </div>
               <div className="ml-3">
-                <p className="text-sm text-red-700 font-medium">{error}</p>
+                <h3 className="text-sm font-medium text-red-800">Error en el cierre</h3>
+                <p className="text-sm text-red-700 mt-1">{error}</p>
               </div>
             </div>
           </div>
@@ -455,161 +608,194 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Información del cajero y fechas */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-              <User className="h-6 w-6 mr-3 text-blue-600" />
-              Información General
-            </h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Header del card */}
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-800">Información General</h2>
+              <p className="text-sm text-gray-600 mt-1">Datos del cajero y fechas de operación</p>
+            </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Usuario */}
-              <div className="space-y-2">
-                <label htmlFor="usuario-cajero" className="block text-sm font-medium text-gray-700">
-                  Cajero
-                </label>
-                <div className="relative">
-                  <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <input
-                    id="usuario-cajero"
-                    type="text"
-                    value={usuario?.usuario ?? 'Usuario actual'}
-                    readOnly
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none font-medium text-gray-700"
-                  />
+            {/* Contenido del card */}
+            <div className="p-6">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Usuario */}
+                <div className="space-y-2">
+                  <label htmlFor="usuario-cajero" className="block text-sm font-semibold text-gray-700 mb-3">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-gray-500" />
+                      Cajero
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="usuario-cajero"
+                      type="text"
+                      value={usuario?.usuario ?? 'Usuario actual'}
+                      readOnly
+                      className="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 font-medium focus:outline-none"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <User className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Fecha de apertura */}
-              <div className="space-y-2">
-                <label htmlFor="fecha-apertura" className="block text-sm font-medium text-gray-700">
-                  Fecha de Apertura
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <input
-                    id="fecha-apertura"
-                    type="text"
-                    value={fechaApertura}
-                    onChange={(e) => setFechaApertura(e.target.value)}
-                    placeholder="dd/mm/yyyy - hh:mm:ss"
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    required
-                  />
+                {/* Fecha de apertura */}
+                <div className="space-y-2">
+                  <label htmlFor="fecha-apertura" className="block text-sm font-semibold text-gray-700 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      Fecha de Apertura
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="fecha-apertura"
+                      type="text"
+                      value={fechaApertura}
+                      onChange={(e) => setFechaApertura(e.target.value)}
+                      placeholder="dd/mm/yyyy - hh:mm:ss"
+                      className="w-full px-4 py-3 pl-12 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-mono text-center tracking-wide"
+                      required
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Clock className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Fecha de cierre */}
-              <div className="space-y-2">
-                <label htmlFor="fecha-cierre" className="block text-sm font-medium text-gray-700">
-                  Fecha de Cierre
-                </label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-                  <input
-                    id="fecha-cierre"
-                    type="text"
-                    value={fechaCierre}
-                    readOnly
-                    className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
-                  />
+                {/* Fecha de cierre */}
+                <div className="space-y-2">
+                  <label htmlFor="fecha-cierre" className="block text-sm font-semibold text-gray-700 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      Fecha de Cierre
+                      <div className="flex items-center gap-1 ml-auto">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                        <span className="text-xs text-green-600 font-medium">Tiempo real</span>
+                      </div>
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <input
+                      id="fecha-cierre"
+                      type="text"
+                      value={fechaCierre}
+                      readOnly
+                      className="w-full px-4 py-3 pl-12 pr-4 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 font-mono text-center tracking-wide focus:outline-none"
+                    />
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Clock className="h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Montos iniciales y ventas */}
-          <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6 flex items-center">
-              <Calculator className="h-6 w-6 mr-3 text-green-600" />
-              Resumen de Ventas
-            </h2>
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+            {/* Header del card */}
+            <div className="bg-gradient-to-r from-green-50 to-emerald-50 px-6 py-4 border-b border-gray-100">
+              <h2 className="text-lg font-semibold text-gray-800">Resumen de Ventas</h2>
+              <p className="text-sm text-gray-600 mt-1">Ventas registradas durante la jornada</p>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Monto inicial */}
-              <div className="space-y-2">
-                <label htmlFor="monto-inicial" className="block text-sm font-medium text-gray-700">
-                  Monto Inicial
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
-                  <input
-                    id="monto-inicial"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={montoInicial}
-                    onChange={(e) => setMontoInicial(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                    required
-                  />
+            {/* Contenido del card */}
+            <div className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Monto inicial */}
+                <div className="space-y-2">
+                  <label htmlFor="monto-inicial" className="block text-sm font-semibold text-gray-700 mb-3">
+                    <div className="flex items-center gap-2">
+                      <Calculator className="h-4 w-4 text-gray-500" />
+                      Monto Inicial
+                    </div>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <span className="text-gray-500 font-medium text-lg">S/</span>
+                    </div>
+                    <input
+                      id="monto-inicial"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={montoInicial}
+                      onChange={(e) => setMontoInicial(e.target.value)}
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors font-semibold text-gray-900"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Total ventas */}
-              <div className="space-y-2">
-                <label htmlFor="total-ventas" className="block text-sm font-medium text-gray-700">
-                  Total Ventas del Día
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
-                  <input
-                    id="total-ventas"
-                    type="text"
-                    value={totalVentas.toFixed(2)}
-                    readOnly
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-green-50 font-medium text-green-700"
-                  />
+                {/* Total ventas */}
+                <div className="space-y-2">
+                  <label htmlFor="total-ventas" className="block text-sm font-medium text-gray-700">
+                    Total Ventas del Día
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
+                    <input
+                      id="total-ventas"
+                      type="text"
+                      value={totalVentas.toFixed(2)}
+                      readOnly
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-green-50 font-medium text-green-700"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Efectivo ventas */}
-              <div className="space-y-2">
-                <label htmlFor="efectivo-ventas" className="block text-sm font-medium text-gray-700">
-                  Efectivo (Ventas)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
-                  <input
-                    id="efectivo-ventas"
-                    type="text"
-                    value={efectivoVentas.toFixed(2)}
-                    readOnly
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
-                  />
+                {/* Efectivo ventas */}
+                <div className="space-y-2">
+                  <label htmlFor="efectivo-ventas" className="block text-sm font-medium text-gray-700">
+                    Efectivo (Ventas)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
+                    <input
+                      id="efectivo-ventas"
+                      type="text"
+                      value={efectivoVentas.toFixed(2)}
+                      readOnly
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Tarjeta ventas */}
-              <div className="space-y-2">
-                <label htmlFor="tarjeta-ventas" className="block text-sm font-medium text-gray-700">
-                  Tarjeta (Ventas)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
-                  <input
-                    id="tarjeta-ventas"
-                    type="text"
-                    value={tarjetaVentas.toFixed(2)}
-                    readOnly
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
-                  />
+                {/* Tarjeta ventas - Segunda fila */}
+                <div className="space-y-2">
+                  <label htmlFor="tarjeta-ventas" className="block text-sm font-medium text-gray-700">
+                    Tarjeta (Ventas)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
+                    <input
+                      id="tarjeta-ventas"
+                      type="text"
+                      value={tarjetaVentas.toFixed(2)}
+                      readOnly
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Yape ventas */}
-              <div className="space-y-2">
-                <label htmlFor="yape-ventas" className="block text-sm font-medium text-gray-700">
-                  Yape/Plin (Ventas)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
-                  <input
-                    id="yape-ventas"
-                    type="text"
-                    value={yapeVentas.toFixed(2)}
-                    readOnly
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
-                  />
+                {/* Yape ventas */}
+                <div className="space-y-2">
+                  <label htmlFor="yape-ventas" className="block text-sm font-medium text-gray-700">
+                    Yape/Plin (Ventas)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-base font-medium">S/</span>
+                    <input
+                      id="yape-ventas"
+                      type="text"
+                      value={yapeVentas.toFixed(2)}
+                      readOnly
+                      className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 font-medium text-gray-700"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
@@ -762,24 +948,43 @@ const CierreCaja = ({ onCierreCompleto }: CierreCajaProps) => {
           </div>
 
           {/* Botón de envío */}
-          <div className="flex justify-center">
+          <div className="flex flex-col items-center space-y-4">
+            {/* Mensaje de validación */}
+            {(!efectivoContado.trim() || !tarjetaContado.trim() || !yapeContado.trim()) && (
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 max-w-md">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-blue-600 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-medium text-blue-900">Completa el conteo</h3>
+                    <p className="text-sm text-blue-700 mt-1">
+                      Debe ingresar todos los montos del conteo realizado (efectivo, tarjeta y Yape/Plin) para poder cerrar la caja.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <button
               type="submit"
-              disabled={cargando}
+              disabled={cargando || !efectivoContado.trim() || !tarjetaContado.trim() || !yapeContado.trim()}
               className={`px-8 py-4 rounded-2xl font-semibold text-white transition-all duration-200 flex items-center shadow-lg hover:shadow-xl transform hover:scale-105 ${
-                cargando
+                cargando || !efectivoContado.trim() || !tarjetaContado.trim() || !yapeContado.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
               }`}
             >
               {cargando ? (
                 <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                  Procesando...
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
+                  Procesando Cierre...
                 </>
               ) : (
                 <>
-                  <CheckCircle className="h-5 w-5 mr-3" />
+                  <CheckCircle className="h-6 w-6 mr-3" />
                   Cerrar Caja
                 </>
               )}
