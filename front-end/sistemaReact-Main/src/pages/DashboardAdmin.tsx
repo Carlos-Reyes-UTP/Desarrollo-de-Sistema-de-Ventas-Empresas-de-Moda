@@ -15,7 +15,6 @@ import { ProductoService } from '../services/ProductoServices';
 import { VentaService } from '../services/VentaServices';
 import { ServicioUsuarios } from '../services/UsuarioServices';
 import { ProveedorService } from '../services/ProveedorServices';
-import { ClienteService } from '../services/ClienteServices';
 import { useAuthReady } from '../hooks/useAuthReady';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
 import ModalHacerMayorista from '../components/mayoristas/ModalHacerMayorista';
@@ -25,7 +24,6 @@ import type { Producto } from '../interfaces/Producto';
 import type { Venta } from '../interfaces/Venta';
 import type { Usuario } from '../interfaces/Usuario';
 import type { Proveedor } from '../interfaces/Proveedor';
-import type { Cliente } from '../interfaces/Cliente';
 
 const DashboardAdmin = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
@@ -61,6 +59,8 @@ const DashboardAdmin = () => {
   
   // Estados para top clientes
   const [topClientes, setTopClientes] = useState<{id: number, nombre: string, documento: string, tipoCliente: string, totalCompras: number}[]>([]);
+  const [topClientesPorCompras, setTopClientesPorCompras] = useState<{id: number, nombre: string, documento: string, tipoCliente: string, cantidadCompras: number}[]>([]);
+  const [modoVisualizacion, setModoVisualizacion] = useState<'monto' | 'cantidad'>('monto');
   
   // Función para abrir modal con cliente preseleccionado
   const abrirModalConCliente = (cliente: any) => {
@@ -179,6 +179,9 @@ const DashboardAdmin = () => {
         
         // Calcular top 5 clientes
         calcularTopClientes(ventasData);
+        
+        // Calcular top 5 clientes por cantidad de compras
+        calcularTopClientesPorCantidad(ventasData);
         
       } catch (error) {
         console.error('Error al cargar datos:', error);
@@ -357,6 +360,55 @@ const DashboardAdmin = () => {
     setTopClientes(clientesArray.slice(0, 5));
   };
 
+  // Calcular top 5 clientes por cantidad de compras
+  const calcularTopClientesPorCantidad = (ventasData: Venta[]) => {
+    if (!ventasData || ventasData.length === 0) {
+      setTopClientesPorCompras([]);
+      return;
+    }
+
+    // Agrupar ventas por cliente y contar cantidad de compras
+    const clientesMap = new Map<number, {nombre: string, documento: string, tipoCliente: string, cantidadCompras: number, montoTotal: number}>();
+    
+    ventasData.forEach(venta => {
+      if (venta.cliente?.idCliente) {
+        const clienteId = venta.cliente.idCliente;
+        const clienteNombre = venta.cliente.nombreCliente;
+        const clienteDocumento = venta.cliente.numeroDocumento || clienteId.toString();
+        const clienteTipo = venta.cliente.tipoCliente || 'Cliente';
+        const totalVenta = venta.totalVentas ?? 0;
+        
+        if (clientesMap.has(clienteId)) {
+          const cliente = clientesMap.get(clienteId)!;
+          cliente.cantidadCompras += 1;
+          cliente.montoTotal += totalVenta;
+        } else {
+          clientesMap.set(clienteId, {
+            nombre: clienteNombre,
+            documento: clienteDocumento,
+            tipoCliente: clienteTipo,
+            cantidadCompras: 1,
+            montoTotal: totalVenta
+          });
+        }
+      }
+    });
+
+    // Convertir a array y ordenar por cantidad de compras descendente
+    const clientesArray = Array.from(clientesMap.entries()).map(([id, data]) => ({
+      id,
+      nombre: data.nombre,
+      documento: data.documento,
+      tipoCliente: data.tipoCliente,
+      cantidadCompras: data.cantidadCompras
+    }));
+
+    clientesArray.sort((a, b) => b.cantidadCompras - a.cantidadCompras);
+
+    // Tomar los primeros 5
+    setTopClientesPorCompras(clientesArray.slice(0, 5));
+  };
+
   // Obtener etiquetas para el gráfico según el período
   const obtenerEtiquetasGrafico = () => {
     if (periodo === 'hoy') {
@@ -373,22 +425,6 @@ const DashboardAdmin = () => {
   const obtenerValorMaximoGrafico = () => {
     const maxValue = Math.max(...datosVentas, 100);
     return Math.ceil(maxValue / 100) * 100; // Redondear hacia arriba a la centena más cercana
-  };
-
-  // Función para manejar conversión directa a mayorista
-  const manejarConversionDirecta = async (clienteId: number) => {
-    try {
-      // Buscar el cliente completo por ID
-      const cliente = await ClienteService.obtenerClientePorId(clienteId);
-      if (cliente) {
-        setClientePreseleccionado(cliente);
-        setModalMayoristaAbierto(true);
-      } else {
-        console.error('Cliente no encontrado con ID:', clienteId);
-      }
-    } catch (error) {
-      console.error('Error al cargar cliente:', error);
-    }
   };
 
   // Obtener la fecha actual con formato
@@ -708,16 +744,51 @@ const DashboardAdmin = () => {
         </div>
       </div>
 
-      {/* Top 5 Clientes Compradores */}
+      {/* Gestión de Clientes */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-lg font-semibold text-gray-900">Top 5 Clientes Compradores</h2>
-          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-            {periodo === 'semana' ? 'Esta semana' : periodo === 'mes' ? 'Este mes' : 'Hoy'}
-          </span>
+          <h2 className="text-lg font-semibold text-gray-900">Gestión de Clientes</h2>
+          <div className="flex items-center space-x-4">
+            {/* Toggle para modo de visualización */}
+            <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setModoVisualizacion('monto')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
+                  modoVisualizacion === 'monto'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Por Monto
+              </button>
+              <button
+                onClick={() => setModoVisualizacion('cantidad')}
+                className={`px-3 py-1 rounded-md text-xs font-medium transition-all duration-200 ${
+                  modoVisualizacion === 'cantidad'
+                    ? 'bg-white text-gray-900 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Por Cantidad
+              </button>
+            </div>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+              {periodo === 'semana' ? 'Esta semana' : periodo === 'mes' ? 'Este mes' : 'Hoy'}
+            </span>
+          </div>
         </div>
         
-        {topClientes.length === 0 ? (
+        {/* Descripción del modo actual */}
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
+          <p className="text-sm text-blue-700">
+            {modoVisualizacion === 'monto' 
+              ? '📊 Mostrando los 5 clientes que más dinero han gastado en compras'
+              : '🛒 Mostrando los 5 clientes que más compras han realizado (número de transacciones)'
+            }
+          </p>
+        </div>
+        
+        {(modoVisualizacion === 'monto' ? topClientes : topClientesPorCompras).length === 0 ? (
           <div className="text-center py-10 text-gray-500">
             <div className="text-gray-400 mb-2">
               <Users size={48} className="mx-auto" />
@@ -728,7 +799,7 @@ const DashboardAdmin = () => {
         ) : (
           <>
             <div className="space-y-4">
-              {topClientes.map((cliente, index) => (
+              {(modoVisualizacion === 'monto' ? topClientes : topClientesPorCompras).map((cliente, index) => (
                 <div key={cliente.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg border border-gray-200 hover:shadow-md transition-all duration-300">
                   <div className="flex items-center space-x-4">
                     <div className="relative">
@@ -753,17 +824,30 @@ const DashboardAdmin = () => {
                   </div>
                   <div className="flex items-center space-x-4">
                     <div className="text-right">
-                      <div className="text-lg font-bold text-gray-900">
-                        S/ {cliente.totalCompras.toFixed(2)}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Total comprado
-                      </div>
+                      {modoVisualizacion === 'monto' ? (
+                        <>
+                          <div className="text-lg font-bold text-gray-900">
+                            S/ {('totalCompras' in cliente) ? cliente.totalCompras.toFixed(2) : '0.00'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Total gastado
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="text-lg font-bold text-gray-900">
+                            {('cantidadCompras' in cliente) ? cliente.cantidadCompras : 0} {(('cantidadCompras' in cliente) ? cliente.cantidadCompras : 0) === 1 ? 'compra' : 'compras'}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Número de transacciones
+                          </div>
+                        </>
+                      )}
                     </div>
                     <button 
                       onClick={() => abrirModalConCliente(cliente)}
                       className="w-10 h-10 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors duration-200 shadow-md hover:shadow-lg"
-                      title="Hacer mayorista a este cliente"
+                      title="Gestionar este cliente"
                     >
                       <ArrowUpRight size={16} />
                     </button>
@@ -772,7 +856,7 @@ const DashboardAdmin = () => {
               ))}
             </div>
             
-            {/* Botón para hacer mayorista un cliente */}
+            {/* Botón para gestionar cliente */}
             <div className="mt-6 pt-4 border-t border-gray-200">
               <div className="flex justify-center">
                 <button 
@@ -783,7 +867,7 @@ const DashboardAdmin = () => {
                   className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center space-x-2"
                 >
                   <Users size={18} />
-                  <span>Hacer mayorista un cliente</span>
+                  <span>Gestionar Cliente</span>
                 </button>
               </div>
             </div>
