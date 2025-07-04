@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   Package,
   AlertTriangle,
-  ArrowRightCircle,
   PackageCheck,
   Bookmark,
   Search,
@@ -393,9 +392,6 @@ const DashboardAlmacenero = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold text-gray-900">Alertas de Stock</h2>
-            <button className="text-sm text-red-600 hover:text-red-800 flex items-center">
-              Ver todas <ArrowRightCircle size={16} className="ml-1" />
-            </button>
           </div>
           
           <div className="space-y-4">
@@ -420,8 +416,11 @@ const DashboardAlmacenero = () => {
             ))}
           </div>
           
-          <button className="w-full mt-4 py-2 text-sm text-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">
-            Gestionar Stock Crítico
+          <button 
+            onClick={() => navigate('/pages/productos?stockFilter=critico')}
+            className="w-full mt-4 py-2 text-sm text-center text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors font-medium"
+          >
+            🚨 Gestionar Stock Crítico
           </button>
         </div>
       </div>

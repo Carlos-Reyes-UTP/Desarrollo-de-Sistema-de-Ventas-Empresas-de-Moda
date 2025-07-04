@@ -24,6 +24,7 @@ const GestionProductos: React.FC = () => {
   const [selectedSubCategoria, setSelectedSubCategoria] = useState<string>('');
   const [selectedSubCategoria2, setSelectedSubCategoria2] = useState<string>('');
   const [selectedTipoPublico, setSelectedTipoPublico] = useState<string>('');
+  const [selectedStock, setSelectedStock] = useState<string>('');
   const [searchCategoriaPrincipal, setSearchCategoriaPrincipal] = useState<string>('');
   const [searchSubCategoria, setSearchSubCategoria] = useState<string>('');
   const [searchSubCategoria2, setSearchSubCategoria2] = useState<string>('');
@@ -51,6 +52,18 @@ const GestionProductos: React.FC = () => {
       setShowFormulario(true);
       // Limpiar el parámetro de URL después de abrir el modal
       setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Aplicar filtro de stock desde URL
+  useEffect(() => {
+    const stockFilter = searchParams.get('stockFilter');
+    if (stockFilter && (stockFilter === 'critico' || stockFilter === 'normal' || stockFilter === 'sin-stock')) {
+      setSelectedStock(stockFilter);
+      // Limpiar el parámetro de URL después de aplicar el filtro
+      const params = new URLSearchParams(searchParams);
+      params.delete('stockFilter');
+      setSearchParams(params);
     }
   }, [searchParams, setSearchParams]);
 
@@ -262,7 +275,24 @@ const GestionProductos: React.FC = () => {
     const matchProveedor = !selectedProveedor || 
       producto.proveedor.nombre.toLowerCase().includes(selectedProveedor.toLowerCase());
     
-    return matchBusqueda && matchCategoriaPrincipal && matchSubCategoria && matchSubCategoria2 && matchTipoPublico && matchProveedor;
+    // Filtro por stock
+    let matchStock = true;
+    if (selectedStock) {
+      const cantidad = producto.cantidadTotal ?? 0;
+      switch (selectedStock) {
+        case 'normal':
+          matchStock = cantidad > 10;
+          break;
+        case 'critico':
+          matchStock = cantidad <= 10 && cantidad > 0;
+          break;
+        case 'sin-stock':
+          matchStock = cantidad === 0;
+          break;
+      }
+    }
+    
+    return matchBusqueda && matchCategoriaPrincipal && matchSubCategoria && matchSubCategoria2 && matchTipoPublico && matchProveedor && matchStock;
   });
 
   if (loading) {
@@ -295,16 +325,8 @@ const GestionProductos: React.FC = () => {
 
       {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className={`grid grid-cols-1 gap-4 ${(() => {
-          let cols = 7; // Base: búsqueda, proveedor, tipo público, total
-          if (selectedCategoriaPrincipal && categoriaTieneSubcategorias(selectedCategoriaPrincipal)) {
-            cols++; // Agregar subcategoría
-          }
-          if (selectedSubCategoria) {
-            cols++; // Agregar segunda subcategoría
-          }
-          return `md:grid-cols-${cols}`;
-        })()}`}>
+        {/* Primera fila de filtros */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div className="col-span-2 flex gap-0">
             <select
               value={searchType}
@@ -333,6 +355,42 @@ const GestionProductos: React.FC = () => {
               )}
             </div>
           </div>
+
+          <select
+            value={selectedProveedor}
+            onChange={(e) => setSelectedProveedor(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todos los proveedores</option>
+            {proveedores.map(proveedor => (
+              <option key={proveedor.idProveedor} value={proveedor.nombre}>
+                {proveedor.nombre}
+              </option>
+            ))}
+          </select>
+
+          <select
+            value={selectedTipoPublico}
+            onChange={(e) => setSelectedTipoPublico(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todo tipo de publico</option>
+            <option value="ADULTO">👨‍💼 Adulto</option>
+            <option value="NIÑO">👶 Niño</option>
+          </select>
+        </div>
+
+        {/* Segunda fila de filtros - Categorías dinámicas */}
+        <div className={`grid grid-cols-1 gap-4 ${(() => {
+          let cols = 2; // Base: categoría principal y stock
+          if (selectedCategoriaPrincipal && categoriaTieneSubcategorias(selectedCategoriaPrincipal)) {
+            cols++; // Agregar subcategoría
+          }
+          if (selectedSubCategoria) {
+            cols++; // Agregar segunda subcategoría
+          }
+          return `md:grid-cols-${cols}`;
+        })()}`}>
 
           {/* Filtro de Categoría Principal con búsqueda */}
           <div className="relative" ref={categoriaPrincipalRef}>
@@ -552,52 +610,42 @@ const GestionProductos: React.FC = () => {
           )}
 
           <select
-            value={selectedProveedor}
-            onChange={(e) => setSelectedProveedor(e.target.value)}
+            value={selectedStock}
+            onChange={(e) => setSelectedStock(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="">Todos los proveedores</option>
-            {proveedores.map(proveedor => (
-              <option key={proveedor.idProveedor} value={proveedor.nombre}>
-                {proveedor.nombre}
-              </option>
-            ))}
+            <option value="">📦 Todo el stock</option>
+            <option value="normal">✅ Normal</option>
+            <option value="critico">⚠️ Crítico</option>
+            <option value="sin-stock">❌ Sin stock</option>
           </select>
+        </div>
 
-          <select
-            value={selectedTipoPublico}
-            onChange={(e) => setSelectedTipoPublico(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Todos los tipos</option>
-            <option value="ADULTO">👨‍💼 Adulto</option>
-            <option value="NIÑO">👶 Niño</option>
-          </select>
-
+        {/* Tercera fila: Total y botón limpiar */}
+        <div className="flex justify-between items-center mt-4 pt-4 border-t border-gray-200">
           <div className="text-sm text-gray-600 flex items-center gap-2 flex-wrap">
             <span>Total: {productosFiltrados.length} productos</span>
           </div>
 
           {/* Botón para limpiar todos los filtros */}
-          {(searchTerm || selectedCategoriaPrincipal || selectedSubCategoria || selectedSubCategoria2 || selectedTipoPublico || selectedProveedor || searchCategoriaPrincipal || searchSubCategoria || searchSubCategoria2) && (
-            <div className="flex justify-end">
-              <button
-                onClick={() => {
-                  setSearchTerm('');
-                  setSelectedCategoriaPrincipal('');
-                  setSelectedSubCategoria('');
-                  setSelectedSubCategoria2('');
-                  setSelectedTipoPublico('');
-                  setSearchCategoriaPrincipal('');
-                  setSearchSubCategoria('');
-                  setSearchSubCategoria2('');
-                  setSelectedProveedor('');
-                }}
-                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                Limpiar filtros
-              </button>
-            </div>
+          {(searchTerm || selectedCategoriaPrincipal || selectedSubCategoria || selectedSubCategoria2 || selectedTipoPublico || selectedProveedor || selectedStock || searchCategoriaPrincipal || searchSubCategoria || searchSubCategoria2) && (
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategoriaPrincipal('');
+                setSelectedSubCategoria('');
+                setSelectedSubCategoria2('');
+                setSelectedTipoPublico('');
+                setSelectedStock('');
+                setSearchCategoriaPrincipal('');
+                setSearchSubCategoria('');
+                setSearchSubCategoria2('');
+                setSelectedProveedor('');
+              }}
+              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+            >
+              Limpiar filtros
+            </button>
           )}
         </div>
       </div>
