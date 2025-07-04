@@ -59,6 +59,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   const [coloresDisponibles, setColoresDisponibles] = useState<Color[]>([]);
   const [tallasDisponibles, setTallasDisponibles] = useState<Talla[]>([]);
   const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
+  const [subCategorias2, setSubCategorias2] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
     // Estados para nueva variante (modo simple)
@@ -144,11 +145,22 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         precioDocena: producto.precioDocena?.toString() || ''
       });
       
-      // Cargar subcategorías si el producto tiene una categoría padre
+      // Cargar subcategorías jerárquicamente si el producto tiene categorías
       if (tieneCategoriaPadre && producto.categoriaPadre) {
         const categoriaSeleccionada = categorias.find(c => c.idCategoria === producto.categoriaPadre?.idCategoria);
         if (categoriaSeleccionada?.subCategorias) {
           setSubcategorias(categoriaSeleccionada.subCategorias);
+          
+          // Si también hay una subcategoría seleccionada, cargar sus subcategorías (nivel 3)
+          if (tieneCategoria && producto.categoria && 
+              producto.categoria.idCategoria !== producto.categoriaPadre.idCategoria) {
+            const subcategoriaSeleccionada = categoriaSeleccionada.subCategorias.find(
+              sc => sc.idCategoria === producto.categoria?.idCategoria
+            );
+            if (subcategoriaSeleccionada?.subCategorias) {
+              setSubCategorias2(subcategoriaSeleccionada.subCategorias);
+            }
+          }
         }
       }
       
@@ -355,9 +367,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         throw new Error('Debe seleccionar el tipo de público (niño o adulto)');
       }
 
-      // Validar segunda subcategoría
-      if (!formData.subCategoria2Id) {
-        throw new Error('Debe seleccionar la segunda subcategoría');
+      // Validar segunda subcategoría - ahora es obligatoria solo si hay subCategorias2 disponibles
+      if (subCategorias2.length > 0 && !formData.subCategoria2Id) {
+        throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
       }
 
       const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
@@ -366,11 +378,31 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         throw new Error('Debe seleccionar un proveedor válido');
       }
 
-      // Obtener la segunda subcategoría
-      const subCategoria2 = categorias.find(c => c.idCategoria?.toString() === formData.subCategoria2Id);
-      if (!subCategoria2) {
-        throw new Error('Segunda subcategoría no válida');
+      // Obtener la segunda subcategoría desde el array correcto
+      let subCategoria2: Categoria | undefined = undefined;
+      if (formData.subCategoria2Id) {
+        // Buscar primero en subCategorias2 (nivel 3), luego en categorias completas como fallback
+        subCategoria2 = subCategorias2.find(c => c.idCategoria?.toString() === formData.subCategoria2Id) ||
+                       categorias.find(c => c.idCategoria?.toString() === formData.subCategoria2Id);
+        if (!subCategoria2) {
+          throw new Error('Segunda subcategoría no válida');
+        }
       }
+
+      // Si no hay subCategoria2 seleccionada pero es requerida, usar una categoría por defecto o lanzar error
+      if (!subCategoria2 && subCategorias2.length > 0) {
+        throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
+      }
+
+      // Crear una categoría temporal si no hay segunda subcategoría pero se requiere para la interface
+      const subCategoria2Final = subCategoria2 || {
+        idCategoria: 0,
+        nombre: "Sin categoría nivel 3",
+        categoriaPadre: undefined,
+        subCategorias: undefined,
+        esCategoriaPrincipal: false,
+        tieneSubcategorias: false
+      };
 
       // Crear objeto producto
       const productoData: Omit<Producto, 'idProducto'> = {
@@ -380,7 +412,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         sexo: formData.sexo || undefined,
         tipoPublico: formData.tipoPublico,
         categoria: categoriaSeleccionada,
-        subCategoria2: subCategoria2,
+        subCategoria2: subCategoria2Final,
         categoriaPadre: categoriaPadreSeleccionada,
         marca: formData.marca || undefined,
         proveedor,
@@ -610,16 +642,17 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     alert('Código de barras de variante descargado correctamente');
   };
   
-  // Función para manejar cambio de categoría principal
+  // Función para manejar cambio de categoría principal (Nivel 1)
   const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const categoriaId = e.target.value;
     setFormData(prev => ({ 
       ...prev, 
       categoriaId,
-      subcategoriaId: '' // Limpiar subcategoría cuando cambia la principal
+      subcategoriaId: '', // Limpiar subcategoría cuando cambia la principal
+      subCategoria2Id: ''  // Limpiar segunda subcategoría también
     }));
 
-    // Cargar subcategorías de la categoría seleccionada
+    // Cargar subcategorías (Nivel 2) de la categoría seleccionada
     if (categoriaId) {
       const categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === categoriaId);
       if (categoriaSeleccionada?.subCategorias) {
@@ -629,6 +662,31 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       }
     } else {
       setSubcategorias([]);
+    }
+    
+    // Limpiar también las subcategorías de nivel 3
+    setSubCategorias2([]);
+  };
+
+  // Función para manejar cambio de subcategoría (Nivel 2)
+  const handleSubcategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const subcategoriaId = e.target.value;
+    setFormData(prev => ({ 
+      ...prev, 
+      subcategoriaId,
+      subCategoria2Id: '' // Limpiar segunda subcategoría cuando cambia la subcategoría
+    }));
+
+    // Cargar subcategorías de nivel 3 de la subcategoría seleccionada
+    if (subcategoriaId) {
+      const subcategoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === subcategoriaId);
+      if (subcategoriaSeleccionada?.subCategorias) {
+        setSubCategorias2(subcategoriaSeleccionada.subCategorias);
+      } else {
+        setSubCategorias2([]);
+      }
+    } else {
+      setSubCategorias2([]);
     }
   };
 
@@ -914,9 +972,29 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     />
-                  </div>                  <div>
+                  </div>
+
+                  {/* Sección de Categorías Jerárquicas */}
+                  <div className="md:col-span-2 mb-4">
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                      <h4 className="text-sm font-semibold text-blue-800 mb-2">Sistema de Categorías Jerárquico</h4>
+                      <p className="text-xs text-blue-700 mb-2">
+                        Las categorías se organizan en 3 niveles jerárquicos:
+                      </p>
+                      <div className="text-xs text-blue-600 space-y-1">
+                        <div>• <strong>Nivel 1:</strong> Categoría Principal (ej: Ropa Interior, Ropa Invierno)</div>
+                        <div>• <strong>Nivel 2:</strong> Subcategoría (ej: Boxer, Sostén, Calzón)</div>
+                        <div>• <strong>Nivel 3:</strong> Segunda Subcategoría (ej: Tela, Algodón)</div>
+                      </div>
+                      <p className="text-xs text-blue-600 mt-2 italic">
+                        Las opciones se filtran automáticamente según la selección anterior.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Categoría Principal *
+                      Categoría Principal (Nivel 1) *
                     </label>
                     <select
                       name="categoriaId"
@@ -939,12 +1017,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   {subcategorias.length > 0 && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Subcategoría *
+                        Subcategoría (Nivel 2) *
                       </label>
                       <select
                         name="subcategoriaId"
                         value={formData.subcategoriaId}
-                        onChange={handleInputChange}
+                        onChange={handleSubcategoriaChange}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         required
                       >
@@ -958,25 +1036,38 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     </div>
                   )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Segunda Subcategoría <span className="text-red-500">*</span>
-                    </label>
-                    <select
-                      name="subCategoria2Id"
-                      value={formData.subCategoria2Id}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    >
-                      <option value="">Seleccionar segunda subcategoría</option>
-                      {categorias.map(categoria => (
-                        <option key={categoria.idCategoria} value={categoria.idCategoria}>
-                          {categoria.nombre}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {subCategorias2.length > 0 && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Segunda Subcategoría (Nivel 3) <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        name="subCategoria2Id"
+                        value={formData.subCategoria2Id}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      >
+                        <option value="">Seleccionar segunda subcategoría</option>
+                        {subCategorias2.map(categoria => (
+                          <option key={categoria.idCategoria} value={categoria.idCategoria}>
+                            {categoria.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Mensaje informativo cuando no hay subcategorías de nivel 3 */}
+                  {subcategorias.length > 0 && subCategorias2.length === 0 && formData.subcategoriaId && (
+                    <div className="md:col-span-2">
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                        <p className="text-xs text-gray-600">
+                          ℹ️ La subcategoría seleccionada no tiene categorías de nivel 3 disponibles.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
