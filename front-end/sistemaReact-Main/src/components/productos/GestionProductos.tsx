@@ -22,8 +22,11 @@ const GestionProductos: React.FC = () => {
   const [searchType, setSearchType] = useState<'nombre' | 'codigo'>('nombre');
   const [selectedCategoriaPrincipal, setSelectedCategoriaPrincipal] = useState<string>('');
   const [selectedSubCategoria, setSelectedSubCategoria] = useState<string>('');
+  const [selectedSubCategoria2, setSelectedSubCategoria2] = useState<string>('');
+  const [selectedTipoPublico, setSelectedTipoPublico] = useState<string>('');
   const [searchCategoriaPrincipal, setSearchCategoriaPrincipal] = useState<string>('');
   const [searchSubCategoria, setSearchSubCategoria] = useState<string>('');
+  const [searchSubCategoria2, setSearchSubCategoria2] = useState<string>('');
   const [selectedProveedor, setSelectedProveedor] = useState<string>('');
   const [showFormulario, setShowFormulario] = useState(false);
   const [showVariantes, setShowVariantes] = useState(false);
@@ -35,6 +38,7 @@ const GestionProductos: React.FC = () => {
   // Referencias para los componentes de búsqueda
   const categoriaPrincipalRef = useRef<HTMLDivElement>(null);
   const subcategoriaRef = useRef<HTMLDivElement>(null);
+  const subcategoria2Ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     cargarDatos();
@@ -67,6 +71,12 @@ const GestionProductos: React.FC = () => {
     }
   }, [selectedCategoriaPrincipal]);
 
+  // Limpiar segunda subcategoría cuando se cambia la subcategoría
+  useEffect(() => {
+    setSelectedSubCategoria2('');
+    setSearchSubCategoria2('');
+  }, [selectedSubCategoria]);
+
   // Manejar clics fuera de los componentes de búsqueda para cerrar las listas
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -75,6 +85,9 @@ const GestionProductos: React.FC = () => {
       }
       if (subcategoriaRef.current && !subcategoriaRef.current.contains(event.target as Node)) {
         setSearchSubCategoria('');
+      }
+      if (subcategoria2Ref.current && !subcategoria2Ref.current.contains(event.target as Node)) {
+        setSearchSubCategoria2('');
       }
     };
 
@@ -136,6 +149,19 @@ const GestionProductos: React.FC = () => {
   const subcategoriasFiltradas = subcategorias.filter(categoria =>
     searchSubCategoria === '' || 
     categoria.nombre.toLowerCase().includes(searchSubCategoria.toLowerCase())
+  );
+
+  // Obtener segundas subcategorías únicas basadas en la subcategoría seleccionada
+  const segundasSubcategoriasFiltradas = Array.from(
+    new Set(
+      productos
+        .filter(p => !selectedSubCategoria || p.categoria?.nombre === selectedSubCategoria)
+        .map(p => p.subCategoria2?.nombre)
+        .filter(Boolean)
+    )
+  ).filter(nombre =>
+    searchSubCategoria2 === '' || 
+    nombre.toLowerCase().includes(searchSubCategoria2.toLowerCase())
   );
 
   const cargarDatos = async () => {
@@ -224,11 +250,19 @@ const GestionProductos: React.FC = () => {
     const matchSubCategoria = !selectedSubCategoria || 
       (producto.categoria?.nombre?.toLowerCase().includes(selectedSubCategoria.toLowerCase()) ?? false);
     
+    // Filtro por segunda subcategoría
+    const matchSubCategoria2 = !selectedSubCategoria2 || 
+      (producto.subCategoria2?.nombre?.toLowerCase().includes(selectedSubCategoria2.toLowerCase()) ?? false);
+    
+    // Filtro por tipo de público
+    const matchTipoPublico = !selectedTipoPublico || 
+      producto.tipoPublico === selectedTipoPublico;
+    
     // Filtro por proveedor
     const matchProveedor = !selectedProveedor || 
       producto.proveedor.nombre.toLowerCase().includes(selectedProveedor.toLowerCase());
     
-    return matchBusqueda && matchCategoriaPrincipal && matchSubCategoria && matchProveedor;
+    return matchBusqueda && matchCategoriaPrincipal && matchSubCategoria && matchSubCategoria2 && matchTipoPublico && matchProveedor;
   });
 
   if (loading) {
@@ -261,11 +295,16 @@ const GestionProductos: React.FC = () => {
 
       {/* Filtros y búsqueda */}
       <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-        <div className={`grid grid-cols-1 gap-4 ${
-          selectedCategoriaPrincipal && categoriaTieneSubcategorias(selectedCategoriaPrincipal)
-            ? 'md:grid-cols-6' 
-            : 'md:grid-cols-5'
-        }`}>
+        <div className={`grid grid-cols-1 gap-4 ${(() => {
+          let cols = 7; // Base: búsqueda, proveedor, tipo público, total
+          if (selectedCategoriaPrincipal && categoriaTieneSubcategorias(selectedCategoriaPrincipal)) {
+            cols++; // Agregar subcategoría
+          }
+          if (selectedSubCategoria) {
+            cols++; // Agregar segunda subcategoría
+          }
+          return `md:grid-cols-${cols}`;
+        })()}`}>
           <div className="col-span-2 flex gap-0">
             <select
               value={searchType}
@@ -299,7 +338,7 @@ const GestionProductos: React.FC = () => {
           <div className="relative" ref={categoriaPrincipalRef}>
             <input
               type="text"
-              placeholder={selectedCategoriaPrincipal ? "Categoría seleccionada" : "🗂️ Escriba para buscar categoría principal..."}
+              placeholder={selectedCategoriaPrincipal ? "Categoría seleccionada" : "🗂️ Buscar Categoria Principal"}
               value={searchCategoriaPrincipal}
               onChange={(e) => setSearchCategoriaPrincipal(e.target.value)}
               onKeyDown={(e) => {
@@ -375,7 +414,7 @@ const GestionProductos: React.FC = () => {
             <div className="relative" ref={subcategoriaRef}>
               <input
                 type="text"
-                placeholder={selectedSubCategoria ? "Subcategoría seleccionada" : "📂 Escriba para buscar subcategoría..."}
+                placeholder={selectedSubCategoria ? "Subcategoría seleccionada" : "📂 Buscar SubCategoria"}
                 value={searchSubCategoria}
                 onChange={(e) => setSearchSubCategoria(e.target.value)}
                 onKeyDown={(e) => {
@@ -441,6 +480,77 @@ const GestionProductos: React.FC = () => {
             </div>
           )}
 
+          {/* Filtro de segunda subcategoría - solo se muestra si hay una subcategoría seleccionada */}
+          {selectedSubCategoria && (
+            <div className="relative" ref={subcategoria2Ref}>
+              <input
+                type="text"
+                placeholder={selectedSubCategoria2 ? "2da subcategoría seleccionada" : "📁 Buscar Sub Categoria 2"}
+                value={searchSubCategoria2}
+                onChange={(e) => setSearchSubCategoria2(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setSearchSubCategoria2('');
+                  } else if (e.key === 'Enter' && segundasSubcategoriasFiltradas.length === 1) {
+                    setSelectedSubCategoria2(segundasSubcategoriasFiltradas[0]);
+                    setSearchSubCategoria2('');
+                  }
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={!!selectedSubCategoria2}
+              />
+              
+              {/* Indicador de resultados */}
+              {searchSubCategoria2 && !selectedSubCategoria2 && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+                  {segundasSubcategoriasFiltradas.length} resultado{segundasSubcategoriasFiltradas.length !== 1 ? 's' : ''}
+                </div>
+              )}
+              
+              {/* Lista desplegable de segundas subcategorías filtradas */}
+              {searchSubCategoria2 && segundasSubcategoriasFiltradas.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {segundasSubcategoriasFiltradas.map(nombre => (
+                    <button
+                      key={nombre}
+                      onClick={() => {
+                        setSelectedSubCategoria2(nombre);
+                        setSearchSubCategoria2('');
+                      }}
+                      className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                    >
+                      {nombre}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* Mostrar segunda subcategoría seleccionada */}
+              {selectedSubCategoria2 && !searchSubCategoria2 && (
+                <div className="absolute inset-0 px-3 py-2 bg-orange-50 border border-orange-300 rounded-lg flex items-center justify-between">
+                  <span className="text-orange-800 font-medium">📁 {selectedSubCategoria2}</span>
+                  <button
+                    onClick={() => {
+                      setSelectedSubCategoria2('');
+                      setSearchSubCategoria2('');
+                    }}
+                    className="text-orange-600 hover:text-orange-800"
+                    title="Limpiar selección"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+              
+              {/* Mensaje cuando no hay resultados */}
+              {searchSubCategoria2 && segundasSubcategoriasFiltradas.length === 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+                  No se encontraron segundas subcategorías
+                </div>
+              )}
+            </div>
+          )}
+
           <select
             value={selectedProveedor}
             onChange={(e) => setSelectedProveedor(e.target.value)}
@@ -454,56 +564,42 @@ const GestionProductos: React.FC = () => {
             ))}
           </select>
 
+          <select
+            value={selectedTipoPublico}
+            onChange={(e) => setSelectedTipoPublico(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Todos los tipos</option>
+            <option value="ADULTO">👨‍💼 Adulto</option>
+            <option value="NIÑO">👶 Niño</option>
+          </select>
+
           <div className="text-sm text-gray-600 flex items-center gap-2 flex-wrap">
             <span>Total: {productosFiltrados.length} productos</span>
-            
-            {/* Indicadores de filtros activos */}
-            <div className="flex gap-1 flex-wrap">
-              {searchTerm && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                  {searchType === 'nombre' ? 'Nombre' : 'Código'}: "{searchTerm}"
-                </span>
-              )}
-              
-              {selectedCategoriaPrincipal && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800">
-                  📁 {selectedCategoriaPrincipal}
-                </span>
-              )}
-              
-              {selectedSubCategoria && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-purple-100 text-purple-800">
-                  📂 {selectedSubCategoria}
-                </span>
-              )}
-              
-              {selectedProveedor && (
-                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800">
-                  🏢 {selectedProveedor}
-                </span>
-              )}
-            </div>
           </div>
-        </div>
 
-        {/* Botón para limpiar todos los filtros */}
-        {(searchTerm || selectedCategoriaPrincipal || selectedSubCategoria || selectedProveedor || searchCategoriaPrincipal || searchSubCategoria) && (
-          <div className="mt-4 flex justify-end">
-            <button
-              onClick={() => {
-                setSearchTerm('');
-                setSelectedCategoriaPrincipal('');
-                setSelectedSubCategoria('');
-                setSearchCategoriaPrincipal('');
-                setSearchSubCategoria('');
-                setSelectedProveedor('');
-              }}
-              className="text-sm text-blue-600 hover:text-blue-800 underline"
-            >
-              Limpiar todos los filtros
-            </button>
-          </div>
-        )}
+          {/* Botón para limpiar todos los filtros */}
+          {(searchTerm || selectedCategoriaPrincipal || selectedSubCategoria || selectedSubCategoria2 || selectedTipoPublico || selectedProveedor || searchCategoriaPrincipal || searchSubCategoria || searchSubCategoria2) && (
+            <div className="flex justify-end">
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategoriaPrincipal('');
+                  setSelectedSubCategoria('');
+                  setSelectedSubCategoria2('');
+                  setSelectedTipoPublico('');
+                  setSearchCategoriaPrincipal('');
+                  setSearchSubCategoria('');
+                  setSearchSubCategoria2('');
+                  setSelectedProveedor('');
+                }}
+                className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabla de productos */}
@@ -522,7 +618,13 @@ const GestionProductos: React.FC = () => {
                   Categoría Principal
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Sub Categoría
+                  Sub Categoría 
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Sub Categoría 2
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Público
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Marca
@@ -572,6 +674,12 @@ const GestionProductos: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {producto.categoria?.nombre ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {producto.subCategoria2?.nombre ?? '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    {producto.tipoPublico === 'ADULTO' ? 'Adulto' : 'Niño'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {producto.marca ?? 'N/A'}
