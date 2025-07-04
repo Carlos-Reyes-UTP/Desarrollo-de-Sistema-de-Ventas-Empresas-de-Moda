@@ -158,4 +158,27 @@ export const ProductoService = {
     const response = await apiClient.get<Producto[]>(RUTAS_PRODUCTOS.POR_PROVEEDOR(nombreProveedor));
     return response.data;
   },
+
+  // Método para disminuir la cantidad del producto general
+  disminuirCantidadProducto: async (id: number, cantidad: number, userRole?: string): Promise<Producto> => {
+    try {
+      const response = await apiClient.patch<Producto>(
+        RUTAS_PRODUCTOS.CAJERO.DISMINUIR_PRODUCTO(id),
+        null,
+        {
+          params: { cantidad }
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 400) {
+        throw new Error('Stock insuficiente del producto general');
+      } else if (error.response?.status === 404) {
+        throw new Error('Producto no encontrado');
+      } else if (error.response?.status === 401) {
+        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para actualizar el stock.');
+      }
+      throw error;
+    }
+  },
 };

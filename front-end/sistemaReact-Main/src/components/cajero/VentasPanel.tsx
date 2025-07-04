@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Users } from 'lucide-react';
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
+import { useProductoService } from '../../hooks/useProductoService';
 import { useAuthReady } from '../../hooks/useAuthReady';
 import { useAuth } from '../../context/AuthContext';
 import { ClienteService } from '../../services/ClienteServices';
@@ -18,6 +19,7 @@ const VentasPanel = () => {
   const { usuario } = useAuth();
   // Get role-aware product variante service methods
   const { getAllVariantes, disminuirCantidadVariante } = useProductoVarianteService();
+  const { disminuirCantidadProducto } = useProductoService();
   
   // --------------------------------------------------------------------------------------------
   // A. ESTADO DEL COMPONENTE
@@ -708,12 +710,29 @@ const VentasPanel = () => {
       console.log('Venta registrada exitosamente:', ventaRegistrada);
       
       // Actualizar el stock de las variantes usando el nuevo método
+      console.log('🔄 Iniciando actualización de stock para productos vendidos:', productosSeleccionadosVenta);
+      
       for (const item of productosSeleccionadosVenta) {
+        console.log(`📦 Procesando item: ID variante ${item.idProductoVariante}, cantidad ${item.cantidad}`);
+        
         if (item.idProductoVariante) {
           try {
-            await disminuirCantidadVariante(item.idProductoVariante, item.cantidad);
+            console.log(`⬇️ Disminuyendo stock de variante ${item.idProductoVariante} en ${item.cantidad} unidades`);
+            const varianteActualizada = await disminuirCantidadVariante(item.idProductoVariante, item.cantidad);
+            console.log(`✅ Stock de variante actualizado:`, varianteActualizada);
           } catch (error) {
-            console.warn(`No se pudo actualizar el stock de la variante ${item.idProductoVariante}:`, error);
+            console.error(`❌ Error al actualizar stock de variante ${item.idProductoVariante}:`, error);
+          }
+        }
+        
+        // También disminuir el stock del producto general
+        if (item.idProducto) {
+          try {
+            console.log(`⬇️ Disminuyendo stock de producto ${item.idProducto} en ${item.cantidad} unidades`);
+            const productoActualizado = await disminuirCantidadProducto(item.idProducto, item.cantidad);
+            console.log(`✅ Stock de producto actualizado:`, productoActualizado);
+          } catch (error) {
+            console.error(`❌ Error al actualizar stock de producto ${item.idProducto}:`, error);
           }
         }
       }

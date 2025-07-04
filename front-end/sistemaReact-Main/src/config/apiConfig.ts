@@ -46,6 +46,7 @@ export const RUTAS_PRODUCTOS = {
     VARIANTE_POR_ID: (id: number) => `${API_BASE_URL}/api/cajero/productos/variantes/${id}`,
     VARIANTES_POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/cajero/productos/variantes/producto/${idProducto}`,
     DISMINUIR_VARIANTE: (id: number) => `${API_BASE_URL}/api/cajero/productos/variantes/${id}/disminuir`,
+    DISMINUIR_PRODUCTO: (id: number) => `${API_BASE_URL}/api/cajero/productos/${id}/disminuir`,
   }
 };
 

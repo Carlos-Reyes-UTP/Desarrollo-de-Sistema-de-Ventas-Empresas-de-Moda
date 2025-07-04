@@ -23,6 +23,7 @@ export const useProductoService = () => {
   const getProductosByNombre = useCallback((nombre: string) => ProductoService.getProductosByNombre(nombre, userRole), [userRole]);
   const buscarProductos = useCallback((termino: string) => ProductoService.buscarProductos(termino, userRole), [userRole]);
   const buscarProductosCompleto = useCallback((termino: string) => ProductoService.buscarProductosCompleto(termino, userRole), [userRole]);
+  const disminuirCantidadProducto = useCallback((id: number, cantidad: number) => ProductoService.disminuirCantidadProducto(id, cantidad, userRole), [userRole]);
 
   return useMemo(() => ({
     // Role-aware read operations (memoized)
@@ -37,6 +38,9 @@ export const useProductoService = () => {
     createProducto: ProductoService.createProducto,
     updateProducto: ProductoService.updateProducto,
     deleteProducto: ProductoService.deleteProducto,
+    
+    // Stock operations
+    disminuirCantidadProducto,
     
     // Legacy operations (maintain backward compatibility)
     getProductosByCategoria: ProductoService.getProductosByCategoria,
@@ -56,6 +60,7 @@ export const useProductoService = () => {
     getProductosByNombre,
     buscarProductos,
     buscarProductosCompleto,
+    disminuirCantidadProducto,
     userRole
   ]);
 };

@@ -304,30 +304,22 @@ export const ProductoVarianteService = {    // Crear nueva variante
     try {
       console.log(`Disminuyendo ${cantidad} unidades de la variante ID: ${id}`);
       
-      // Si es cajero, usar endpoint específico del cajero
-      if (userRole === 'ROLE_CAJERO') {
-        const response = await apiClient.patch<ProductoVariante>(
-          RUTAS_PRODUCTOS.CAJERO.DISMINUIR_VARIANTE(id),
-          null,
-          { params: { cantidad } }
-        );
-        return response.data;
-      } else {
-        // Para otros roles, usar endpoint de almacenero
-        const response = await apiClient.patch<ProductoVariante>(
-          RUTAS_VARIANTES.ACTUALIZAR_CANTIDAD(id),
-          null,
-          { params: { cantidad } }
-        );
-        return response.data;
-      }
+      // Siempre usar el endpoint del cajero para disminuir, ya que es el diseñado para esta operación
+      const response = await apiClient.patch<ProductoVariante>(
+        RUTAS_PRODUCTOS.CAJERO.DISMINUIR_VARIANTE(id),
+        null,
+        { params: { cantidad } }
+      );
+      
+      console.log(`✅ Stock de variante ${id} reducido exitosamente en ${cantidad} unidades`);
+      return response.data;
     } catch (error: any) {
       if (error.response?.status === 400) {
         throw new Error('Stock insuficiente para realizar la venta');
       } else if (error.response?.status === 404) {
         throw new Error(`No se encontró la variante con ID: ${id}`);
       }
-      console.error(`Error al disminuir cantidad de variante ${id}:`, error);
+      console.error(`❌ Error al disminuir cantidad de variante ${id}:`, error);
       throw error;
     }
   },
