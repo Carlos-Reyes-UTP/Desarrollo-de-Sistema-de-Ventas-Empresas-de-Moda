@@ -247,12 +247,12 @@ export const ProductoVarianteService = {    // Crear nueva variante
     }
   },
 
-  // Obtener todas las variantes (optimizado por rol)
-  obtenerTodasLasVariantes: async (userRole?: string): Promise<ProductoVariante[]> => {
+  // Obtener todas las variantes (optimizado por rol y contexto)
+  obtenerTodasLasVariantes: async (userRole?: string, forSales?: boolean): Promise<ProductoVariante[]> => {
     try {
-      console.log("DEBUG: obtenerTodasLasVariantes called with userRole:", userRole);
+      console.log("DEBUG: obtenerTodasLasVariantes called with userRole:", userRole, "forSales:", forSales);
       
-      // Decidir qué endpoint usar según el rol del usuario
+      // Decidir qué endpoint usar según el contexto y rol del usuario
       let endpoint: string;
       let isAlmaceneroEndpoint = false;
       
@@ -260,12 +260,13 @@ export const ProductoVarianteService = {    // Crear nueva variante
       const normalizedRole = userRole?.toUpperCase();
       console.log("DEBUG: normalized role:", normalizedRole);
       
-      if (normalizedRole === 'ROLE_CAJERO' || normalizedRole === 'CAJERO') {
-        // Para cajeros, usar su endpoint específico
+      // Si es para ventas o el usuario es cajero, usar endpoint de cajero
+      if (forSales || normalizedRole === 'ROLE_CAJERO' || normalizedRole === 'CAJERO') {
+        // Para ventas (cualquier rol) o cajeros específicamente
         endpoint = RUTAS_PRODUCTOS.CAJERO.VARIANTES;
-        console.log("DEBUG: Usuario cajero detectado, usando endpoint del cajero:", endpoint);
+        console.log("DEBUG: Usando endpoint del cajero para ventas:", endpoint);
       } else {
-        // Para almaceneros y admins, usar el endpoint completo
+        // Para gestión de almacén (almaceneros y admins)
         endpoint = RUTAS_VARIANTES.BASE;
         isAlmaceneroEndpoint = true;
         console.log("DEBUG: Usuario almacenero/admin detectado (rol:", userRole, "), usando endpoint completo:", endpoint);

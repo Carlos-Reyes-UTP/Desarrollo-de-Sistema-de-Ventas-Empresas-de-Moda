@@ -2,7 +2,7 @@ import { useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProductoVarianteService } from '../services/ProductoVarianteService';
 
-export const useProductoVarianteService = () => {
+export const useProductoVarianteService = (forSales: boolean = false) => {
   const { usuario } = useAuth();
   
   // Get the user's primary role
@@ -40,18 +40,18 @@ export const useProductoVarianteService = () => {
   // Método personalizado para obtener todas las variantes disponibles
   const getAllVariantes = useCallback(async () => {
     try {
-      console.log("DEBUG: getAllVariantes called. Current userRole:", userRole);
+      console.log("DEBUG: getAllVariantes called. Current userRole:", userRole, "forSales:", forSales);
       console.log("DEBUG: Usuario actual:", usuario);
       
       // Usar el nuevo método optimizado del servicio
-      const variantes = await ProductoVarianteService.obtenerTodasLasVariantes(userRole);
+      const variantes = await ProductoVarianteService.obtenerTodasLasVariantes(userRole, forSales);
       console.log("DEBUG: getAllVariantes success. Variantes count:", variantes.length);
       return variantes;
     } catch (error) {
       console.error("Error al obtener todas las variantes:", error);
       throw error;
     }
-  }, [userRole, usuario]);
+  }, [userRole, usuario, forSales]);
 
   return useMemo(() => ({
     // Read operations (memoized)
@@ -76,6 +76,7 @@ export const useProductoVarianteService = () => {
     obtenerVariantesPorProducto,
     obtenerVariantePorId,
     getAllVariantes,
-    userRole
+    userRole,
+    forSales
   ]);
 };

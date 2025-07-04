@@ -18,7 +18,7 @@ const VentasPanel = () => {
   const { isReady, isAuthenticated } = useAuthReady();
   const { usuario } = useAuth();
   // Get role-aware product variante service methods
-  const { getAllVariantes, disminuirCantidadVariante } = useProductoVarianteService();
+  const { getAllVariantes, disminuirCantidadVariante } = useProductoVarianteService(true);
   const { disminuirCantidadProducto } = useProductoService();
   
   // --------------------------------------------------------------------------------------------
