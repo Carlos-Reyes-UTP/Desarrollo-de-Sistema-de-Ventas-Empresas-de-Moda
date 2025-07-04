@@ -43,8 +43,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     codigoBarras: '',
     nombre: '',
     sexo: '',
+    tipoPublico: '', // NUEVO CAMPO: niño o adulto
     categoriaId: '',
     subcategoriaId: '',
+    subCategoria2Id: '', // NUEVO CAMPO: segunda subcategoría
     marca: '',
     proveedorId: '',
     precioUnitario: '',
@@ -130,8 +132,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         codigoBarras: producto.codigoBarras || '',
         nombre: producto.nombre,
         sexo: producto.sexo || '',
+        tipoPublico: producto.tipoPublico || '',
         categoriaId: categoriaIdFormulario,
         subcategoriaId: subcategoriaIdFormulario,
+        subCategoria2Id: producto.subCategoria2?.idCategoria?.toString() || '',
         marca: producto.marca || '',
         proveedorId: producto.proveedor.idProveedor?.toString() || '',
         precioUnitario: producto.precioUnitario.toString(),
@@ -346,10 +350,26 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         }
       }
 
+      // Validar tipo público
+      if (!formData.tipoPublico) {
+        throw new Error('Debe seleccionar el tipo de público (niño o adulto)');
+      }
+
+      // Validar segunda subcategoría
+      if (!formData.subCategoria2Id) {
+        throw new Error('Debe seleccionar la segunda subcategoría');
+      }
+
       const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
 
       if (!proveedor) {
         throw new Error('Debe seleccionar un proveedor válido');
+      }
+
+      // Obtener la segunda subcategoría
+      const subCategoria2 = categorias.find(c => c.idCategoria?.toString() === formData.subCategoria2Id);
+      if (!subCategoria2) {
+        throw new Error('Segunda subcategoría no válida');
       }
 
       // Crear objeto producto
@@ -358,7 +378,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         codigoBarras: formData.codigoBarras || undefined,
         nombre: formData.nombre,
         sexo: formData.sexo || undefined,
+        tipoPublico: formData.tipoPublico,
         categoria: categoriaSeleccionada,
+        subCategoria2: subCategoria2,
         categoriaPadre: categoriaPadreSeleccionada,
         marca: formData.marca || undefined,
         proveedor,
@@ -866,6 +888,23 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipo de Público <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="tipoPublico"
+                      value={formData.tipoPublico}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Seleccionar tipo de público</option>
+                      <option value="NIÑO">Niño</option>
+                      <option value="ADULTO">Adulto</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Marca
                     </label>
                     <input
@@ -918,6 +957,26 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       </select>
                     </div>
                   )}
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Segunda Subcategoría <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="subCategoria2Id"
+                      value={formData.subCategoria2Id}
+                      onChange={handleInputChange}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Seleccionar segunda subcategoría</option>
+                      {categorias.map(categoria => (
+                        <option key={categoria.idCategoria} value={categoria.idCategoria}>
+                          {categoria.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

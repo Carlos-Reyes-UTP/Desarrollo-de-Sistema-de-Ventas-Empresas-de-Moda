@@ -1,18 +1,25 @@
 package com.tienda.ropa.controller;
 
-import com.tienda.ropa.entity.Producto;
-import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.service.ProductoService;
-import com.tienda.ropa.service.ProductoVarianteService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.tienda.ropa.entity.Producto;
+import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.service.ProductoService;
+import com.tienda.ropa.service.ProductoVarianteService;
 
 @RestController
 @RequestMapping("/api/cajero/productos")
@@ -43,22 +50,29 @@ public class CajeroProductoController {
             Map<String, Object> producto = new HashMap<>();
             producto.put("idProducto", resultado[3]);
             producto.put("nombre", resultado[4]);
-            producto.put("sexo", resultado[5]); // Usamos sexo en lugar de descripcion
-            producto.put("codigoIdentificacion", resultado[6]);
-            producto.put("precioUnitario", resultado[7]); // Usamos precioUnitario
+            producto.put("sexo", resultado[5]);
+            producto.put("tipoPublico", resultado[6]); // NUEVO CAMPO
+            producto.put("codigoIdentificacion", resultado[7]);
+            producto.put("precioUnitario", resultado[8]);
             variante.put("producto", producto);
             
             // Información de talla
             Map<String, Object> talla = new HashMap<>();
-            talla.put("idTalla", resultado[8]);
-            talla.put("nombreTalla", resultado[9]);
+            talla.put("idTalla", resultado[9]);
+            talla.put("nombreTalla", resultado[10]);
             variante.put("talla", talla);
             
             // Información de color
             Map<String, Object> color = new HashMap<>();
-            color.put("idColor", resultado[10]);
-            color.put("nombre", resultado[11]);
+            color.put("idColor", resultado[11]);
+            color.put("nombre", resultado[12]);
             variante.put("color", color);
+            
+            // Información de categorías
+            Map<String, Object> categorias = new HashMap<>();
+            categorias.put("categoria", resultado[13]); // Subcategoría principal
+            categorias.put("subCategoria2", resultado[14]); // NUEVO CAMPO
+            variante.put("categorias", categorias);
             
             return variante;
         }).collect(Collectors.toList());

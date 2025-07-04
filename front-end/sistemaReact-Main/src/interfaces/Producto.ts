@@ -10,7 +10,9 @@ export interface Producto {
   nombre: string;
   descripcion?: string;
   sexo?: string;
+  tipoPublico: string; // NUEVO: niño o adulto - no puede ser nulo
   categoria?: Categoria; // Ahora es opcional - se usa para subcategorías
+  subCategoria2: Categoria; // NUEVO: subcategoría adicional - no puede ser nulo
   categoriaPadre?: Categoria | null; // Se usa para categorías principales
   marca?: string;
   proveedor: Proveedor; // Similar, podrías enviar solo el idProveedor

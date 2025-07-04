@@ -130,7 +130,9 @@ public class ProductoService {
             producto.setCodigoIdentificacion(productoActualizado.getCodigoIdentificacion());
             producto.setNombre(productoActualizado.getNombre());
             producto.setSexo(productoActualizado.getSexo());
+            producto.setTipoPublico(productoActualizado.getTipoPublico());
             producto.setCategoria(productoActualizado.getCategoria());
+            producto.setSubCategoria2(productoActualizado.getSubCategoria2());
             producto.setCategoriaPadre(productoActualizado.getCategoriaPadre());
             producto.setMarca(productoActualizado.getMarca());
             producto.setProveedor(productoActualizado.getProveedor());

@@ -41,9 +41,18 @@ public class Producto {
     @Column(name = "sexo", nullable = false)
     private String sexo;
 
+    @NotNull
+    @Column(name = "tipo_publico", nullable = false)
+    private String tipoPublico;
+
     @ManyToOne
     @JoinColumn(name = "id_subcategoria", nullable = true)
     private Categoria categoria;
+
+    @NotNull
+    @ManyToOne
+    @JoinColumn(name = "id_sub_categoria2", nullable = false)
+    private Categoria subCategoria2;
 
     @ManyToOne
     @JoinColumn(name = "id_categoria_padre", nullable = false)
@@ -87,7 +96,7 @@ public class Producto {
                     .sum();
         }
         // Si no usa variantes, devuelve la cantidad del producto base
-        return cantidad != null ? cantidad : 0;
+        return cantidad != null ? cantidad.intValue() : 0;
     }
 
     public Long getIdProducto() {
@@ -178,6 +187,22 @@ public class Producto {
 
     public void setSexo(String sexo) {
         this.sexo = sexo;
+    }
+
+    public String getTipoPublico() {
+        return tipoPublico;
+    }
+
+    public void setTipoPublico(String tipoPublico) {
+        this.tipoPublico = tipoPublico;
+    }
+
+    public Categoria getSubCategoria2() {
+        return subCategoria2;
+    }
+
+    public void setSubCategoria2(Categoria subCategoria2) {
+        this.subCategoria2 = subCategoria2;
     }
 
     public Categoria getCategoriaPadre() {
