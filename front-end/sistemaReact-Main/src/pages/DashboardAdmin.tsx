@@ -772,9 +772,6 @@ const DashboardAdmin = () => {
                 Por Cantidad
               </button>
             </div>
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              {periodo === 'semana' ? 'Esta semana' : periodo === 'mes' ? 'Este mes' : 'Hoy'}
-            </span>
           </div>
         </div>
         

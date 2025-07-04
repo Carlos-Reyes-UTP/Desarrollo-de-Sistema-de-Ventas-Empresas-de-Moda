@@ -70,6 +70,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const [mayoristaCreadoOConvertido, setMayoristaCreadoOConvertido] = useState<MayoristaDTO | null>(null);
   const [mostrarConfirmacionExito, setMostrarConfirmacionExito] = useState(false);
   const [mostrarConfirmacionEliminacion, setMostrarConfirmacionEliminacion] = useState(false);
+  const [mostrarModalConfirmacionEliminar, setMostrarModalConfirmacionEliminar] = useState(false);
 
   // Función para buscar clientes
   const buscarClientes = useCallback(async (termino: string) => {
@@ -189,9 +190,18 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     }
   };
 
+  // Función para mostrar confirmación de eliminación
+  const mostrarConfirmacionEliminacionMayorista = () => {
+    setMostrarModalConfirmacionEliminar(true);
+    setError(null);
+  };
+
   // Función para eliminar mayorista
   const eliminarMayorista = async () => {
     if (!clienteSeleccionado?.idCliente) return;
+
+    // Cerrar modal de confirmación
+    setMostrarModalConfirmacionEliminar(false);
 
     setEliminandoMayorista(true);
     setError(null);
@@ -212,13 +222,11 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       if (eliminado) {
         setExito(`¡Mayorista eliminado exitosamente! ${clienteSeleccionado.nombreCliente} ya no es mayorista.`);
         setEsMayorista(false);
+        setCodigoMayoristaCliente(null); // Limpiar el código al eliminar
         setMostrarConfirmacionEliminacion(true);
         
-        // Ejecutar callback de éxito si existe
-        if (onSuccess) {
-          // Crear un objeto vacío para indicar eliminación
-          onSuccess({} as MayoristaDTO);
-        }
+        // NO ejecutar callback automáticamente para evitar cierre del modal
+        // El callback se ejecutará cuando el usuario cierre manualmente el modal
 
         // NO cerrar automáticamente - dejar que el usuario vea la confirmación y cierre manualmente
       } else {
@@ -361,6 +369,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     setMayoristaCreadoOConvertido(null);
     setMostrarConfirmacionExito(false);
     setMostrarConfirmacionEliminacion(false);
+    setMostrarModalConfirmacionEliminar(false);
     setBuscandoClientes(false);
     setVerificandoMayorista(false);
     setConvirtiendoMayorista(false);
@@ -458,18 +467,22 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     return () => clearTimeout(timeoutId);
   }, [searchTerm, clienteSeleccionado, buscarClientes]);
 
-  // Efecto para resetear cuando se abre/cierra el modal
+  // Efecto para resetear cuando se abre el modal por primera vez
   useEffect(() => {
     if (isOpen) {
-      resetModal();
-      // Si hay un cliente preseleccionado, configurarlo
-      if (clientePreseleccionado) {
-        setClienteSeleccionado(clientePreseleccionado);
-        setSearchTerm(clientePreseleccionado.nombreCliente);
-        verificarMayorista(clientePreseleccionado);
+      // Solo resetear si realmente se está abriendo el modal por primera vez
+      // Verificamos si no estamos en medio de una operación
+      if (!mostrarModalConfirmacionEliminar && !mostrarConfirmacionExito && !mostrarConfirmacionEliminacion) {
+        resetModal();
+        // Si hay un cliente preseleccionado, configurarlo
+        if (clientePreseleccionado) {
+          setClienteSeleccionado(clientePreseleccionado);
+          setSearchTerm(clientePreseleccionado.nombreCliente);
+          verificarMayorista(clientePreseleccionado);
+        }
       }
     }
-  }, [isOpen, clientePreseleccionado, verificarMayorista]);
+  }, [isOpen, clientePreseleccionado, verificarMayorista, mostrarModalConfirmacionEliminar, mostrarConfirmacionExito, mostrarConfirmacionEliminacion]);
 
   if (!isOpen) return null;
 
@@ -546,6 +559,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       <div className="flex justify-center">
         <button
           onClick={() => {
+            // Ejecutar callback con un objeto vacío para indicar eliminación
+            if (onSuccess) {
+              onSuccess({} as MayoristaDTO);
+            }
             resetModal();
             onClose();
           }}
@@ -558,9 +575,61 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     </div>
   );
 
+  // Renderizar modal de confirmación para eliminar mayorista
+  const renderModalConfirmacionEliminar = () => (
+    <div className="text-center py-8">
+      <div className="mx-auto flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+        <AlertCircle className="w-8 h-8 text-red-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        ¿Está seguro de eliminar el estatus de mayorista?
+      </h3>
+      <p className="text-gray-600 mb-6">
+        Esta acción eliminará el estatus de mayorista de <strong>{clienteSeleccionado?.nombreCliente}</strong>. 
+        El cliente volverá a ser un cliente regular y perderá todos los beneficios de mayorista.
+      </p>
+      
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div className="flex items-start space-x-2">
+          <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-yellow-700">
+            <p className="font-medium mb-1">Advertencia:</p>
+            <p>Esta acción no se puede deshacer. El cliente tendrá que ser promovido a mayorista nuevamente si es necesario.</p>
+          </div>
+        </div>
+      </div>
+      
+      <div className="flex justify-center space-x-4">
+        <button
+          onClick={() => setMostrarModalConfirmacionEliminar(false)}
+          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200"
+        >
+          Cancelar
+        </button>
+        <button
+          onClick={eliminarMayorista}
+          disabled={eliminandoMayorista}
+          className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {eliminandoMayorista ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Eliminando...
+            </>
+          ) : (
+            <>
+              <Trash2 className="w-4 h-4 mr-2" />
+              Sí, eliminar
+            </>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+
   // Renderizar toggle de modo
   const renderToggleModo = () => {
-    if (clientePreseleccionado || mostrarConfirmacionExito || mostrarConfirmacionEliminacion) {
+    if (clientePreseleccionado || mostrarConfirmacionExito || mostrarConfirmacionEliminacion || mostrarModalConfirmacionEliminar) {
       return null;
     }
 
@@ -918,7 +987,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                       <span className="font-medium">Este cliente ya es mayorista</span>
                     </div>
                     <button
-                      onClick={eliminarMayorista}
+                      onClick={mostrarConfirmacionEliminacionMayorista}
                       disabled={eliminandoMayorista || verificandoMayorista}
                       className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                     >
@@ -1045,9 +1114,15 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     console.log('🔄 Renderizando contenido principal:', {
       mostrarConfirmacionExito,
       mostrarConfirmacionEliminacion,
+      mostrarModalConfirmacionEliminar,
       codigoMayorista,
       exito
     });
+    
+    if (mostrarModalConfirmacionEliminar) {
+      console.log('⚠️ Mostrando modal de confirmación de eliminación');
+      return renderModalConfirmacionEliminar();
+    }
     
     if (mostrarConfirmacionExito) {
       console.log('✅ Mostrando pantalla de éxito');
