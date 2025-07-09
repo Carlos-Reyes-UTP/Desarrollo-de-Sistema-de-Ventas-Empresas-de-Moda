@@ -701,7 +701,7 @@ const VentasPanel = () => {
         cliente: { idCliente: clienteId || 1 }, // Usamos el ID obtenido o uno por defecto
         metodoPago: { idMetodoPago: obtenerIdMetodoPago(metodoPago) },
         tipoComprobante: 'BOLETA', // Por defecto
-        fechaVenta: new Date().toISOString().split('T')[0], // Formato YYYY-MM-DD
+        fechaVenta: new Date().toISOString(), // Formato ISO completo: YYYY-MM-DDTHH:mm:ss.sssZ
         detalles: detallesVenta
       };
       

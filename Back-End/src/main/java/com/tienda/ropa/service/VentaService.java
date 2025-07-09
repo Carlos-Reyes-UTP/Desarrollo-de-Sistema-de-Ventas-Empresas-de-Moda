@@ -2,6 +2,7 @@ package com.tienda.ropa.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -48,6 +49,10 @@ public class VentaService {
 
     public List<Venta> obtenerVentaPorFecha(LocalDate fecha) {
         return ventaRepository.findByFechaVenta(fecha);
+    }
+
+    public List<Venta> obtenerVentaPorRangoFecha(LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        return ventaRepository.findByFechaVentaBetween(fechaInicio, fechaFin);
     }
 
     public List<Venta> getVentasByClienteId(Long clienteId) {

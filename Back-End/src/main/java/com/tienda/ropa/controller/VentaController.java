@@ -1,7 +1,8 @@
 package com.tienda.ropa.controller;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -74,7 +75,30 @@ public class VentaController {
         
         // Asignar otros campos
         venta.setTipoComprobante(tipoComprobante);
-        venta.setFechaVenta(LocalDate.parse(fechaVenta));
+        
+        // Parsear fecha con hora usando el formato ISO estándar
+        // Formato esperado: "2025-07-09T06:09:52.314" o "2025-07-09T06:09:52"
+        LocalDateTime fechaVentaDateTime;
+        try {
+            // Primero intentar con milisegundos
+            fechaVentaDateTime = LocalDateTime.parse(fechaVenta);
+        } catch (Exception e) {
+            // Si falla, intentar con formato personalizado sin 'T'
+            // Formato: "2025-07-09 06:09:52.314" o "2025-07-09 06:09:52"
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+                fechaVentaDateTime = LocalDateTime.parse(fechaVenta, formatter);
+            } catch (Exception e2) {
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+                    fechaVentaDateTime = LocalDateTime.parse(fechaVenta, formatter);
+                } catch (Exception e3) {
+                    // Como último recurso, usar la fecha actual
+                    fechaVentaDateTime = LocalDateTime.now();
+                }
+            }
+        }
+        venta.setFechaVenta(fechaVentaDateTime);
         
         // Crear detalles de venta
         List<DetalleVenta> detalles = detallesInput.stream().map(detalleInput -> {
@@ -119,8 +143,10 @@ public class VentaController {
 
     @GetMapping("/fecha/{fecha}")
     public List<Venta> obtenerVentaPorFecha(@PathVariable String fecha) {
-        LocalDate fechaVenta = LocalDate.parse(fecha);
-        return ventaService.obtenerVentaPorFecha(fechaVenta);
+        // Parsear la fecha sin hora para buscar todas las ventas de ese día
+        LocalDateTime fechaInicio = LocalDateTime.parse(fecha + "T00:00:00");
+        LocalDateTime fechaFin = LocalDateTime.parse(fecha + "T23:59:59");
+        return ventaService.obtenerVentaPorRangoFecha(fechaInicio, fechaFin);
     }
 
     @GetMapping("/cliente/{clienteId}")

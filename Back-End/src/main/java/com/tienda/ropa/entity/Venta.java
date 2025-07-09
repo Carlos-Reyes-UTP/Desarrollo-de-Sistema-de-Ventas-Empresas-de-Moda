@@ -1,7 +1,7 @@
 package com.tienda.ropa.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -49,7 +49,7 @@ public class Venta {
 
     @NotNull
     @Column(name = "fecha_venta", nullable = false)
-    private LocalDate fechaVenta;
+    private LocalDateTime fechaVenta;
 
     @NotNull
     @Column(name = "total_ventas", nullable = false)
@@ -99,11 +99,11 @@ public class Venta {
         this.metodoPago = metodoPago;
     }
 
-    public LocalDate getFechaVenta() {
+    public LocalDateTime getFechaVenta() {
         return fechaVenta;
     }
 
-    public void setFechaVenta(LocalDate fechaVenta) {
+    public void setFechaVenta(LocalDateTime fechaVenta) {
         this.fechaVenta = fechaVenta;
     }
 
