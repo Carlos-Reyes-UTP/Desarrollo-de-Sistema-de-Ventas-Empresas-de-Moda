@@ -62,6 +62,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   const [subCategorias2, setSubCategorias2] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorPrecio, setErrorPrecio] = useState<string | null>(null);
     // Estados para nueva variante (modo simple)
   const [nuevaVariante, setNuevaVariante] = useState({
     tallaId: 0,
@@ -587,6 +588,34 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    // Validación para campos de precio
+    if (["precioUnitario", "precioCuarto", "precioMediaDocena", "precioDocena"].includes(name)) {
+      const nuevoValor = value === '' ? '' : Math.max(0, parseFloat(value));
+      // Si el usuario intenta poner un valor negativo, lo forzamos a 0
+      if (value !== '' && parseFloat(value) < 0) {
+        setErrorPrecio('No se permiten valores negativos en los precios.');
+        setFormData(prev => ({ ...prev, [name]: 0 }));
+        return;
+      }
+      // Validación de jerarquía de precios
+      let precios = {
+        precioUnitario: name === 'precioUnitario' ? nuevoValor : parseFloat(formData.precioUnitario) || 0,
+        precioCuarto: name === 'precioCuarto' ? nuevoValor : parseFloat(formData.precioCuarto) || 0,
+        precioMediaDocena: name === 'precioMediaDocena' ? nuevoValor : parseFloat(formData.precioMediaDocena) || 0,
+        precioDocena: name === 'precioDocena' ? nuevoValor : parseFloat(formData.precioDocena) || 0,
+      };
+      if (
+        (precios.precioCuarto && precios.precioCuarto > precios.precioUnitario) ||
+        (precios.precioMediaDocena && precios.precioMediaDocena > precios.precioCuarto) ||
+        (precios.precioDocena && precios.precioDocena > precios.precioMediaDocena)
+      ) {
+        setErrorPrecio('El orden de los precios debe ser: Unitario ≥ Cuarto ≥ Media Docena ≥ Docena.');
+        return;
+      }
+      setErrorPrecio(null);
+      setFormData(prev => ({ ...prev, [name]: value }));
+      return;
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -1077,6 +1106,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         <input
                           type="number"
                           step="0.01"
+                          min="0"
                           name="precioUnitario"
                           value={formData.precioUnitario}
                           onChange={handleInputChange}
@@ -1092,6 +1122,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         <input
                           type="number"
                           step="0.01"
+                          min="0"
                           name="precioCuarto"
                           value={formData.precioCuarto}
                           onChange={handleInputChange}
@@ -1106,6 +1137,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         <input
                           type="number"
                           step="0.01"
+                          min="0"
                           name="precioMediaDocena"
                           value={formData.precioMediaDocena}
                           onChange={handleInputChange}
@@ -1119,6 +1151,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         </label><input
                           type="number"
                           step="0.01"
+                          min="0"
                           name="precioDocena"
                           value={formData.precioDocena}
                           onChange={handleInputChange}
@@ -1555,6 +1588,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           <input
                             type="number"
                             step="0.01"
+                            min="0"
                             name="precioUnitario"
                             value={formData.precioUnitario}
                             onChange={handleInputChange}
@@ -1575,6 +1609,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           <input
                             type="number"
                             step="0.01"
+                            min="0"
                             name="precioCuarto"
                             value={formData.precioCuarto}
                             onChange={handleInputChange}
@@ -1596,6 +1631,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           <input
                             type="number"
                             step="0.01"
+                            min="0"
                             name="precioMediaDocena"
                             value={formData.precioMediaDocena}
                             onChange={handleInputChange}
@@ -1615,6 +1651,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           <input
                             type="number"
                             step="0.01"
+                            min="0"
                             name="precioDocena"
                             value={formData.precioDocena}
                             onChange={handleInputChange}

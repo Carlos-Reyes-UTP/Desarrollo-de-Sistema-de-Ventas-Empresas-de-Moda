@@ -1114,7 +1114,7 @@ const VentasPanel = () => {
       id: 'efectivo', 
       name: 'Efectivo', 
       icon: (isSelected: boolean) => (
-        <DollarSign size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+        <span className={`font-bold text-lg mr-1 ${isSelected ? "text-white" : "text-gray-600"}`}>S/</span>
       )
     },
     { 
@@ -1673,7 +1673,7 @@ const VentasPanel = () => {
                               ? 'text-blue-600 group-hover:text-blue-700' 
                               : 'text-gray-400'
                           }`}>
-                            <DollarSign size={14} className="mr-1" />
+                            <span className="mr-1 font-bold">S/</span>
                             {clienteSeleccionado ? 'Agregar al carrito' : 'Selecciona un cliente primero'}
                           </div>
                         </div>
