@@ -245,7 +245,7 @@ function App() {
       <Route
         path="/pages/reportes"
         element={
-          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
+          <RutaProtegida rolRequerido="ROLE_ADMIN">
             <Layout>
               <Reportes />
             </Layout>

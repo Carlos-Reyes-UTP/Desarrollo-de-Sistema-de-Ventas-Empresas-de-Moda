@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
   DollarSign,
   Users,
@@ -7,14 +8,14 @@ import {
   CreditCard,
   ArrowUpRight,
   AlertCircle,
-  Loader2
+  Loader2,
+  Calendar
 } from 'lucide-react';
 
 // Importar servicios
 import { ProductoService } from '../services/ProductoServices';
 import { VentaService } from '../services/VentaServices';
 import { ServicioUsuarios } from '../services/UsuarioServices';
-import { ProveedorService } from '../services/ProveedorServices';
 import { useAuthReady } from '../hooks/useAuthReady';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
 import ModalHacerMayorista from '../components/mayoristas/ModalHacerMayorista';
@@ -23,7 +24,6 @@ import ModalHacerMayorista from '../components/mayoristas/ModalHacerMayorista';
 import type { Producto } from '../interfaces/Producto';
 import type { Venta } from '../interfaces/Venta';
 import type { Usuario } from '../interfaces/Usuario';
-import type { Proveedor } from '../interfaces/Proveedor';
 
 const DashboardAdmin = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
@@ -36,9 +36,7 @@ const DashboardAdmin = () => {
   
   // Estados para datos de API
   const [productos, setProductos] = useState<Producto[]>([]);
-  const [ventas, setVentas] = useState<Venta[]>([]);
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [proveedores, setProveedores] = useState<Proveedor[]>([]);
 
   // Estados para métricas
   const [metricasVenta, setMetricasVenta] = useState({
@@ -52,7 +50,8 @@ const DashboardAdmin = () => {
   const [actividadReciente, setActividadReciente] = useState<any[]>([]);
   
   // Estados para los gráficos
-  const [datosVentas, setDatosVentas] = useState<number[]>([]);
+  const [cargandoGrafico] = useState(false);
+  const [datosGraficoSemanal, setDatosGraficoSemanal] = useState<Array<{label: string, ventas: number}>>([]);
   
   // Estado para el modal de mayorista
   const [modalMayoristaAbierto, setModalMayoristaAbierto] = useState(false);
@@ -143,8 +142,6 @@ const DashboardAdmin = () => {
           ventasData = Array.isArray(ventasResponse) ? ventasResponse : [];
         }
         
-        setVentas(ventasData);
-        
         // Cargar usuarios con roles
         const usuariosResponse = await ServicioUsuarios.obtenerUsuariosConRoles();
         
@@ -164,19 +161,14 @@ const DashboardAdmin = () => {
         
         setUsuarios(usuariosData);
         
-        // Cargar proveedores
-        const proveedoresResponse = await ProveedorService.obtenerTodosProveedores();
-        const proveedoresData = Array.isArray(proveedoresResponse) ? proveedoresResponse : [];
-        setProveedores(proveedoresData);
-        
         // Calcular métricas de ventas
         calcularMetricas(ventasData);
         
+        // Generar datos del gráfico semanal
+        procesarDatosGraficoSemanal(ventasData);
+        
         // Generar actividad reciente solo con las últimas ventas
         generarActividadReciente(ventasData);
-        
-        // Generar datos de gráficos
-        generarDatosGraficos(ventasData);
         
         // Calcular top 5 clientes
         calcularTopClientes(ventasData);
@@ -242,12 +234,12 @@ const DashboardAdmin = () => {
     });
   };
   
-  // Generar actividad reciente solo con las últimas ventas
+  // Generar actividad reciente solo con las últimas 5 ventas
   const generarActividadReciente = (ventas: Venta[]) => {
-    // Solo mostrar las últimas 7 ventas
+    // Solo mostrar las últimas 5 ventas
     const ventasRecientes = [...ventas]
       .sort((a, b) => new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime())
-      .slice(0, 7)
+      .slice(0, 5)
       .map(venta => ({
         tipo: 'venta',
         titulo: 'Venta registrada',
@@ -260,58 +252,52 @@ const DashboardAdmin = () => {
     
     setActividadReciente(ventasRecientes);
   };
-  
-  // Generar datos para los gráficos según el período seleccionado
-  const generarDatosGraficos = (ventasData: Venta[]) => {
-    // Si no hay ventas, establecer valores por defecto
+
+  // Función para procesar datos del gráfico semanal (como en Reportes)
+  const procesarDatosGraficoSemanal = (ventasData: Venta[]) => {
     if (!ventasData || ventasData.length === 0) {
-      if (periodo === 'hoy') {
-        setDatosVentas([0]); // Solo el día actual
-      } else if (periodo === 'semana') {
-        setDatosVentas([0, 0, 0, 0, 0, 0, 0]); // 7 días de la semana
-      } else {
-        setDatosVentas([0, 0, 0, 0]); // 4 semanas del mes
-      }
+      const datosVacios = [
+        { label: 'Dom', ventas: 0 },
+        { label: 'Lun', ventas: 0 },
+        { label: 'Mar', ventas: 0 },
+        { label: 'Mié', ventas: 0 },
+        { label: 'Jue', ventas: 0 },
+        { label: 'Vie', ventas: 0 },
+        { label: 'Sáb', ventas: 0 }
+      ];
+      setDatosGraficoSemanal(datosVacios);
       return;
     }
 
-    if (periodo === 'hoy') {
-      // Para "hoy", mostrar el total del día
-      const totalDelDia = ventasData.reduce((sum, venta) => sum + (venta.totalVentas ?? 0), 0);
-      setDatosVentas([totalDelDia]);
-    } else if (periodo === 'semana') {
-      // Para "semana", agrupar por días de la semana (últimos 7 días)
-      const diasSemana = [0, 0, 0, 0, 0, 0, 0]; // Lun, Mar, Mié, Jue, Vie, Sáb, Dom
+    // Obtener la fecha actual y calcular el inicio de la semana (domingo)
+    const ahora = new Date();
+    const inicioSemana = new Date(ahora);
+    inicioSemana.setDate(ahora.getDate() - ahora.getDay());
+    inicioSemana.setHours(0, 0, 0, 0);
+
+    const datos = [];
+    const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+    for (let dia = 0; dia < 7; dia++) {
+      const fechaDia = new Date(inicioSemana);
+      fechaDia.setDate(inicioSemana.getDate() + dia);
+      fechaDia.setHours(0, 0, 0, 0);
       
-      ventasData.forEach(venta => {
-        const fecha = new Date(venta.fechaVenta);
-        const diaSemana = fecha.getDay(); // 0 = domingo, 1 = lunes, ..., 6 = sábado
-        const indexAjustado = diaSemana === 0 ? 6 : diaSemana - 1; // Convertir a: 0 = lunes, ..., 6 = domingo
-        diasSemana[indexAjustado] += (venta.totalVentas ?? 0);
-      });
-      
-      setDatosVentas(diasSemana);
-    } else if (periodo === 'mes') {
-      // Para "mes", agrupar por semanas del mes
-      const fechaActual = new Date();
-      const inicioDelMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth(), 1);
-      const finDelMes = new Date(fechaActual.getFullYear(), fechaActual.getMonth() + 1, 0);
-      
-      // Dividir el mes en 4 semanas aproximadas
-      const semanasMes = [0, 0, 0, 0];
-      
-      ventasData.forEach(venta => {
+      const fechaDiaFin = new Date(fechaDia);
+      fechaDiaFin.setHours(23, 59, 59, 999);
+
+      const ventasDia = ventasData.filter(venta => {
         const fechaVenta = new Date(venta.fechaVenta);
-        if (fechaVenta >= inicioDelMes && fechaVenta <= finDelMes) {
-          const diaDelMes = fechaVenta.getDate();
-          let semanaIndex = Math.floor((diaDelMes - 1) / 7); // Dividir en semanas de 7 días
-          semanaIndex = Math.min(semanaIndex, 3); // Asegurar que no exceda el índice 3
-          semanasMes[semanaIndex] += (venta.totalVentas ?? 0);
-        }
+        return fechaVenta >= fechaDia && fechaVenta <= fechaDiaFin;
       });
-      
-      setDatosVentas(semanasMes);
+
+      datos.push({
+        label: diasSemana[dia],
+        ventas: ventasDia.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0)
+      });
     }
+
+    setDatosGraficoSemanal(datos);
   };
 
   // Calcular top 5 clientes compradores
@@ -410,24 +396,6 @@ const DashboardAdmin = () => {
     setTopClientesPorCompras(clientesArray.slice(0, 5));
   };
 
-  // Obtener etiquetas para el gráfico según el período
-  const obtenerEtiquetasGrafico = () => {
-    if (periodo === 'hoy') {
-      return ['Hoy'];
-    } else if (periodo === 'semana') {
-      return ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-    } else if (periodo === 'mes') {
-      return ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
-    }
-    return [];
-  };
-
-  // Calcular el valor máximo para el eje Y del gráfico
-  const obtenerValorMaximoGrafico = () => {
-    const maxValue = Math.max(...datosVentas, 100);
-    return Math.ceil(maxValue / 100) * 100; // Redondear hacia arriba a la centena más cercana
-  };
-
   // Obtener la fecha actual con formato
   const obtenerFecha = () => {
     const opciones: Intl.DateTimeFormatOptions = { 
@@ -461,6 +429,14 @@ const DashboardAdmin = () => {
       <div className="text-sm text-gray-500 mt-1">{descripcion}</div>
     </div>
   );
+
+  // Función para formatear moneda
+  const formatearMoneda = (valor: number) => {
+    return new Intl.NumberFormat('es-PE', {
+      style: 'currency',
+      currency: 'PEN'
+    }).format(valor);
+  };
 
   // Estado de la aplicación
   if (cargando) {
@@ -511,7 +487,7 @@ const DashboardAdmin = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
         <TarjetaMetrica 
           titulo="Ventas totales" 
-          valor={`S/ ${metricasVenta.totalVentas.toFixed(2)}`}
+          valor={formatearMoneda(metricasVenta.totalVentas)}
           descripcion="Ventas de la semana"
           icono={<DollarSign size={20} className="text-green-600" />}
         />
@@ -529,7 +505,7 @@ const DashboardAdmin = () => {
         />
         <TarjetaMetrica 
           titulo="Ticket promedio" 
-          valor={`S/ ${metricasVenta.ticketPromedio.toFixed(2)}`}
+          valor={formatearMoneda(metricasVenta.ticketPromedio)}
           descripcion="Valor promedio de venta"
           icono={<CreditCard size={20} className="text-yellow-600" />}
         />
@@ -537,98 +513,35 @@ const DashboardAdmin = () => {
 
       {/* Gráfico de ventas y estadísticas de usuarios */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Ventas de la semana</h2>
-            <div className="flex gap-4">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-500 to-blue-400 mr-2 shadow-sm"></div>
-                <span className="text-xs text-gray-600 font-medium">Ventas (semana)</span>
-              </div>
-              <div className="flex items-center text-xs text-gray-500">
-                Total: S/{metricasVenta.totalVentas.toFixed(2)}
-              </div>
+        <div className="lg:col-span-2 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">Ventas por Día</h2>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Calendar size={16} />
+              Semanal
             </div>
           </div>
           
-          <div className="h-80 relative bg-gradient-to-t from-gray-50 to-transparent rounded-lg">
-            {/* Mensaje cuando no hay datos */}
-            {datosVentas.length === 0 || datosVentas.every(v => v === 0) ? (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-gray-400 mb-2">
-                    <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <p className="text-gray-500 text-sm">No hay datos de ventas para mostrar</p>
-                  <p className="text-gray-400 text-xs mt-1">No hay ventas esta semana</p>
-                </div>
+          <div className="h-80">
+            {cargandoGrafico ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               </div>
             ) : (
-              <>
-                {/* Líneas de guía horizontales */}
-                <div className="absolute inset-0 flex flex-col justify-between py-4 pointer-events-none">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="border-b border-gray-100 opacity-50 w-full"></div>
-                  ))}
-                </div>
-                
-                {/* Gráfico de barras con datos reales */}
-                <div className="absolute inset-0 flex items-end justify-center pb-8 px-12 pl-16">
-                  <div className="flex items-end justify-between gap-3 sm:gap-4 md:gap-6 w-full max-w-4xl">
-                    {datosVentas.map((valor, i) => {
-                      const etiquetas = obtenerEtiquetasGrafico();
-                      const maxValue = obtenerValorMaximoGrafico();
-                      const alturaPixeles = maxValue > 0 ? Math.max((valor / maxValue) * 200, 4) : 4;
-                      
-                      return (
-                        <div key={`${periodo}-${i}`} className="flex flex-col items-center group flex-1">
-                          {/* Tooltip */}
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 absolute -top-12 bg-gray-900 text-white text-xs px-2 py-1 rounded shadow-lg whitespace-nowrap z-10">
-                            {etiquetas[i] || ''}: S/{valor.toFixed(2)}
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
-                          </div>
-                          
-                          {/* Barra */}
-                          <div 
-                            className="w-full max-w-14 bg-gradient-to-t from-blue-500 to-blue-400 rounded-t-lg shadow-lg hover:from-blue-600 hover:to-blue-500 transition-all duration-300 ease-out hover:scale-105 cursor-pointer"
-                            style={{ 
-                              height: `${alturaPixeles}px`,
-                              minHeight: '4px'
-                            }}
-                          ></div>
-                          
-                          {/* Etiqueta */}
-                          <div className="text-xs text-gray-600 mt-2 text-center font-medium">
-                            {etiquetas[i] || ''}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                
-                {/* Eje Y dinámico mejorado */}
-                <div className="absolute left-3 inset-y-0 flex flex-col justify-between py-4 pr-3">
-                  {(() => {
-                    const maxValue = obtenerValorMaximoGrafico();
-                    if (maxValue === 0) {
-                      return [0, 0, 0, 0, 0].map((_, index) => (
-                        <div key={index} className="text-xs text-gray-400 font-medium">
-                          S/0
-                        </div>
-                      ));
-                    }
-                    const steps = [maxValue, maxValue * 0.75, maxValue * 0.5, maxValue * 0.25, 0];
-                    return steps.map((value, index) => (
-                      <div key={index} className="text-xs text-gray-500 font-medium bg-white px-1 rounded">
-                        S/{value >= 1000 ? (value/1000).toFixed(1) + 'k' : value.toFixed(0)}
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={datosGraficoSemanal}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="label" />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      name === 'ventas' ? formatearMoneda(Number(value)) : value,
+                      name === 'ventas' ? 'Ventas' : 'Cantidad'
+                    ]}
+                  />
+                  <Bar dataKey="ventas" fill="#3B82F6" />
+                </BarChart>
+              </ResponsiveContainer>
             )}
           </div>
         </div>
@@ -807,7 +720,7 @@ const DashboardAdmin = () => {
                       {modoVisualizacion === 'monto' ? (
                         <>
                           <div className="text-lg font-bold text-gray-900">
-                            S/ {('totalCompras' in cliente) ? cliente.totalCompras.toFixed(2) : '0.00'}
+                            {formatearMoneda('totalCompras' in cliente ? cliente.totalCompras : 0)}
                           </div>
                           <div className="text-xs text-gray-500">
                             Total gastado
@@ -909,7 +822,10 @@ const DashboardAdmin = () => {
         )}
         
         <div className="flex justify-center mt-6">
-          <button className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md">
+          <button 
+            onClick={() => navigate('/pages/reportes')}
+            className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-md"
+          >
             Ver todas las actividades
           </button>
         </div>
