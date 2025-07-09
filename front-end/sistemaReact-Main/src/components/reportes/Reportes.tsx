@@ -38,6 +38,34 @@ const Reportes: React.FC = () => {
     productosVendidos: 0
   });
 
+  // Función auxiliar para parsear fechas del backend de manera consistente
+  const parsearFechaVenta = (fechaStr: string): Date => {
+    try {
+      // Manejar el formato "YYYY-MM-DD HH:mm:ss.ffffff" del backend
+      if (fechaStr.includes(' ')) {
+        // Formato: "2025-07-09 01:29:12.000000"
+        const [fecha, hora] = fechaStr.split(' ');
+        const [year, month, day] = fecha.split('-').map(Number);
+        const [hours, minutes, secondsStr] = hora.split(':');
+        
+        // Extraer segundos y microsegundos si existen
+        const seconds = parseFloat(secondsStr.split('.')[0]);
+        const milliseconds = secondsStr.includes('.') 
+          ? parseInt(secondsStr.split('.')[1].substring(0, 3).padEnd(3, '0'))
+          : 0;
+        
+        const fechaParseada = new Date(year, month - 1, day, parseInt(hours), parseInt(minutes), seconds, milliseconds);
+        return fechaParseada;
+      } else {
+        // Formato ISO estándar
+        return new Date(fechaStr);
+      }
+    } catch (error) {
+      console.warn('⚠️ Error al parsear fecha:', fechaStr, error);
+      return new Date(); // Fecha actual como fallback
+    }
+  };
+
   // Cargar datos al cambiar filtros
   useEffect(() => {
     cargarDatos();
@@ -46,42 +74,78 @@ const Reportes: React.FC = () => {
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      const fechaRef = new Date(fechaReferencia);
+      // Crear fecha de referencia en hora local (no UTC)
+      const [year, month, day] = fechaReferencia.split('-').map(Number);
+      const fechaRef = new Date(year, month - 1, day); // Crear en hora local
+      
       let fechaInicio: Date;
       let fechaFin: Date;
 
       // Calcular rango de fechas según el período
       switch (periodo) {
         case 'diario':
-          fechaInicio = new Date(fechaRef);
-          fechaFin = new Date(fechaRef);
+          // Para diario: desde las 00:00:00 hasta las 23:59:59 del día seleccionado
+          fechaInicio = new Date(year, month - 1, day, 0, 0, 0, 0);
+          fechaFin = new Date(year, month - 1, day, 23, 59, 59, 999);
           break;
         case 'semanal':
+          // Para semanal: desde el domingo hasta el sábado
           fechaInicio = new Date(fechaRef);
           fechaInicio.setDate(fechaRef.getDate() - fechaRef.getDay());
+          fechaInicio.setHours(0, 0, 0, 0);
           fechaFin = new Date(fechaInicio);
           fechaFin.setDate(fechaInicio.getDate() + 6);
+          fechaFin.setHours(23, 59, 59, 999);
           break;
         case 'mensual':
-          fechaInicio = new Date(fechaRef.getFullYear(), fechaRef.getMonth(), 1);
-          fechaFin = new Date(fechaRef.getFullYear(), fechaRef.getMonth() + 1, 0);
+          // Para mensual: primer día del mes hasta último día del mes
+          fechaInicio = new Date(year, month - 1, 1, 0, 0, 0, 0);
+          fechaFin = new Date(year, month, 0, 23, 59, 59, 999); // Último día del mes
           break;
       }
 
+      console.log(`🔍 Cargando datos para período ${periodo}:`, {
+        fechaReferencia,
+        fechaInicio: fechaInicio.toLocaleString('es-PE'),
+        fechaFin: fechaFin.toLocaleString('es-PE')
+      });
+
       // Obtener todas las ventas y filtrar por rango
       const todasLasVentas = await VentaService.obtenerTodasVentas();
+      console.log('📊 Total de ventas obtenidas:', todasLasVentas?.length || 0);
+      
       const ventasFiltradas = Array.isArray(todasLasVentas) 
         ? todasLasVentas.filter(venta => {
-            const fechaVenta = new Date(venta.fechaVenta);
-            return fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
+            const fechaVenta = parsearFechaVenta(venta.fechaVenta);
+            
+            // Verificar si la fecha es válida
+            if (isNaN(fechaVenta.getTime())) {
+              console.warn('⚠️ Fecha inválida encontrada:', venta.fechaVenta);
+              return false;
+            }
+            
+            const estaEnRango = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
+            if (periodo === 'diario') {
+              console.log('🔍 Verificando fecha:', {
+                fechaOriginal: venta.fechaVenta,
+                fechaParseada: fechaVenta.toLocaleString('es-PE'),
+                fechaInicio: fechaInicio.toLocaleString('es-PE'),
+                fechaFin: fechaFin.toLocaleString('es-PE'),
+                estaEnRango
+              });
+            }
+            
+            return estaEnRango;
           })
         : [];
+
+      console.log('✅ Ventas filtradas para el período:', ventasFiltradas.length);
 
       setVentas(ventasFiltradas);
       procesarDatosGrafico(ventasFiltradas, periodo, fechaInicio, fechaFin);
       calcularResumenVentas(ventasFiltradas);
     } catch (error) {
-      console.error('Error al cargar datos:', error);
+      console.error('❌ Error al cargar datos:', error);
     } finally {
       setCargando(false);
     }
@@ -94,12 +158,12 @@ const Reportes: React.FC = () => {
       // Agrupar por horas del día
       for (let hora = 0; hora < 24; hora++) {
         const ventasHora = ventas.filter(venta => {
-          const fechaVenta = new Date(venta.fechaVenta);
-          return fechaVenta.getHours() === hora;
+          const fechaVenta = parsearFechaVenta(venta.fechaVenta);
+          return fechaVenta && fechaVenta.getHours() === hora;
         });
 
         datos.push({
-          fecha: `${hora}:00`,
+          fecha: `${hora.toString().padStart(2, '0')}:00`,
           ventas: ventasHora.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
           cantidad: ventasHora.length
         });
@@ -110,14 +174,18 @@ const Reportes: React.FC = () => {
       for (let dia = 0; dia < 7; dia++) {
         const fechaDia = new Date(fechaInicio);
         fechaDia.setDate(fechaInicio.getDate() + dia);
+        fechaDia.setHours(0, 0, 0, 0);
+        
+        const fechaDiaFin = new Date(fechaDia);
+        fechaDiaFin.setHours(23, 59, 59, 999);
 
         const ventasDia = ventas.filter(venta => {
-          const fechaVenta = new Date(venta.fechaVenta);
-          return fechaVenta.toDateString() === fechaDia.toDateString();
+          const fechaVenta = parsearFechaVenta(venta.fechaVenta);
+          return fechaVenta && fechaVenta >= fechaDia && fechaVenta <= fechaDiaFin;
         });
 
         datos.push({
-          fecha: diasSemana[fechaDia.getDay()],
+          fecha: `${diasSemana[fechaDia.getDay()]} ${fechaDia.getDate()}`,
           ventas: ventasDia.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
           cantidad: ventasDia.length
         });
@@ -128,20 +196,25 @@ const Reportes: React.FC = () => {
       let semanaNum = 1;
 
       while (semanaInicio <= fechaFin) {
-        const semanaFin = new Date(semanaInicio);
-        semanaFin.setDate(semanaInicio.getDate() + 6);
+        const semanaFinLocal = new Date(semanaInicio);
+        semanaFinLocal.setDate(semanaInicio.getDate() + 6);
+        semanaFinLocal.setHours(23, 59, 59, 999);
 
-        if (semanaFin > fechaFin) {
-          semanaFin.setTime(fechaFin.getTime());
+        if (semanaFinLocal > fechaFin) {
+          semanaFinLocal.setTime(fechaFin.getTime());
         }
 
         const ventasSemana = ventas.filter(venta => {
-          const fechaVenta = new Date(venta.fechaVenta);
-          return fechaVenta >= semanaInicio && fechaVenta <= semanaFin;
+          const fechaVenta = parsearFechaVenta(venta.fechaVenta);
+          return fechaVenta && fechaVenta >= semanaInicio && fechaVenta <= semanaFinLocal;
         });
 
+        // Formatear las fechas para mostrar el rango de la semana
+        const inicioStr = `${semanaInicio.getDate()}/${semanaInicio.getMonth() + 1}`;
+        const finStr = `${semanaFinLocal.getDate()}/${semanaFinLocal.getMonth() + 1}`;
+
         datos.push({
-          fecha: `Sem ${semanaNum}`,
+          fecha: `${inicioStr}-${finStr}`,
           ventas: ventasSemana.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
           cantidad: ventasSemana.length
         });
@@ -151,6 +224,7 @@ const Reportes: React.FC = () => {
       }
     }
 
+    console.log('📈 Datos procesados para gráfico:', datos);
     setDatosGrafico(datos);
   };
 
@@ -195,7 +269,15 @@ const Reportes: React.FC = () => {
           
           datosExportacion.push({
             usuario: venta.usuario?.usuario || 'No disponible',
-            fechaVenta: new Date(venta.fechaVenta).toLocaleDateString('es-PE'),
+            fechaVenta: parsearFechaVenta(venta.fechaVenta).toLocaleString('es-PE', {
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              second: '2-digit',
+              hour12: false
+            }),
             metodoPago: metodoPago,
             cliente: venta.cliente?.nombreCliente || 'Cliente general',
             tipoComprobante: venta.tipoComprobante || 'Boleta',
@@ -213,7 +295,15 @@ const Reportes: React.FC = () => {
         
         datosExportacion.push({
           usuario: venta.usuario?.usuario || 'No disponible',
-          fechaVenta: new Date(venta.fechaVenta).toLocaleDateString('es-PE'),
+          fechaVenta: parsearFechaVenta(venta.fechaVenta).toLocaleString('es-PE', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          }),
           metodoPago: metodoPago,
           cliente: venta.cliente?.nombreCliente || 'Cliente general',
           tipoComprobante: venta.tipoComprobante || 'Boleta',
@@ -398,13 +488,15 @@ const Reportes: React.FC = () => {
 
         {/* Tabla de datos recientes */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Últimas Ventas</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            Últimas Ventas del Período ({ventas.length} total{ventas.length !== 1 ? 'es' : ''})
+          </h2>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fecha
+                    Fecha y Hora
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Usuario
@@ -421,28 +513,83 @@ const Reportes: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {ventas.slice(0, 10).map((venta) => (
-                  <tr key={venta.idVenta} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {new Date(venta.fechaVenta).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {venta.usuario?.usuario || 'No disponible'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {venta.cliente?.nombreCliente || 'Cliente general'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatearMoneda(venta.totalVentas || 0)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {typeof venta.metodoPago === 'string' 
-                        ? venta.metodoPago 
-                        : (venta.metodoPago?.nombre || venta.metodoPago?.tipo || 'No disponible')
-                      }
-                    </td>
-                  </tr>
-                ))}
+                {(() => {
+                  // Ordenar las ventas por fecha más reciente primero
+                  const ventasOrdenadas = [...ventas].sort((a, b) => {
+                    const fechaA = parsearFechaVenta(a.fechaVenta);
+                    const fechaB = parsearFechaVenta(b.fechaVenta);
+                    return fechaB.getTime() - fechaA.getTime();
+                  });
+
+                  return ventasOrdenadas
+                    .slice(0, 15) // Mostrar las 15 más recientes
+                    .map((venta) => {
+                      // Función para formatear la fecha correctamente
+                      const formatearFechaHora = (fechaStr: string) => {
+                        try {
+                          const fecha = parsearFechaVenta(fechaStr);
+                          
+                          if (isNaN(fecha.getTime())) {
+                            return 'Fecha inválida';
+                          }
+                          
+                          return fecha.toLocaleString('es-PE', {
+                            year: 'numeric',
+                            month: '2-digit', 
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false
+                          });
+                        } catch (error) {
+                          console.error('Error al formatear fecha:', fechaStr, error);
+                          return 'Error en fecha';
+                        }
+                      };
+
+                      // Obtener método de pago de forma segura
+                      const obtenerMetodoPago = () => {
+                        try {
+                          const metodoPago = venta.metodoPago;
+                          if (metodoPago) {
+                            if (typeof metodoPago === 'string') {
+                              const metodoStr = String(metodoPago);
+                              return metodoStr.charAt(0).toUpperCase() + metodoStr.slice(1);
+                            }
+                            // Si es objeto, buscar propiedades
+                            const metodoObj = metodoPago as any;
+                            return metodoObj.nombre || metodoObj.tipo || 'Método personalizado';
+                          }
+                          return 'No disponible';
+                        } catch {
+                          return 'No disponible';
+                        }
+                      };
+
+                      return (
+                        <tr key={venta.idVenta} className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                            {formatearFechaHora(venta.fechaVenta)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {venta.usuario?.usuario || 'No disponible'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {venta.cliente?.nombreCliente || 'Cliente general'}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            {formatearMoneda(venta.totalVentas || 0)}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                              {obtenerMetodoPago()}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    });
+                })()}
               </tbody>
             </table>
           </div>
