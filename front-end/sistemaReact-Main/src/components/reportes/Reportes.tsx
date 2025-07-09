@@ -181,15 +181,25 @@ const Reportes: React.FC = () => {
     ventas.forEach(venta => {
       if (venta.detalles && venta.detalles.length > 0) {
         venta.detalles.forEach(detalle => {
+          // Construir el nombre completo de la variante
+          // Usar el producto del detalle o el de la variante (acceso seguro)
+          const nombreProducto = (detalle as any).producto?.nombre || detalle.productoVariante?.producto?.nombre || 'Producto sin nombre';
+          const nombreColor = detalle.productoVariante?.color?.nombre || 'Sin color';
+          const nombreTalla = detalle.productoVariante?.talla?.nombreTalla || 'Talla única';
+          const nombreCompleto = `${nombreProducto} - ${nombreColor} - ${nombreTalla}`;
+          
+          // Manejar método de pago que viene como string o como objeto
+          const metodoPago = typeof venta.metodoPago === 'string' 
+            ? venta.metodoPago 
+            : (venta.metodoPago?.nombre || venta.metodoPago?.tipo || 'No disponible');
+          
           datosExportacion.push({
             usuario: venta.usuario?.usuario || 'No disponible',
-            fechaVenta: new Date(venta.fechaVenta).toLocaleDateString(),
-            metodoPago: venta.metodoPago?.nombre || 'No disponible',
+            fechaVenta: new Date(venta.fechaVenta).toLocaleDateString('es-PE'),
+            metodoPago: metodoPago,
             cliente: venta.cliente?.nombreCliente || 'Cliente general',
             tipoComprobante: venta.tipoComprobante || 'Boleta',
-            nombreVariante: detalle.productoVariante 
-              ? `${detalle.productoVariante.producto?.nombre || 'Producto'} - ${detalle.productoVariante.color?.nombre || 'Color'} - ${detalle.productoVariante.talla?.nombreTalla || 'Talla'}`
-              : 'Producto no disponible',
+            nombreVariante: nombreCompleto,
             cantidad: detalle.cantidad,
             precioVendido: detalle.precioUnitario,
             subtotal: detalle.cantidad * detalle.precioUnitario
@@ -197,10 +207,14 @@ const Reportes: React.FC = () => {
         });
       } else {
         // Si no hay detalles, crear una fila con la información de la venta
+        const metodoPago = typeof venta.metodoPago === 'string' 
+          ? venta.metodoPago 
+          : (venta.metodoPago?.nombre || venta.metodoPago?.tipo || 'No disponible');
+        
         datosExportacion.push({
           usuario: venta.usuario?.usuario || 'No disponible',
-          fechaVenta: new Date(venta.fechaVenta).toLocaleDateString(),
-          metodoPago: venta.metodoPago?.nombre || 'No disponible',
+          fechaVenta: new Date(venta.fechaVenta).toLocaleDateString('es-PE'),
+          metodoPago: metodoPago,
           cliente: venta.cliente?.nombreCliente || 'Cliente general',
           tipoComprobante: venta.tipoComprobante || 'Boleta',
           nombreVariante: 'Sin detalles disponibles',
@@ -422,7 +436,10 @@ const Reportes: React.FC = () => {
                       {formatearMoneda(venta.totalVentas || 0)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {venta.metodoPago?.nombre || 'No disponible'}
+                      {typeof venta.metodoPago === 'string' 
+                        ? venta.metodoPago 
+                        : (venta.metodoPago?.nombre || venta.metodoPago?.tipo || 'No disponible')
+                      }
                     </td>
                   </tr>
                 ))}
