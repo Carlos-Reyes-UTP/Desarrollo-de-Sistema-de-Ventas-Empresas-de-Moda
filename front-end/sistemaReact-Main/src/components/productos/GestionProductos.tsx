@@ -295,6 +295,22 @@ const GestionProductos: React.FC = () => {
     return matchBusqueda && matchCategoriaPrincipal && matchSubCategoria && matchSubCategoria2 && matchTipoPublico && matchProveedor && matchStock;
   });
 
+  // Paginación de productos
+  const [paginaActual, setPaginaActual] = useState(1);
+  const productosPorPagina = 10;
+  const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
+
+  // Resetear página al cambiar filtros o búsqueda
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchTerm, searchType, selectedCategoriaPrincipal, selectedSubCategoria, selectedSubCategoria2, selectedTipoPublico, selectedProveedor, selectedStock]);
+
+  // Productos a mostrar en la página actual
+  const productosPaginados = productosFiltrados.slice(
+    (paginaActual - 1) * productosPorPagina,
+    paginaActual * productosPorPagina
+  );
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -701,7 +717,7 @@ const GestionProductos: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {productosFiltrados.map((producto) => (
+              {productosPaginados.map((producto) => (
                 <tr key={producto.idProducto} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {producto.codigoIdentificacion}
@@ -815,13 +831,32 @@ const GestionProductos: React.FC = () => {
           </table>
         </div>
 
-        {productosFiltrados.length === 0 && (
-          <div className="text-center py-12">
-            <Package className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No hay productos</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              {searchTerm ? 'No se encontraron productos que coincidan con la búsqueda.' : 'Comienza creando un nuevo producto.'}
-            </p>
+        {/* Paginación visual igual a usuarios/reportes */}
+        {totalPaginas > 1 && (
+          <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-100">
+            <button
+              onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+              disabled={paginaActual === 1}
+              className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+            >
+              Anterior
+            </button>
+            {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+              <button
+                key={num}
+                onClick={() => setPaginaActual(num)}
+                className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+              >
+                {num}
+              </button>
+            ))}
+            <button
+              onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+              disabled={paginaActual === totalPaginas}
+              className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+            >
+              Siguiente
+            </button>
           </div>
         )}
       </div>

@@ -26,9 +26,23 @@ const GestionColores: React.FC = () => {
     codigoHex: '#000000',
   });
 
+  const coloresFiltrados = colores.filter(color =>
+    color.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    color.codigoHex?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Paginación de colores
+  const [paginaActual, setPaginaActual] = useState(1);
+  const coloresPorPagina = 10;
+  const totalPaginas = Math.ceil(coloresFiltrados.length / coloresPorPagina);
+
   useEffect(() => {
     cargarColores();
   }, []);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchTerm, loading]);
 
   const cargarColores = async () => {
     try {
@@ -102,9 +116,9 @@ const GestionColores: React.FC = () => {
     }
   };
   
-  const coloresFiltrados = colores.filter(color =>
-    color.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    color.codigoHex?.toLowerCase().includes(searchTerm.toLowerCase())
+  const coloresPaginados = coloresFiltrados.slice(
+    (paginaActual - 1) * coloresPorPagina,
+    paginaActual * coloresPorPagina
   );
 
   return (
@@ -202,7 +216,7 @@ const GestionColores: React.FC = () => {
                         )}
                         
                         {/* Filas de colores existentes */}
-                        {coloresFiltrados.map((color) => (
+                        {coloresPaginados.map((color) => (
                             <tr key={color.idColor}>
                                 {editingId === color.idColor ? (
                                     // ---- VISTA DE EDICIÓN ----
@@ -244,6 +258,35 @@ const GestionColores: React.FC = () => {
                 <p className="mt-1 text-sm text-gray-500">
                   {searchTerm ? 'Intenta con otra búsqueda o limpia el filtro.' : '¡Comienza añadiendo tu primer color!'}
                 </p>
+              </div>
+            )}
+
+            {/* Paginación visual igual a usuarios/productos/reportes */}
+            {totalPaginas > 1 && (
+              <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-100">
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+                >
+                  Anterior
+                </button>
+                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => setPaginaActual(num)}
+                    className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+                >
+                  Siguiente
+                </button>
               </div>
             )}
         </div>

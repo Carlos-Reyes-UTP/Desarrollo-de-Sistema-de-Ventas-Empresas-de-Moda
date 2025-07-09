@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Save, X, Ruler, ArrowUp, ArrowDown } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Save, X, Ruler } from 'lucide-react';
 import type { Talla } from '../../interfaces/Talla';
 import { TallaService } from '../../services/TallaService';
 
@@ -18,9 +18,23 @@ const GestionTallas: React.FC = () => {
     orden: ''
   });
 
+  const tallasFiltradas = tallas.filter(talla =>
+    talla.nombreTalla.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    talla.descripcion?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Paginación de tallas
+  const [paginaActual, setPaginaActual] = useState(1);
+  const tallasPorPagina = 10;
+  const totalPaginas = Math.ceil(tallasFiltradas.length / tallasPorPagina);
+
   useEffect(() => {
     cargarTallas();
   }, []);
+
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchTerm, loading]);
 
   const cargarTallas = async () => {
     try {
@@ -34,6 +48,11 @@ const GestionTallas: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const tallasPaginadas = tallasFiltradas.slice(
+    (paginaActual - 1) * tallasPorPagina,
+    paginaActual * tallasPorPagina
+  );
 
   // Función para cerrar modal con animación
   const cerrarModalConAnimacion = () => {
@@ -117,11 +136,6 @@ const GestionTallas: React.FC = () => {
     setFormData({ nombreTalla: '', descripcion: '', orden: siguienteOrden.toString() });
     setShowFormulario(true);
   };
-  const tallasFiltradas = tallas.filter(talla =>
-    talla.nombreTalla.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (talla.descripcion && talla.descripcion.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -169,7 +183,7 @@ const GestionTallas: React.FC = () => {
               placeholder="Buscar tallas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
+              onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
@@ -213,16 +227,13 @@ const GestionTallas: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Descripción
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Orden
-                </th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Acciones
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {tallasFiltradas.map((talla, index) => (
+              {tallasPaginadas.map((talla) => (
                 <tr key={talla.idTalla} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -243,34 +254,6 @@ const GestionTallas: React.FC = () => {
                     <span className="text-sm text-gray-900">
                       {talla.descripcion || 'N/A'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">
-                        {talla.orden || index + 1}
-                      </span>
-                      <div className="flex flex-col">                        <button
-                          onClick={() => {
-                            // Lógica para mover hacia arriba
-                            console.log('Mover arriba:', talla.nombreTalla);
-                          }}
-                          className="text-gray-400 hover:text-gray-600"
-                          title="Mover arriba"
-                        >
-                          <ArrowUp className="w-3 h-3" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            // Lógica para mover hacia abajo
-                            console.log('Mover abajo:', talla.nombreTalla);
-                          }}
-                          className="text-gray-400 hover:text-gray-600"
-                          title="Mover abajo"
-                        >
-                          <ArrowDown className="w-3 h-3" />
-                        </button>
-                      </div>
-                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <div className="flex items-center justify-end gap-2">
@@ -294,6 +277,34 @@ const GestionTallas: React.FC = () => {
               ))}
             </tbody>
           </table>
+          {/* Paginación visual igual a usuarios/productos/reportes */}
+          {totalPaginas > 1 && (
+            <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-100">
+              <button
+                onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                disabled={paginaActual === 1}
+                className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+              >
+                Anterior
+              </button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPaginaActual(num)}
+                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaActual === totalPaginas}
+                className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
           </div>
         )}
       </div>
@@ -367,22 +378,7 @@ const GestionTallas: React.FC = () => {
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Orden
-                </label>
-                <input
-                  type="number"
-                  value={formData.orden}
-                  onChange={(e) => setFormData(prev => ({ ...prev, orden: e.target.value }))}
-                  min="1"
-                  placeholder="Orden de aparición (1, 2, 3...)"
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Determina el orden en que aparecen las tallas (menor número = primero)
-                </p>
-              </div>
+              {/* Campo Orden eliminado */}
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button

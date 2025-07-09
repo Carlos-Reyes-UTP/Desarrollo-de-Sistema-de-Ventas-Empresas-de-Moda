@@ -685,6 +685,22 @@ const GestionUsuarios = () => {
     }
   };
 
+  // Estados para la paginación
+  const [paginaActual, setPaginaActual] = useState(1);
+  const usuariosPorPagina = 10;
+
+  // Calcular usuarios a mostrar (ordenados alfabéticamente)
+  const usuariosOrdenados = [...usuariosFiltrados].sort((a, b) => a.usuario.localeCompare(b.usuario));
+  const totalPaginas = Math.ceil(usuariosOrdenados.length / usuariosPorPagina);
+  const indiceInicio = (paginaActual - 1) * usuariosPorPagina;
+  const indiceFin = indiceInicio + usuariosPorPagina;
+  const usuariosPagina = usuariosOrdenados.slice(indiceInicio, indiceFin);
+
+  // Resetear página cuando cambian los filtros o la lista
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [usuariosFiltrados]);
+
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       {/* Cabecera */}
@@ -886,7 +902,9 @@ const GestionUsuarios = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">                {usuariosFiltrados.map((usuario) => (                  <tr 
+              <tbody className="bg-white divide-y divide-gray-200">
+                {usuariosPagina.map((usuario) => (
+                  <tr 
                     key={usuario.id || usuario.usuario} 
                     className={`
                       ${esUsuarioActual(usuario) 
@@ -1005,6 +1023,54 @@ const GestionUsuarios = () => {
           </div>
         )}
       </div>
+      
+      {/* Controles de paginación */}
+      {totalPaginas > 1 && (
+        <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6">
+          <div className="flex items-center">
+            <p className="text-sm text-gray-700">
+              Mostrando{' '}
+              <span className="font-medium">{indiceInicio + 1}</span>{' '}
+              a{' '}
+              <span className="font-medium">{Math.min(indiceFin, usuariosOrdenados.length)}</span>{' '}
+              de{' '}
+              <span className="font-medium">{usuariosOrdenados.length}</span>{' '}
+              usuarios
+            </p>
+          </div>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+              disabled={paginaActual === 1}
+              className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Anterior
+            </button>
+            <div className="flex items-center space-x-1">
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+                <button
+                  key={num}
+                  onClick={() => setPaginaActual(num)}
+                  className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                    num === paginaActual
+                      ? 'bg-blue-600 text-white border-blue-600'
+                      : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {num}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+              disabled={paginaActual === totalPaginas}
+              className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Modal de Usuario */}
       {mostrarModal && (

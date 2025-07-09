@@ -19,6 +19,11 @@ const GestionProveedores: React.FC = () => {
     ruc: ''
   });
 
+  // Paginación de proveedores
+  const [paginaActual, setPaginaActual] = useState(1);
+  const proveedoresPorPagina = 10;
+  const totalPaginas = Math.ceil(proveedores.length / proveedoresPorPagina);
+
   useEffect(() => {
     cargarProveedores();
   }, []);
@@ -219,6 +224,17 @@ const GestionProveedores: React.FC = () => {
     }
   };
 
+  // Resetear página al buscar o filtrar
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [searchTerm, loading]);
+
+  // Proveedores a mostrar en la página actual
+  const proveedoresPaginados = proveedores.slice(
+    (paginaActual - 1) * proveedoresPorPagina,
+    paginaActual * proveedoresPorPagina
+  );
+
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
@@ -414,7 +430,7 @@ const GestionProveedores: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {proveedores.map((proveedor) => (
+                {proveedoresPaginados.map((proveedor) => (
                   <tr key={proveedor.idProveedor} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -458,6 +474,34 @@ const GestionProveedores: React.FC = () => {
                 ))}
               </tbody>
             </table>
+            {/* Paginación visual igual a usuarios/productos/reportes */}
+            {totalPaginas > 1 && (
+              <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-100">
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+                >
+                  Anterior
+                </button>
+                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => setPaginaActual(num)}
+                    className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+                >
+                  Siguiente
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

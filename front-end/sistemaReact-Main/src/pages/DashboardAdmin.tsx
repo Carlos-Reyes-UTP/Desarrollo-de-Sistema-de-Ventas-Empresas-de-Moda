@@ -534,7 +534,7 @@ const DashboardAdmin = () => {
                   <XAxis dataKey="label" />
                   <YAxis />
                   <Tooltip 
-                    formatter={(value, name) => [
+                    formatter={(value: any, name: string) => [
                       name === 'ventas' ? formatearMoneda(Number(value)) : value,
                       name === 'ventas' ? 'Ventas' : 'Cantidad'
                     ]}
