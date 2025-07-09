@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, Calendar, TrendingUp, DollarSign, FileText, Users } from 'lucide-react';
+import { Download, Calendar, TrendingUp, DollarSign, FileText, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaServices';
 import type { Venta } from '../../interfaces/Venta';
@@ -38,6 +38,10 @@ const Reportes: React.FC = () => {
     productosVendidos: 0
   });
 
+  // Estados para paginación
+  const [paginaActual, setPaginaActual] = useState(1);
+  const ventasPorPagina = 10;
+
   // Función auxiliar para parsear fechas del backend de manera consistente
   const parsearFechaVenta = (fechaStr: string): Date => {
     try {
@@ -69,6 +73,11 @@ const Reportes: React.FC = () => {
   // Cargar datos al cambiar filtros
   useEffect(() => {
     cargarDatos();
+  }, [periodo, fechaReferencia]);
+
+  // Resetear página cuando cambien los filtros
+  useEffect(() => {
+    setPaginaActual(1);
   }, [periodo, fechaReferencia]);
 
   const cargarDatos = async () => {
@@ -521,78 +530,158 @@ const Reportes: React.FC = () => {
                     return fechaB.getTime() - fechaA.getTime();
                   });
 
-                  return ventasOrdenadas
-                    .slice(0, 15) // Mostrar las 15 más recientes
-                    .map((venta) => {
-                      // Función para formatear la fecha correctamente
-                      const formatearFechaHora = (fechaStr: string) => {
-                        try {
-                          const fecha = parsearFechaVenta(fechaStr);
-                          
-                          if (isNaN(fecha.getTime())) {
-                            return 'Fecha inválida';
-                          }
-                          
-                          return fecha.toLocaleString('es-PE', {
-                            year: 'numeric',
-                            month: '2-digit', 
-                            day: '2-digit',
-                            hour: '2-digit',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: false
-                          });
-                        } catch (error) {
-                          console.error('Error al formatear fecha:', fechaStr, error);
-                          return 'Error en fecha';
-                        }
-                      };
+                  // Calcular paginación
+                  const indiceInicio = (paginaActual - 1) * ventasPorPagina;
+                  const indiceFin = indiceInicio + ventasPorPagina;
+                  const ventasPagina = ventasOrdenadas.slice(indiceInicio, indiceFin);
 
-                      // Obtener método de pago de forma segura
-                      const obtenerMetodoPago = () => {
-                        try {
-                          const metodoPago = venta.metodoPago;
-                          if (metodoPago) {
-                            if (typeof metodoPago === 'string') {
-                              const metodoStr = String(metodoPago);
-                              return metodoStr.charAt(0).toUpperCase() + metodoStr.slice(1);
-                            }
-                            // Si es objeto, buscar propiedades
-                            const metodoObj = metodoPago as any;
-                            return metodoObj.nombre || metodoObj.tipo || 'Método personalizado';
-                          }
-                          return 'No disponible';
-                        } catch {
-                          return 'No disponible';
+                  return ventasPagina.map((venta) => {
+                    // Función para formatear la fecha correctamente
+                    const formatearFechaHora = (fechaStr: string) => {
+                      try {
+                        const fecha = parsearFechaVenta(fechaStr);
+                        
+                        if (isNaN(fecha.getTime())) {
+                          return 'Fecha inválida';
                         }
-                      };
+                        
+                        return fecha.toLocaleString('es-PE', {
+                          year: 'numeric',
+                          month: '2-digit', 
+                          day: '2-digit',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          second: '2-digit',
+                          hour12: false
+                        });
+                      } catch (error) {
+                        console.error('Error al formatear fecha:', fechaStr, error);
+                        return 'Error en fecha';
+                      }
+                    };
 
-                      return (
-                        <tr key={venta.idVenta} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                            {formatearFechaHora(venta.fechaVenta)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {venta.usuario?.usuario || 'No disponible'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {venta.cliente?.nombreCliente || 'Cliente general'}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                            {formatearMoneda(venta.totalVentas || 0)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                              {obtenerMetodoPago()}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    });
+                    // Obtener método de pago de forma segura
+                    const obtenerMetodoPago = () => {
+                      try {
+                        const metodoPago = venta.metodoPago;
+                        if (metodoPago) {
+                          if (typeof metodoPago === 'string') {
+                            const metodoStr = String(metodoPago);
+                            return metodoStr.charAt(0).toUpperCase() + metodoStr.slice(1);
+                          }
+                          // Si es objeto, buscar propiedades
+                          const metodoObj = metodoPago as any;
+                          return metodoObj.nombre || metodoObj.tipo || 'Método personalizado';
+                        }
+                        return 'No disponible';
+                      } catch {
+                        return 'No disponible';
+                      }
+                    };
+
+                    return (
+                      <tr key={venta.idVenta} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                          {formatearFechaHora(venta.fechaVenta)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {venta.usuario?.usuario || 'No disponible'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {venta.cliente?.nombreCliente || 'Cliente general'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {formatearMoneda(venta.totalVentas || 0)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                            {obtenerMetodoPago()}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  });
                 })()}
               </tbody>
             </table>
           </div>
+          
+          {/* Controles de paginación */}
+          {(() => {
+            const ventasOrdenadas = [...ventas].sort((a, b) => {
+              const fechaA = parsearFechaVenta(a.fechaVenta);
+              const fechaB = parsearFechaVenta(b.fechaVenta);
+              return fechaB.getTime() - fechaA.getTime();
+            });
+            const totalPaginas = Math.ceil(ventasOrdenadas.length / ventasPorPagina);
+            
+            if (totalPaginas <= 1) return null;
+
+            return (
+              <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6">
+                <div className="flex items-center">
+                  <p className="text-sm text-gray-700">
+                    Mostrando{' '}
+                    <span className="font-medium">
+                      {((paginaActual - 1) * ventasPorPagina) + 1}
+                    </span>{' '}
+                    a{' '}
+                    <span className="font-medium">
+                      {Math.min(paginaActual * ventasPorPagina, ventasOrdenadas.length)}
+                    </span>{' '}
+                    de{' '}
+                    <span className="font-medium">{ventasOrdenadas.length}</span>{' '}
+                    resultados
+                  </p>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                    disabled={paginaActual === 1}
+                    className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Anterior
+                  </button>
+                  
+                  <div className="flex items-center space-x-1">
+                    {(() => {
+                      const páginas = [];
+                      const inicio = Math.max(1, paginaActual - 2);
+                      const fin = Math.min(totalPaginas, paginaActual + 2);
+                      
+                      for (let i = inicio; i <= fin; i++) {
+                        páginas.push(
+                          <button
+                            key={i}
+                            onClick={() => setPaginaActual(i)}
+                            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                              i === paginaActual
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {i}
+                          </button>
+                        );
+                      }
+                      return páginas;
+                    })()}
+                  </div>
+                  
+                  <button
+                    onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                    disabled={paginaActual === totalPaginas}
+                    className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Siguiente
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
           
           {ventas.length === 0 && !cargando && (
             <div className="text-center py-8">
