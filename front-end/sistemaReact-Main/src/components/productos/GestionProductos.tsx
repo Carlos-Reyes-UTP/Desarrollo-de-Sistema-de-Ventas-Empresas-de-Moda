@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Edit, Trash2, Package, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Package, X, Search } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -19,7 +19,6 @@ const GestionProductos: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] = useState<'nombre' | 'codigo'>('nombre');
   const [selectedCategoriaPrincipal, setSelectedCategoriaPrincipal] = useState<string>('');
   const [selectedSubCategoria, setSelectedSubCategoria] = useState<string>('');
   const [selectedSubCategoria2, setSelectedSubCategoria2] = useState<string>('');
@@ -35,6 +34,9 @@ const GestionProductos: React.FC = () => {
   const [productoVariantes, setProductoVariantes] = useState<Producto | null>(null);  const [error, setError] = useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
+  const [isCategoriaPrincipalFocused, setIsCategoriaPrincipalFocused] = useState(false);
+  const [isSubCategoriaFocused, setIsSubCategoriaFocused] = useState(false);
+  const [isSubCategoria2Focused, setIsSubCategoria2Focused] = useState(false);
 
   // Referencias para los componentes de búsqueda
   const categoriaPrincipalRef = useRef<HTMLDivElement>(null);
@@ -70,7 +72,7 @@ const GestionProductos: React.FC = () => {
   // Limpiar búsqueda cuando se cambia el tipo de búsqueda
   useEffect(() => {
     setSearchTerm('');
-  }, [searchType]);
+  }, []);
 
   // Limpiar subcategoría cuando se cambia la categoría principal
   useEffect(() => {
@@ -248,11 +250,10 @@ const GestionProductos: React.FC = () => {
     // Filtro por nombre o código según la selección del usuario
     let matchBusqueda = true;
     if (searchTerm) {
-      if (searchType === 'nombre') {
-        matchBusqueda = producto.nombre.toLowerCase().includes(searchTerm.toLowerCase());
-      } else if (searchType === 'codigo') {
-        matchBusqueda = producto.codigoIdentificacion.toLowerCase().includes(searchTerm.toLowerCase());
-      }
+      matchBusqueda = (
+        producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        producto.codigoIdentificacion.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
     
     // Filtro por categoría principal
@@ -303,7 +304,7 @@ const GestionProductos: React.FC = () => {
   // Resetear página al cambiar filtros o búsqueda
   useEffect(() => {
     setPaginaActual(1);
-  }, [searchTerm, searchType, selectedCategoriaPrincipal, selectedSubCategoria, selectedSubCategoria2, selectedTipoPublico, selectedProveedor, selectedStock]);
+  }, [searchTerm, selectedCategoriaPrincipal, selectedSubCategoria, selectedSubCategoria2, selectedTipoPublico, selectedProveedor, selectedStock]);
 
   // Productos a mostrar en la página actual
   const productosPaginados = productosFiltrados.slice(
@@ -344,27 +345,21 @@ const GestionProductos: React.FC = () => {
         {/* Primera fila de filtros */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
           <div className="col-span-2 flex gap-0">
-            <select
-              value={searchType}
-              onChange={(e) => setSearchType(e.target.value as 'nombre' | 'codigo')}
-              className="px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 text-sm"
-            >
-              <option value="nombre">🏷️ Nombre</option>
-              <option value="codigo">🔢 Código</option>
-            </select>
             <div className="relative flex-1">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
-                placeholder={searchType === 'nombre' ? "Ej: Camiseta, Pantalón..." : "Ej: PROD001, CAM123..."}
+                placeholder="Buscar por nombre o código..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border-l-0 border border-gray-300 rounded-r-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm('')}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   title="Limpiar búsqueda"
+                  type="button"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -415,6 +410,8 @@ const GestionProductos: React.FC = () => {
               placeholder={selectedCategoriaPrincipal ? "Categoría seleccionada" : "🗂️ Buscar Categoria Principal"}
               value={searchCategoriaPrincipal}
               onChange={(e) => setSearchCategoriaPrincipal(e.target.value)}
+              onFocus={() => setIsCategoriaPrincipalFocused(true)}
+              onBlur={() => setTimeout(() => setIsCategoriaPrincipalFocused(false), 150)}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') {
                   setSearchCategoriaPrincipal('');
@@ -426,30 +423,29 @@ const GestionProductos: React.FC = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               disabled={!!selectedCategoriaPrincipal}
             />
-            
             {/* Indicador de resultados */}
             {searchCategoriaPrincipal && !selectedCategoriaPrincipal && (
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
                 {categoriasPrincipalesFiltradas.length} resultado{categoriasPrincipalesFiltradas.length !== 1 ? 's' : ''}
               </div>
             )}
-            
             {/* Lista desplegable de categorías filtradas */}
-            {searchCategoriaPrincipal && categoriasPrincipalesFiltradas.length > 0 && (
+            {(isCategoriaPrincipalFocused || searchCategoriaPrincipal) && !selectedCategoriaPrincipal && categoriasPrincipalesFiltradas.length > 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                 {categoriasPrincipalesFiltradas.map(categoria => {
                   const numSubcategorias = categorias.filter(sub => 
                     sub.categoriaPadre && sub.categoriaPadre.idCategoria === categoria.idCategoria
                   ).length;
-                  
                   return (
                     <button
                       key={categoria.idCategoria}
                       onClick={() => {
                         setSelectedCategoriaPrincipal(categoria.nombre);
                         setSearchCategoriaPrincipal('');
+                        setIsCategoriaPrincipalFocused(false);
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                      type="button"
                     >
                       {categoria.nombre}{numSubcategorias > 0 ? ` (${numSubcategorias} subcategorías)` : ''}
                     </button>
@@ -457,7 +453,6 @@ const GestionProductos: React.FC = () => {
                 })}
               </div>
             )}
-            
             {/* Mensaje cuando no hay resultados */}
             {searchCategoriaPrincipal && categoriasPrincipalesFiltradas.length === 0 && (
               <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
@@ -476,6 +471,7 @@ const GestionProductos: React.FC = () => {
                   }}
                   className="text-blue-600 hover:text-blue-800"
                   title="Limpiar selección"
+                  type="button"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -491,6 +487,8 @@ const GestionProductos: React.FC = () => {
                 placeholder={selectedSubCategoria ? "Subcategoría seleccionada" : "📂 Buscar SubCategoria"}
                 value={searchSubCategoria}
                 onChange={(e) => setSearchSubCategoria(e.target.value)}
+                onFocus={() => setIsSubCategoriaFocused(true)}
+                onBlur={() => setTimeout(() => setIsSubCategoriaFocused(false), 150)}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
                     setSearchSubCategoria('');
@@ -511,7 +509,7 @@ const GestionProductos: React.FC = () => {
               )}
               
               {/* Lista desplegable de subcategorías filtradas */}
-              {searchSubCategoria && subcategoriasFiltradas.length > 0 && (
+              {(isSubCategoriaFocused || searchSubCategoria) && !selectedSubCategoria && subcategoriasFiltradas.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {subcategoriasFiltradas.map(categoria => (
                     <button
@@ -519,8 +517,10 @@ const GestionProductos: React.FC = () => {
                       onClick={() => {
                         setSelectedSubCategoria(categoria.nombre);
                         setSearchSubCategoria('');
+                        setIsSubCategoriaFocused(false);
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                      type="button"
                     >
                       {categoria.nombre}
                     </button>
@@ -562,6 +562,8 @@ const GestionProductos: React.FC = () => {
                 placeholder={selectedSubCategoria2 ? "2da subcategoría seleccionada" : "📁 Buscar Sub Categoria 2"}
                 value={searchSubCategoria2}
                 onChange={(e) => setSearchSubCategoria2(e.target.value)}
+                onFocus={() => setIsSubCategoria2Focused(true)}
+                onBlur={() => setTimeout(() => setIsSubCategoria2Focused(false), 150)}
                 onKeyDown={(e) => {
                   if (e.key === 'Escape') {
                     setSearchSubCategoria2('');
@@ -582,7 +584,7 @@ const GestionProductos: React.FC = () => {
               )}
               
               {/* Lista desplegable de segundas subcategorías filtradas */}
-              {searchSubCategoria2 && segundasSubcategoriasFiltradas.length > 0 && (
+              {(isSubCategoria2Focused || searchSubCategoria2) && !selectedSubCategoria2 && segundasSubcategoriasFiltradas.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {segundasSubcategoriasFiltradas.map(nombre => (
                     <button
@@ -590,8 +592,10 @@ const GestionProductos: React.FC = () => {
                       onClick={() => {
                         setSelectedSubCategoria2(nombre);
                         setSearchSubCategoria2('');
+                        setIsSubCategoria2Focused(false);
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                      type="button"
                     >
                       {nombre}
                     </button>
