@@ -91,6 +91,14 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
       return { vista: 'usuarios', submenu: { caja: false, admin: true, inventario: false } };
     }
     
+    if (path.includes('/pages/reportes')) {
+      if (tieneRol('ROLE_ADMIN')) {
+        return { vista: 'reportes-admin', submenu: { caja: false, admin: true, inventario: false } };
+      } else if (tieneRol('ROLE_ALMACENERO')) {
+        return { vista: 'reportes-inventario', submenu: { caja: false, admin: false, inventario: true } };
+      }
+    }
+    
     // Rutas que dependen del rol
     const rutasRol = [
       { ruta: '/pages/productos', admin: 'productos-admin', almacenero: 'productos-inventario' },
@@ -405,9 +413,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     texto="Reportes" 
                     vista="reportes-admin" 
                     icono={<BarChart3 size={20} />}
-                    onClick={() => {
-                      console.log('Navegando a reportes - funcionalidad pendiente');
-                    }}
+                    onClick={() => navigate('/pages/reportes')}
                   />
 
               
@@ -462,9 +468,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     texto="Reportes" 
                     vista="reportes-inventario" 
                     icono={<BarChart3 size={20} />}
-                    onClick={() => {
-                      console.log('Navegando a reportes de inventario - funcionalidad pendiente');
-                    }}
+                    onClick={() => navigate('/pages/reportes')}
                   />
                 </div>
               )}
