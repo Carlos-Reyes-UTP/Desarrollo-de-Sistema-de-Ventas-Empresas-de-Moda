@@ -260,37 +260,48 @@ const GestionColores: React.FC = () => {
                 </p>
               </div>
             )}
-
-            {/* Paginación visual igual a usuarios/productos/reportes */}
-            {totalPaginas > 1 && (
-              <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-100">
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                  disabled={paginaActual === 1}
-                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
-                >
-                  Anterior
-                </button>
-                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => setPaginaActual(num)}
-                    className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
-                  >
-                    {num}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                  disabled={paginaActual === totalPaginas}
-                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
-                >
-                  Siguiente
-                </button>
-              </div>
-            )}
         </div>
       </div>
+      {/* Controles de paginación separados, igual que en usuarios */}
+      {totalPaginas > 1 && (
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 rounded-b-lg shadow-sm border-x border-b">
+            <div className="text-sm text-gray-600">
+              Mostrando {((paginaActual - 1) * coloresPorPagina) + 1}
+              -{Math.min(paginaActual * coloresPorPagina, coloresFiltrados.length)}
+              {' '}de {coloresFiltrados.length} colores
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                disabled={paginaActual === 1}
+                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                aria-label="Anterior"
+              >
+                Anterior
+              </button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPaginaActual(num)}
+                  className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+                  aria-current={paginaActual === num ? 'page' : undefined}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaActual === totalPaginas}
+                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                aria-label="Siguiente"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

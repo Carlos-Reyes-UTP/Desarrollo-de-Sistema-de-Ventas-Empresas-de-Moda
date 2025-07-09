@@ -257,29 +257,129 @@ const GestionProveedores: React.FC = () => {
         </button>
       </div>
 
-      {/* Barra de búsqueda */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <div className="flex gap-4">
-          <div className="flex-1 relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+      {/* Contenedor principal con sombra y barra de búsqueda igual a tallas/colores */}
+      <div className="bg-white rounded-lg shadow-md border border-gray-200">
+        {/* Barra de búsqueda */}
+        <div className="p-4 border-b border-gray-200">
+          <div className="relative">
+            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Buscar por nombre o RUC..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyPress}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
-          <button
-            onClick={handleBuscar}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-          >
-            <Search className="w-4 h-4" />
-            Buscar
-          </button>
+        </div>
+        {/* Tabla de proveedores igual a tallas/colores */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RUC</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {loading && (
+                <tr>
+                  <td colSpan={3} className="text-center p-12 text-gray-500">Cargando proveedores...</td>
+                </tr>
+              )}
+              {!loading && proveedores.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="text-center p-12">
+                    <Building2 className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron proveedores</h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      {searchTerm ? 'Intenta con otra búsqueda o limpia el filtro.' : '¡Comienza añadiendo tu primer proveedor!'}
+                    </p>
+                  </td>
+                </tr>
+              )}
+              {proveedoresPaginados.map((proveedor) => (
+                <tr key={proveedor.idProveedor} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                        <Building2 className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">{proveedor.nombre}</div>
+                        <div className="text-sm text-gray-500">ID: {proveedor.idProveedor}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm text-gray-900 font-mono">{proveedor.ruc}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => handleEditar(proveedor)}
+                        className="text-blue-600 hover:text-blue-900 p-2 rounded-full hover:bg-blue-100 transition-colors"
+                        title="Editar proveedor"
+                      >
+                        <Edit className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleEliminar(proveedor.idProveedor!)}
+                        className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-100 transition-colors"
+                        title="Eliminar proveedor"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
+      {/* Paginación igual a tallas/colores */}
+      {totalPaginas > 1 && (
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 rounded-b-lg shadow-sm border-x border-b">
+            <div className="text-sm text-gray-600">
+              Mostrando {((paginaActual - 1) * proveedoresPorPagina) + 1}
+              -{Math.min(paginaActual * proveedoresPorPagina, proveedores.length)}
+              {' '}de {proveedores.length} proveedores
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                disabled={paginaActual === 1}
+                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                aria-label="Anterior"
+              >
+                Anterior
+              </button>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPaginaActual(num)}
+                  className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+                  aria-current={paginaActual === num ? 'page' : undefined}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaActual === totalPaginas}
+                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                aria-label="Siguiente"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Formulario Modal */}
       {showFormulario && (
@@ -389,135 +489,6 @@ const GestionProveedores: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Tabla de proveedores */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        {loading && (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="text-gray-600 mt-2">Cargando proveedores...</p>
-          </div>
-        )}
-        
-        {!loading && proveedores.length === 0 && (
-          <div className="p-8 text-center">
-            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">No se encontraron proveedores</p>
-            <button
-              onClick={handleNuevo}
-              className="mt-4 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-              Crear primer proveedor
-            </button>
-          </div>
-        )}
-        
-        {!loading && proveedores.length > 0 && (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Proveedor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    RUC
-                  </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {proveedoresPaginados.map((proveedor) => (
-                  <tr key={proveedor.idProveedor} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="bg-blue-100 p-2 rounded-lg mr-3">
-                          <Building2 className="w-5 h-5 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {proveedor.nombre}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {proveedor.idProveedor}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900 font-mono">
-                        {proveedor.ruc}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEditar(proveedor)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
-                          title="Editar proveedor"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleEliminar(proveedor.idProveedor!)}
-                          className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
-                          title="Eliminar proveedor"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {/* Paginación visual igual a usuarios/productos/reportes */}
-            {totalPaginas > 1 && (
-              <div className="flex justify-center items-center gap-2 py-4 bg-white border-t border-gray-100">
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                  disabled={paginaActual === 1}
-                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
-                >
-                  Anterior
-                </button>
-                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => setPaginaActual(num)}
-                    className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
-                  >
-                    {num}
-                  </button>
-                ))}
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                  disabled={paginaActual === totalPaginas}
-                  className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
-                >
-                  Siguiente
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Estadísticas */}
-      <div className="mt-6 bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-gray-600">
-            <Users className="w-4 h-4" />
-            <span className="text-sm">Total de proveedores: {proveedores.length}</span>
-          </div>
-          <div className="text-sm text-gray-500">
-            Última actualización: {new Date().toLocaleString()}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
