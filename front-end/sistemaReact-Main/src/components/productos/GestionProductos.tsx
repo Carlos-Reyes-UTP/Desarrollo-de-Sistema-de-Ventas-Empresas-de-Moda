@@ -166,17 +166,11 @@ const GestionProductos: React.FC = () => {
     categoria.nombre.toLowerCase().includes(searchSubCategoria.toLowerCase())
   );
 
-  // Obtener segundas subcategorías únicas basadas en la subcategoría seleccionada
-  const segundasSubcategoriasFiltradas = Array.from(
-    new Set(
-      productos
-        .filter(p => !selectedSubCategoria || p.categoria?.nombre === selectedSubCategoria)
-        .map(p => p.subCategoria2?.nombre)
-        .filter(Boolean)
-    )
-  ).filter(nombre =>
-    searchSubCategoria2 === '' || 
-    nombre.toLowerCase().includes(searchSubCategoria2.toLowerCase())
+  // Obtener segundas subcategorías (hijas de la subcategoría seleccionada) como objetos de categoría
+  const subcategoriaSeleccionadaObj = subcategorias.find(c => c.nombre === selectedSubCategoria);
+  const segundasSubcategorias = subcategoriaSeleccionadaObj?.subCategorias || [];
+  const segundasSubcategoriasFiltradas = segundasSubcategorias.filter(cat =>
+    searchSubCategoria2 === '' || cat.nombre.toLowerCase().includes(searchSubCategoria2.toLowerCase())
   );
 
   const cargarDatos = async () => {
@@ -568,36 +562,34 @@ const GestionProductos: React.FC = () => {
                   if (e.key === 'Escape') {
                     setSearchSubCategoria2('');
                   } else if (e.key === 'Enter' && segundasSubcategoriasFiltradas.length === 1) {
-                    setSelectedSubCategoria2(segundasSubcategoriasFiltradas[0]);
+                    setSelectedSubCategoria2(segundasSubcategoriasFiltradas[0].nombre);
                     setSearchSubCategoria2('');
                   }
                 }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 disabled={!!selectedSubCategoria2}
               />
-              
               {/* Indicador de resultados */}
               {searchSubCategoria2 && !selectedSubCategoria2 && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
                   {segundasSubcategoriasFiltradas.length} resultado{segundasSubcategoriasFiltradas.length !== 1 ? 's' : ''}
                 </div>
               )}
-              
               {/* Lista desplegable de segundas subcategorías filtradas */}
               {(isSubCategoria2Focused || searchSubCategoria2) && !selectedSubCategoria2 && segundasSubcategoriasFiltradas.length > 0 && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {segundasSubcategoriasFiltradas.map(nombre => (
+                  {segundasSubcategoriasFiltradas.map(cat => (
                     <button
-                      key={nombre}
+                      key={cat.idCategoria}
                       onClick={() => {
-                        setSelectedSubCategoria2(nombre);
+                        setSelectedSubCategoria2(cat.nombre);
                         setSearchSubCategoria2('');
                         setIsSubCategoria2Focused(false);
                       }}
                       className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                       type="button"
                     >
-                      {nombre}
+                      {cat.nombre}
                     </button>
                   ))}
                 </div>
