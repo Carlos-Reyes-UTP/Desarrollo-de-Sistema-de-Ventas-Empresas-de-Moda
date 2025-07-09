@@ -93,9 +93,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     
     if (path.includes('/pages/reportes')) {
       if (tieneRol('ROLE_ADMIN')) {
-        return { vista: 'reportes-admin', submenu: { caja: false, admin: true, inventario: false } };
-      } else if (tieneRol('ROLE_ALMACENERO')) {
-        return { vista: 'reportes-inventario', submenu: { caja: false, admin: false, inventario: true } };
+        return { vista: 'reportes-admin', submenu: { caja: false, admin: false, inventario: false } };
       }
     }
     
@@ -409,17 +407,19 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     icono={<TreePine size={20} />}
                     onClick={() => navigate('/pages/categorias')}
                   />
-                  <MenuItem 
-                    texto="Reportes" 
-                    vista="reportes-admin" 
-                    icono={<BarChart3 size={20} />}
-                    onClick={() => navigate('/pages/reportes')}
-                  />
-
-              
                 </div>
               )}
             </div>
+          )}
+          
+          {/* Reportes (solo para Admin) - Elemento principal */}
+          {tieneRol('ROLE_ADMIN') && (
+            <MenuItem 
+              texto="Reportes" 
+              vista="reportes-admin" 
+              icono={<BarChart3 size={20} />}
+              onClick={() => navigate('/pages/reportes')}
+            />
           )}
           
           {/* Inventario (solo para Almacenero) */}
@@ -463,12 +463,6 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                     vista="categorias" 
                     icono={<TreePine size={20} />}
                     onClick={() => navigate('/pages/categorias')}
-                  />
-                  <MenuItem 
-                    texto="Reportes" 
-                    vista="reportes-inventario" 
-                    icono={<BarChart3 size={20} />}
-                    onClick={() => navigate('/pages/reportes')}
                   />
                 </div>
               )}

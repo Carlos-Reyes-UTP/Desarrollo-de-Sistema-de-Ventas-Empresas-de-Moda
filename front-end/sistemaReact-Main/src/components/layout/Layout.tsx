@@ -33,8 +33,6 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     if (path.includes('/pages/reportes')) {
       if (tieneRol?.('ROLE_ADMIN')) {
         return 'reportes-admin';
-      } else if (tieneRol?.('ROLE_ALMACENERO')) {
-        return 'reportes-inventario';
       }
     }
     
