@@ -431,7 +431,7 @@ const GestionCategorias: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="max-h-96 overflow-y-auto p-4">
+            <div className="max-h-150 overflow-y-auto p-4">
               {categoriasFiltradas.map((categoria) => (
                 <ArbolCategoria
                   key={categoria.id}
