@@ -1618,7 +1618,7 @@ const VentasPanel = () => {
                       >
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
-                            <h3 className={`font-semibold text-sm mb-1 transition-colors line-clamp-2 ${
+                            <h3 className={`font-semibold text-sm mb-1 transition-colores line-clamp-2 ${
                               clienteSeleccionado 
                                 ? 'text-gray-900 group-hover:text-blue-600' 
                                 : 'text-gray-500'
@@ -1732,7 +1732,11 @@ const VentasPanel = () => {
                     <button
                       key={num}
                       onClick={() => setPaginaActual(num)}
-                      className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100 transition-colors font-medium ${paginaActual === num ? 'text-blue-600 font-bold border-blue-600 bg-blue-50' : ''}`}
+                      className={`px-3 py-1 border font-medium rounded-md transition-colors ${
+                        paginaActual === num
+                          ? 'bg-blue-600 text-white border-blue-600 shadow font-bold'
+                          : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100'
+                      }`}
                     >
                       {num}
                     </button>
@@ -1800,7 +1804,7 @@ const VentasPanel = () => {
                               </div>
                               <button 
                                 onClick={() => handleEliminarProductoDeVenta(p.idProductoVariante)}
-                                className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-colors"
+                                className="ml-2 p-1 text-red-500 hover:text-red-700 hover:bg-red-100 rounded-lg transition-colores"
                                 title="Eliminar producto"
                               >
                                 <X size={16} />
@@ -1812,7 +1816,7 @@ const VentasPanel = () => {
                                 <div className="flex items-center bg-white border border-gray-300 rounded-lg">
                                   <button 
                                     onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad - 1)}
-                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-l-lg transition-colors"
+                                    className="p-2 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-l-lg transition-colores"
                                   >
                                     -
                                   </button>
@@ -1821,7 +1825,7 @@ const VentasPanel = () => {
                                   </span>
                                   <button 
                                     onClick={() => handleActualizarCantidadEnVenta(p.idProductoVariante, p.cantidad + 1)}
-                                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-r-lg transition-colors"
+                                    className="p-2 text-green-600 hover:text-green-800 hover:bg-green-50 rounded-r-lg transition-colores"
                                   >
                                     +
                                   </button>
