@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, Minus } from 'lucide-react';
+import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, Minus, Search } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -84,6 +84,23 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   
   // Estado para animación del modal
   const [isModalVisible, setIsModalVisible] = useState(false);
+  
+  // Estados para búsqueda en campos de selección
+  const [searchCategoria, setSearchCategoria] = useState('');
+  const [searchSubcategoria, setSearchSubcategoria] = useState('');
+  const [searchSubcategoria2, setSearchSubcategoria2] = useState('');
+  const [searchProveedor, setSearchProveedor] = useState('');
+  const [isCategoriaFocused, setIsCategoriaFocused] = useState(false);
+  const [isSubcategoriaFocused, setIsSubcategoriaFocused] = useState(false);
+  const [isSubcategoria2Focused, setIsSubcategoria2Focused] = useState(false);
+  const [isProveedorFocused, setIsProveedorFocused] = useState(false);
+  
+  // Categoría, subcategoría y proveedor seleccionados (por nombre)
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
+  const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] = useState('');
+  const [subcategoria2Seleccionada, setSubcategoria2Seleccionada] = useState('');
+  const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
+  
   // Cargar datos iniciales
   useEffect(() => {
     setIsModalVisible(true);
@@ -146,23 +163,44 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         precioDocena: producto.precioDocena?.toString() || ''
       });
       
-      // Cargar subcategorías jerárquicamente si el producto tiene categorías
-      if (tieneCategoriaPadre && producto.categoriaPadre) {
-        const categoriaSeleccionada = categorias.find(c => c.idCategoria === producto.categoriaPadre?.idCategoria);
-        if (categoriaSeleccionada?.subCategorias) {
-          setSubcategorias(categoriaSeleccionada.subCategorias);
+      // Inicializar categorías seleccionadas con sus nombres
+      if (producto.categoriaPadre) {
+        // Seleccionar categoría principal
+        if (categoriaIdFormulario) {
+          setCategoriaSeleccionada(producto.categoriaPadre.nombre);
           
-          // Si también hay una subcategoría seleccionada, cargar sus subcategorías (nivel 3)
-          if (tieneCategoria && producto.categoria && 
-              producto.categoria.idCategoria !== producto.categoriaPadre.idCategoria) {
-            const subcategoriaSeleccionada = categoriaSeleccionada.subCategorias.find(
-              sc => sc.idCategoria === producto.categoria?.idCategoria
-            );
-            if (subcategoriaSeleccionada?.subCategorias) {
-              setSubCategorias2(subcategoriaSeleccionada.subCategorias);
-            }
+          // Cargar subcategorías de nivel 2
+          const categoriaSeleccionadaObj = categorias.find(c => c.idCategoria?.toString() === categoriaIdFormulario);
+          if (categoriaSeleccionadaObj?.subCategorias) {
+            setSubcategorias(categoriaSeleccionadaObj.subCategorias);
           }
         }
+      }
+      
+      // Inicializar subcategoría seleccionada (nivel 2)
+      if (producto.categoria && tieneCategoria && producto.categoriaPadre && 
+          producto.categoria.idCategoria !== producto.categoriaPadre.idCategoria) {
+        if (subcategoriaIdFormulario) {
+          setSubcategoriaSeleccionada(producto.categoria.nombre);
+          
+          // Cargar subcategorías de nivel 3
+          const subcategoriaSeleccionadaObj = producto.categoriaPadre.subCategorias?.find(
+            sc => sc.idCategoria?.toString() === subcategoriaIdFormulario
+          );
+          if (subcategoriaSeleccionadaObj?.subCategorias) {
+            setSubCategorias2(subcategoriaSeleccionadaObj.subCategorias);
+          }
+        }
+      }
+      
+      // Inicializar subcategoría nivel 3
+      if (producto.subCategoria2) {
+        setSubcategoria2Seleccionada(producto.subCategoria2.nombre);
+      }
+      
+      // Inicializar proveedor
+      if (producto.proveedor) {
+        setProveedorSeleccionado(producto.proveedor.nombre);
       }
       
       // Cargar variantes existentes si estamos editando
@@ -194,6 +232,29 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       setLoading(false);
     }
   };
+
+  // Funciones para filtrar datos en búsquedas
+  const categoriasPrincipalesFiltradas = categorias
+    .filter(categoria => !categoria.categoriaPadre) // Solo categorías principales
+    .filter(categoria => 
+      searchCategoria === '' || 
+      categoria.nombre.toLowerCase().includes(searchCategoria.toLowerCase())
+    );
+
+  const subcategoriasFiltradas = subcategorias.filter(categoria =>
+    searchSubcategoria === '' || 
+    categoria.nombre.toLowerCase().includes(searchSubcategoria.toLowerCase())
+  );
+
+  const subcategorias2Filtradas = subCategorias2.filter(categoria =>
+    searchSubcategoria2 === '' || 
+    categoria.nombre.toLowerCase().includes(searchSubcategoria2.toLowerCase())
+  );
+
+  const proveedoresFiltrados = proveedores.filter(proveedor =>
+    searchProveedor === '' || 
+    proveedor.nombre.toLowerCase().includes(searchProveedor.toLowerCase())
+  );
 
   const cargarVariantesExistentes = async () => {
     if (!producto?.idProducto) return;
@@ -810,6 +871,69 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       cantidadesPorColor: {} // Limpiar cantidades al cambiar talla
     });
   };
+  
+  /* 
+   * Las siguientes funciones son helpers que pueden ser utilizadas para seleccionar directamente
+   * categorías, subcategorías, y proveedores sin pasar por el flujo normal de búsqueda.
+   * Actualmente se utilizan en la inicialización del formulario durante la edición de productos,
+   * pero también pueden ser útiles para pruebas o funcionalidades futuras.
+   */
+  
+  // Función para manejar selección directa de una categoría (útil para edición)
+  const handleSelectCategoria = (categoriaId: string, nombre: string) => {
+    setCategoriaSeleccionada(nombre);
+    setFormData(prev => ({ ...prev, categoriaId }));
+    setSearchCategoria('');
+    
+    // Cargar subcategorías (Nivel 2) de la categoría seleccionada
+    if (categoriaId) {
+      const categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === categoriaId);
+      if (categoriaSeleccionada?.subCategorias) {
+        setSubcategorias(categoriaSeleccionada.subCategorias);
+      } else {
+        setSubcategorias([]);
+      }
+    } else {
+      setSubcategorias([]);
+    }
+    
+    // Limpiar también las subcategorías de nivel 3
+    setSubCategorias2([]);
+  };
+
+  // Función para manejar selección directa de una subcategoría (útil para edición)
+  const handleSelectSubcategoria = (subcategoriaId: string, nombre: string) => {
+    setSubcategoriaSeleccionada(nombre);
+    setFormData(prev => ({ ...prev, subcategoriaId }));
+    setSearchSubcategoria('');
+    
+    // Cargar subcategorías de nivel 3 de la subcategoría seleccionada
+    if (subcategoriaId) {
+      const subcategoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === subcategoriaId);
+      if (subcategoriaSeleccionada?.subCategorias) {
+        setSubCategorias2(subcategoriaSeleccionada.subCategorias);
+      } else {
+        setSubCategorias2([]);
+      }
+    } else {
+      setSubCategorias2([]);
+    }
+  };
+
+  // Función para manejar selección directa de una subcategoría nivel 2 (útil para edición)
+  const handleSelectSubcategoria2 = (subcategoria2Id: string, nombre: string) => {
+    setSubcategoria2Seleccionada(nombre);
+    setFormData(prev => ({ ...prev, subCategoria2Id: subcategoria2Id }));
+    setSearchSubcategoria2('');
+  };
+
+  // Función para manejar selección directa de un proveedor (útil para edición)
+  const handleSelectProveedor = (proveedorId: string, nombre: string) => {
+    setProveedorSeleccionado(nombre);
+    setFormData(prev => ({ ...prev, proveedorId }));
+    setSearchProveedor('');
+  };
+  
   return (
     <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
       <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto border border-gray-200 relative transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
@@ -1007,20 +1131,85 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Categoría Principal (Nivel 1) *
                     </label>
-                    <select
-                      name="categoriaId"
-                      value={formData.categoriaId}
-                      onChange={handleCategoriaChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    >
-                      <option value="">Seleccionar categoría principal</option>
-                      {categorias.map(categoria => (
-                        <option key={categoria.idCategoria} value={categoria.idCategoria}>
-                          {categoria.nombre}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder={categoriaSeleccionada ? "Categoría seleccionada" : "🗂️ Buscar Categoría Principal"}
+                        value={searchCategoria}
+                        onChange={(e) => setSearchCategoria(e.target.value)}
+                        onFocus={() => setIsCategoriaFocused(true)}
+                        onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 150)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setSearchCategoria('');
+                          } else if (e.key === 'Enter' && categoriasPrincipalesFiltradas.length === 1) {
+                            const categoria = categoriasPrincipalesFiltradas[0];
+                            setCategoriaSeleccionada(categoria.nombre);
+                            setFormData(prev => ({ ...prev, categoriaId: categoria.idCategoria?.toString() || '' }));
+                            setSearchCategoria('');
+                            handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } } as any);
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        disabled={!!categoriaSeleccionada}
+                        required
+                      />
+                      {/* Indicador de resultados */}
+                      {searchCategoria && !categoriaSeleccionada && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+                          {categoriasPrincipalesFiltradas.length} resultado{categoriasPrincipalesFiltradas.length !== 1 ? 's' : ''}
+                        </div>
+                      )}
+                      
+                      {/* Lista desplegable de categorías filtradas */}
+                      {(isCategoriaFocused || searchCategoria) && !categoriaSeleccionada && categoriasPrincipalesFiltradas.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {categoriasPrincipalesFiltradas.map(categoria => (
+                            <button
+                              key={categoria.idCategoria}
+                              onClick={() => {
+                                setCategoriaSeleccionada(categoria.nombre);
+                                setFormData(prev => ({ ...prev, categoriaId: categoria.idCategoria?.toString() || '' }));
+                                setSearchCategoria('');
+                                setIsCategoriaFocused(false);
+                                handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } } as any);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                              type="button"
+                            >
+                              {categoria.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Mensaje cuando no hay resultados */}
+                      {searchCategoria && categoriasPrincipalesFiltradas.length === 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+                          No se encontraron categorías principales
+                        </div>
+                      )}
+                      
+                      {/* Mostrar categoría seleccionada */}
+                      {categoriaSeleccionada && !searchCategoria && (
+                        <div className="absolute inset-0 px-4 py-3 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
+                          <span className="text-blue-800 font-medium">📁 {categoriaSeleccionada}</span>
+                          <button
+                            onClick={() => {
+                              setCategoriaSeleccionada('');
+                              setFormData(prev => ({ ...prev, categoriaId: '' }));
+                              setSearchCategoria('');
+                              handleCategoriaChange({ target: { value: '' } } as any);
+                            }}
+                            className="text-blue-600 hover:text-blue-800"
+                            title="Limpiar selección"
+                            type="button"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {subcategorias.length > 0 && (
@@ -1028,20 +1217,86 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Subcategoría (Nivel 2) *
                       </label>
-                      <select
-                        name="subcategoriaId"
-                        value={formData.subcategoriaId}
-                        onChange={handleSubcategoriaChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      >
-                        <option value="">Seleccionar subcategoría</option>
-                        {subcategorias.map(subcategoria => (
-                          <option key={subcategoria.idCategoria} value={subcategoria.idCategoria}>
-                            {subcategoria.nombre}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder={subcategoriaSeleccionada ? "Subcategoría seleccionada" : "📂 Buscar Subcategoría"}
+                          value={searchSubcategoria}
+                          onChange={(e) => setSearchSubcategoria(e.target.value)}
+                          onFocus={() => setIsSubcategoriaFocused(true)}
+                          onBlur={() => setTimeout(() => setIsSubcategoriaFocused(false), 150)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setSearchSubcategoria('');
+                            } else if (e.key === 'Enter' && subcategoriasFiltradas.length === 1) {
+                              const subcategoria = subcategoriasFiltradas[0];
+                              setSubcategoriaSeleccionada(subcategoria.nombre);
+                              setFormData(prev => ({ ...prev, subcategoriaId: subcategoria.idCategoria?.toString() || '' }));
+                              setSearchSubcategoria('');
+                              handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } } as any);
+                            }
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          disabled={!!subcategoriaSeleccionada}
+                          required
+                        />
+                        
+                        {/* Indicador de resultados */}
+                        {searchSubcategoria && !subcategoriaSeleccionada && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+                            {subcategoriasFiltradas.length} resultado{subcategoriasFiltradas.length !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                        
+                        {/* Lista desplegable de subcategorías filtradas */}
+                        {(isSubcategoriaFocused || searchSubcategoria) && !subcategoriaSeleccionada && subcategoriasFiltradas.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {subcategoriasFiltradas.map(subcategoria => (
+                              <button
+                                key={subcategoria.idCategoria}
+                                onClick={() => {
+                                  setSubcategoriaSeleccionada(subcategoria.nombre);
+                                  setFormData(prev => ({ ...prev, subcategoriaId: subcategoria.idCategoria?.toString() || '' }));
+                                  setSearchSubcategoria('');
+                                  setIsSubcategoriaFocused(false);
+                                  handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } } as any);
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                type="button"
+                              >
+                                {subcategoria.nombre}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Mostrar subcategoría seleccionada */}
+                        {subcategoriaSeleccionada && !searchSubcategoria && (
+                          <div className="absolute inset-0 px-4 py-3 bg-purple-50 border border-purple-300 rounded-lg flex items-center justify-between">
+                            <span className="text-purple-800 font-medium">📂 {subcategoriaSeleccionada}</span>
+                            <button
+                              onClick={() => {
+                                setSubcategoriaSeleccionada('');
+                                setFormData(prev => ({ ...prev, subcategoriaId: '' }));
+                                setSearchSubcategoria('');
+                                handleSubcategoriaChange({ target: { value: '' } } as any);
+                              }}
+                              className="text-purple-600 hover:text-purple-800"
+                              title="Limpiar selección"
+                              type="button"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Mensaje cuando no hay resultados */}
+                        {searchSubcategoria && subcategoriasFiltradas.length === 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+                            No se encontraron subcategorías
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -1050,20 +1305,83 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Segunda Subcategoría (Nivel 3) <span className="text-red-500">*</span>
                       </label>
-                      <select
-                        name="subCategoria2Id"
-                        value={formData.subCategoria2Id}
-                        onChange={handleInputChange}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        required
-                      >
-                        <option value="">Seleccionar segunda subcategoría</option>
-                        {subCategorias2.map(categoria => (
-                          <option key={categoria.idCategoria} value={categoria.idCategoria}>
-                            {categoria.nombre}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          placeholder={subcategoria2Seleccionada ? "2da subcategoría seleccionada" : "📁 Buscar Segunda Subcategoría"}
+                          value={searchSubcategoria2}
+                          onChange={(e) => setSearchSubcategoria2(e.target.value)}
+                          onFocus={() => setIsSubcategoria2Focused(true)}
+                          onBlur={() => setTimeout(() => setIsSubcategoria2Focused(false), 150)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Escape') {
+                              setSearchSubcategoria2('');
+                            } else if (e.key === 'Enter' && subcategorias2Filtradas.length === 1) {
+                              const subcategoria2 = subcategorias2Filtradas[0];
+                              setSubcategoria2Seleccionada(subcategoria2.nombre);
+                              setFormData(prev => ({ ...prev, subCategoria2Id: subcategoria2.idCategoria?.toString() || '' }));
+                              setSearchSubcategoria2('');
+                            }
+                          }}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          disabled={!!subcategoria2Seleccionada}
+                          required
+                        />
+                        
+                        {/* Indicador de resultados */}
+                        {searchSubcategoria2 && !subcategoria2Seleccionada && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+                            {subcategorias2Filtradas.length} resultado{subcategorias2Filtradas.length !== 1 ? 's' : ''}
+                          </div>
+                        )}
+                        
+                        {/* Lista desplegable de segundas subcategorías filtradas */}
+                        {(isSubcategoria2Focused || searchSubcategoria2) && !subcategoria2Seleccionada && subcategorias2Filtradas.length > 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                            {subcategorias2Filtradas.map(subcategoria2 => (
+                              <button
+                                key={subcategoria2.idCategoria}
+                                onClick={() => {
+                                  setSubcategoria2Seleccionada(subcategoria2.nombre);
+                                  setFormData(prev => ({ ...prev, subCategoria2Id: subcategoria2.idCategoria?.toString() || '' }));
+                                  setSearchSubcategoria2('');
+                                  setIsSubcategoria2Focused(false);
+                                }}
+                                className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                                type="button"
+                              >
+                                {subcategoria2.nombre}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {/* Mostrar segunda subcategoría seleccionada */}
+                        {subcategoria2Seleccionada && !searchSubcategoria2 && (
+                          <div className="absolute inset-0 px-4 py-3 bg-orange-50 border border-orange-300 rounded-lg flex items-center justify-between">
+                            <span className="text-orange-800 font-medium">📁 {subcategoria2Seleccionada}</span>
+                            <button
+                              onClick={() => {
+                                setSubcategoria2Seleccionada('');
+                                setFormData(prev => ({ ...prev, subCategoria2Id: '' }));
+                                setSearchSubcategoria2('');
+                              }}
+                              className="text-orange-600 hover:text-orange-800"
+                              title="Limpiar selección"
+                              type="button"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        )}
+                        
+                        {/* Mensaje cuando no hay resultados */}
+                        {searchSubcategoria2 && subcategorias2Filtradas.length === 0 && (
+                          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+                            No se encontraron segundas subcategorías
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -1082,20 +1400,83 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Proveedor *
                     </label>
-                    <select
-                      name="proveedorId"
-                      value={formData.proveedorId}
-                      onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      required
-                    >
-                      <option value="">Seleccionar proveedor</option>
-                      {proveedores.map(proveedor => (
-                        <option key={proveedor.idProveedor} value={proveedor.idProveedor}>
-                          {proveedor.nombre}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder={proveedorSeleccionado ? "Proveedor seleccionado" : "🏢 Buscar Proveedor"}
+                        value={searchProveedor}
+                        onChange={(e) => setSearchProveedor(e.target.value)}
+                        onFocus={() => setIsProveedorFocused(true)}
+                        onBlur={() => setTimeout(() => setIsProveedorFocused(false), 150)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Escape') {
+                            setSearchProveedor('');
+                          } else if (e.key === 'Enter' && proveedoresFiltrados.length === 1) {
+                            const proveedor = proveedoresFiltrados[0];
+                            setProveedorSeleccionado(proveedor.nombre);
+                            setFormData(prev => ({ ...prev, proveedorId: proveedor.idProveedor?.toString() || '' }));
+                            setSearchProveedor('');
+                          }
+                        }}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        disabled={!!proveedorSeleccionado}
+                        required
+                      />
+                      
+                      {/* Indicador de resultados */}
+                      {searchProveedor && !proveedorSeleccionado && (
+                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+                          {proveedoresFiltrados.length} resultado{proveedoresFiltrados.length !== 1 ? 's' : ''}
+                        </div>
+                      )}
+                      
+                      {/* Lista desplegable de proveedores filtrados */}
+                      {(isProveedorFocused || searchProveedor) && !proveedorSeleccionado && proveedoresFiltrados.length > 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {proveedoresFiltrados.map(proveedor => (
+                            <button
+                              key={proveedor.idProveedor}
+                              onClick={() => {
+                                setProveedorSeleccionado(proveedor.nombre);
+                                setFormData(prev => ({ ...prev, proveedorId: proveedor.idProveedor?.toString() || '' }));
+                                setSearchProveedor('');
+                                setIsProveedorFocused(false);
+                              }}
+                              className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
+                              type="button"
+                            >
+                              {proveedor.nombre}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Mostrar proveedor seleccionado */}
+                      {proveedorSeleccionado && !searchProveedor && (
+                        <div className="absolute inset-0 px-4 py-3 bg-green-50 border border-green-300 rounded-lg flex items-center justify-between">
+                          <span className="text-green-800 font-medium">🏢 {proveedorSeleccionado}</span>
+                          <button
+                            onClick={() => {
+                              setProveedorSeleccionado('');
+                              setFormData(prev => ({ ...prev, proveedorId: '' }));
+                              setSearchProveedor('');
+                            }}
+                            className="text-green-600 hover:text-green-800"
+                            title="Limpiar selección"
+                            type="button"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                      
+                      {/* Mensaje cuando no hay resultados */}
+                      {searchProveedor && proveedoresFiltrados.length === 0 && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+                          No se encontraron proveedores
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="md:col-span-2">
@@ -1473,93 +1854,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       Agregar Variante
                     </button>
                   </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-blue-200">
-                          <th className="text-left py-2">ID</th>
-                          <th className="text-left py-2">Talla</th>
-                          <th className="text-left py-2">Color</th>
-                          <th className="text-right py-2">Cantidad</th>
-                          <th className="text-left py-2">Código</th>
-                          <th className="text-center py-2">Acciones</th>
-                        </tr>
-                      </thead>
-                      {/* FIX: Se usa una clave única y se cierra la etiqueta <tbody> */}
-                      <tbody>
-                        {variantes.map((variante, index) => (
-                          <tr key={variante.id || `new-summary-${variante.tallaId}-${variante.colorId}`} className="border-b border-blue-100 hover:bg-blue-50 transition-colors">
-                            <td className="py-2 text-xs text-gray-500">{variante.id || 'Nuevo'}</td>
-                            <td className="py-2">
-                              {tallasDisponibles.find(t => t.idTalla === variante.tallaId)?.nombreTalla || 'N/A'}
-                            </td>
-                            <td className="py-2">
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="w-4 h-4 rounded-full border border-gray-300" 
-                                  style={{
-                                    backgroundColor: coloresDisponibles.find(c => c.idColor === variante.colorId)?.codigoHex || '#FFF'
-                                  }}
-                                ></div>
-                                {coloresDisponibles.find(c => c.idColor === variante.colorId)?.nombre || 'N/A'}
-                              </div>
-                            </td>
-                            <td className="py-2 text-right">
-                              <div className="flex items-center justify-end gap-1">
-                                <button
-                                  type="button"
-                                  onClick={() => actualizarCantidadVariante(index, variante.cantidad - 1)}
-                                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-                                  disabled={variante.cantidad <= 1}
-                                >
-                                  <Minus className="w-3 h-3" />
-                                </button>
-                                <span className="font-medium mx-1">{variante.cantidad}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => actualizarCantidadVariante(index, variante.cantidad + 1)}
-                                  className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
-                                >
-                                  <Plus className="w-3 h-3" />
-                                </button>
-                              </div>
-                            </td>
-                            <td className="py-2 text-xs font-mono text-gray-600">
-                              {variante.codigoIdentificacion || 'Sin código'}
-                            </td>                            <td className="py-2 text-center">
-                              <div className="flex items-center justify-center gap-2">
-                                {variante.id ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => generarCodigoBarrasVariante(variante.id)}
-                                    className="bg-green-500 hover:bg-green-600 text-white p-1 rounded text-xs shadow transition-all disabled:bg-gray-400 flex items-center"
-                                    disabled={loading}
-                                    title="Generar código de barras"
-                                  >
-                                    <Barcode className="w-3 h-3 mr-1" />
-                                    <span>Barcode</span>
-                                  </button>
-                                ) : (
-                                  <span className="text-xs text-gray-400 italic px-2 py-1" title="Guarda el producto para generar el código">
-                                    Pendiente
-                                  </span>
-                                )}
-                                <button                                 
-                                  type="button"
-                                  onClick={() => eliminarVariante(index)}
-                                  className="text-red-500 hover:text-red-700 p-1 hover:bg-red-50 rounded"
-                                  title="Eliminar variante"
-                                >
-                                  <Trash className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td></tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                ) : null}
               </div>
             )}
 
@@ -1770,7 +2065,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               </div>
                             </div>
                           </div>
-                        ) : (                          variantes.length > 0 ? (
+                        ) : (variantes.length > 0 ? (
                             <div className="space-y-3">                              <div className="text-sm text-gray-500 mb-3">
                                 <p className="font-medium">Cada etiqueta contendrá:</p>
                                 <p className="text-xs italic">"{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"</p>
