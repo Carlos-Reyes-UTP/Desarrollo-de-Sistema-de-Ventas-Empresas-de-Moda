@@ -1588,7 +1588,7 @@ const VentasPanel = () => {
               )}
               
               {/* Lista de productos con diseño mejorado */}
-              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 min-h-[300px] max-h-96 overflow-y-auto">
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 min-h-[400px] max-h-[520px] overflow-y-auto">
                 {cargandoProductosIniciales ? (
                   <div className="flex flex-col justify-center items-center h-64 text-gray-500">
                     <Loader2 className="animate-spin text-blue-600 mb-4" size={32}/>
@@ -1732,7 +1732,7 @@ const VentasPanel = () => {
                     <button
                       key={num}
                       onClick={() => setPaginaActual(num)}
-                      className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100 transition-colors font-medium ${paginaActual === num ? 'bg-blue-600 text-white font-bold border-blue-600' : ''}`}
+                      className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100 transition-colors font-medium ${paginaActual === num ? 'text-blue-600 font-bold border-blue-600 bg-blue-50' : ''}`}
                     >
                       {num}
                     </button>
