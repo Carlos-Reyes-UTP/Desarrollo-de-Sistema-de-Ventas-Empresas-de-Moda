@@ -43,10 +43,10 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
   return (
     <div className="w-full">
       <div 
-        className={`flex items-center justify-between p-3 hover:bg-gray-50 border-l-4 ${
-          nivel === 0 ? 'border-blue-500 bg-blue-50' : 
-          nivel === 1 ? 'border-green-500 bg-green-50' : 
-          'border-orange-500 bg-orange-50'
+        className={`flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg ${
+          nivel === 0 ? 'border-l-2 border-blue-500 bg-blue-50' : 
+          nivel === 1 ? 'border-l-2 border-green-500 bg-green-50' : 
+          'border-l-2 border-orange-500 bg-orange-50'
         }`}
         style={{ marginLeft: `${indentacion}px` }}
       >
@@ -100,21 +100,21 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
         <div className="flex items-center gap-1">
           <button
             onClick={() => onCrearSubcategoria(categoria.id)}
-            className="text-green-600 hover:text-green-900 p-1 rounded hover:bg-green-50 transition-colors"
+            className="text-green-600 hover:text-green-900 p-2 rounded-full hover:bg-green-100 transition-colors"
             title="Crear subcategoría"
           >
             <FolderPlus className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEditar(categoria)}
-            className="text-blue-600 hover:text-blue-900 p-1 rounded hover:bg-blue-50 transition-colors"
+            className="text-blue-600 hover:text-blue-900 p-2 rounded-full hover:bg-blue-100 transition-colors"
             title="Editar categoría"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEliminar(categoria.id)}
-            className="text-red-600 hover:text-red-900 p-1 rounded hover:bg-red-50 transition-colors"
+            className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-100 transition-colors"
             title="Eliminar categoría"
           >
             <Trash2 className="w-4 h-4" />
@@ -153,7 +153,7 @@ const GestionCategorias: React.FC = () => {
   const [categoriasExpandidas, setCategoriasExpandidas] = useState<Set<number>>(new Set());
   
   // Estado para animación del modal
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [cerrandoModal, setCerrandoModal] = useState(false);
 
   // Formulario
   const [formData, setFormData] = useState({
@@ -234,14 +234,7 @@ const GestionCategorias: React.FC = () => {
       }
       
       // Cerrar modal con animación
-      setIsModalVisible(false);
-      setTimeout(() => {
-        setShowFormulario(false);
-        setCategoriaEditar(null);
-        setCategoriaPadreId(null);
-        setFormData({ nombre: '' });
-        setError(null);
-      }, 300);
+      cerrarModalConAnimacion();
       cargarCategorias();
     } catch (err: any) {
       if (err.response?.status === 409) {
@@ -273,7 +266,6 @@ const GestionCategorias: React.FC = () => {
     setCategoriaPadreId(null);
     setFormData({ nombre: categoria.nombre });
     setShowFormulario(true);
-    setTimeout(() => setIsModalVisible(true), 10);
     setError(null);
   };
 
@@ -282,7 +274,6 @@ const GestionCategorias: React.FC = () => {
     setCategoriaPadreId(null);
     setFormData({ nombre: '' });
     setShowFormulario(true);
-    setTimeout(() => setIsModalVisible(true), 10);
     setError(null);
   };
 
@@ -291,19 +282,21 @@ const GestionCategorias: React.FC = () => {
     setCategoriaPadreId(idPadre);
     setFormData({ nombre: '' });
     setShowFormulario(true);
-    setTimeout(() => setIsModalVisible(true), 10);
     setError(null);
   };
 
-  const handleCancelar = () => {
-    setIsModalVisible(false);
+  // Función para cerrar modal con animación
+  const cerrarModalConAnimacion = () => {
+    setCerrandoModal(true);
     setTimeout(() => {
       setShowFormulario(false);
+      setCerrandoModal(false);
+      // Limpiar el formulario
       setCategoriaEditar(null);
       setCategoriaPadreId(null);
       setFormData({ nombre: '' });
       setError(null);
-    }, 300);
+    }, 300); // Duración de la animación
   };
 
   const toggleExpansion = (id: number) => {
@@ -347,99 +340,173 @@ const GestionCategorias: React.FC = () => {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="bg-green-100 p-3 rounded-lg">
-            <TreePine className="w-8 h-8 text-green-600" />
+    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-green-100 p-3 rounded-lg">
+              <TreePine className="w-8 h-8 text-green-600" />
+            </div>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Gestión de Categorías</h1>
+              <p className="text-sm text-gray-600 mt-1">Administra las categorías de productos de tu empresa</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Categorías</h1>
-            <p className="text-gray-600">Administra las categorías de productos de tu empresa</p>
-          </div>
+          <button
+            onClick={handleNuevaCategoria}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Nueva Categoría
+          </button>
         </div>
-        <button
-          onClick={handleNuevaCategoria}
-          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Nueva Categoría
-        </button>
-      </div>
 
-      {/* Controles */}
-      <div className="bg-white rounded-lg shadow-sm border p-4 mb-6">
-        <div className="flex flex-col md:flex-row gap-4">
+        {/* Mensaje de error */}
+        {error && (
+          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6" role="alert">
+            <p className="font-bold">Error</p>
+            <p>{error}</p>
+          </div>
+        )}      
+
+        {/* Contenedor principal con sombra y barra de búsqueda igual a tallas */}
+        <div className="bg-white rounded-lg shadow-md border border-gray-200">
           {/* Barra de búsqueda */}
-          <div className="flex-1 relative">
-            <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar categorías..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+          <div className="p-4 border-b border-gray-200">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Barra de búsqueda */}
+              <div className="flex-1 relative">
+                <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Buscar categorías..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              {/* Controles de vista */}
+              <div className="flex gap-2">
+                <button
+                  onClick={expandirTodas}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                >
+                  <FolderOpen className="w-4 h-4" />
+                  Expandir
+                </button>
+                <button
+                  onClick={contraerTodas}
+                  className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
+                >
+                  <Folder className="w-4 h-4" />
+                  Contraer
+                </button>
+              </div>
+            </div>
           </div>
 
-          {/* Controles de vista */}
-          <div className="flex gap-2">
-            <button
-              onClick={expandirTodas}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
-            >
-              <FolderOpen className="w-4 h-4" />
-              Expandir
-            </button>
-            <button
-              onClick={contraerTodas}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm"
-            >
-              <Folder className="w-4 h-4" />
-              Contraer
-            </button>
+          {/* Contenido principal */}
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            </div>
+          ) : categoriasFiltradas.length === 0 ? (
+            <div className="p-8 text-center">
+              <TreePine className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron categorías</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm ? 'Intenta con otra búsqueda o limpia el filtro.' : '¡Comienza añadiendo tu primera categoría!'}
+              </p>
+              {!searchTerm && (
+                <button
+                  onClick={handleNuevaCategoria}
+                  className="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Crear primera categoría
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="max-h-96 overflow-y-auto p-4">
+              {categoriasFiltradas.map((categoria) => (
+                <ArbolCategoria
+                  key={categoria.id}
+                  categoria={categoria}
+                  onEditar={handleEditar}
+                  onEliminar={handleEliminar}
+                  onCrearSubcategoria={handleNuevaSubcategoria}
+                  categoriasExpandidas={categoriasExpandidas}
+                  toggleExpansion={toggleExpansion}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Estadísticas */}
+        <div className="mt-6 bg-white rounded-lg shadow-md border border-gray-200 p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-gray-600">
+              <div className="flex items-center gap-2">
+                <Hash className="w-4 h-4" />
+                <span className="text-sm">Total de categorías: {contarCategorias(categorias)}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <TreePine className="w-4 h-4" />
+                <span className="text-sm">Categorías principales: {categorias.length}</span>
+              </div>
+            </div>
+            <div className="text-sm text-gray-500">
+              Última actualización: {new Date().toLocaleString()}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Mensaje de error */}
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-          {error}
-        </div>
-      )}      {/* Formulario Modal */}
+      {/* Modal Formulario igual a tallas, mantiene animación e iconos */}
       {showFormulario && (
-        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
-          <div className={`bg-white rounded-xl shadow-2xl p-6 w-full max-w-md border border-gray-200 transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold flex items-center gap-2">
-                <TreePine className="w-5 h-5 text-green-600" />
-                {categoriaEditar 
-                  ? 'Editar Categoría' 
-                  : categoriaPadreId 
-                    ? 'Nueva Subcategoría' 
-                    : 'Nueva Categoría Principal'}
-              </h3>
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+          <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-out ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-green-50 rounded-lg">
+                  {categoriaEditar ? (
+                    <Edit className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <TreePine className="w-5 h-5 text-green-600" />
+                  )}
+                </div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {categoriaEditar 
+                    ? 'Editar Categoría' 
+                    : categoriaPadreId 
+                      ? 'Nueva Subcategoría' 
+                      : 'Nueva Categoría Principal'}
+                </h2>
+              </div>
               <button
-                onClick={handleCancelar}
-                className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:bg-gray-100 p-2 rounded-lg"
+                onClick={cerrarModalConAnimacion}
+                className="text-gray-400 hover:text-gray-500 transition-colors"
               >
-                <X className="w-6 h-6" />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre *
+                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
+                  Nombre de la Categoría *
                 </label>
                 <input
+                  id="nombre"
                   type="text"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
                   placeholder="Nombre de la categoría"
                   required
                 />
@@ -450,17 +517,17 @@ const GestionCategorias: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex justify-end gap-3 pt-4">
+              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
                 <button
                   type="button"
-                  onClick={handleCancelar}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                  onClick={cerrarModalConAnimacion}
+                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition-colors"
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   {categoriaEditar ? 'Actualizar' : 'Guardar'}
@@ -470,65 +537,6 @@ const GestionCategorias: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Contenido principal */}
-      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-        {loading ? (
-          <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600 mx-auto"></div>
-            <p className="text-gray-600 mt-2">Cargando categorías...</p>
-          </div>
-        ) : categoriasFiltradas.length === 0 ? (
-          <div className="p-8 text-center">
-            <TreePine className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600">
-              {searchTerm ? 'No se encontraron categorías que coincidan con la búsqueda' : 'No hay categorías registradas'}
-            </p>
-            {!searchTerm && (
-              <button
-                onClick={handleNuevaCategoria}
-                className="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
-              >
-                <Plus className="w-4 h-4" />
-                Crear primera categoría
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="max-h-96 overflow-y-auto">
-            {categoriasFiltradas.map((categoria) => (
-              <ArbolCategoria
-                key={categoria.id}
-                categoria={categoria}
-                onEditar={handleEditar}
-                onEliminar={handleEliminar}
-                onCrearSubcategoria={handleNuevaSubcategoria}
-                categoriasExpandidas={categoriasExpandidas}
-                toggleExpansion={toggleExpansion}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Estadísticas */}
-      <div className="mt-6 bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4 text-gray-600">
-            <div className="flex items-center gap-2">
-              <Hash className="w-4 h-4" />
-              <span className="text-sm">Total de categorías: {contarCategorias(categorias)}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <TreePine className="w-4 h-4" />
-              <span className="text-sm">Categorías principales: {categorias.length}</span>
-            </div>
-          </div>
-          <div className="text-sm text-gray-500">
-            Última actualización: {new Date().toLocaleString()}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };
