@@ -278,8 +278,11 @@ const GestionProductos: React.FC = () => {
         case 'normal':
           matchStock = cantidad > 10;
           break;
+        case 'bajo':
+          matchStock = cantidad >= 6 && cantidad <= 10;
+          break;
         case 'critico':
-          matchStock = cantidad <= 10 && cantidad > 0;
+          matchStock = cantidad >= 1 && cantidad <= 5;
           break;
         case 'sin-stock':
           matchStock = cantidad === 0;
@@ -628,6 +631,7 @@ const GestionProductos: React.FC = () => {
           >
             <option value="">📦 Todo el stock</option>
             <option value="normal">✅ Normal</option>
+            <option value="bajo">🟡 Bajo</option>
             <option value="critico">⚠️ Crítico</option>
             <option value="sin-stock">❌ Sin stock</option>
           </select>
@@ -775,16 +779,22 @@ const GestionProductos: React.FC = () => {
                     {(() => {
                       const cantidad = producto.cantidadTotal ?? 0;
                       let claseStock = '';
+                      let labelStock = '';
                       if (cantidad > 10) {
                         claseStock = 'bg-green-100 text-green-800';
-                      } else if (cantidad > 0) {
+                        labelStock = 'Normal';
+                      } else if (cantidad >= 6 && cantidad <= 10) {
                         claseStock = 'bg-yellow-100 text-yellow-800';
-                      } else {
+                        labelStock = 'Bajo';
+                      } else if (cantidad >= 1 && cantidad <= 5) {
                         claseStock = 'bg-red-100 text-red-800';
+                        labelStock = 'Crítico';
+                      } else {
+                        claseStock = 'bg-gray-200 text-gray-500';
+                        labelStock = 'Sin Stock';
                       }
-                      
                       return (
-                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${claseStock}`}>
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${claseStock}`} title={labelStock}>
                           {cantidad}
                         </span>
                       );

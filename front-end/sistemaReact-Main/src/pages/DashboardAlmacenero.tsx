@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   PackageCheck,
   Bookmark,
-  Search,
   ShoppingCart,
   RefreshCw,
   PlusCircle
@@ -43,7 +42,6 @@ const DashboardAlmacenero = () => {
   });
   const [inventarioReciente, setInventarioReciente] = useState<ProductoInventario[]>([]);
   const [actividadReciente, setActividadReciente] = useState<ActividadReciente[]>([]);
-  const [busquedaInventario, setBusquedaInventario] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -166,11 +164,7 @@ const DashboardAlmacenero = () => {
       </div>
     </div>
   );  // Filtrar inventario reciente según búsqueda (solo para la tabla)
-  const inventarioFiltrado = inventarioReciente.filter(item => 
-    item.nombre.toLowerCase().includes(busquedaInventario.toLowerCase()) ||
-    item.codigoIdentificacion.toLowerCase().includes(busquedaInventario.toLowerCase()) ||
-    item.categoria.toLowerCase().includes(busquedaInventario.toLowerCase())
-  );
+  const inventarioFiltrado = inventarioReciente;
 
   const getEstadoBadge = (estado: string) => {
     switch (estado) {
@@ -431,19 +425,7 @@ const DashboardAlmacenero = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-3 sm:mb-0">Inventario Reciente</h2>
-          
-          <div className="w-full sm:w-64 relative">
-            <input 
-              type="text" 
-              placeholder="Buscar por nombre, código o categoría..." 
-              className="w-full pl-10 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:ring-gray-500 focus:border-gray-500"
-              value={busquedaInventario}
-              onChange={(e) => setBusquedaInventario(e.target.value)}
-            />
-            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          </div>
         </div>
-        
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">            <thead>
               <tr>
