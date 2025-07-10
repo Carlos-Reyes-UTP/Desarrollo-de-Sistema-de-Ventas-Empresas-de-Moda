@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   PackageCheck,
   Bookmark,
-  ShoppingCart,
   RefreshCw,
   PlusCircle
 } from 'lucide-react';
@@ -20,9 +19,16 @@ import type {
   ProductoStats, 
   CategoriaDistribucion, 
   EstadoInventario, 
-  ProductoInventario, 
-  ActividadReciente 
+  ProductoInventario
 } from '../interfaces/DashboardStats';
+
+// Función para renderizar la leyenda del gráfico
+const renderCategoryLegend = (value: string) => (
+  <span style={{color: '#333', fontSize: '0.85rem', fontWeight: 500}}>{value}</span>
+);
+
+// Array de colores para los gráficos
+const CATEGORY_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#f59e0b'];
 
 const DashboardAlmacenero = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
@@ -45,7 +51,8 @@ const DashboardAlmacenero = () => {
     sinStock: 0
   });
   const [inventarioReciente, setInventarioReciente] = useState<ProductoInventario[]>([]);
-  const [actividadReciente, setActividadReciente] = useState<ActividadReciente[]>([]);
+  // Ya no necesitamos el estado de actividadReciente ya que eliminamos ese componente
+  // Ya no usamos la actividad reciente
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,7 +82,6 @@ const DashboardAlmacenero = () => {
         distribucionCategorias,
         estadoInventarioData,
         inventario,
-        actividad
       ] = await Promise.all([
         DashboardService.obtenerEstadisticasProductos().catch(err => {
           console.error('Error en estadísticas de productos:', err);
@@ -92,10 +98,6 @@ const DashboardAlmacenero = () => {
         DashboardService.obtenerProductosInventario(20).catch(err => {
           console.error('Error en productos del inventario:', err);
           return [];
-        }),
-        DashboardService.obtenerActividadReciente().catch(err => {
-          console.error('Error en actividad reciente:', err);
-          return [];
         })
       ]);
 
@@ -103,15 +105,13 @@ const DashboardAlmacenero = () => {
         estadisticasProductos,
         distribucionCategorias,
         estadoInventarioData,
-        inventario: inventario.length,
-        actividad: actividad.length
+        inventario: inventario.length
       });
 
       setProductosData(estadisticasProductos);
       setCategoriaStats(distribucionCategorias);
       setEstadoInventario(estadoInventarioData);
       setInventarioReciente(inventario);
-      setActividadReciente(actividad);
       
       // Cargar inventario adicional para la tabla de búsqueda
       await cargarInventarioReciente();
@@ -185,40 +185,7 @@ const DashboardAlmacenero = () => {
     }
   };
 
-  const getActividadIcon = (tipo: string) => {
-    switch (tipo) {
-      case 'producto_actualizado':
-        return <Package size={16} className="text-blue-600" />;
-      case 'producto_creado':
-        return <PlusCircle size={16} className="text-green-600" />;
-      case 'venta_realizada':
-        return <ShoppingCart size={16} className="text-purple-600" />;
-      case 'stock_bajo':
-        return <AlertTriangle size={16} className="text-yellow-600" />;
-      case 'stock_critico':
-        return <AlertTriangle size={16} className="text-red-600" />;
-      default:
-        return <Package size={16} className="text-gray-600" />;
-    }
-  };
-
-  const formatearFecha = (fecha: string) => {
-    const now = new Date();
-    const fechaActividad = new Date(fecha);
-    const diferencia = now.getTime() - fechaActividad.getTime();
-    
-    const minutos = Math.floor(diferencia / (1000 * 60));
-    const horas = Math.floor(diferencia / (1000 * 60 * 60));
-    const dias = Math.floor(diferencia / (1000 * 60 * 60 * 24));
-    
-    if (minutos < 60) {
-      return `Hace ${minutos} min`;
-    } else if (horas < 24) {
-      return `Hace ${horas} horas`;
-    } else {
-      return `Hace ${dias} días`;
-    }
-  };
+  // Eliminamos funciones no utilizadas ya que quitamos el componente de actividad reciente
 
   if (cargando) {
     return (
@@ -317,11 +284,11 @@ const DashboardAlmacenero = () => {
 
       {/* Inventario y Recepciones */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Distribución de inventario - con gráfico pequeño */}
+        {/* Distribución de inventario - con gráfico mejorado */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Categoría</h2>
           <div className="flex justify-center">
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
                   data={categoriaStats.length ? categoriaStats : [
@@ -332,23 +299,28 @@ const DashboardAlmacenero = () => {
                   ]}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  outerRadius={80}
+                  innerRadius={60}
+                  outerRadius={90}
                   fill="#8884d8"
                   dataKey="porcentaje"
                   nameKey="nombre"
-                  label={({name, percent}) => `${name}: ${(percent !== undefined ? (percent * 100).toFixed(0) : 0)}%`}
+                  paddingAngle={4}
+                  label={({ percent }) => percent ? `${(percent * 100).toFixed(0)}%` : ''}
+                  labelLine={false}
                 >
                   {categoriaStats.length ? (
-                    categoriaStats.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#f59e0b'][index % 5]} />
+                    categoriaStats.map((_, i) => (
+                      <Cell 
+                        key={`cell-categoria-${i}`} 
+                        fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} 
+                      />
                     ))
                   ) : (
                     [
-                      <Cell key="cell-0" fill="#3b82f6" />,
-                      <Cell key="cell-1" fill="#8b5cf6" />,
-                      <Cell key="cell-2" fill="#10b981" />,
-                      <Cell key="cell-3" fill="#f97316" />
+                      <Cell key="cell-cat-0" fill="#3b82f6" />,
+                      <Cell key="cell-cat-1" fill="#8b5cf6" />,
+                      <Cell key="cell-cat-2" fill="#10b981" />,
+                      <Cell key="cell-cat-3" fill="#f97316" />
                     ]
                   )}
                 </Pie>
@@ -356,21 +328,27 @@ const DashboardAlmacenero = () => {
                   formatter={(value) => [`${value}%`, 'Porcentaje']}
                   labelFormatter={(name) => `${name}`} 
                 />
+                
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-3">
             {(categoriaStats.length ? categoriaStats : [
               { idCategoria: 1, nombre: 'Ropa Colegio', porcentaje: 33 },
               { idCategoria: 2, nombre: 'Ropa de Verano', porcentaje: 25 },
               { idCategoria: 3, nombre: 'Ropa de Invierno', porcentaje: 25 },
               { idCategoria: 4, nombre: 'Ropa Deportiva', porcentaje: 17 }
             ]).map((categoria, index) => (
-              <div key={categoria.idCategoria} className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-2`} style={{ 
-                  backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#f59e0b'][index % 5]
-                }}></div>
-                <span className="text-xs text-gray-600">{categoria.nombre}: {categoria.porcentaje}%</span>
+              <div key={categoria.idCategoria} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className={`w-5 h-5 rounded-full mr-3`} style={{ 
+                    backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
+                  }}></div>
+                  <span className="text-sm font-medium text-gray-700">{categoria.nombre}</span>
+                </div>
+                <span className="text-lg font-bold" style={{ 
+                  color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
+                }}>{categoria.porcentaje}%</span>
               </div>
             ))}
           </div>
