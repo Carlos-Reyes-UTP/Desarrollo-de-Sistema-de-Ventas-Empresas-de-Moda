@@ -22,10 +22,26 @@ import type {
   ProductoInventario
 } from '../interfaces/DashboardStats';
 
-// Función para renderizar la leyenda del gráfico
-const renderCategoryLegend = (value: string) => (
-  <span style={{color: '#333', fontSize: '0.85rem', fontWeight: 500}}>{value}</span>
-);
+// Estilos para la barra de desplazamiento personalizada
+const scrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #c5c5c5;
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+  }
+`;
+
+// Ya no necesitamos la función para renderizar leyendas
 
 // Array de colores para los gráficos
 const CATEGORY_COLORS = ['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#f59e0b'];
@@ -221,6 +237,9 @@ const DashboardAlmacenero = () => {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      {/* Estilos de barra de desplazamiento personalizados */}
+      <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
+      
       {/* Cabecera con título */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
@@ -332,25 +351,35 @@ const DashboardAlmacenero = () => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            {(categoriaStats.length ? categoriaStats : [
-              { idCategoria: 1, nombre: 'Ropa Colegio', porcentaje: 33 },
-              { idCategoria: 2, nombre: 'Ropa de Verano', porcentaje: 25 },
-              { idCategoria: 3, nombre: 'Ropa de Invierno', porcentaje: 25 },
-              { idCategoria: 4, nombre: 'Ropa Deportiva', porcentaje: 17 }
-            ]).map((categoria, index) => (
-              <div key={categoria.idCategoria} className="bg-gray-50 p-3 rounded-lg flex items-center justify-between">
-                <div className="flex items-center">
-                  <div className={`w-5 h-5 rounded-full mr-3`} style={{ 
-                    backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
-                  }}></div>
-                  <span className="text-sm font-medium text-gray-700">{categoria.nombre}</span>
-                </div>
-                <span className="text-lg font-bold" style={{ 
-                  color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
-                }}>{categoria.porcentaje}%</span>
+          <div className="mt-5 pt-2 border-t border-gray-100">
+            <h3 className="text-sm font-medium text-gray-900 mb-3">Detalle por Categoría</h3>
+            <div className="max-h-34 overflow-y-auto pr-1 custom-scrollbar">
+              <div className="grid grid-cols-2 gap-3">
+                {(categoriaStats.length ? categoriaStats : [
+                  { idCategoria: 1, nombre: 'Ropa Colegio', porcentaje: 33 },
+                  { idCategoria: 2, nombre: 'Ropa de Verano', porcentaje: 25 },
+                  { idCategoria: 3, nombre: 'Ropa de Invierno', porcentaje: 25 },
+                  { idCategoria: 4, nombre: 'Ropa Deportiva', porcentaje: 17 },
+                  { idCategoria: 5, nombre: 'Accesorios', porcentaje: 8 },
+                  { idCategoria: 6, nombre: 'Otros', porcentaje: 2 }
+                ]).map((categoria, index) => (
+                  <div 
+                    key={categoria.idCategoria} 
+                    className="bg-gray-50 hover:bg-gray-100 transition-colors p-3 rounded-lg flex items-center justify-between"
+                  >
+                    <div className="flex items-center">
+                      <div className={`w-5 h-5 rounded-full mr-3`} style={{ 
+                        backgroundColor: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
+                      }}></div>
+                      <span className="text-sm font-medium text-gray-700">{categoria.nombre}</span>
+                    </div>
+                    <span className="text-lg font-bold" style={{ 
+                      color: CATEGORY_COLORS[index % CATEGORY_COLORS.length]
+                    }}>{categoria.porcentaje}%</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
         
@@ -385,7 +414,7 @@ const DashboardAlmacenero = () => {
             </ResponsiveContainer>
           </div>
           
-          <div className="grid grid-cols-2 gap-4 mt-4">
+          <div className="grid grid-cols-2 gap-7 mt-10">
             <div className="p-3 bg-green-50 rounded-lg">
               <div className="flex items-center">
                 <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
@@ -426,7 +455,7 @@ const DashboardAlmacenero = () => {
             <h2 className="text-lg font-semibold text-gray-900">Alertas de Stock</h2>
           </div>
           
-          <div className="space-y-4">
+          <div className="space-y-8">
             {inventarioReciente.filter(p => p.estado === 'critico' || p.estado === 'sin-stock').slice(0, 3).map((producto) => (
               <div key={producto.idProducto} className="border border-gray-100 rounded-lg p-3 hover:bg-gray-50 transition-colors">
                 <div className="flex justify-between items-start">
@@ -451,7 +480,7 @@ const DashboardAlmacenero = () => {
           {inventarioReciente.some(p => p.estado === 'critico' || p.estado === 'sin-stock') && (
             <button 
               onClick={() => navigate('/pages/productos?stockFilter=critico')}
-              className="w-full mt-4 py-2 text-sm text-center text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors font-medium"
+              className="w-full mt-7 py-2 text-sm text-center text-white bg-red-600 hover:bg-red-700 rounded-md transition-colors font-medium"
             >
               🚨 Gestionar Stock Crítico
             </button>
