@@ -648,21 +648,73 @@ const Reportes: React.FC = () => {
                   <div className="flex items-center space-x-1">
                     {(() => {
                       const páginas = [];
-                      const inicio = Math.max(1, paginaActual - 2);
-                      const fin = Math.min(totalPaginas, paginaActual + 2);
-                      
-                      for (let i = inicio; i <= fin; i++) {
+                      if (totalPaginas <= 5) {
+                        for (let i = 1; i <= totalPaginas; i++) {
+                          páginas.push(
+                            <button
+                              key={i}
+                              onClick={() => setPaginaActual(i)}
+                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                                i === paginaActual
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              {i}
+                            </button>
+                          );
+                        }
+                      } else {
                         páginas.push(
                           <button
-                            key={i}
-                            onClick={() => setPaginaActual(i)}
+                            key={1}
+                            onClick={() => setPaginaActual(1)}
                             className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                              i === paginaActual
+                              paginaActual === 1
                                 ? 'bg-blue-600 text-white border-blue-600'
                                 : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
                             }`}
                           >
-                            {i}
+                            1
+                          </button>
+                        );
+                        let rangeStart = Math.max(2, paginaActual - 2);
+                        let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
+                        if (paginaActual <= 3) {
+                          rangeStart = 2;
+                          rangeEnd = 5;
+                        } else if (paginaActual >= totalPaginas - 2) {
+                          rangeStart = totalPaginas - 4;
+                          rangeEnd = totalPaginas - 1;
+                        }
+                        if (rangeStart > 2) páginas.push(<span key="start-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
+                        for (let i = rangeStart; i <= rangeEnd; i++) {
+                          páginas.push(
+                            <button
+                              key={i}
+                              onClick={() => setPaginaActual(i)}
+                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                                i === paginaActual
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              {i}
+                            </button>
+                          );
+                        }
+                        if (rangeEnd < totalPaginas - 1) páginas.push(<span key="end-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
+                        páginas.push(
+                          <button
+                            key={totalPaginas}
+                            onClick={() => setPaginaActual(totalPaginas)}
+                            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                              paginaActual === totalPaginas
+                                ? 'bg-blue-600 text-white border-blue-600'
+                                : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {totalPaginas}
                           </button>
                         );
                       }

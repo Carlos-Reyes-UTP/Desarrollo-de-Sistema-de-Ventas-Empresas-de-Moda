@@ -268,16 +268,43 @@ const GestionTallas: React.FC = () => {
                 >
                   Anterior
                 </button>
-                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
-                  <button
-                    key={num}
-                    onClick={() => setPaginaActual(num)}
-                    className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
-                    aria-current={paginaActual === num ? 'page' : undefined}
-                  >
-                    {num}
-                  </button>
-                ))}
+                {(() => {
+                  let pages: (number | string)[] = [];
+                  if (totalPaginas <= 5) {
+                    pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
+                  } else {
+                    pages.push(1);
+                    let rangeStart = Math.max(2, paginaActual - 2);
+                    let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
+                    if (paginaActual <= 3) {
+                      rangeStart = 2;
+                      rangeEnd = 5;
+                    } else if (paginaActual >= totalPaginas - 2) {
+                      rangeStart = totalPaginas - 4;
+                      rangeEnd = totalPaginas - 1;
+                    }
+                    if (rangeStart > 2) pages.push('...');
+                    for (let i = rangeStart; i <= rangeEnd; i++) {
+                      pages.push(i);
+                    }
+                    if (rangeEnd < totalPaginas - 1) pages.push('...');
+                    pages.push(totalPaginas);
+                  }
+                  return pages.map((num, idx) =>
+                    typeof num === 'number' ? (
+                      <button
+                        key={num}
+                        onClick={() => setPaginaActual(num)}
+                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+                        aria-current={paginaActual === num ? 'page' : undefined}
+                      >
+                        {num}
+                      </button>
+                    ) : (
+                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
+                    )
+                  );
+                })()}
                 <button
                   onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
                   disabled={paginaActual === totalPaginas}

@@ -1182,12 +1182,6 @@ const clienteValidoParaVenta = useMemo(() => {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-              Cajero Activo
-            </span>
-          </div>
         </div>
       </div>
 
@@ -1742,19 +1736,56 @@ const clienteValidoParaVenta = useMemo(() => {
                   >
                     Anterior
                   </button>
-                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
-                    <button
-                      key={num}
-                      onClick={() => setPaginaActual(num)}
-                      className={`px-3 py-1 border font-medium rounded-md transition-colores ${
-                        paginaActual === num
-                          ? 'bg-blue-600 text-white border-blue-600 shadow font-bold'
-                          : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100'
-                      }`}
-                    >
-                      {num}
-                    </button>
-                  ))}
+                  {(() => {
+  let start = 1;
+  let end = totalPaginas;
+  let pages: (number | string)[] = [];
+  if (totalPaginas <= 5) {
+    // Mostrar todas las páginas si son 5 o menos
+    pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
+  } else {
+    // Siempre mostrar la primera página
+    pages.push(1);
+    // Determinar el rango central
+    let rangeStart = Math.max(2, paginaActual - 2);
+    let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
+    // Ajustar si estamos cerca de los extremos
+    if (paginaActual <= 3) {
+      rangeStart = 2;
+      rangeEnd = 5;
+    } else if (paginaActual >= totalPaginas - 2) {
+      rangeStart = totalPaginas - 4;
+      rangeEnd = totalPaginas - 1;
+    }
+    // Puntos suspensivos si hay salto entre 1 y el rango
+    if (rangeStart > 2) pages.push('...');
+    // Páginas centrales
+    for (let i = rangeStart; i <= rangeEnd; i++) {
+      pages.push(i);
+    }
+    // Puntos suspensivos si hay salto entre el rango y la última
+    if (rangeEnd < totalPaginas - 1) pages.push('...');
+    // Siempre mostrar la última página
+    pages.push(totalPaginas);
+  }
+  return pages.map((num, idx) =>
+    typeof num === 'number' ? (
+      <button
+        key={num}
+        onClick={() => setPaginaActual(num)}
+        className={`px-3 py-1 border font-medium rounded-md transition-colores ${
+          paginaActual === num
+            ? 'bg-blue-600 text-white border-blue-600 shadow font-bold'
+            : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100'
+        }`}
+      >
+        {num}
+      </button>
+    ) : (
+      <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none">...</span>
+    )
+  );
+})()}
                   <button
                     onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
                     disabled={paginaActual === totalPaginas}

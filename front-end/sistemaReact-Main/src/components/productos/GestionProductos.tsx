@@ -833,23 +833,60 @@ const GestionProductos: React.FC = () => {
             <button
               onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
               disabled={paginaActual === 1}
-              className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === 1 ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+              className={`px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium transition-colors
+                ${paginaActual === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700'}
+              `}
             >
               Anterior
             </button>
-            {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
-              <button
-                key={num}
-                onClick={() => setPaginaActual(num)}
-                className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
-              >
-                {num}
-              </button>
-            ))}
+            {(() => {
+              let pages: (number | string)[] = [];
+              if (totalPaginas <= 5) {
+                pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
+              } else {
+                pages.push(1);
+                let rangeStart = Math.max(2, paginaActual - 2);
+                let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
+                if (paginaActual <= 3) {
+                  rangeStart = 2;
+                  rangeEnd = 5;
+                } else if (paginaActual >= totalPaginas - 2) {
+                  rangeStart = totalPaginas - 4;
+                  rangeEnd = totalPaginas - 1;
+                }
+                if (rangeStart > 2) pages.push('...');
+                for (let i = rangeStart; i <= rangeEnd; i++) {
+                  pages.push(i);
+                }
+                if (rangeEnd < totalPaginas - 1) pages.push('...');
+                pages.push(totalPaginas);
+              }
+              return pages.map((num, idx) =>
+                typeof num === 'number' ? (
+                  <button
+                    key={num}
+                    onClick={() => setPaginaActual(num)}
+                    className={`px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium transition-colors
+                      ${
+                        paginaActual === num
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700'
+                      }
+                    `}
+                  >
+                    {num}
+                  </button>
+                ) : (
+                  <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
+                )
+              );
+            })()}
             <button
               onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
               disabled={paginaActual === totalPaginas}
-              className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white hover:bg-blue-50 text-blue-600 border-blue-200'}`}
+              className={`px-3 py-1 rounded-lg border border-gray-300 text-sm font-medium transition-colors ${paginaActual === totalPaginas ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-white text-blue-600 hover:bg-blue-50 hover:border-blue-500 hover:text-blue-700'}`}
             >
               Siguiente
             </button>
