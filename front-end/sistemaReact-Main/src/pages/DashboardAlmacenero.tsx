@@ -9,6 +9,10 @@ import {
   RefreshCw,
   PlusCircle
 } from 'lucide-react';
+import { 
+  PieChart, Pie, Cell, ResponsiveContainer, 
+  Tooltip, Legend, BarChart, Bar 
+} from 'recharts';
 import { DashboardService } from '../services/DashboardService';
 import { useAuthReady } from '../hooks/useAuthReady';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
@@ -313,73 +317,129 @@ const DashboardAlmacenero = () => {
 
       {/* Inventario y Recepciones */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Distribución de inventario */}
+        {/* Distribución de inventario - con gráfico pequeño */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Categoría</h2>          <div className="space-y-4">
-            {categoriaStats.map((categoria) => (
-              <div key={categoria.idCategoria}>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-sm text-gray-600">{categoria.nombre}</span>
-                  <span className="text-sm font-medium">{categoria.porcentaje}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                  <div 
-                    className="bg-blue-600 h-2.5 rounded-full" 
-                    style={{ width: `${categoria.porcentaje}%` }}
-                  ></div>
-                </div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Distribución por Categoría</h2>
+          <div className="flex justify-center">
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={categoriaStats.length ? categoriaStats : [
+                    { idCategoria: 1, nombre: 'Ropa Colegio', porcentaje: 33 },
+                    { idCategoria: 2, nombre: 'Ropa de Verano', porcentaje: 25 },
+                    { idCategoria: 3, nombre: 'Ropa de Invierno', porcentaje: 25 },
+                    { idCategoria: 4, nombre: 'Ropa Deportiva', porcentaje: 17 }
+                  ]}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="porcentaje"
+                  nameKey="nombre"
+                  label={({name, percent}) => `${name}: ${(percent !== undefined ? (percent * 100).toFixed(0) : 0)}%`}
+                >
+                  {categoriaStats.length ? (
+                    categoriaStats.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#f59e0b'][index % 5]} />
+                    ))
+                  ) : (
+                    [
+                      <Cell key="cell-0" fill="#3b82f6" />,
+                      <Cell key="cell-1" fill="#8b5cf6" />,
+                      <Cell key="cell-2" fill="#10b981" />,
+                      <Cell key="cell-3" fill="#f97316" />
+                    ]
+                  )}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => [`${value}%`, 'Porcentaje']}
+                  labelFormatter={(name) => `${name}`} 
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {(categoriaStats.length ? categoriaStats : [
+              { idCategoria: 1, nombre: 'Ropa Colegio', porcentaje: 33 },
+              { idCategoria: 2, nombre: 'Ropa de Verano', porcentaje: 25 },
+              { idCategoria: 3, nombre: 'Ropa de Invierno', porcentaje: 25 },
+              { idCategoria: 4, nombre: 'Ropa Deportiva', porcentaje: 17 }
+            ]).map((categoria, index) => (
+              <div key={categoria.idCategoria} className="flex items-center">
+                <div className={`w-3 h-3 rounded-full mr-2`} style={{ 
+                  backgroundColor: ['#3b82f6', '#8b5cf6', '#10b981', '#f97316', '#f59e0b'][index % 5]
+                }}></div>
+                <span className="text-xs text-gray-600">{categoria.nombre}: {categoria.porcentaje}%</span>
               </div>
             ))}
           </div>
-
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">Estado del Inventario</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                <span className="text-xs text-gray-600">Normal: {estadoInventario.normal}%</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-                <span className="text-xs text-gray-600">Bajo: {estadoInventario.bajo}%</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-                <span className="text-xs text-gray-600">Crítico: {estadoInventario.critico}%</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
-                <span className="text-xs text-gray-600">Sin Stock: {estadoInventario.sinStock}%</span>
-              </div>
-            </div>
-          </div>
-        </div>        
-        {/* Actividad reciente */}
+        </div>
+        
+        {/* Estado del inventario - Nuevo gráfico */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Actividad Reciente</h2>
+            <h2 className="text-lg font-semibold text-gray-900">Estado de Inventario</h2>
           </div>
           
-          <div className="space-y-4">
-            {actividadReciente.map((actividad) => (
-              <div key={actividad.id} className="flex">
-                <div className="flex-shrink-0 h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  {getActividadIcon(actividad.tipo)}
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm text-gray-900">{actividad.descripcion}</p>
-                  {actividad.detalles && (
-                    <p className="text-xs text-gray-500">{actividad.detalles}</p>
-                  )}
-                  <p className="text-xs text-gray-400">{formatearFecha(actividad.fecha)}</p>
-                </div>
+          <div className="flex justify-center mb-4">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart
+                data={[
+                  { name: 'Normal', valor: estadoInventario.normal || 25, color: '#10b981' },
+                  { name: 'Bajo', valor: estadoInventario.bajo || 0, color: '#f59e0b' },
+                  { name: 'Crítico', valor: estadoInventario.critico || 33, color: '#ef4444' },
+                  { name: 'Sin Stock', valor: estadoInventario.sinStock || 42, color: '#9ca3af' }
+                ]}
+                margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+              >
+                <Bar dataKey="valor" name="Porcentaje">
+                  {[
+                    <Cell key="cell-0" fill="#10b981" />,
+                    <Cell key="cell-1" fill="#f59e0b" />,
+                    <Cell key="cell-2" fill="#ef4444" />,
+                    <Cell key="cell-3" fill="#9ca3af" />
+                  ]}
+                </Bar>
+                <Tooltip formatter={(value) => [`${value}%`, 'Porcentaje']} />
+                <Legend formatter={(value) => `${value}`} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="p-3 bg-green-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                <span className="text-sm font-medium text-green-700">Normal</span>
               </div>
-            ))}
+              <p className="text-xl font-bold text-green-600 mt-1">{estadoInventario.normal || 25}%</p>
+            </div>
+            
+            <div className="p-3 bg-yellow-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
+                <span className="text-sm font-medium text-yellow-700">Bajo</span>
+              </div>
+              <p className="text-xl font-bold text-yellow-600 mt-1">{estadoInventario.bajo || 0}%</p>
+            </div>
+            
+            <div className="p-3 bg-red-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                <span className="text-sm font-medium text-red-700">Crítico</span>
+              </div>
+              <p className="text-xl font-bold text-red-600 mt-1">{estadoInventario.critico || 33}%</p>
+            </div>
+            
+            <div className="p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-3 h-3 rounded-full bg-gray-500 mr-2"></div>
+                <span className="text-sm font-medium text-gray-700">Sin Stock</span>
+              </div>
+              <p className="text-xl font-bold text-gray-600 mt-1">{estadoInventario.sinStock || 42}%</p>
+            </div>
           </div>
-          
-          <button className="w-full mt-4 py-2 text-sm text-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-md">
-            Ver todo el historial
-          </button>
         </div>
         
         {/* Productos con stock crítico */}
