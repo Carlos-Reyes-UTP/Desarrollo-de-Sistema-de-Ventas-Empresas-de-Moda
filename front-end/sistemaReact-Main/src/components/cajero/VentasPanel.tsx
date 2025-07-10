@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Users } from 'lucide-react';
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
 import { useProductoService } from '../../hooks/useProductoService';
@@ -51,6 +51,19 @@ const VentasPanel = () => {
   const [qrDataModal, setQrDataModal] = useState({ url: '', tipo: '' });
   const [mostrarModalBoleta, setMostrarModalBoleta] = useState(false);
   const [datosVentaParaBoleta, setDatosVentaParaBoleta] = useState<any>(null);
+  
+  // --- Paginación de productos ---
+  const [paginaActual, setPaginaActual] = useState(1);
+  const productosPorPagina = 9;
+  const totalPaginas = useMemo(() => Math.ceil(variantesFiltradas.length / productosPorPagina), [variantesFiltradas.length]);
+  const variantesPaginadas = useMemo(() => {
+    const inicio = (paginaActual - 1) * productosPorPagina;
+    return variantesFiltradas.slice(inicio, inicio + productosPorPagina);
+  }, [variantesFiltradas, paginaActual]);
+  useEffect(() => {
+    setPaginaActual(1);
+  }, [variantesFiltradas]);
+  
   // --------------------------------------------------------------------------------------------
   // B. EFECTOS (useEffect)
   // --------------------------------------------------------------------------------------------
@@ -1465,7 +1478,7 @@ const VentasPanel = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Panel de Búsqueda de Productos */}
-          <div className="lg:col-span-7 bg-white rounded-xl shadow-sm border border-gray-100">
+          <div className="lg:col-span-7 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col relative" style={{ minHeight: 600 }}>
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-purple-100 rounded-lg">
@@ -1474,8 +1487,7 @@ const VentasPanel = () => {
                 <h2 className="text-lg font-semibold text-gray-900">Buscar Productos</h2>
               </div>
             </div>
-            
-            <div className="p-6">
+            <div className="p-6 flex-1 flex flex-col pb-20">
               {/* Selector de tipo de búsqueda */}
               <div className="mb-4">
                 <label htmlFor="tipoBusqueda" className="block text-sm font-medium text-gray-700 mb-3">
@@ -1590,7 +1602,7 @@ const VentasPanel = () => {
                   </div>
                 ) : variantesFiltradas.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {variantesFiltradas.map(v => (
+                    {variantesPaginadas.map(v => (
                       <div
                         key={v.idProductoVariante} 
                         className={`bg-white border border-gray-200 rounded-lg p-4 transition-all ${
@@ -1668,8 +1680,9 @@ const VentasPanel = () => {
                         </div>
                         
                         <div className="mt-3 pt-3 border-t border-gray-100">
-                          <div className={`flex items-center justify-center text-xs font-medium ${
+                                                   <div className={`flex items-center justify-center text-xs font-medium ${
                             clienteSeleccionado 
+ 
                               ? 'text-blue-600 group-hover:text-blue-700' 
                               : 'text-gray-400'
                           }`}>
@@ -1703,6 +1716,38 @@ const VentasPanel = () => {
                 )}
               </div>
             </div>
+            {/* PAGINACIÓN DE PRODUCTOS - estilo igual a Gestión de Usuarios y sticky abajo */}
+            {totalPaginas > 1 && (
+              <div className="absolute left-0 right-0 bottom-0 flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 rounded-b-xl shadow-sm z-10" style={{ minHeight: 64 }}>
+                <div className="flex-1" />
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                    disabled={paginaActual === 1}
+                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colors font-medium ${paginaActual === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    Anterior
+                  </button>
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+                    <button
+                      key={num}
+                      onClick={() => setPaginaActual(num)}
+                      className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100 transition-colors font-medium ${paginaActual === num ? 'bg-blue-600 text-white font-bold border-blue-600' : ''}`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                    disabled={paginaActual === totalPaginas}
+                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colors font-medium ${paginaActual === totalPaginas ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    Siguiente
+                  </button>
+                </div>
+                <div className="flex-1" />
+              </div>
+            )}
           </div>
 
           {/* Panel del Carrito de Ventas */}
