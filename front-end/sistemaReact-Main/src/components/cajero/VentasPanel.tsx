@@ -430,9 +430,9 @@ const VentasPanel = () => {
     setCargandoAgregarProducto(true);
     
     try {
-      // Verificar que hay un cliente seleccionado antes de agregar productos
-      if (!clienteSeleccionado) {
-        setErrorGlobal('⚠️ Debe seleccionar un cliente antes de agregar productos al carrito.');
+      // Verificar que hay un cliente válido (buscado o manual) antes de agregar productos
+      if (!clienteValidoParaVenta) {
+        setErrorGlobal('⚠️ Debe seleccionar o ingresar un cliente válido antes de agregar productos al carrito.');
         return;
       }
 
@@ -1156,6 +1156,16 @@ const VentasPanel = () => {
   // --------------------------------------------------------------------------------------------
   // F. RENDERIZADO DEL COMPONENTE (JSX)
   // --------------------------------------------------------------------------------------------
+  // Variable para habilitar selección de productos por búsqueda o ingreso manual
+const clienteValidoParaVenta = useMemo(() => {
+  if (clienteSeleccionado) return true;
+  const docValido =
+    (tipoDocumento === 'DNI' && documentoCliente.length === 8 && /^\d+$/.test(documentoCliente)) ||
+    (tipoDocumento === 'RUC' && documentoCliente.length === 11 && /^\d+$/.test(documentoCliente));
+  const nombreValido = cliente.trim().length > 0;
+  return docValido && nombreValido;
+}, [clienteSeleccionado, documentoCliente, tipoDocumento, cliente]);
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       {/* Cabecera del Panel de Ventas */}
@@ -1210,7 +1220,7 @@ const VentasPanel = () => {
               <h4 className="font-medium text-blue-900 mb-1">Información</h4>
               <span className="text-blue-700">{mensajeInfoVista}</span>
             </div>
-            <button onClick={() => setMensajeInfoVista(null)} className="ml-2 text-blue-400 hover:text-blue-600 flex-shrink-0 p-1 rounded-lg hover:bg-blue-100 transition-colors">
+            <button onClick={() => setMensajeInfoVista(null)} className="ml-2 text-blue-400 hover:text-blue-600 flex-shrink-0 p-1 rounded-lg hover:bg-blue-100 transition-colores">
               <X size={16} />
             </button>
           </div>
@@ -1245,14 +1255,14 @@ const VentasPanel = () => {
             <div className="flex gap-3">
               <button 
                 onClick={() => setMostrarModalQR(false)} 
-                className="flex-1 py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                className="flex-1 py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colores font-medium"
               >
                 Cancelar
               </button>
               <button 
                 onClick={ejecutarFinalizacionVenta} 
                 disabled={cargandoProcesoVenta}
-                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-400 transition-colors font-medium flex items-center justify-center gap-2"
+                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-400 transition-colores font-medium flex items-center justify-center gap-2"
               >
                 {cargandoProcesoVenta ? (
                   <Loader2 className="animate-spin w-5 h-5"/>
@@ -1304,14 +1314,14 @@ const VentasPanel = () => {
                 <div className="flex flex-col gap-3">
                     <button 
                       onClick={handleImprimirBoleta} 
-                      className="w-full py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center justify-center gap-2"
+                      className="w-full py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colores font-medium flex items-center justify-center gap-2"
                     >
                         <Printer className="w-5 h-5"/>
                         Imprimir Boleta
                     </button>
                     <button 
                       onClick={() => setMostrarModalBoleta(false)} 
-                      className="w-full py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colors font-medium"
+                      className="w-full py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colores font-medium"
                     >
                         Cerrar
                     </button>
@@ -1352,7 +1362,7 @@ const VentasPanel = () => {
                 <input 
                   id="documentoClienteInput" 
                   type="text" 
-                  className={`flex-1 px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
+                  className={`flex-1 px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colores ${
                     documentoCliente && 
                     ((tipoDocumento === 'DNI' && (documentoCliente.length !== 8 || !/^\d+$/.test(documentoCliente))) || 
                      (tipoDocumento === 'RUC' && (documentoCliente.length !== 11 || !/^\d+$/.test(documentoCliente)))) 
@@ -1382,7 +1392,7 @@ const VentasPanel = () => {
                            !documentoCliente.trim() || 
                            (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
                            (tipoDocumento === 'RUC' && documentoCliente.length !== 11)} 
-                  className="px-4 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium flex items-center gap-2"
+                  className="px-4 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colores font-medium flex items-center gap-2"
                 >
                   {cargandoBusquedaAccion && documentoCliente ? (
                     <Loader2 className="animate-spin" size={18}/>
@@ -1412,7 +1422,7 @@ const VentasPanel = () => {
               <input 
                 id="clienteInput" 
                 type="text" 
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colores"
                 value={cliente} 
                 onChange={(e) => setCliente(e.target.value)} 
                 placeholder="Ingrese el nombre del cliente..." 
@@ -1447,7 +1457,11 @@ const VentasPanel = () => {
                     <p className={`text-sm ${
                       esMayorista ? 'text-purple-700' : 'text-green-700'
                     }`}>
-                      {clienteSeleccionado.nombreCliente} - Tipo: {clienteSeleccionado.tipoCliente}
+                      {clienteSeleccionado.nombreCliente} - Tipo: {
+                        clienteSeleccionado.idCliente
+                          ? clienteSeleccionado.tipoCliente
+                          : (tipoDocumento === 'DNI' ? 'PERSONA' : 'EMPRESA')
+                      }
                     </p>
                   </div>
                 </div>
@@ -1464,7 +1478,7 @@ const VentasPanel = () => {
                   {/* Botón para limpiar cliente */}
                   <button
                     onClick={limpiarCliente}
-                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colors duration-200"
+                    className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colores duration-200"
                     title="Limpiar cliente y carrito"
                   >
                     <X className="h-4 w-4" />
@@ -1524,7 +1538,7 @@ const VentasPanel = () => {
                 </div>
                 <input 
                   type="text" 
-                  className="w-full pl-12 pr-28 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors text-gray-900 placeholder-gray-500"
+                  className="w-full pl-12 pr-28 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colores text-gray-900 placeholder-gray-500"
                   placeholder={tipoBusqueda === 'nombre' ? "Buscar por nombre del producto..." : "Escanear o escribir código de barras..."} 
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
@@ -1545,7 +1559,7 @@ const VentasPanel = () => {
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2">
                   {busqueda && (
                     <button 
-                      className="mr-2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                      className="mr-2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colores"
                       onClick={() => {
                         setBusqueda('');
                         setVariantesFiltradas(variantesCargadas);
@@ -1557,7 +1571,7 @@ const VentasPanel = () => {
                     </button>
                   )}
                   <button 
-                    className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                    className="px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colores"
                     onClick={handleBuscarEnServicio} 
                     disabled={cargandoBusquedaAccion || !busqueda.trim()}
                   >
@@ -1571,7 +1585,7 @@ const VentasPanel = () => {
               </div>
               
               {/* Mensaje de advertencia cuando no hay cliente seleccionado */}
-              {!clienteSeleccionado && (
+              {!clienteValidoParaVenta && (
                 <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-amber-100 rounded-full">
@@ -1606,12 +1620,12 @@ const VentasPanel = () => {
                       <div
                         key={v.idProductoVariante} 
                         className={`bg-white border border-gray-200 rounded-lg p-4 transition-all ${
-                          clienteSeleccionado 
+                          clienteValidoParaVenta
                             ? 'cursor-pointer hover:shadow-lg hover:border-blue-300 group transform hover:scale-105' 
                             : 'cursor-not-allowed opacity-60 bg-gray-50'
                         }`}
                         onClick={() => {
-                          if (clienteSeleccionado) {
+                          if (clienteValidoParaVenta) {
                             handleSeleccionarVarianteDeLista(v);
                           }
                         }}
@@ -1619,7 +1633,7 @@ const VentasPanel = () => {
                         <div className="flex justify-between items-start mb-3">
                           <div className="flex-1">
                             <h3 className={`font-semibold text-sm mb-1 transition-colores line-clamp-2 ${
-                              clienteSeleccionado 
+                              clienteValidoParaVenta 
                                 ? 'text-gray-900 group-hover:text-blue-600' 
                                 : 'text-gray-500'
                             }`} title={v.producto?.nombre ?? 'Producto sin nombre'}>
@@ -1627,21 +1641,21 @@ const VentasPanel = () => {
                             </h3>
                             <div className="flex flex-wrap gap-2 text-xs">
                               <span className={`px-2 py-1 rounded-full ${
-                                clienteSeleccionado 
+                                clienteValidoParaVenta 
                                   ? 'bg-gray-100 text-gray-700' 
                                   : 'bg-gray-200 text-gray-500'
                               }`}>
                                 {v.color?.nombre ?? 'Sin color'}
                               </span>
                               <span className={`px-2 py-1 rounded-full ${
-                                clienteSeleccionado 
+                                clienteValidoParaVenta 
                                   ? 'bg-blue-100 text-blue-700' 
                                   : 'bg-gray-200 text-gray-500'
                               }`}>
                                 Talla {v.talla?.nombreTalla ?? 'Única'}
                               </span>
                               <span className={`px-2 py-1 rounded-full ${
-                                clienteSeleccionado 
+                                clienteValidoParaVenta 
                                   ? 'bg-purple-100 text-purple-700' 
                                   : 'bg-gray-200 text-gray-500'
                               }`}>
@@ -1653,14 +1667,14 @@ const VentasPanel = () => {
                         
                         <div className="space-y-2">
                           <p className={`text-xs font-mono ${
-                            clienteSeleccionado ? 'text-gray-500' : 'text-gray-400'
+                            clienteValidoParaVenta ? 'text-gray-500' : 'text-gray-400'
                           }`}>
                             {v.codigoBarrasVariante ?? v.producto?.codigoIdentificacion ?? 'Sin código'}
                           </p>
                           
                           <div className="flex justify-between items-center">
                             <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                              !clienteSeleccionado 
+                              !clienteValidoParaVenta 
                                 ? 'bg-gray-200 text-gray-500'
                                 : v.cantidad > 5 
                                   ? 'bg-green-100 text-green-700' 
@@ -1672,22 +1686,22 @@ const VentasPanel = () => {
                             </span>
                             
                             <span className={`text-sm font-bold ${
-                              clienteSeleccionado ? 'text-blue-600' : 'text-gray-400'
+                              clienteValidoParaVenta ? 'text-blue-600' : 'text-gray-400'
                             }`}>
                               S/{(v.producto?.precioUnitario ?? 0).toFixed(2)}
+
                             </span>
                           </div>
                         </div>
                         
                         <div className="mt-3 pt-3 border-t border-gray-100">
-                                                   <div className={`flex items-center justify-center text-xs font-medium ${
-                            clienteSeleccionado 
- 
+                          <div className={`flex items-center justify-center text-xs font-medium ${
+                            clienteValidoParaVenta 
                               ? 'text-blue-600 group-hover:text-blue-700' 
                               : 'text-gray-400'
                           }`}>
                             <span className="mr-1 font-bold">S/</span>
-                            {clienteSeleccionado ? 'Agregar al carrito' : 'Selecciona un cliente primero'}
+                            {clienteValidoParaVenta ? 'Agregar al carrito' : 'Selecciona un cliente primero'}
                           </div>
                         </div>
                       </div>
@@ -1724,7 +1738,7 @@ const VentasPanel = () => {
                   <button
                     onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
                     disabled={paginaActual === 1}
-                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colors font-medium ${paginaActual === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colores font-medium ${paginaActual === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Anterior
                   </button>
@@ -1732,7 +1746,7 @@ const VentasPanel = () => {
                     <button
                       key={num}
                       onClick={() => setPaginaActual(num)}
-                      className={`px-3 py-1 border font-medium rounded-md transition-colors ${
+                      className={`px-3 py-1 border font-medium rounded-md transition-colores ${
                         paginaActual === num
                           ? 'bg-blue-600 text-white border-blue-600 shadow font-bold'
                           : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100'
@@ -1744,7 +1758,7 @@ const VentasPanel = () => {
                   <button
                     onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
                     disabled={paginaActual === totalPaginas}
-                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colors font-medium ${paginaActual === totalPaginas ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colores font-medium ${paginaActual === totalPaginas ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     Siguiente
                   </button>
@@ -1782,7 +1796,7 @@ const VentasPanel = () => {
                         const preciosInfo = calcularPrecioSegunCantidad(varianteAUsar, p.cantidad);
                         
                         return (
-                          <div key={`${p.idProductoVariante}-${index}`} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                          <div key={`${p.idProductoVariante}-${index}`} className="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:bg-gray-100 transition-colores">
                             <div className="flex justify-between items-start mb-3">
                               <div className="flex-1 min-w-0">
                                 <h3 className="font-semibold text-gray-900 text-sm mb-1 truncate" title={p.descripcion}>
