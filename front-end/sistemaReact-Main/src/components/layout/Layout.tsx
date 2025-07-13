@@ -74,17 +74,20 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   }, [location.pathname, location.state, tieneRol]);
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <div className="flex h-screen bg-gray-100 overflow-hidden relative">
       <SidebarMenu 
         vistaActual={vistaActual} 
         cambiarVista={setVistaActual} 
         usuario={usuario}
         cerrarSesion={cerrarSesion}
       />
+      {/* Contenedor principal sin margin para evitar desplazamiento */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-5">
-          {/* Renderizar los hijos directos si se proporcionan */}
-          {children || <Outlet />}
+        <main className="flex-1 overflow-y-auto p-4">
+          <div className="max-w-6xl mx-auto">
+            {/* Renderizar los hijos directos si se proporcionan */}
+            {children || <Outlet />}
+          </div>
         </main>
       </div>
     </div>

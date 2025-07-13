@@ -1,26 +1,34 @@
-import { useState, useEffect } from 'react';
+// @ts-nocheck - Supresión temporal para compatibilidad Material Tailwind v2.1.10 con React 19
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import type { Usuario } from '../../interfaces/Usuario';
 import {
-  Menu,
-  X, 
-  BarChart3,
-  Users,
-  Package,
-  ShoppingCart,
-  Settings,
-  LogOut,
-  ChevronsLeft,
-  ChevronsRight,
-  DollarSign,
-  Clock,
-  ArrowUpDown,
-  Palette,
-  Ruler,
-  Building2,
-  TreePine
-} from 'lucide-react';
+  IconButton,
+  Typography,
+  List,
+  ListItem,
+  ListItemPrefix,
+  Accordion,
+  AccordionHeader,
+  AccordionBody,
+  Drawer,
+  Card,
+} from "@material-tailwind/react";
+import {
+  PresentationChartBarIcon,
+  ShoppingBagIcon,
+  UserCircleIcon,
+  Cog6ToothIcon,
+  PowerIcon,
+  Squares2X2Icon,
+} from "@heroicons/react/24/solid";
+import {
+  ChevronRightIcon,
+  ChevronDownIcon,
+  Bars3Icon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 
 interface SidebarMenuProps {
   vistaActual: string;
@@ -30,43 +38,22 @@ interface SidebarMenuProps {
 }
 
 const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: SidebarMenuProps) => {
-  const [sidebarAbierto, setSidebarAbierto] = useState(true);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [mostrarSubmenuCaja, setMostrarSubmenuCaja] = useState(false);
-  const [mostrarSubmenuAdmin, setMostrarSubmenuAdmin] = useState(false);
-  const [mostrarSubmenuInventario, setMostrarSubmenuInventario] = useState(false);
+  const [openAccordion, setOpenAccordion] = useState(0);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { tieneRol } = useAuth();
 
-  // Detectar cambios en el tamaño de la ventana
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth < 768) {
-        // En dispositivos pequeños, cerrar el sidebar inicialmente y colapsarlo
-        setSidebarAbierto(false);
-        setSidebarCollapsed(true);
-      } else if (window.innerWidth < 1024) {
-        // En tablets, mantener el sidebar abierto pero colapsado
-        setSidebarAbierto(true);
-        setSidebarCollapsed(true);
-      } else {
-        // En pantallas grandes, mantener el sidebar abierto y expandido
-        setSidebarAbierto(true);
-        setSidebarCollapsed(false);
-      }
-    };
+  const handleAccordionOpen = (value: number) => {
+    setOpenAccordion(openAccordion === value ? 0 : value);
+  };
 
-    // Establecer estado inicial basado en el tamaño actual
-    handleResize();
-
-    // Añadir listener para cambios de tamaño
-    window.addEventListener('resize', handleResize);
-
-    // Limpiar listener al desmontar
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
+  const openDrawer = useCallback(() => {
+    setIsDrawerOpen(true);
+  }, []);
+  
+  const closeDrawer = useCallback(() => {
+    setIsDrawerOpen(false);
   }, []);
 
   // Función helper para determinar la vista y submenús según la ruta
@@ -74,44 +61,42 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     const estado = location.state;
     
     if (path.includes('/dashboard/admin')) {
-      return { vista: 'dashboard-admin', submenu: { caja: false, admin: false, inventario: false } };
+      return { vista: 'dashboard-admin', accordion: 0 };
     }
     
     if (path.includes('/dashboard/almacenero')) {
-      return { vista: 'dashboard-almacenero', submenu: { caja: false, admin: false, inventario: false } };
+      return { vista: 'dashboard-almacenero', accordion: 0 };
     }
     
     if (path.includes('CajeroSistemaVentas')) {
-      // Si hay un estado específico, usarlo; si no, para cajeros usar 'apertura' como defecto
       const vista = estado?.view ?? (tieneRol('ROLE_CAJERO') ? 'apertura' : 'ventas');
-      return { vista, submenu: { caja: true, admin: false, inventario: false } };
+      return { vista, accordion: 1 };
     }
     
     if (path.includes('/pages/GestionUsuarios')) {
-      return { vista: 'usuarios', submenu: { caja: false, admin: true, inventario: false } };
+      return { vista: 'usuarios', accordion: 2 };
     }
     
     if (path.includes('/pages/reportes')) {
       if (tieneRol('ROLE_ADMIN')) {
-        return { vista: 'reportes-admin', submenu: { caja: false, admin: false, inventario: false } };
+        return { vista: 'reportes-admin', accordion: 0 };
       }
     }
     
-    // Rutas que dependen del rol
     const rutasRol = [
-      { ruta: '/pages/productos', admin: 'productos-admin', almacenero: 'productos-inventario' },
-      { ruta: '/pages/colores', admin: 'colores-admin', almacenero: 'colores-inventario' },
-      { ruta: '/pages/tallas', admin: 'tallas-admin', almacenero: 'tallas-inventario' },
-      { ruta: '/pages/proveedores', admin: 'proveedores-admin', almacenero: 'proveedores' },
-      { ruta: '/pages/categorias', admin: 'categorias-admin', almacenero: 'categorias' }
+      { ruta: '/pages/productos', admin: 'productos-admin', almacenero: 'productos-inventario', accordion: 2 },
+      { ruta: '/pages/colores', admin: 'colores-admin', almacenero: 'colores-inventario', accordion: 2 },
+      { ruta: '/pages/tallas', admin: 'tallas-admin', almacenero: 'tallas-inventario', accordion: 2 },
+      { ruta: '/pages/proveedores', admin: 'proveedores-admin', almacenero: 'proveedores', accordion: 2 },
+      { ruta: '/pages/categorias', admin: 'categorias-admin', almacenero: 'categorias', accordion: 2 }
     ];
     
     for (const config of rutasRol) {
       if (path.includes(config.ruta)) {
         if (tieneRol('ROLE_ADMIN')) {
-          return { vista: config.admin, submenu: { caja: false, admin: true, inventario: false } };
+          return { vista: config.admin, accordion: config.accordion };
         } else if (tieneRol('ROLE_ALMACENERO')) {
-          return { vista: config.almacenero, submenu: { caja: false, admin: false, inventario: true } };
+          return { vista: config.almacenero, accordion: 3 };
         }
       }
     }
@@ -125,372 +110,417 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     const resultado = determinarVistaYSubmenu(path);
     
     if (resultado) {
-      const { vista, submenu } = resultado;
+      const { vista, accordion } = resultado;
       
-      // Solo actualizar si es realmente necesario para evitar re-renders
       if (vista !== vistaActual) {
         cambiarVista(vista);
       }
       
-      // Solo actualizar submenús si han cambiado
-      if (submenu.caja !== mostrarSubmenuCaja) {
-        setMostrarSubmenuCaja(submenu.caja);
-      }
-      if (submenu.admin !== mostrarSubmenuAdmin) {
-        setMostrarSubmenuAdmin(submenu.admin);
-      }
-      if (submenu.inventario !== mostrarSubmenuInventario) {
-        setMostrarSubmenuInventario(submenu.inventario);
+      if (accordion > 0) {
+        setOpenAccordion(accordion);
       }
     }
-  }, [location.pathname, location.state, tieneRol, cambiarVista]);
+  }, [location.pathname, location.state, tieneRol, cambiarVista, vistaActual]);
 
-  const toggleSidebar = () => {
-    setSidebarAbierto(!sidebarAbierto);
-  };
-
-  const toggleCollapse = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
-  };
-
-  const MenuItem = ({ 
-    texto, 
-    vista, 
-    icono, 
-    onClick 
-  }: { 
-    texto: string; 
-    vista: string; 
-    icono: React.ReactNode;
-    onClick?: () => void;
-  }) => {
-    const esActiva = vistaActual === vista;
-    
-    return (
-      <button
-        className={`w-full flex items-center px-4 py-3 text-sm rounded-lg transition-all duration-200 ${
-          esActiva
-            ? 'bg-gray-800 text-white shadow-md'
-            : 'text-gray-400 hover:bg-gray-800/40 hover:text-white'
-        }`}
-        onClick={() => {
-          // Solo llamar cambiarVista si no es la vista actual para evitar re-renders
-          if (vista !== vistaActual) {
-            cambiarVista(vista);
-          }
-          
-          if (onClick) {
-            onClick();
-          } else {
-            // Solo redirigir a CajeroSistemaVentas para vistas de cajero
-            const vistasDeCarjero = ['apertura', 'ventas', 'cierre'];
-            if (vistasDeCarjero.includes(vista)) {
-              navigate('/pages/CajeroSistemaVentas', { state: { view: vista } });
-            }
-          }
-          
-          // En dispositivos móviles, cerrar el sidebar después de la selección
-          if (window.innerWidth < 768) {
-            setSidebarAbierto(false);
-          }
-        }}
-      >
-        {icono}
-        {!sidebarCollapsed && <span className="ml-3 transition-opacity duration-200">{texto}</span>}
-      </button>
-    );
-  };
-
-  // Componente para secciones colapsables
-  const SectionTitle = ({ 
-    title, 
-    isOpen, 
-    toggle,
-    icon
-  }: { 
-    title: string; 
-    isOpen: boolean; 
-    toggle: () => void;
-    icon: React.ReactNode;
-  }) => (
-    <button
-      onClick={toggle}
-      className="w-full flex items-center justify-between px-4 py-3 text-sm text-gray-400 hover:bg-gray-800/20 hover:text-white rounded-lg mb-1"
-    >
-      <div className="flex items-center">
-        {icon}
-        {!sidebarCollapsed && <span className="ml-3">{title}</span>}
-      </div>
-      {!sidebarCollapsed && (
-        <ArrowUpDown 
-          size={16} 
-          className={`transition-transform duration-200 ${isOpen ? 'transform rotate-180' : ''}`} 
-        />
-      )}
-    </button>
-  );
   const handleLogout = () => {
     cerrarSesion();
     navigate('/login');
   };
 
-  // Determinar ancho del sidebar según estado
-  const sidebarWidth = sidebarCollapsed ? 'w-20' : 'w-64';
+  const handleMenuClick = (vista: string, onClick?: () => void) => {
+    if (vista !== vistaActual) {
+      cambiarVista(vista);
+    }
+    
+    if (onClick) {
+      onClick();
+    } else {
+      const vistasDeCarjero = ['apertura', 'ventas', 'cierre'];
+      if (vistasDeCarjero.includes(vista)) {
+        navigate('/pages/CajeroSistemaVentas', { state: { view: vista } });
+      }
+    }
+    
+    // Cerrar drawer en dispositivos móviles
+    closeDrawer();
+  };
 
   return (
     <>
-      {/* Overlay para cerrar el sidebar en pantallas pequeñas */}
-      {sidebarAbierto && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-50 z-20 lg:hidden" 
-          onClick={toggleSidebar}
-          aria-hidden="true"
-        />
+      {/* Botón de menú hamburguesa - Solo visible cuando el drawer está cerrado */}
+      {!isDrawerOpen && (
+        <div className="absolute top-4 left-4 z-[60]">
+          <IconButton 
+            variant="text" 
+            size="lg" 
+            onClick={openDrawer} 
+            className="bg-white shadow-lg hover:shadow-xl transition-shadow duration-200"
+            placeholder={undefined}
+            onPointerEnterCapture={undefined}
+            onPointerLeaveCapture={undefined}
+          >
+            <Bars3Icon className="h-6 w-6 stroke-2 text-gray-700" />
+          </IconButton>
+        </div>
       )}
-
-      {/* Sidebar */}
-      <div 
-        className={`
-          fixed inset-y-0 left-0 bg-black border-r border-gray-900 text-white shadow-lg transform transition-all duration-300 ease-in-out z-30
-          ${sidebarAbierto ? 'translate-x-0' : '-translate-x-full'}
-          ${sidebarWidth}
-          lg:relative lg:translate-x-0
-        `}
+      
+      {/* Drawer sin overlay para evitar oscurecimiento del fondo */}
+      <Drawer 
+        open={isDrawerOpen} 
+        onClose={closeDrawer} 
+        className="z-[50]"
+        overlay={false}
+        placement="left"
+        size={320}
       >
-        {/* Header del sidebar */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-800">
-          <div className="flex items-center">
-            <div className="flex items-center justify-center h-10 w-10 rounded-lg bg-gray-800">
-              <ShoppingCart size={20} className="text-white" />
-            </div>
-            {!sidebarCollapsed && (
-              <h1 className="ml-3 text-xl font-bold transition-opacity duration-200">VENTASPRO</h1>
-            )}
-          </div>
-          <div className="flex">
-            <button
-              onClick={toggleCollapse}
-              className="p-1 rounded-md focus:outline-none hover:bg-gray-800"
-              aria-label={sidebarCollapsed ? "Expandir menú" : "Colapsar menú"}
-            >
-              {sidebarCollapsed ? <ChevronsRight size={20} /> : <ChevronsLeft size={20} />}
-            </button>
-            <button
-              onClick={toggleSidebar}
-              className="p-1 rounded-md focus:outline-none hover:bg-gray-800 lg:hidden ml-1"
-              aria-label="Cerrar menú"
-            >
-              <X size={20} />
-            </button>
-          </div>
+        {/* Botón de cerrar dentro del drawer */}
+        <div className="absolute top-4 right-4 z-[70]">
+          <IconButton 
+            variant="text" 
+            size="sm" 
+            onClick={closeDrawer}
+            className="hover:bg-gray-100 transition-colors duration-200"
+          >
+            <XMarkIcon className="h-5 w-5 stroke-2 text-gray-700" />
+          </IconButton>
         </div>
 
-        {/* Información del usuario */}
-        <div className="px-4 py-5 border-b border-gray-800">
-          <div className="flex items-center">
-            <div className="h-10 w-10 rounded-full bg-gray-800 flex items-center justify-center">
-              <Users size={18} />
-            </div>
-            {!sidebarCollapsed && (
-              <div className="ml-3 transition-opacity duration-200">
-                <p className="text-sm font-medium text-white">{usuario?.usuario ?? 'Usuario'}</p>
-                <p className="text-xs text-gray-400">
+        <Card
+          color="transparent"
+          shadow={false}
+          className="h-full w-full p-4 bg-white"
+        >
+          {/* Header */}
+          <div className="mb-6 flex items-center gap-4 p-4 pt-12">
+            <img
+              src="https://docs.material-tailwind.com/img/logo-ct-dark.png"
+              alt="brand"
+              className="h-8 w-8"
+            />
+            <Typography variant="h5" color="blue-gray">
+              VENTASPRO
+            </Typography>
+          </div>
+
+          {/* User Info */}
+          <div className="p-4 border-b border-blue-gray-50 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-gray-100 flex items-center justify-center">
+                <UserCircleIcon className="h-6 w-6 text-blue-gray-600" />
+              </div>
+              <div>
+                <Typography variant="small" className="font-semibold text-blue-gray-900">
+                  {usuario?.usuario ?? 'Usuario'}
+                </Typography>
+                <Typography variant="small" className="text-blue-gray-500">
                   {tieneRol('ROLE_CAJERO') && 'Cajero'}
                   {tieneRol('ROLE_ADMIN') && 'Administrador'}
                   {tieneRol('ROLE_ALMACENERO') && 'Almacenero'}
-                </p>
+                </Typography>
               </div>
-            )}
+            </div>
           </div>
-        </div>
 
-        {/* Menú principal con scroll */}
-        <nav className="px-4 py-5 space-y-2 overflow-y-auto h-[calc(100vh-200px)]">
-          {/* Dashboard para Admin */}
-          {tieneRol('ROLE_ADMIN') && (
-            <MenuItem 
-              texto="Dashboard Admin" 
-              vista="dashboard-admin" 
-              icono={<BarChart3 size={20} />}
-              onClick={() => navigate('/dashboard/admin')}
-            />
-          )}
-          
-          {/* Dashboard para Almacenero */}
-          {tieneRol('ROLE_ALMACENERO') && (
-            <MenuItem 
-              texto="Dashboard Almacén" 
-              vista="dashboard-almacenero" 
-              icono={<Package size={20} />}
-              onClick={() => navigate('/dashboard/almacenero')}
-            />
-          )}
-          
-          {/* Sección de Sistema de Caja */}
-          {(tieneRol('ROLE_CAJERO') || tieneRol('ROLE_ADMIN')) && (
-            <div className="mb-2">
-              <SectionTitle 
-                title="Sistema de Caja" 
-                isOpen={mostrarSubmenuCaja} 
-                toggle={() => setMostrarSubmenuCaja(!mostrarSubmenuCaja)}
-                icon={<ShoppingCart size={20} />}
-              />
-              
-              {/* Submenu de Caja */}
-              {(mostrarSubmenuCaja || sidebarCollapsed) && (
-                <div className={`space-y-1 mt-1 ${sidebarCollapsed ? '' : 'ml-2'}`}>
-                  <MenuItem 
-                    texto="Apertura de Caja" 
-                    vista="apertura" 
-                    icono={<Clock size={20} />}
-                  />
-                  <MenuItem 
-                    texto="Ventas" 
-                    vista="ventas" 
-                    icono={<ShoppingCart size={20} />}
-                  />
-                  <MenuItem 
-                    texto="Cierre de Caja" 
-                    vista="cierre" 
-                    icono={<DollarSign size={20} />}
-                  />
-                </div>
+          {/* Contenedor con scroll para el menú */}
+          <div className="flex-1 overflow-y-auto">
+            <List className="p-0">
+              {/* Dashboard para Admin */}
+              {tieneRol('ROLE_ADMIN') && (
+                <ListItem 
+                  selected={vistaActual === 'dashboard-admin'}
+                  onClick={() => handleMenuClick('dashboard-admin', () => navigate('/dashboard/admin'))}
+                  className="hover:bg-blue-50 focus:bg-blue-50"
+                >
+                  <ListItemPrefix>
+                    <PresentationChartBarIcon className="h-5 w-5" />
+                  </ListItemPrefix>
+                  Dashboard Admin
+                </ListItem>
               )}
-            </div>
-          )}
-          
-          {/* Administración (solo para Admin) */}
-          {tieneRol('ROLE_ADMIN') && (
-            <div className="mb-2">
-              <SectionTitle 
-                title="Administración" 
-                isOpen={mostrarSubmenuAdmin} 
-                toggle={() => setMostrarSubmenuAdmin(!mostrarSubmenuAdmin)}
-                icon={<Settings size={20} />}
-              />
               
-              {/* Submenu de Administración */}
-              {(mostrarSubmenuAdmin || sidebarCollapsed) && (
-                <div className={`space-y-1 mt-1 ${sidebarCollapsed ? '' : 'ml-2'}`}>
-                  <MenuItem 
-                    texto="Usuarios" 
-                    vista="usuarios" 
-                    icono={<Users size={20} />}
-                    onClick={() => navigate('/pages/GestionUsuarios')}
-                  />                  <MenuItem 
-                    texto="Productos" 
-                    vista="productos-admin" 
-                    icono={<Package size={20} />}
-                    onClick={() => navigate('/pages/productos')}
-                  />
-                  <MenuItem 
-                    texto="Colores" 
-                    vista="colores-admin" 
-                    icono={<Palette size={20} />}
-                    onClick={() => navigate('/pages/colores')}
-                  />
-                  <MenuItem 
-                    texto="Tallas" 
-                    vista="tallas-admin" 
-                    icono={<Ruler size={20} />}
-                    onClick={() => navigate('/pages/tallas')}
-                  />
-                  <MenuItem 
-                    texto="Proveedores" 
-                    vista="proveedores-admin" 
-                    icono={<Building2 size={20} />}
-                    onClick={() => navigate('/pages/proveedores')}
-                  />
-                  <MenuItem 
-                    texto="Categorías" 
-                    vista="categorias-admin" 
-                    icono={<TreePine size={20} />}
-                    onClick={() => navigate('/pages/categorias')}
-                  />
-                </div>
+              {/* Dashboard para Almacenero */}
+              {tieneRol('ROLE_ALMACENERO') && (
+                <ListItem 
+                  selected={vistaActual === 'dashboard-almacenero'}
+                  onClick={() => handleMenuClick('dashboard-almacenero', () => navigate('/dashboard/almacenero'))}
+                  className="hover:bg-blue-50 focus:bg-blue-50"
+                >
+                  <ListItemPrefix>
+                    <Squares2X2Icon className="h-5 w-5" />
+                  </ListItemPrefix>
+                  Dashboard Almacén
+                </ListItem>
               )}
-            </div>
-          )}
-          
-          {/* Reportes (solo para Admin) - Elemento principal */}
-          {tieneRol('ROLE_ADMIN') && (
-            <MenuItem 
-              texto="Reportes" 
-              vista="reportes-admin" 
-              icono={<BarChart3 size={20} />}
-              onClick={() => navigate('/pages/reportes')}
-            />
-          )}
-          
-          {/* Inventario (solo para Almacenero) */}
-          {tieneRol('ROLE_ALMACENERO') && (
-            <div className="mb-2">
-              <SectionTitle 
-                title="Inventario" 
-                isOpen={mostrarSubmenuInventario} 
-                toggle={() => setMostrarSubmenuInventario(!mostrarSubmenuInventario)}
-                icon={<Package size={20} />}
-              />
-              
-              {/* Submenu de Inventario */}
-              {(mostrarSubmenuInventario || sidebarCollapsed) && (
-                <div className={`space-y-1 mt-1 ${sidebarCollapsed ? '' : 'ml-2'}`}>                  <MenuItem 
-                    texto="Productos" 
-                    vista="productos-inventario" 
-                    icono={<Package size={20} />}
-                    onClick={() => navigate('/pages/productos')}
-                  />
-                  <MenuItem 
-                    texto="Colores" 
-                    vista="colores-inventario" 
-                    icono={<Palette size={20} />}
-                    onClick={() => navigate('/pages/colores')}
-                  />
-                  <MenuItem 
-                    texto="Tallas" 
-                    vista="tallas-inventario" 
-                    icono={<Ruler size={20} />}
-                    onClick={() => navigate('/pages/tallas')}
-                  />
-                  <MenuItem 
-                    texto="Proveedores" 
-                    vista="proveedores" 
-                    icono={<Building2 size={20} />}
-                    onClick={() => navigate('/pages/proveedores')}
-                  />
-                  <MenuItem 
-                    texto="Categorías" 
-                    vista="categorias" 
-                    icono={<TreePine size={20} />}
-                    onClick={() => navigate('/pages/categorias')}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-        </nav>
-        
-        {/* Footer con botón de cerrar sesión */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
-          <button
-            onClick={handleLogout}
-            className={`w-full flex items-center justify-${sidebarCollapsed ? 'center' : 'start'} px-4 py-2 text-sm bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors`}
-            aria-label="Cerrar sesión"
-          >
-            <LogOut size={18} />
-            {!sidebarCollapsed && <span className="ml-2">Cerrar Sesión</span>}
-          </button>
-        </div>
-      </div>
 
-      {/* Botón flotante para abrir sidebar en pantallas pequeñas */}
-      <button
-        onClick={toggleSidebar}
-        className={`fixed bottom-4 left-4 p-3 rounded-full bg-gray-800 text-white shadow-lg z-10 lg:hidden ${sidebarAbierto ? 'hidden' : 'block'}`}
-        aria-label="Abrir menú"
-      >
-        <Menu size={24} />
-      </button>
+              {/* Sistema de Caja */}
+              {(tieneRol('ROLE_CAJERO') || tieneRol('ROLE_ADMIN')) && (
+                <Accordion
+                  open={openAccordion === 1}
+                  icon={
+                    <ChevronDownIcon
+                      strokeWidth={2.5}
+                      className={`mx-auto h-4 w-4 transition-transform ${
+                        openAccordion === 1 ? "rotate-180" : ""
+                      }`}
+                    />
+                  }
+                >
+                  <ListItem className="p-0" selected={openAccordion === 1}>
+                    <AccordionHeader
+                      onClick={() => handleAccordionOpen(1)}
+                      className="border-b-0 p-3 hover:bg-blue-50"
+                    >
+                      <ListItemPrefix>
+                        <ShoppingBagIcon className="h-5 w-5" />
+                      </ListItemPrefix>
+                      <Typography color="blue-gray" className="mr-auto font-normal">
+                        Sistema de Caja
+                      </Typography>
+                    </AccordionHeader>
+                  </ListItem>
+                  <AccordionBody className="py-1">
+                    <List className="p-0">
+                      <ListItem 
+                        selected={vistaActual === 'apertura'}
+                        onClick={() => handleMenuClick('apertura')}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Apertura de Caja
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'ventas'}
+                        onClick={() => handleMenuClick('ventas')}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Ventas
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'cierre'}
+                        onClick={() => handleMenuClick('cierre')}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Cierre de Caja
+                      </ListItem>
+                    </List>
+                  </AccordionBody>
+                </Accordion>
+              )}
+
+              {/* Administración */}
+              {tieneRol('ROLE_ADMIN') && (
+                <Accordion
+                  open={openAccordion === 2}
+                  icon={
+                    <ChevronDownIcon
+                      strokeWidth={2.5}
+                      className={`mx-auto h-4 w-4 transition-transform ${
+                        openAccordion === 2 ? "rotate-180" : ""
+                      }`}
+                    />
+                  }
+                >
+                  <ListItem className="p-0" selected={openAccordion === 2}>
+                    <AccordionHeader
+                      onClick={() => handleAccordionOpen(2)}
+                      className="border-b-0 p-3 hover:bg-blue-50"
+                    >
+                      <ListItemPrefix>
+                        <Cog6ToothIcon className="h-5 w-5" />
+                      </ListItemPrefix>
+                      <Typography color="blue-gray" className="mr-auto font-normal">
+                        Administración
+                      </Typography>
+                    </AccordionHeader>
+                  </ListItem>
+                  <AccordionBody className="py-1">
+                    <List className="p-0">
+                      <ListItem 
+                        selected={vistaActual === 'usuarios'}
+                        onClick={() => handleMenuClick('usuarios', () => navigate('/pages/GestionUsuarios'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Usuarios
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'productos-admin'}
+                        onClick={() => handleMenuClick('productos-admin', () => navigate('/pages/productos'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Productos
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'colores-admin'}
+                        onClick={() => handleMenuClick('colores-admin', () => navigate('/pages/colores'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Colores
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'tallas-admin'}
+                        onClick={() => handleMenuClick('tallas-admin', () => navigate('/pages/tallas'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Tallas
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'proveedores-admin'}
+                        onClick={() => handleMenuClick('proveedores-admin', () => navigate('/pages/proveedores'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Proveedores
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'categorias-admin'}
+                        onClick={() => handleMenuClick('categorias-admin', () => navigate('/pages/categorias'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Categorías
+                      </ListItem>
+                    </List>
+                  </AccordionBody>
+                </Accordion>
+              )}
+
+              {/* Inventario para Almacenero */}
+              {tieneRol('ROLE_ALMACENERO') && (
+                <Accordion
+                  open={openAccordion === 3}
+                  icon={
+                    <ChevronDownIcon
+                      strokeWidth={2.5}
+                      className={`mx-auto h-4 w-4 transition-transform ${
+                        openAccordion === 3 ? "rotate-180" : ""
+                      }`}
+                    />
+                  }
+                >
+                  <ListItem className="p-0" selected={openAccordion === 3}>
+                    <AccordionHeader
+                      onClick={() => handleAccordionOpen(3)}
+                      className="border-b-0 p-3 hover:bg-blue-50"
+                    >
+                      <ListItemPrefix>
+                        <Squares2X2Icon className="h-5 w-5" />
+                      </ListItemPrefix>
+                      <Typography color="blue-gray" className="mr-auto font-normal">
+                        Inventario
+                      </Typography>
+                    </AccordionHeader>
+                  </ListItem>
+                  <AccordionBody className="py-1">
+                    <List className="p-0">
+                      <ListItem 
+                        selected={vistaActual === 'productos-inventario'}
+                        onClick={() => handleMenuClick('productos-inventario', () => navigate('/pages/productos'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Productos
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'colores-inventario'}
+                        onClick={() => handleMenuClick('colores-inventario', () => navigate('/pages/colores'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Colores
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'tallas-inventario'}
+                        onClick={() => handleMenuClick('tallas-inventario', () => navigate('/pages/tallas'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Tallas
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'proveedores'}
+                        onClick={() => handleMenuClick('proveedores', () => navigate('/pages/proveedores'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Proveedores
+                      </ListItem>
+                      <ListItem 
+                        selected={vistaActual === 'categorias'}
+                        onClick={() => handleMenuClick('categorias', () => navigate('/pages/categorias'))}
+                        className="hover:bg-blue-50 focus:bg-blue-50"
+                      >
+                        <ListItemPrefix>
+                          <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
+                        </ListItemPrefix>
+                        Categorías
+                      </ListItem>
+                    </List>
+                  </AccordionBody>
+                </Accordion>
+              )}
+
+              <hr className="my-2 border-blue-gray-50" />
+              
+              {/* Reportes para Admin */}
+              {tieneRol('ROLE_ADMIN') && (
+                <ListItem 
+                  selected={vistaActual === 'reportes-admin'}
+                  onClick={() => handleMenuClick('reportes-admin', () => navigate('/pages/reportes'))}
+                  className="hover:bg-blue-50 focus:bg-blue-50"
+                >
+                  <ListItemPrefix>
+                    <PresentationChartBarIcon className="h-5 w-5" />
+                  </ListItemPrefix>
+                  Reportes
+                </ListItem>
+              )}
+              
+              {/* Logout */}
+              <ListItem 
+                onClick={handleLogout}
+                className="hover:bg-red-50 focus:bg-red-50 text-red-600 hover:text-red-700"
+              >
+                <ListItemPrefix>
+                  <PowerIcon className="h-5 w-5" />
+                </ListItemPrefix>
+                Cerrar Sesión
+              </ListItem>
+            </List>
+          </div>
+        </Card>
+      </Drawer>
     </>
   );
 };

@@ -70,35 +70,44 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
+    console.log('🔍 Inicializando autenticación');
     const initializeAuth = async () => {
       const tokenAlmacenado = localStorage.getItem('token');
+      console.log('📦 Token almacenado:', tokenAlmacenado);
+
       if (tokenAlmacenado) {
         try {
           const decodificado = jwtDecode<TokenDecodificado>(tokenAlmacenado);
+          console.log('🔓 Token decodificado:', decodificado);
+
           const tiempoActual = Date.now() / 1000;
-          
+          console.log('⏰ Tiempo actual:', tiempoActual, 'Expiración del token:', decodificado.exp);
+
           if (decodificado.exp && decodificado.exp < tiempoActual) {
+            console.log('❌ Token expirado, eliminando del almacenamiento');
             localStorage.removeItem('token');
           } else {
             setToken(tokenAlmacenado);
             setAuthToken(tokenAlmacenado);
-            
+
             const nombreUsuario = decodificado.sub;
             const rolesUsuario = extraerRolesDelToken(decodificado);
-            
+
+            console.log('👤 Usuario:', nombreUsuario, 'Roles:', rolesUsuario);
+
             setUsuario({
               usuario: nombreUsuario,
               roles: rolesUsuario.map(rol => ({ nombreRol: rol }))
             });
           }
         } catch (error) {
-          console.error('Error al decodificar token:', error);
+          console.error('⚠️ Error al decodificar token:', error);
           localStorage.removeItem('token');
         }
       }
       setCargando(false);
     };
-    
+
     initializeAuth();
   }, []);  // Configurar interceptores una sola vez al montar el componente
   useEffect(() => {
