@@ -46,6 +46,9 @@ const VentasPanel = () => {
   const [cargandoAgregarProducto, setCargandoAgregarProducto] = useState(false);
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null);
   const [mensajeInfoVista, setMensajeInfoVista] = useState<string | null>(null);
+  
+  // Estados para responsive y layout
+  const [marginLeft, setMarginLeft] = useState(window.innerWidth >= 768 ? '200px' : '0');
 
   const [mostrarModalQR, setMostrarModalQR] = useState(false);
   const [qrDataModal, setQrDataModal] = useState({ url: '', tipo: '' });
@@ -102,6 +105,16 @@ const VentasPanel = () => {
     };
     cargarTodasLasVariantes();
   }, [isReady, isAuthenticated, getAllVariantes]);
+  
+  // useEffect para manejar cambios de tamaño de ventana y actualizar margen
+  useEffect(() => {
+    const handleResize = () => {
+      setMarginLeft(window.innerWidth >= 768 ? '200px' : '0');
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (!cargandoProductosIniciales && !cargandoBusquedaAccion) { 
@@ -1167,12 +1180,12 @@ const clienteValidoParaVenta = useMemo(() => {
 }, [clienteSeleccionado, documentoCliente, tipoDocumento, cliente]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6" style={{ marginLeft }}>
       {/* Cabecera del Panel de Ventas */}
       <div className="max-w-7xl mx-auto mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pl-4">
               <div className="p-2 bg-green-100 rounded-lg">
                 <DollarSign className="h-6 w-6 text-green-600" />
               </div>

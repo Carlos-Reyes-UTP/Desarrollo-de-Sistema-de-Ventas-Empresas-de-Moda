@@ -382,7 +382,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
       <div className="max-w-2xl mx-auto">
         {/* Cabecera mejorada */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-3 mb-2 pl-4">
             <div className="p-3 bg-green-100 rounded-xl">
               <DollarSign className="h-8 w-8 text-green-600" />
             </div>

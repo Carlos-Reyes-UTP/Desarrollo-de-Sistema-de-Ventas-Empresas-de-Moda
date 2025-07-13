@@ -123,10 +123,10 @@ const GestionColores: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div>
+          <div className="pl-4">
             <h1 className="text-3xl font-bold text-gray-900">Gestión de Colores</h1>
             <p className="text-sm text-gray-600 mt-1">Añade, edita y gestiona los colores disponibles para tus productos.</p>
           </div>

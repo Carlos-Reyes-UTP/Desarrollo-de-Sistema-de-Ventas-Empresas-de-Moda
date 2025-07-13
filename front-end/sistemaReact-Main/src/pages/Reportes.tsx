@@ -95,8 +95,10 @@ const Reportes = () => {
   }, []);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6 text-green-700">Reportes y Estadísticas</h1>
+    <div className="p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100">
+      <div className="pl-4">
+        <h1 className="text-2xl font-bold mb-6 text-green-700">Reportes y Estadísticas</h1>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Ventas por mes (línea o barras) */}
         <div className="bg-white rounded-xl shadow p-6">

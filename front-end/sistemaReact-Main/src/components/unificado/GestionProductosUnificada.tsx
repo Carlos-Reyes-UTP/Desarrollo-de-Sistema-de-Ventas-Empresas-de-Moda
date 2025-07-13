@@ -308,10 +308,10 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
   }> = ({ icon, label, activa, onClick }) => (
     <button
       onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all ${
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
         activa 
-          ? 'bg-blue-600 text-white shadow-md' 
-          : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+          ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25' 
+          : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 hover:border-gray-300'
       }`}
     >
       {icon}
@@ -320,55 +320,63 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
   );
 
   const renderVistaProductos = () => (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Filtros y búsqueda */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="flex">
+      <div className="bg-white rounded-lg shadow-md p-3 lg:p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3 lg:gap-4">
+          <div className="sm:col-span-2 md:col-span-2 lg:col-span-3 xl:col-span-3 flex">
             <input
               type="text"
-              placeholder="Buscar productos..."
+              placeholder="Buscar productos por nombre, código o descripción..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3 py-2 lg:px-4 lg:py-3 text-sm border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
             <button
               onClick={handleBuscar}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-colors"
+              className="px-4 py-2 lg:px-6 lg:py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-r-lg transition-all duration-300 shadow-lg hover:shadow-xl"
             >
-              <Search className="w-4 h-4" />
+              <Search className="w-4 h-4 lg:w-5 lg:h-5" />
             </button>
           </div>
 
-          <select
-            value={selectedCategoria}
-            onChange={(e) => setSelectedCategoria(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Todas las categorías</option>
-            {categorias.map(categoria => (
-              <option key={categoria.idCategoria} value={categoria.nombre}>
-                {categoria.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="md:col-span-1 lg:col-span-1 xl:col-span-2">
+            <select
+              value={selectedCategoria}
+              onChange={(e) => setSelectedCategoria(e.target.value)}
+              className="w-full px-3 py-2 lg:px-4 lg:py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              <option value="">🏷️ Todas las categorías</option>
+              {categorias.map(categoria => (
+                <option key={categoria.idCategoria} value={categoria.nombre}>
+                  {categoria.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <select
-            value={selectedProveedor}
-            onChange={(e) => setSelectedProveedor(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Todos los proveedores</option>
-            {proveedores.map(proveedor => (
-              <option key={proveedor.idProveedor} value={proveedor.nombre}>
-                {proveedor.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="md:col-span-1 lg:col-span-1 xl:col-span-2">
+            <select
+              value={selectedProveedor}
+              onChange={(e) => setSelectedProveedor(e.target.value)}
+              className="w-full px-3 py-2 lg:px-4 lg:py-3 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              <option value="">🏭 Todos los proveedores</option>
+              {proveedores.map(proveedor => (
+                <option key={proveedor.idProveedor} value={proveedor.nombre}>
+                  {proveedor.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <div className="text-sm text-gray-600 flex items-center">
-            Total: {productosFiltrados.length} productos
+          <div className="flex items-center justify-center lg:justify-start lg:col-span-1 xl:col-span-1">
+            <div className="px-3 py-2 lg:px-4 lg:py-3 bg-blue-50 rounded-lg border border-blue-200 w-full">
+              <div className="text-xs lg:text-sm font-semibold text-blue-800 text-center lg:text-left">
+                📦 {productosFiltrados.length}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -382,67 +390,72 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
         ) : (
           <div className="overflow-x-auto">
             {mensajeExito && (
-              <div className="mb-4 px-4 py-2 bg-green-100 border border-green-400 text-green-800 rounded">
+              <div className="px-4 py-2 bg-green-100 border border-green-400 text-green-800 rounded mb-4">
                 {mensajeExito}
               </div>
             )}
             {mensajeError && (
-              <div className="mb-4 px-4 py-2 bg-red-100 border border-red-400 text-red-800 rounded">
+              <div className="px-4 py-2 bg-red-100 border border-red-400 text-red-800 rounded mb-4">
                 {mensajeError}
               </div>
             )}
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Código
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Producto
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                     Categoría
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                     Proveedor
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Precio
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Stock
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 py-2 lg:px-6 lg:py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Acciones
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {productosFiltrados.map((producto) => (
-                  <tr key={producto.idProducto} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  <tr key={producto.idProducto} className="hover:bg-gray-50 transition-colors duration-200">
+                    <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {producto.codigoIdentificacion}
-                    </td>                    <td className="px-6 py-4 whitespace-nowrap">
+                    </td>
+                    <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {producto.nombre}
+                        </div>
                         {producto.codigoBarras && (
-                          <div className="text-xs text-blue-600 font-mono">📊 {producto.codigoBarras}</div>
+                          <div className="text-xs text-blue-600 font-mono">
+                            📊 {producto.codigoBarras}
+                          </div>
                         )}
                         {producto.descripcion && (
-                          <div className="text-sm text-gray-500">{producto.descripcion}</div>
+                          <div className="text-xs lg:text-sm text-gray-500 hidden lg:block">{producto.descripcion}</div>
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap text-sm text-gray-900 hidden sm:table-cell">
                       {producto.categoria?.nombre ?? producto.categoriaPadre?.nombre ?? 'Sin categoría'}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap text-sm text-gray-900 hidden md:table-cell">
                       {producto.proveedor.nombre}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap text-sm text-gray-900">
                       S/ {producto.precioUnitario.toFixed(2)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                         (producto.cantidadTotal ?? 0) > 10 
                           ? 'bg-green-100 text-green-800' 
@@ -453,41 +466,43 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
                         {producto.cantidadTotal ?? 0}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center space-x-2">
+                    <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-1 lg:space-x-2">
                         <button
                           onClick={() => handleAbrirVariantes(producto)}
-                          className="text-blue-600 hover:text-blue-900 p-1 rounded"
+                          className="p-1 text-blue-600 hover:text-blue-900 rounded transition-all duration-200"
                           title="Gestionar Variantes"
                         >
                           <Package2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleAbrirCodigosBarras(producto)}
-                          className="text-purple-600 hover:text-purple-900 p-1 rounded"
+                          className="p-1 text-purple-600 hover:text-purple-900 rounded transition-all duration-200"
                           title="Códigos de Barras"
                         >
                           <BarChart3 className="w-4 h-4" />
-                        </button>                        <button
+                        </button>
+                        <button
                           onClick={() => {
                             setProductoBarcode(producto);
                             setShowBarcodeModal(true);
                             setTimeout(() => setIsBarcodeModalVisible(true), 10);
                           }}
-                          className="text-gray-600 hover:text-black p-1 rounded"
+                          className="p-1 text-gray-600 hover:text-black rounded transition-all duration-200 hidden sm:inline-block"
                           title="Ver código de barras"
                         >
                           <Scan className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleEditarProducto(producto)}
-                          className="text-indigo-600 hover:text-indigo-900 p-1 rounded"
+                          className="p-1 text-indigo-600 hover:text-indigo-900 rounded transition-all duration-200"
                           title="Editar"
                         >
                           <Eye className="w-4 h-4" />
-                        </button>                        <button
+                        </button>
+                        <button
                           onClick={() => producto.idProducto && solicitarEliminarProducto(producto.idProducto)}
-                          className="text-red-600 hover:text-red-900 p-1 rounded"
+                          className="p-1 text-red-600 hover:text-red-900 rounded transition-all duration-200 hidden md:inline-block"
                           title="Eliminar"
                           disabled={eliminandoId === producto.idProducto}
                         >
@@ -505,9 +520,11 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
             </table>
 
             {productosFiltrados.length === 0 && (
-              <div className="text-center py-12">
-                <Package2 className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No hay productos</h3>
+              <div className="text-center py-8 lg:py-12">
+                <Package2 className="mx-auto h-8 w-8 lg:h-12 lg:w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                  No hay productos
+                </h3>
                 <p className="mt-1 text-sm text-gray-500">
                   {searchTerm ? 'No se encontraron productos que coincidan con la búsqueda.' : 'Comienza creando un nuevo producto.'}
                 </p>
@@ -527,25 +544,29 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
   }
 
   return (
-    <div className={`min-h-screen bg-gray-50 ${className}`}>
-      <div className="max-w-7xl mx-auto px-4 py-6">
+    <div className={className}>
+      <div className="max-w-7xl mx-auto w-full">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Sistema de Gestión de Productos</h1>
-            <p className="text-gray-600 mt-1">Gestión completa de productos, variantes, colores, tallas y códigos de barras</p>
+            <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">
+              Sistema de Gestión de Productos
+            </h1>
+            <p className="text-sm lg:text-base text-gray-600 mt-1">
+              Gestión completa de productos, variantes, colores, tallas y códigos de barras
+            </p>
           </div>
           <button
             onClick={handleNuevoProducto}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            className="px-4 py-2 lg:px-6 lg:py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-lg flex items-center gap-2 transition-all duration-300 shadow-lg hover:shadow-xl font-medium text-sm lg:text-base"
           >
-            <Plus className="w-4 h-4" />
-            Nuevo Producto
+            <Plus className="w-4 h-4 lg:w-5 lg:h-5" />
+            <span>Nuevo Producto</span>
           </button>
         </div>
 
         {/* Navegación por pestañas */}
-        <div className="flex flex-wrap gap-2 mb-6 p-4 bg-gray-100 rounded-lg">          <NavButton
+        <div className="flex flex-wrap gap-2 p-3 lg:p-4 bg-white rounded-xl shadow-md border border-gray-200 mb-4 lg:mb-6">          <NavButton
             icon={<Package2 className="w-4 h-4" />}
             label="Productos"
             activa={vistaActiva === 'productos'}
@@ -572,7 +593,7 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
         </div>
 
         {/* Contenido principal */}
-        <div className="min-h-[500px]">
+        <div className="min-h-[400px] lg:min-h-[500px]">
           {vistaActiva === 'productos' && renderVistaProductos()}
           {vistaActiva === 'colores' && <GestionColores />}
           {vistaActiva === 'tallas' && <GestionTallas />}

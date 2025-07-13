@@ -236,10 +236,10 @@ const GestionProveedores: React.FC = () => {
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 pl-4">
           <div className="bg-blue-100 p-3 rounded-lg">
             <Building2 className="w-8 h-8 text-blue-600" />
           </div>

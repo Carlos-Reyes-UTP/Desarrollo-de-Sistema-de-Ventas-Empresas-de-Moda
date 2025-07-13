@@ -469,17 +469,17 @@ const DashboardAdmin = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100">
       {/* Cabecera con título */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pl-4">
             <h1 className="text-2xl font-bold text-gray-900">Dashboard Administrativo</h1>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
               Admin
             </span>
           </div>
-          <p className="text-gray-500 mt-1">{obtenerFecha()}</p>
+          <p className="text-gray-500 mt-1 pl-4">{obtenerFecha()}</p>
         </div>
       </div>
 

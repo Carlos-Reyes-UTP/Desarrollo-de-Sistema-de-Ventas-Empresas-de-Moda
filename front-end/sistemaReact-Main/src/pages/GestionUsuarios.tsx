@@ -704,10 +704,10 @@ const GestionUsuarios = () => {
 
   return (
     <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
         {/* Cabecera */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 pl-4">
             <div className="bg-indigo-100 p-3 rounded-lg">
               <Users className="w-8 h-8 text-indigo-600" />
             </div>

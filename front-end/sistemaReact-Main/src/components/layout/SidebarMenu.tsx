@@ -35,9 +35,10 @@ interface SidebarMenuProps {
   cambiarVista: (vista: string) => void;
   usuario: Usuario | null;
   cerrarSesion: () => void;
+  onDrawerStateChange?: (isOpen: boolean) => void;
 }
 
-const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: SidebarMenuProps) => {
+const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawerStateChange }: SidebarMenuProps) => {
   const [openAccordion, setOpenAccordion] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
@@ -48,13 +49,17 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     setOpenAccordion(openAccordion === value ? 0 : value);
   };
 
-  const openDrawer = useCallback(() => {
+  const openDrawer = () => {
     setIsDrawerOpen(true);
-  }, []);
-  
-  const closeDrawer = useCallback(() => {
+    onDrawerStateChange?.(true);
+  };
+  const closeDrawer = () => {
     setIsDrawerOpen(false);
-  }, []);
+    // Pequeño delay para sincronizar con la animación de cierre del drawer
+    setTimeout(() => {
+      onDrawerStateChange?.(false);
+    }, 100);
+  };
 
   // Función helper para determinar la vista y submenús según la ruta
   const determinarVistaYSubmenu = (path: string) => {
@@ -173,7 +178,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
 
       {/* Botón hamburguesa para pantallas grandes - Solo visible cuando el drawer está cerrado */}
       {!isDrawerOpen && (
-        <div className="fixed top-4 left-4 z-[60] hidden md:block">
+        <div className="fixed top-2 left-2 z-[60] hidden md:block">
           <button 
             onClick={openDrawer} 
             className="w-12 h-12 bg-gray-800 hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-600 hover:border-gray-500 rounded-lg flex items-center justify-center"
@@ -183,14 +188,17 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
         </div>
       )}
       
-      {/* Drawer sin overlay para evitar oscurecimiento del fondo */}
+      {/* Drawer con overlay solo en móviles para aplicar blur */}
       <Drawer 
         open={isDrawerOpen} 
         onClose={closeDrawer} 
         className="z-[50] bg-gray-900 rounded-none"
-        overlay={false}
+        overlay={true}
         placement="left"
         size={320}
+        overlayProps={{
+          className: "fixed inset-0 bg-black/50 backdrop-blur-sm md:!bg-transparent md:!backdrop-blur-none transition-all duration-150 ease-out"
+        }}
       >
         {/* Botón de cerrar dentro del drawer */}
         <div className="absolute top-4 right-4 z-[70] md:top-6 md:right-6">

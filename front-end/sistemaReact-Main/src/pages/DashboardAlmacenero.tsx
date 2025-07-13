@@ -205,7 +205,7 @@ const DashboardAlmacenero = () => {
 
   if (cargando) {
     return (
-      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
         </div>
@@ -215,7 +215,7 @@ const DashboardAlmacenero = () => {
 
   if (error) {
     return (
-      <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      <div className="p-4 md:p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="flex">
             <AlertTriangle className="h-5 w-5 text-red-400" />
@@ -236,20 +236,20 @@ const DashboardAlmacenero = () => {
   }
 
   return (
-    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100">
       {/* Estilos de barra de desplazamiento personalizados */}
       <style dangerouslySetInnerHTML={{ __html: scrollbarStyles }} />
       
       {/* Cabecera con título */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
         <div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 pl-4">
             <h1 className="text-2xl font-bold text-gray-900">Dashboard de Almacén</h1>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
               Almacenero
             </span>
           </div>
-          <p className="text-gray-500 mt-1">Gestión de inventario y recepciones</p>
+          <p className="text-gray-500 mt-1 pl-4">Gestión de inventario y recepciones</p>
         </div>
           <div className="mt-4 md:mt-0 flex gap-2">
           <button 
