@@ -73,10 +73,10 @@ const ResumenGeneral: React.FC = () => {
               totalOrdenes,
               clientesActivos: Math.floor(totalOrdenes * 0.7), // Estimación
               ticketPromedio,
-              crecimientoVentas: 5.2, // Datos por defecto
-              crecimientoOrdenes: 3.8,
-              crecimientoClientes: 2.1,
-              crecimientoTicket: 1.4,
+              crecimientoVentas: 0, // Sin datos históricos
+              crecimientoOrdenes: 0, // Sin datos históricos
+              crecimientoClientes: 0, // Sin datos históricos
+              crecimientoTicket: 0, // Sin datos históricos
               ventasPorPeriodo: [],
               ventasPorCategoria: [],
               topProductos: []
@@ -130,16 +130,16 @@ const ResumenGeneral: React.FC = () => {
         ['Fecha de generación:', new Date().toLocaleDateString(), '', ''],
         ['', '', '', ''],
         ['MÉTRICAS PRINCIPALES', '', '', ''],
-        ['Total de Ventas:', `S/.${resumen.totalVentas.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, '', ''],
+        ['Total de Ventas:', `S/${resumen.totalVentas.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, '', ''],
         ['Total de Órdenes:', resumen.totalOrdenes.toLocaleString(), '', ''],
         ['Clientes Activos:', resumen.clientesActivos.toLocaleString(), '', ''],
-        ['Ticket Promedio:', `S/.${resumen.ticketPromedio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, '', ''],
+        ['Ticket Promedio:', `S/${resumen.ticketPromedio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, '', ''],
         ['', '', '', ''],
         ['CRECIMIENTO VS PERÍODO ANTERIOR', '', '', ''],
-        ['Ventas:', `${resumen.crecimientoVentas.toFixed(1)}%`, '', ''],
-        ['Órdenes:', `${resumen.crecimientoOrdenes.toFixed(1)}%`, '', ''],
-        ['Clientes:', `${resumen.crecimientoClientes.toFixed(1)}%`, '', ''],
-        ['Ticket Promedio:', `${resumen.crecimientoTicket.toFixed(1)}%`, '', '']
+        ['Ventas:', resumen.crecimientoVentas !== 0 ? `${resumen.crecimientoVentas.toFixed(1)}%` : 'Sin datos históricos', '', ''],
+        ['Órdenes:', resumen.crecimientoOrdenes !== 0 ? `${resumen.crecimientoOrdenes.toFixed(1)}%` : 'Sin datos históricos', '', ''],
+        ['Clientes:', resumen.crecimientoClientes !== 0 ? `${resumen.crecimientoClientes.toFixed(1)}%` : 'Sin datos históricos', '', ''],
+        ['Ticket Promedio:', resumen.crecimientoTicket !== 0 ? `${resumen.crecimientoTicket.toFixed(1)}%` : 'Sin datos históricos', '', '']
       ];
 
       const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
@@ -208,7 +208,7 @@ const ResumenGeneral: React.FC = () => {
   const metricas = [
     {
       nombre: 'Total de Ventas',
-      valor: `S/.${resumen.totalVentas.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`,
+      valor: `S/ ${resumen.totalVentas.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`,
       icono: CurrencyDollarIcon,
       crecimiento: resumen.crecimientoVentas,
       color: 'bg-green-100 text-green-800'
@@ -229,7 +229,7 @@ const ResumenGeneral: React.FC = () => {
     },
     {
       nombre: 'Ticket Promedio',
-      valor: `S/.${resumen.ticketPromedio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`,
+      valor: `S/ ${resumen.ticketPromedio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`,
       icono: ChartBarIcon,
       crecimiento: resumen.crecimientoTicket,
       color: 'bg-orange-100 text-orange-800'
@@ -261,10 +261,16 @@ const ResumenGeneral: React.FC = () => {
                   <p className="text-sm font-medium text-gray-600">{metrica.nombre}</p>
                   <p className="text-3xl font-bold text-gray-900">{metrica.valor}</p>
                   <div className="flex items-center mt-2">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${metrica.color}`}>
-                      {metrica.crecimiento > 0 ? '+' : ''}{metrica.crecimiento.toFixed(1)}%
-                    </span>
-                    <span className="text-xs text-gray-500 ml-2">vs período anterior</span>
+                    {metrica.crecimiento !== 0 ? (
+                      <>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${metrica.color}`}>
+                          {metrica.crecimiento > 0 ? '+' : ''}{metrica.crecimiento.toFixed(1)}%
+                        </span>
+                        <span className="text-xs text-gray-500 ml-2">vs período anterior</span>
+                      </>
+                    ) : (
+                      <span className="text-xs text-gray-500">Sin datos históricos</span>
+                    )}
                   </div>
                 </div>
                 <div className={`p-3 rounded-full ${metrica.color}`}>

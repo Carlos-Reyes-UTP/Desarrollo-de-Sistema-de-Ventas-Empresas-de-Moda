@@ -192,14 +192,14 @@ const ProductosMasVendidos: React.FC = () => {
         
         <div className="bg-purple-50 rounded-lg p-4">
           <div className="text-2xl font-bold text-purple-900">
-            ${productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString()}
+            S/.{productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString()}
           </div>
           <div className="text-sm text-purple-600">Ingresos totales</div>
         </div>
         
         <div className="bg-orange-50 rounded-lg p-4">
           <div className="text-2xl font-bold text-orange-900">
-            ${(productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0)}
+            S/.{(productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0)}
           </div>
           <div className="text-sm text-orange-600">Precio promedio</div>
         </div>
@@ -244,7 +244,7 @@ const ProductosMasVendidos: React.FC = () => {
                   interval={0}
                 />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Ingresos']} />
+                <Tooltip formatter={(value) => [`S/.${Number(value).toLocaleString()}`, 'Ingresos']} />
                 <Line type="monotone" dataKey="ingresosTotales" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} />
               </LineChart>
             </ResponsiveContainer>
@@ -300,10 +300,10 @@ const ProductosMasVendidos: React.FC = () => {
                       {producto.cantidadVendida}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      ${producto.ingresosTotales.toLocaleString()}
+                      S/.{producto.ingresosTotales.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      ${producto.precioPromedio}
+                      S/.{producto.precioPromedio}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                       {producto.codigoIdentificacion}

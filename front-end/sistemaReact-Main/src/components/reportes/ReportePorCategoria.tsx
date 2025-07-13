@@ -173,7 +173,7 @@ const ReportePorCategoria: React.FC = () => {
         
         <div className="bg-purple-50 rounded-lg p-4">
           <div className="text-2xl font-bold text-purple-900">
-            ${totalIngresos.toLocaleString()}
+            S/ {totalIngresos.toLocaleString()}
           </div>
           <div className="text-sm text-purple-600">Ingresos totales</div>
         </div>
@@ -196,7 +196,7 @@ const ReportePorCategoria: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="categoria" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Ingresos']} />
+                <Tooltip formatter={(value) => [`S/.${Number(value).toLocaleString()}`, 'Ingresos']} />
                 <Bar dataKey="ingresosTotales" fill="#3B82F6" />
               </BarChart>
             </ResponsiveContainer>
@@ -216,7 +216,7 @@ const ReportePorCategoria: React.FC = () => {
                   cy="50%"
                   labelLine={false}
                   label={({ categoria, ingresosTotales }) => 
-                    `${categoria}: $${ingresosTotales.toLocaleString()}`
+                    `${categoria}: S/ ${ingresosTotales.toLocaleString()}`
                   }
                   outerRadius={120}
                   fill="#8884d8"
@@ -226,7 +226,7 @@ const ReportePorCategoria: React.FC = () => {
                     <Cell key={`cell-${index}`} fill={coloresPie[index % coloresPie.length]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Ingresos']} />
+                <Tooltip formatter={(value) => [`S/${Number(value).toLocaleString()}`, 'Ingresos']} />
               </PieChart>
             </ResponsiveContainer>
           </div>
@@ -280,7 +280,7 @@ const ReportePorCategoria: React.FC = () => {
                       {reporte.cantidadTotalVendida}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      ${reporte.ingresosTotales.toLocaleString()}
+                      S/.{reporte.ingresosTotales.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-900">

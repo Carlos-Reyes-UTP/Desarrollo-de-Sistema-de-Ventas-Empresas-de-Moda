@@ -167,7 +167,7 @@ const ReportePorTalla: React.FC = () => {
         
         <div className="bg-purple-50 rounded-lg p-4">
           <div className="text-2xl font-bold text-purple-900">
-            ${totalIngresos.toLocaleString()}
+            S/.{totalIngresos.toLocaleString()}
           </div>
           <div className="text-sm text-purple-600">Ingresos totales</div>
         </div>
@@ -207,7 +207,7 @@ const ReportePorTalla: React.FC = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="nombreTalla" />
                 <YAxis />
-                <Tooltip formatter={(value) => [`$${Number(value).toLocaleString()}`, 'Ingresos']} />
+                <Tooltip formatter={(value) => [`S/.${Number(value).toLocaleString()}`, 'Ingresos']} />
                 <Line 
                   type="monotone" 
                   dataKey="ingresosTotales" 
@@ -267,7 +267,7 @@ const ReportePorTalla: React.FC = () => {
                       {reporte.cantidadVendida.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      ${reporte.ingresosTotales.toLocaleString()}
+                      S/.{reporte.ingresosTotales.toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
                       {reporte.productosDistintos}
