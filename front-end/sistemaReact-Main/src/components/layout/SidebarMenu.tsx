@@ -85,6 +85,8 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
     if (path.includes('/pages/reportes')) {
       if (tieneRol('ROLE_ADMIN')) {
         return { vista: 'reportes-admin', accordion: 0 };
+      } else if (tieneRol('ROLE_ALMACENERO')) {
+        return { vista: 'reportes-almacenero', accordion: 0 };
       }
     }
     
@@ -237,14 +239,14 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
           {/* User Info */}
           <div className="p-6 border-b border-gray-700">
             <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-800 to-blue-950 flex items-center justify-center">
                 <UserCircleIcon className="h-7 w-7 text-white" />
               </div>
               <div className="flex-1">
                 <Typography variant="small" className="font-semibold text-white">
                   {usuario?.usuario ?? 'Usuario'}
                 </Typography>
-                <Typography variant="small" className="text-blue-400 font-medium">
+                <Typography variant="small" className="text-blue-300 font-medium">
                   {tieneRol('ROLE_CAJERO') && 'Cajero'}
                   {tieneRol('ROLE_ADMIN') && 'Administrador'}
                   {tieneRol('ROLE_ALMACENERO') && 'Almacenero'}
@@ -263,8 +265,8 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                   onClick={() => handleMenuClick('dashboard-admin', () => navigate('/dashboard/admin'))}
                   className={`rounded-lg transition-all duration-200 ${
                     vistaActual === 'dashboard-admin' 
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'hover:bg-gray-800 text-gray-300 hover:text-white'
+                      ? 'bg-blue-900 text-white shadow-lg' 
+                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
                   }`}
                 >
                   <ListItemPrefix>
@@ -281,8 +283,8 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                   onClick={() => handleMenuClick('dashboard-almacenero', () => navigate('/dashboard/almacenero'))}
                   className={`rounded-lg transition-all duration-200 ${
                     vistaActual === 'dashboard-almacenero' 
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'hover:bg-gray-800 text-gray-300 hover:text-white'
+                      ? 'bg-blue-900 text-white shadow-lg' 
+                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
                   }`}
                 >
                   <ListItemPrefix>
@@ -327,7 +329,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'apertura' 
                               ? 'bg-green-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-green-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -341,7 +343,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'ventas' 
                               ? 'bg-green-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-green-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -355,7 +357,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'cierre' 
                               ? 'bg-green-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-green-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -404,7 +406,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'usuarios' 
                               ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -418,7 +420,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'productos-admin' 
                               ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -432,7 +434,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'colores-admin' 
                               ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -446,7 +448,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'tallas-admin' 
                               ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -460,7 +462,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'proveedores-admin' 
                               ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -474,7 +476,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'categorias-admin' 
                               ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -523,7 +525,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'productos-inventario' 
                               ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -537,7 +539,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'colores-inventario' 
                               ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -551,7 +553,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'tallas-inventario' 
                               ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -565,7 +567,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'proveedores' 
                               ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -579,7 +581,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                           className={`rounded-lg transition-all duration-200 ${
                             vistaActual === 'categorias' 
                               ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-gray-800 text-gray-400 hover:text-white'
+                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
                           }`}
                         >
                           <ListItemPrefix>
@@ -593,6 +595,24 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                 </div>
               )}
 
+              {/* Reportes para Almacenero */}
+              {tieneRol('ROLE_ALMACENERO') && (
+                <ListItem 
+                  selected={vistaActual === 'reportes-almacenero'}
+                  onClick={() => handleMenuClick('reportes-almacenero', () => navigate('/pages/reportes'))}
+                  className={`rounded-lg transition-all duration-200 ${
+                    vistaActual === 'reportes-almacenero' 
+                      ? 'bg-blue-900 text-white shadow-lg' 
+                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
+                  }`}
+                >
+                  <ListItemPrefix>
+                    <PresentationChartBarIcon className="h-5 w-5" />
+                  </ListItemPrefix>
+                  <span className="font-medium">Reportes</span>
+                </ListItem>
+              )}
+
               {/* Reportes para Admin */}
               {tieneRol('ROLE_ADMIN') && (
                 <ListItem 
@@ -600,8 +620,8 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                   onClick={() => handleMenuClick('reportes-admin', () => navigate('/pages/reportes'))}
                   className={`rounded-lg transition-all duration-200 ${
                     vistaActual === 'reportes-admin' 
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'hover:bg-gray-800 text-gray-300 hover:text-white'
+                      ? 'bg-blue-900 text-white shadow-lg' 
+                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
                   }`}
                 >
                   <ListItemPrefix>

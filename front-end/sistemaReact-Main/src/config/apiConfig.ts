@@ -202,3 +202,15 @@ export const RUTAS_MAYORISTAS = {
   CREAR_DE_CLIENTE: (idCliente: number) => `${API_BASE_URL}/api/admin/mayoristas/cliente/${idCliente}`,
 };
 
+// Rutas de Reportes
+export const RUTAS_REPORTES = {
+  BASE: `${API_BASE_URL}/api/admin/reportes`,
+  PRODUCTOS_MAS_VENDIDOS: `${API_BASE_URL}/api/admin/reportes/productos-mas-vendidos`,
+  POR_CATEGORIA: `${API_BASE_URL}/api/admin/reportes/por-categoria`,
+  POR_COLOR: `${API_BASE_URL}/api/admin/reportes/por-color`,
+  POR_TALLA: `${API_BASE_URL}/api/admin/reportes/por-talla`,
+  RESUMEN_GENERAL: `${API_BASE_URL}/api/admin/reportes/resumen-general`,
+  VENTAS_POR_PERIODO: `${API_BASE_URL}/api/admin/reportes/ventas-por-periodo`,
+  PRODUCTOS_DETALLE: `${API_BASE_URL}/api/admin/reportes/productos-detalle`,
+};
+

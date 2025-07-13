@@ -17,8 +17,8 @@ import GestionProductosUnificada from "./components/unificado/GestionProductosUn
 import GestionProveedores from "./components/proveedores/GestionProveedores";
 // Category management components
 import GestionCategorias from "./components/categorias/GestionCategorias";
-// Reports components
-import Reportes from "./components/reportes/Reportes";
+// Reports pages
+import Reportes from "./pages/Reportes";
 
 // Componente para depuración
 
@@ -245,7 +245,7 @@ function App() {
       <Route
         path="/pages/reportes"
         element={
-          <RutaProtegida rolRequerido="ROLE_ADMIN">
+          <RutaProtegida rolRequerido={["ROLE_ADMIN", "ROLE_ALMACENERO"]}>
             <Layout>
               <Reportes />
             </Layout>

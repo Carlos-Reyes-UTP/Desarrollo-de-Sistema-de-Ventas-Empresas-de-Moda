@@ -25,7 +25,7 @@ interface DetalleExportacion {
 
 type TipoPeriodo = 'diario' | 'semanal' | 'mensual';
 
-const Reportes: React.FC = () => {
+const ReporteDeVentas: React.FC = () => {
   const [periodo, setPeriodo] = useState<TipoPeriodo>('semanal');
   const [fechaReferencia, setFechaReferencia] = useState(new Date().toISOString().split('T')[0]);
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -349,7 +349,7 @@ const Reportes: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reportes de Ventas</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reporte de Ventas</h1>
           <p className="text-gray-600">Análisis y exportación de datos de ventas</p>
         </div>
 
@@ -746,4 +746,4 @@ const Reportes: React.FC = () => {
   );
 };
 
-export default Reportes;
+export default ReporteDeVentas;
