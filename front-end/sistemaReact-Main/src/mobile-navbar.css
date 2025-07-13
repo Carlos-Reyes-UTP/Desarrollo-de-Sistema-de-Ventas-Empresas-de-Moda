@@ -1,0 +1,23 @@
+/* Estilos para la barra de navegación móvil */
+@media (max-width: 768px) {
+  /* Aplicar padding-top al body en móviles para evitar que la barra tape el contenido */
+  body {
+    padding-top: 64px; /* 4rem = 64px, altura de la barra de navegación */
+  }
+  
+  /* Asegurar que el contenido principal tenga el espacio adecuado */
+  #root {
+    min-height: calc(100vh - 64px);
+  }
+}
+
+/* Reset para pantallas grandes */
+@media (min-width: 769px) {
+  body {
+    padding-top: 0;
+  }
+  
+  #root {
+    min-height: 100vh;
+  }
+}
