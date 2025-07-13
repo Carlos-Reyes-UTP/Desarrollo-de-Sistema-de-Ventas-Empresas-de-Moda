@@ -81,8 +81,8 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         usuario={usuario}
         cerrarSesion={cerrarSesion}
       />
-      {/* Contenedor principal sin margin para evitar desplazamiento */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      {/* Contenedor principal con margen superior en móviles */}
+      <div className="flex-1 flex flex-col overflow-hidden pt-16 md:pt-0">
         <main className="flex-1 overflow-y-auto p-4">
           <div className="max-w-6xl mx-auto">
             {/* Renderizar los hijos directos si se proporcionan */}
