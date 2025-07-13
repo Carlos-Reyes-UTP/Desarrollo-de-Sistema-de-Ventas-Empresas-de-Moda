@@ -10,7 +10,7 @@ import ProductosMasVendidos from './ProductosMasVendidos';
 import ReportePorCategoria from './ReportePorCategoria';
 import ReportePorColor from './ReportePorColor';
 import ReportePorTalla from './ReportePorTalla';
-import ResumenGeneral from './ResumenGeneral';
+import ResumenGeneral  from './ResumenGeneral';
 import { useAuth } from '../../context/AuthContext';
 
 type TabReporte = 'resumen' | 'productos' | 'categorias' | 'colores' | 'tallas';
