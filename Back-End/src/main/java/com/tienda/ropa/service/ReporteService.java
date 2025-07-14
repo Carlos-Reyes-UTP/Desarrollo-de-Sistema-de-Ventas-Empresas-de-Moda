@@ -1,0 +1,162 @@
+package com.tienda.ropa.service;
+
+import com.tienda.ropa.dto.*;
+import com.tienda.ropa.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class ReporteService {
+    
+    @Autowired
+    private ReporteRepository reporteRepository;
+    
+    // Reportes de productos más vendidos
+    public List<ProductoMasVendidoDTO> obtenerProductosMasVendidos(int limite) {
+        Pageable pageable = PageRequest.of(0, limite);
+        return reporteRepository.findProductosMasVendidos(pageable);
+    }
+    
+    public List<ProductoMasVendidoDTO> obtenerProductosMasVendidosPorFecha(
+            LocalDateTime fechaInicio, LocalDateTime fechaFin, int limite) {
+        Pageable pageable = PageRequest.of(0, limite);
+        return reporteRepository.findProductosMasVendidosPorFecha(
+            fechaInicio, fechaFin, pageable);
+    }
+    
+    // Reportes por categoría
+    public List<ReportePorCategoriaDTO> obtenerReportePorCategoria() {
+        List<ReportePorCategoriaDTO> reporte = reporteRepository.findReportePorCategoria();
+        
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+            .map(ReportePorCategoriaDTO::getIngresosTotales)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+        
+        return reporte;
+    }
+    
+    public List<ReportePorCategoriaDTO> obtenerReportePorCategoriaEntreFechas(
+            LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<ReportePorCategoriaDTO> reporte = reporteRepository
+            .findReportePorCategoriaEntreFechas(fechaInicio, fechaFin);
+            
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+            .map(ReportePorCategoriaDTO::getIngresosTotales)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+        
+        return reporte;
+    }
+    
+    // Reportes por color
+    public List<ReportePorColorDTO> obtenerReportePorColor() {
+        List<ReportePorColorDTO> reporte = reporteRepository.findReportePorColor();
+        
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+            .map(ReportePorColorDTO::getIngresosTotales)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+        
+        return reporte;
+    }
+    
+    public List<ReportePorColorDTO> obtenerReportePorColorEntreFechas(
+            LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<ReportePorColorDTO> reporte = reporteRepository
+            .findReportePorColorEntreFechas(fechaInicio, fechaFin);
+            
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+            .map(ReportePorColorDTO::getIngresosTotales)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+        
+        return reporte;
+    }
+    
+    // Reportes por talla
+    public List<ReportePorTallaDTO> obtenerReportePorTalla() {
+        List<ReportePorTallaDTO> reporte = reporteRepository.findReportePorTalla();
+        
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+            .map(ReportePorTallaDTO::getIngresosTotales)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+        
+        return reporte;
+    }
+    
+    public List<ReportePorTallaDTO> obtenerReportePorTallaEntreFechas(
+            LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<ReportePorTallaDTO> reporte = reporteRepository
+            .findReportePorTallaEntreFechas(fechaInicio, fechaFin);
+            
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+            .map(ReportePorTallaDTO::getIngresosTotales)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+            
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+        
+        return reporte;
+    }
+}
