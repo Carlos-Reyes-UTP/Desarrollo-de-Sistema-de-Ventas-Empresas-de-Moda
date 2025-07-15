@@ -85,8 +85,6 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
     if (path.includes('/pages/reportes')) {
       if (tieneRol('ROLE_ADMIN')) {
         return { vista: 'reportes-admin', accordion: 0 };
-      } else if (tieneRol('ROLE_ALMACENERO')) {
-        return { vista: 'reportes-almacenero', accordion: 0 };
       }
     }
     
@@ -593,24 +591,6 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                     </AccordionBody>
                   </Accordion>
                 </div>
-              )}
-
-              {/* Reportes para Almacenero */}
-              {tieneRol('ROLE_ALMACENERO') && (
-                <ListItem 
-                  selected={vistaActual === 'reportes-almacenero'}
-                  onClick={() => handleMenuClick('reportes-almacenero', () => navigate('/pages/reportes'))}
-                  className={`rounded-lg transition-all duration-200 ${
-                    vistaActual === 'reportes-almacenero' 
-                      ? 'bg-blue-900 text-white shadow-lg' 
-                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  <ListItemPrefix>
-                    <PresentationChartBarIcon className="h-5 w-5" />
-                  </ListItemPrefix>
-                  <span className="font-medium">Reportes</span>
-                </ListItem>
               )}
 
               {/* Reportes para Admin */}

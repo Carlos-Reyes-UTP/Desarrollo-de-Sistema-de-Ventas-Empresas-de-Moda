@@ -224,6 +224,11 @@ const GestionUsuarios = () => {
       setVerificandoUsuario(false);
       setMostrarPassword(false);
       setMostrarConfirmPassword(false);
+      // Limpiar estados del modal de verificación
+      setMostrarModalPassword(false);
+      setPasswordActual('');
+      setErrorPasswordActual(null);
+      setMostrarPasswordActual(false);
       setError(null);
     }, 300); // Duración de la animación
   };
@@ -458,6 +463,7 @@ const GestionUsuarios = () => {
         
         // Guardar los datos originales antes de la actualización
         const datosOriginales = usuarioEditando!;
+        const esCambioPasswordPropio = cambiarPassword && esUsuarioActual(datosOriginales);
         
         await ServicioUsuarios.actualizar(usuarioEditando.id!, usuarioParaActualizar);
         mostrarMensaje('Usuario actualizado exitosamente', 'success');
@@ -473,8 +479,16 @@ const GestionUsuarios = () => {
           }))
         };
         
-        // Verificar si se debe cerrar la sesión después de una actualización exitosa
-        verificarCierreSesion(usuarioActualizado, datosOriginales);
+        // Si el usuario actual cambió su propia contraseña, cerrar sesión
+        if (esCambioPasswordPropio) {
+          mostrarMensaje('Contraseña actualizada. Cerrando sesión para mayor seguridad...', 'success');
+          setTimeout(() => {
+            cerrarSesion();
+          }, 2000); // Dar tiempo para que el usuario vea el mensaje
+        } else {
+          // Verificar si se debe cerrar la sesión por otros cambios (usuario o roles)
+          verificarCierreSesion(usuarioActualizado, datosOriginales);
+        }
       } else {
         // Crear nuevo usuario
         const rolSeleccionado = formUsuario.roles[0];
@@ -674,6 +688,8 @@ const GestionUsuarios = () => {
       if (esCorrecta) {
         // Si la contraseña es correcta, cerrar el modal y habilitar el cambio de contraseña
         setMostrarModalPassword(false);
+        setPasswordActual('');
+        setErrorPasswordActual(null);
         setCambiarPassword(true);
         setFormUsuario(prev => ({
           ...prev,
@@ -1124,9 +1140,9 @@ const GestionUsuarios = () => {
         {/* Modal de Usuario */}
         {mostrarModal && (
           <div className={`fixed inset-0 bg-gray-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-            <div className={`bg-white rounded-2xl shadow-3xl w-full max-w-lg border border-gray-200 ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
-              {/* Header moderno con gradiente */}
-              <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
+            <div className={`bg-white rounded-2xl shadow-3xl w-full max-w-lg max-h-[90vh] border border-gray-200 flex flex-col ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+              {/* Header moderno con gradiente - Fijo */}
+              <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6 flex-shrink-0">
                 <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
                 <div className="relative flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -1155,7 +1171,9 @@ const GestionUsuarios = () => {
                 </div>
               </div>
 
-              <form onSubmit={guardarUsuario} className="p-8 space-y-6">
+              {/* Contenido con scroll */}
+              <div className="flex-1 overflow-y-auto">
+                <form onSubmit={guardarUsuario} className="p-8 space-y-6">
                 {/* Mostrar error global si existe */}
                 {error && (
                   <div className="p-4 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-400 rounded-lg shadow-sm">
@@ -1491,29 +1509,166 @@ const GestionUsuarios = () => {
                   </div>
                 </div>
 
-                {/* Botones del formulario con diseño mejorado */}
-                <div className="flex justify-end space-x-4 pt-8 border-t-2 border-gray-100">
+                  {/* Botones del formulario con diseño mejorado */}
+                  <div className="flex justify-end space-x-4 pt-8 border-t-2 border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => cerrarModalConAnimacion()}
+                      className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={
+                        (formUsuario.password !== formUsuario.confirmPassword && (cambiarPassword || !modoEdicion)) ||
+                        usuarioDisponible === false ||
+                        verificandoUsuario
+                      }
+                      className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-transparent rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-600 disabled:hover:to-purple-600 inline-flex items-center"
+                    >
+                      <Save className="w-4 h-4 mr-2" />
+                      {modoEdicion ? 'Actualizar Usuario' : 'Crear Usuario'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal para verificar contraseña actual */}
+        {mostrarModalPassword && (
+          <div className={`fixed inset-0 bg-gray-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn`}>
+            <div className={`bg-white rounded-2xl shadow-3xl w-full max-w-lg max-h-[90vh] border border-gray-200 flex flex-col animate-scaleIn`}>
+              {/* Header moderno con gradiente - Fijo */}
+              <div className="relative bg-gradient-to-r from-amber-600 to-orange-600 rounded-t-2xl p-6 flex-shrink-0">
+                <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                      <Lock className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">
+                        Verificar Identidad
+                      </h2>
+                      <p className="text-amber-100 text-sm">
+                        Confirma tu contraseña actual por seguridad
+                      </p>
+                    </div>
+                  </div>
                   <button
-                    type="button"
-                    onClick={() => cerrarModalConAnimacion()}
-                    className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200"
+                    onClick={() => {
+                      setMostrarModalPassword(false);
+                      setPasswordActual('');
+                      setErrorPasswordActual(null);
+                      setCambiarPassword(false);
+                    }}
+                    className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
                   >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={
-                      (formUsuario.password !== formUsuario.confirmPassword && (cambiarPassword || !modoEdicion)) ||
-                      usuarioDisponible === false ||
-                      verificandoUsuario
-                    }
-                    className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-transparent rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-600 disabled:hover:to-purple-600 inline-flex items-center"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {modoEdicion ? 'Actualizar Usuario' : 'Crear Usuario'}
+                    <X size={20} />
                   </button>
                 </div>
-              </form>
+              </div>
+
+              {/* Contenido con scroll */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-8 space-y-6">
+                {/* Mensaje de advertencia de seguridad */}
+                <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-100 border-l-4 border-amber-400 rounded-lg shadow-sm">
+                  <div className="flex items-center">
+                    <div className="flex-shrink-0">
+                      <AlertCircle className="w-5 h-5 text-amber-500" />
+                    </div>
+                    <div className="ml-3">
+                      <h4 className="text-sm font-semibold text-amber-800 mb-1">
+                        Verificación de Seguridad Requerida
+                      </h4>
+                      <p className="text-sm text-amber-700">
+                        Para cambiar tu contraseña, necesitas confirmar tu contraseña actual. Después del cambio, tu sesión se cerrará automáticamente por seguridad.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Campo de contraseña actual */}
+                <div className="space-y-2">
+                  <label htmlFor="passwordActual" className="block text-sm font-semibold text-gray-700">
+                    <span className="flex items-center">
+                      <Lock className="w-4 h-4 mr-2 text-amber-500" />
+                      Contraseña Actual
+                      <span className="text-red-500 ml-1">*</span>
+                    </span>
+                  </label>
+                  <div className="relative group">
+                    <input
+                      type={mostrarPasswordActual ? 'text' : 'password'}
+                      id="passwordActual"
+                      value={passwordActual}
+                      onChange={(e) => {
+                        setPasswordActual(e.target.value);
+                        setErrorPasswordActual(null);
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          verificarContrasenaActual();
+                        }
+                      }}
+                      className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 focus:bg-white transition-all duration-200 focus:outline-none focus:ring-4 pr-12 ${
+                        errorPasswordActual 
+                          ? 'border-red-400 bg-red-50 focus:border-red-500 focus:ring-red-500/20' 
+                          : 'border-gray-300 hover:border-amber-400 focus:border-amber-500 focus:ring-amber-500/20'
+                      }`}
+                      placeholder="Ingresa tu contraseña actual..."
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setMostrarPasswordActual(prev => !prev)}
+                      className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 hover:text-amber-600 focus:outline-none transition-colors duration-200"
+                    >
+                      {mostrarPasswordActual ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {errorPasswordActual && (
+                    <div className="flex items-center text-red-600 text-sm mt-2">
+                      <AlertCircle className="w-4 h-4 mr-2" />
+                      {errorPasswordActual}
+                    </div>
+                  )}
+                </div>
+
+                  {/* Botones del formulario con diseño mejorado */}
+                  <div className="flex justify-end space-x-4 pt-6 border-t-2 border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMostrarModalPassword(false);
+                        setPasswordActual('');
+                        setErrorPasswordActual(null);
+                        setCambiarPassword(false);
+                      }}
+                      className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={verificarContrasenaActual}
+                      disabled={!passwordActual.trim()}
+                      className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-amber-600 to-orange-600 border-2 border-transparent rounded-xl shadow-lg hover:from-amber-700 hover:to-orange-700 focus:outline-none focus:ring-4 focus:ring-amber-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-amber-600 disabled:hover:to-orange-600 inline-flex items-center"
+                    >
+                      <Shield className="w-4 h-4 mr-2" />
+                      Verificar Contraseña
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}
