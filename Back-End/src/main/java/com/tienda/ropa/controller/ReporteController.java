@@ -18,6 +18,8 @@ import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.ReportePorColorDTO;
 import com.tienda.ropa.dto.ReportePorTallaDTO;
+import com.tienda.ropa.dto.TallaProductoDTO;
+import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.service.ReporteService;
 
 @RestController
@@ -168,6 +170,31 @@ public class ReporteController {
                             : reporteService.obtenerReportePorTalla());
 
             return ResponseEntity.ok(resumen);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Endpoint para obtener tallas de un producto específico
+    @GetMapping("/producto/tallas")
+    public ResponseEntity<List<TallaProductoDTO>> obtenerTallasPorProducto(
+            @RequestParam Long idProducto) {
+        try {
+            List<TallaProductoDTO> tallas = reporteService.obtenerTallasPorProducto(idProducto);
+            return ResponseEntity.ok(tallas);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Endpoint para obtener variantes por color de un producto y talla específicos
+    @GetMapping("/producto/variantes-por-color")
+    public ResponseEntity<List<VariantesPorColorDTO>> obtenerVariantesPorColor(
+            @RequestParam Long idProducto,
+            @RequestParam Long idTalla) {
+        try {
+            List<VariantesPorColorDTO> variantes = reporteService.obtenerVariantesPorColor(idProducto, idTalla);
+            return ResponseEntity.ok(variantes);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

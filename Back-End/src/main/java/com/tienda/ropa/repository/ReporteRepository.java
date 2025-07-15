@@ -13,6 +13,8 @@ import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.ReportePorColorDTO;
 import com.tienda.ropa.dto.ReportePorTallaDTO;
+import com.tienda.ropa.dto.TallaProductoDTO;
+import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.entity.DetalleVenta;
 
 @Repository
@@ -255,4 +257,34 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      @Param("fechaInicio") LocalDateTime fechaInicio,
                      @Param("fechaFin") LocalDateTime fechaFin,
                      Pageable pageable);
+
+       // Consulta para obtener las tallas disponibles de un producto específico
+       @Query("SELECT new com.tienda.ropa.dto.TallaProductoDTO(" +
+                     "t.idTalla, " +
+                     "t.nombreTalla, " +
+                     "COUNT(pv.idProductoVariante)) " +
+                     "FROM ProductoVariante pv " +
+                     "JOIN pv.talla t " +
+                     "WHERE pv.producto.id = :idProducto " +
+                     "GROUP BY t.idTalla, t.nombreTalla " +
+                     "ORDER BY t.nombreTalla")
+       List<TallaProductoDTO> findTallasByProductoId(@Param("idProducto") Long idProducto);
+
+       // Consulta para obtener variantes agrupadas por color para un producto y talla específicos
+       @Query("SELECT new com.tienda.ropa.dto.VariantesPorColorDTO(" +
+                     "c.idColor, " +
+                     "c.nombre, " +
+                     "c.codigoHex, " +
+                     "SUM(pv.cantidad), " +
+                     "COALESCE(SUM(dv.cantidad), 0), " +
+                     "COALESCE(SUM(dv.precioUnitario * dv.cantidad), 0)) " +
+                     "FROM ProductoVariante pv " +
+                     "JOIN pv.color c " +
+                     "LEFT JOIN DetalleVenta dv ON dv.productoVariante.idProductoVariante = pv.idProductoVariante " +
+                     "WHERE pv.producto.id = :idProducto AND pv.talla.idTalla = :idTalla " +
+                     "GROUP BY c.idColor, c.nombre, c.codigoHex " +
+                     "ORDER BY c.nombre")
+       List<VariantesPorColorDTO> findVariantesPorColorByProductoAndTalla(
+                     @Param("idProducto") Long idProducto, 
+                     @Param("idTalla") Long idTalla);
 }

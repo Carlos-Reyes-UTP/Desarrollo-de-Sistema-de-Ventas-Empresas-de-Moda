@@ -8,7 +8,9 @@ import type {
   FiltrosReporte,
   ResumenGeneralVentas,
   ProductoDetalleVenta,
-  VentasPorPeriodo
+  VentasPorPeriodo,
+  TallaProducto,
+  VariantesPorColor
 } from '../interfaces/ReporteVentas';
 
 export const ReporteService = {
@@ -227,6 +229,36 @@ export const ReporteService = {
         fechaInicio: `${ano}-01-01`,
         fechaFin: `${ano}-12-31`
       };
+    }
+  },
+
+  /**
+   * Obtiene las tallas disponibles para un producto específico
+   */
+  getTallasPorProducto: async (idProducto: number): Promise<TallaProducto[]> => {
+    try {
+      const response = await apiClient.get<TallaProducto[]>(
+        `${RUTAS_REPORTES.PRODUCTOS_MAS_VENDIDOS.replace('/productos-mas-vendidos', '/producto/tallas')}?idProducto=${idProducto}`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener tallas del producto:', error);
+      throw new Error(error.response?.data?.message || 'Error al cargar las tallas del producto');
+    }
+  },
+
+  /**
+   * Obtiene las variantes agrupadas por color para un producto y talla específicos
+   */
+  getVariantesPorColor: async (idProducto: number, idTalla: number): Promise<VariantesPorColor[]> => {
+    try {
+      const response = await apiClient.get<VariantesPorColor[]>(
+        `${RUTAS_REPORTES.PRODUCTOS_MAS_VENDIDOS.replace('/productos-mas-vendidos', '/producto/variantes-por-color')}?idProducto=${idProducto}&idTalla=${idTalla}`
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener variantes por color:', error);
+      throw new Error(error.response?.data?.message || 'Error al cargar las variantes por color');
     }
   }
 };

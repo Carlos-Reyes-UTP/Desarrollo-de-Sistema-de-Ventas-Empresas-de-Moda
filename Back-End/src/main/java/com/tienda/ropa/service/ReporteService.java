@@ -14,6 +14,8 @@ import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.ReportePorColorDTO;
 import com.tienda.ropa.dto.ReportePorTallaDTO;
+import com.tienda.ropa.dto.TallaProductoDTO;
+import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.repository.ReporteRepository;
 
 @Service
@@ -174,5 +176,15 @@ public class ReporteService {
         Pageable pageable = PageRequest.of(0, limite);
         return reporteRepository.findProductosMasVendidosPorCategoriaPadreYFecha(
                 idCategoriaPadre, fechaInicio, fechaFin, pageable);
+    }
+
+    // Obtener tallas disponibles para un producto específico
+    public List<TallaProductoDTO> obtenerTallasPorProducto(Long idProducto) {
+        return reporteRepository.findTallasByProductoId(idProducto);
+    }
+
+    // Obtener variantes agrupadas por color para un producto y talla específicos
+    public List<VariantesPorColorDTO> obtenerVariantesPorColor(Long idProducto, Long idTalla) {
+        return reporteRepository.findVariantesPorColorByProductoAndTalla(idProducto, idTalla);
     }
 }

@@ -14,13 +14,85 @@ import {
   Tooltip,
   ResponsiveContainer,
   LineChart,
-  Line
+  Line,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
-import type { ProductoMasVendido, FiltrosReporte } from '../../interfaces/ReporteVentas';
+import type { ProductoMasVendido, FiltrosReporte, TallaProducto, VariantesPorColor } from '../../interfaces/ReporteVentas';
 import { CategoriaService } from '../../services/CategoriaServices';
 import type { Categoria } from '../../interfaces/Categoria';
+
+// Estilos CSS para animaciones
+const animationStyles = `
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  .animate-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+  
+  .slide-in-from-bottom-4 {
+    animation: slideInFromBottom 0.5s ease-out;
+  }
+  
+  .slide-in-from-right-4 {
+    animation: slideInFromRight 0.4s ease-out;
+  }
+  
+  @keyframes slideInFromBottom {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes slideInFromRight {
+    from {
+      opacity: 0;
+      transform: translateX(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+`;
+
+// Insertar estilos en el head del documento
+if (typeof document !== 'undefined') {
+  const styleSheet = document.createElement('style');
+  styleSheet.type = 'text/css';
+  styleSheet.innerText = animationStyles;
+  document.head.appendChild(styleSheet);
+}
 
 // Componente para tooltip personalizado de gráficos
 const CustomTooltip = ({ active, payload }: any) => {
@@ -39,6 +111,50 @@ const CustomTooltip = ({ active, payload }: any) => {
     );
   }
   return null;
+};
+
+// Componente para tooltip personalizado de variantes por color
+const CustomTooltipVariantes = ({ active, payload }: any) => {
+  if (active && payload?.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+        <h4 className="font-semibold text-gray-900 mb-2">{data.nombreColor}</h4>
+        <div className="space-y-1 text-sm">
+          <p><span className="font-medium">Cantidad Vendida:</span> {data.cantidadVendida}</p>
+          <p><span className="font-medium">Stock Actual:</span> {data.cantidadStock}</p>
+          <p><span className="font-medium">Ingresos:</span> S/ {parseFloat(data.ingresosTotales).toLocaleString()}</p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Componente para etiquetas personalizadas del gráfico de torta
+const CustomPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, nombreColor, cantidadVendida, percent }: any) => {
+  // No mostrar etiqueta si no hay ventas
+  if (!cantidadVendida || cantidadVendida === 0) return null;
+  
+  const RADIAN = Math.PI / 180;
+  // Colocar el texto fuera del círculo
+  const radius = outerRadius + 30;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text 
+      x={x} 
+      y={y} 
+      fill="#000000" 
+      textAnchor={x > cx ? 'start' : 'end'} 
+      dominantBaseline="central"
+      fontSize="14"
+      fontWeight="600"
+    >
+      {`${nombreColor}: ${(percent * 100).toFixed(1)}%`}
+    </text>
+  );
 };
 
 const ProductosMasVendidos: React.FC = () => {
@@ -60,6 +176,16 @@ const ProductosMasVendidos: React.FC = () => {
   }>({});
   const [searchCategoria, setSearchCategoria] = useState<string>('');
   const [isCategoriaFocused, setIsCategoriaFocused] = useState(false);
+  
+  // Estados para el análisis detallado por producto
+  const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoMasVendido | null>(null);
+  const [tallasProducto, setTallasProducto] = useState<TallaProducto[]>([]);
+  const [tallaSeleccionada, setTallaSeleccionada] = useState<number | null>(null);
+  const [variantesPorColor, setVariantesPorColor] = useState<VariantesPorColor[]>([]);
+  const [mostrarAnalisisDetallado, setMostrarAnalisisDetallado] = useState(false);
+  const [loadingTallas, setLoadingTallas] = useState(false);
+  const [loadingVariantes, setLoadingVariantes] = useState(false);
+  const [tipoGraficoVariantes, setTipoGraficoVariantes] = useState<'barras' | 'torta'>('barras');
   
   // Referencias para el campo de búsqueda
   const categoriaRef = useRef<HTMLDivElement>(null);
@@ -175,6 +301,51 @@ const ProductosMasVendidos: React.FC = () => {
     setSearchCategoria('');
     setFiltrosAplicados({});
     // No cerramos el panel de filtros automáticamente
+  };
+
+  // Funciones para el análisis detallado
+  const seleccionarProducto = async (producto: ProductoMasVendido) => {
+    setProductoSeleccionado(producto);
+    setMostrarAnalisisDetallado(true);
+    setTallaSeleccionada(null);
+    setVariantesPorColor([]);
+    
+    // Cargar tallas del producto
+    try {
+      setLoadingTallas(true);
+      const tallas = await ReporteService.getTallasPorProducto(producto.idProducto);
+      setTallasProducto(tallas);
+    } catch (error) {
+      console.error('Error al cargar tallas:', error);
+      setTallasProducto([]);
+    } finally {
+      setLoadingTallas(false);
+    }
+  };
+
+  const seleccionarTalla = async (idTalla: number) => {
+    if (!productoSeleccionado) return;
+    
+    setTallaSeleccionada(idTalla);
+    
+    try {
+      setLoadingVariantes(true);
+      const variantes = await ReporteService.getVariantesPorColor(productoSeleccionado.idProducto, idTalla);
+      setVariantesPorColor(variantes);
+    } catch (error) {
+      console.error('Error al cargar variantes por color:', error);
+      setVariantesPorColor([]);
+    } finally {
+      setLoadingVariantes(false);
+    }
+  };
+
+  const cerrarAnalisisDetallado = () => {
+    setMostrarAnalisisDetallado(false);
+    setProductoSeleccionado(null);
+    setTallasProducto([]);
+    setTallaSeleccionada(null);
+    setVariantesPorColor([]);
   };
 
   // Función para aplicar filtros rápidos
@@ -741,6 +912,9 @@ const ProductosMasVendidos: React.FC = () => {
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Código
                   </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -773,11 +947,214 @@ const ProductosMasVendidos: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
                       {producto.codigoIdentificacion}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <button
+                        onClick={() => seleccionarProducto(producto)}
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                        title="Análisis detallado por tallas y colores"
+                      >
+                        📊 Analizar
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {/* Panel de análisis detallado */}
+      {mostrarAnalisisDetallado && productoSeleccionado && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex justify-between items-center mb-6">
+            <div className="transform transition-all duration-300 ease-out">
+              <h3 className="text-xl font-bold text-gray-900">📊 Análisis Detallado</h3>
+              <p className="text-lg text-gray-600 mt-1">
+                Producto: <span className="font-semibold text-blue-600">{productoSeleccionado.nombreProducto}</span>
+              </p>
+            </div>
+            <button
+              onClick={cerrarAnalisisDetallado}
+              className="text-gray-400 hover:text-gray-600 transition-all duration-300 ease-out p-2 rounded-full hover:bg-gray-100 hover:scale-110 transform"
+              aria-label="Cerrar análisis detallado"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Sección de tallas */}
+          <div className="mb-8">
+            <h4 className="text-lg font-semibold text-gray-900 mb-4">👕 Selecciona una talla para ver variantes por color:</h4>
+            {loadingTallas ? (
+              <div className="flex items-center justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span className="ml-2 text-gray-600">Cargando tallas...</span>
+              </div>
+            ) : tallasProducto.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {tallasProducto.map((talla, index) => (
+                  <button
+                    key={talla.idTalla}
+                    onClick={() => seleccionarTalla(talla.idTalla)}
+                    className={`p-3 rounded-lg border-2 font-medium transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-md ${
+                      tallaSeleccionada === talla.idTalla
+                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                    style={{
+                      animationDelay: `${index * 50}ms`,
+                      animation: 'fadeInUp 0.4s ease-out forwards'
+                    }}
+                  >
+                    <div className="text-sm font-bold">{talla.nombreTalla}</div>
+                    <div className="text-xs text-gray-500">{talla.cantidadVariantes} variantes</div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <CubeIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>No se encontraron tallas para este producto</p>
+              </div>
+            )}
+          </div>
+
+          {/* Sección de variantes por color */}
+          {tallaSeleccionada && (
+            <div className="transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-right-4">
+              <div className="flex justify-between items-center mb-4">
+                <h4 className="text-lg font-semibold text-gray-900">
+                  🎨 Variantes por color - Talla: {tallasProducto.find(t => t.idTalla === tallaSeleccionada)?.nombreTalla}
+                </h4>
+                {/* Selector de tipo de gráfico */}
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setTipoGraficoVariantes('barras')}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
+                      tipoGraficoVariantes === 'barras'
+                        ? 'bg-white text-blue-600 shadow-sm transform scale-105'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Barras
+                  </button>
+                  <button
+                    onClick={() => setTipoGraficoVariantes('torta')}
+                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
+                      tipoGraficoVariantes === 'torta'
+                        ? 'bg-white text-blue-600 shadow-sm transform scale-105'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Torta
+                  </button>
+                </div>
+              </div>
+              {loadingVariantes ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-gray-600">Cargando variantes...</span>
+                </div>
+              ) : variantesPorColor.length > 0 ? (
+                <div className="space-y-4">
+                  {/* Gráfico dinámico para variantes por color */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h5 className="text-md font-medium text-gray-800 mb-3">Distribución por colores</h5>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        {tipoGraficoVariantes === 'barras' ? (
+                          <BarChart data={variantesPorColor} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="nombreColor" />
+                            <YAxis />
+                            <Tooltip content={<CustomTooltipVariantes />} />
+                            <Bar dataKey="cantidadVendida" fill="#3B82F6" name="Cantidad Vendida" />
+                          </BarChart>
+                        ) : (
+                          <PieChart>
+                            <Pie
+                              data={variantesPorColor.filter(v => v.cantidadVendida > 0)}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={<CustomPieLabel />}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="cantidadVendida"
+                            >
+                              {variantesPorColor.filter(v => v.cantidadVendida > 0).map((entry, index) => (
+                                <Cell 
+                                  key={`color-${entry.idColor}`} 
+                                  fill={entry.hexColor || `hsl(${index * 45}, 70%, 60%)`}
+                                />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltipVariantes />} />
+                          </PieChart>
+                        )}
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+
+                  {/* Tabla detallada */}
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Color
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Stock Actual
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Cantidad Vendida
+                          </th>
+                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Ingresos Totales
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {variantesPorColor.map((variante) => (
+                          <tr key={variante.idColor} className="hover:bg-gray-50">
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div 
+                                  className="flex-shrink-0 h-4 w-4 rounded-full mr-3 border border-gray-300"
+                                  style={{ 
+                                    backgroundColor: variante.hexColor || '#gray-300'
+                                  }}
+                                ></div>
+                                <span className="text-sm font-medium text-gray-900">{variante.nombreColor}</span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                              {variante.cantidadStock}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                              {variante.cantidadVendida}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
+                              S/ {parseFloat(variante.ingresosTotales.toString()).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <CubeIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                  <p>No se encontraron variantes para esta talla</p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
