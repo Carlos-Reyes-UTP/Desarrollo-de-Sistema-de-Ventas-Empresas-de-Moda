@@ -12,15 +12,15 @@ interface ReporteData {
 }
 
 interface DetalleExportacion {
-  usuario: string;
-  fechaVenta: string;
-  metodoPago: string;
-  cliente: string;
-  tipoComprobante: string;
-  nombreVariante: string;
-  cantidad: number;
-  precioVendido: number;
-  subtotal: number;
+  "Usuario": string;
+  "Fecha de Venta": string;
+  "Metodo De Pago": string;
+  "Cliente": string;
+  "Tipo de Comprobante": string;
+  "Nombre del Producto": string;
+  "Cantidad": number;
+  "Precio Vendido": number;
+  "Sub Total": number;
 }
 
 type TipoPeriodo = 'diario' | 'semanal' | 'mensual';
@@ -253,19 +253,28 @@ const ReporteDeVentas: React.FC = () => {
     });
   };
 
-  const exportarAExcel = () => {
+  const exportarAExcel = async () => {
     if (ventas.length === 0) {
       alert('No hay datos para exportar');
       return;
     }
 
-    const datosExportacion: DetalleExportacion[] = [];
+    try {
+      // Mostrar indicador de carga
+      const loadingToast = document.createElement('div');
+      loadingToast.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      loadingToast.innerHTML = `
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        <span>Generando reporte de ventas...</span>
+      `;
+      document.body.appendChild(loadingToast);
+
+      const datosExportacion: DetalleExportacion[] = [];
 
     ventas.forEach(venta => {
       if (venta.detalles && venta.detalles.length > 0) {
         venta.detalles.forEach(detalle => {
-          // Construir el nombre completo de la variante
-          // Usar el producto del detalle o el de la variante (acceso seguro)
+          // Construir el nombre completo de la variante con color y talla
           const nombreProducto = (detalle as any).producto?.nombre || detalle.productoVariante?.producto?.nombre || 'Producto sin nombre';
           const nombreColor = detalle.productoVariante?.color?.nombre || 'Sin color';
           const nombreTalla = detalle.productoVariante?.talla?.nombreTalla || 'Talla única';
@@ -277,8 +286,8 @@ const ReporteDeVentas: React.FC = () => {
             : (venta.metodoPago?.nombre || venta.metodoPago?.tipo || 'No disponible');
           
           datosExportacion.push({
-            usuario: venta.usuario?.usuario || 'No disponible',
-            fechaVenta: parsearFechaVenta(venta.fechaVenta).toLocaleString('es-PE', {
+            "Usuario": venta.usuario?.usuario || 'No disponible',
+            "Fecha de Venta": parsearFechaVenta(venta.fechaVenta).toLocaleString('es-PE', {
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
@@ -287,13 +296,13 @@ const ReporteDeVentas: React.FC = () => {
               second: '2-digit',
               hour12: false
             }),
-            metodoPago: metodoPago,
-            cliente: venta.cliente?.nombreCliente || 'Cliente general',
-            tipoComprobante: venta.tipoComprobante || 'Boleta',
-            nombreVariante: nombreCompleto,
-            cantidad: detalle.cantidad,
-            precioVendido: detalle.precioUnitario,
-            subtotal: detalle.cantidad * detalle.precioUnitario
+            "Metodo De Pago": metodoPago,
+            "Cliente": venta.cliente?.nombreCliente || 'Cliente general',
+            "Tipo de Comprobante": venta.tipoComprobante || 'Boleta',
+            "Nombre del Producto": nombreCompleto,
+            "Cantidad": detalle.cantidad,
+            "Precio Vendido": detalle.precioUnitario,
+            "Sub Total": detalle.cantidad * detalle.precioUnitario
           });
         });
       } else {
@@ -303,8 +312,8 @@ const ReporteDeVentas: React.FC = () => {
           : (venta.metodoPago?.nombre || venta.metodoPago?.tipo || 'No disponible');
         
         datosExportacion.push({
-          usuario: venta.usuario?.usuario || 'No disponible',
-          fechaVenta: parsearFechaVenta(venta.fechaVenta).toLocaleString('es-PE', {
+          "Usuario": venta.usuario?.usuario || 'No disponible',
+          "Fecha de Venta": parsearFechaVenta(venta.fechaVenta).toLocaleString('es-PE', {
             year: 'numeric',
             month: '2-digit',
             day: '2-digit',
@@ -313,13 +322,13 @@ const ReporteDeVentas: React.FC = () => {
             second: '2-digit',
             hour12: false
           }),
-          metodoPago: metodoPago,
-          cliente: venta.cliente?.nombreCliente || 'Cliente general',
-          tipoComprobante: venta.tipoComprobante || 'Boleta',
-          nombreVariante: 'Sin detalles disponibles',
-          cantidad: 0,
-          precioVendido: 0,
-          subtotal: venta.totalVentas || 0
+          "Metodo De Pago": metodoPago,
+          "Cliente": venta.cliente?.nombreCliente || 'Cliente general',
+          "Tipo de Comprobante": venta.tipoComprobante || 'Boleta',
+          "Nombre del Producto": 'Sin detalles disponibles',
+          "Cantidad": 0,
+          "Precio Vendido": 0,
+          "Sub Total": venta.totalVentas || 0
         });
       }
     });
@@ -335,6 +344,37 @@ const ReporteDeVentas: React.FC = () => {
 
     // Descargar archivo
     XLSX.writeFile(wb, nombreArchivo);
+
+    // Remover indicador de carga y mostrar éxito
+    document.body.removeChild(loadingToast);
+    
+    const successToast = document.createElement('div');
+    successToast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+    successToast.innerHTML = `
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+      </svg>
+      <span>Reporte de ventas exportado exitosamente</span>
+    `;
+    document.body.appendChild(successToast);
+    
+    setTimeout(() => {
+      if (document.body.contains(successToast)) {
+        document.body.removeChild(successToast);
+      }
+    }, 3000);
+
+    } catch (error) {
+      console.error('Error al exportar datos:', error);
+      
+      // Remover indicador de carga si existe
+      const existingToast = document.querySelector('.fixed.top-4.right-4.bg-blue-600');
+      if (existingToast && document.body.contains(existingToast)) {
+        document.body.removeChild(existingToast);
+      }
+      
+      alert('Error al generar el reporte. Inténtalo nuevamente.');
+    }
   };
 
   const formatearMoneda = (valor: number) => {
