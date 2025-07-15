@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   CubeIcon,
   FunnelIcon,
@@ -21,7 +21,7 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
-import type { ProductoMasVendido, FiltrosReporte, TallaProducto, VariantesPorColor } from '../../interfaces/ReporteVentas';
+import type { ProductoMasVendido, TallaProducto, VariantesPorColor } from '../../interfaces/ReporteVentas';
 import { CategoriaService } from '../../services/CategoriaServices';
 import type { Categoria } from '../../interfaces/Categoria';
 
@@ -161,7 +161,6 @@ const ProductosMasVendidos: React.FC = () => {
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filtros, setFiltros] = useState<FiltrosReporte>({});
   const [vistaGrafico, setVistaGrafico] = useState<'barras' | 'linea' | 'tabla'>('barras');
   const [busqueda, setBusqueda] = useState('');
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -218,30 +217,26 @@ const ProductosMasVendidos: React.FC = () => {
     };
   }, [isCategoriaFocused, searchCategoria]);
 
-  // Efecto separado para aplicar filtros solo cuando sea necesario
+  // Efecto optimizado para aplicar filtros - con mejor control de dependencias
   useEffect(() => {
-    const aplicarFiltros = () => {
-      // Solo aplicar filtros si:
-      // 1. No hay fechas seleccionadas (carga inicial)
-      // 2. Ambas fechas están seleccionadas
-      // 3. Solo cambió la categoría
-      const debeAplicarFiltros = 
-        (!fechaInicio && !fechaFin) || // Carga inicial
-        (fechaInicio && fechaFin) || // Ambas fechas completas
-        (categoriaPadre !== filtrosAplicados.categoriaPadre); // Categoría cambió
-
-      if (debeAplicarFiltros) {
-        setFiltrosAplicados({
-          fechaInicio: fechaInicio && fechaFin ? fechaInicio : filtrosAplicados.fechaInicio,
-          fechaFin: fechaInicio && fechaFin ? fechaFin : filtrosAplicados.fechaFin,
-          categoriaPadre
-        });
-      }
+    // Solo actualizar filtros aplicados si realmente cambió algo significativo
+    const fechasCompletas = fechaInicio && fechaFin;
+    const nuevosFiltos = {
+      fechaInicio: fechasCompletas ? fechaInicio : '',
+      fechaFin: fechasCompletas ? fechaFin : '',
+      categoriaPadre: categoriaPadre || ''
     };
+    
+    // Prevenir actualizaciones innecesarias comparando valores actuales
+    const hayDiferencias = 
+      nuevosFiltos.fechaInicio !== (filtrosAplicados.fechaInicio || '') ||
+      nuevosFiltos.fechaFin !== (filtrosAplicados.fechaFin || '') ||
+      nuevosFiltos.categoriaPadre !== (filtrosAplicados.categoriaPadre || '');
 
-    // Usar timeout para evitar llamadas excesivas
-    const timeoutId = setTimeout(aplicarFiltros, 300);
-    return () => clearTimeout(timeoutId);
+    if (hayDiferencias) {
+      setFiltrosAplicados(nuevosFiltos);
+    }
+    // Eliminamos filtrosAplicados de las dependencias para evitar bucles infinitos
   }, [fechaInicio, fechaFin, categoriaPadre]);
 
   useEffect(() => {
@@ -249,21 +244,18 @@ const ProductosMasVendidos: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        let filtrosReporte = { ...filtros };
+        let filtrosReporte: any = {};
         
         if (filtrosAplicados.categoriaPadre) {
-          filtrosReporte = { ...filtrosReporte, idCategoriaPadre: filtrosAplicados.categoriaPadre };
+          filtrosReporte.idCategoriaPadre = filtrosAplicados.categoriaPadre;
         }
         
         if (filtrosAplicados.fechaInicio && filtrosAplicados.fechaFin) {
           // Convertir fechas a formato ISO con hora
           const fechaInicioISO = new Date(filtrosAplicados.fechaInicio + 'T00:00:00').toISOString();
           const fechaFinISO = new Date(filtrosAplicados.fechaFin + 'T23:59:59').toISOString();
-          filtrosReporte = { 
-            ...filtrosReporte, 
-            fechaInicio: fechaInicioISO,
-            fechaFin: fechaFinISO
-          };
+          filtrosReporte.fechaInicio = fechaInicioISO;
+          filtrosReporte.fechaFin = fechaFinISO;
         }
         
         console.log('Filtros enviados al backend:', filtrosReporte);
@@ -277,13 +269,26 @@ const ProductosMasVendidos: React.FC = () => {
         setLoading(false);
       }
     };
+    
+    // Solo cargar si hay cambios en los filtros o es la primera carga
     cargarProductos();
-  }, [filtros, filtrosAplicados]);
+    
+  }, [JSON.stringify(filtrosAplicados)]); // Usar JSON.stringify para comparación profunda
 
-  // Función para filtrar categorías según el término de búsqueda
-  const categoriasFiltradas = categorias.filter(categoria =>
-    searchCategoria === '' || 
-    categoria.nombre.toLowerCase().includes(searchCategoria.toLowerCase())
+  // Función para filtrar categorías según el término de búsqueda - optimizada con useMemo
+  const categoriasFiltradas = useMemo(() => 
+    categorias.filter(categoria =>
+      searchCategoria === '' || 
+      categoria.nombre.toLowerCase().includes(searchCategoria.toLowerCase())
+    ), [categorias, searchCategoria]
+  );
+
+  // Productos filtrados optimizados con useMemo para evitar re-renders innecesarios
+  const productosFiltrados = useMemo(() => 
+    productos.filter(producto =>
+      producto.nombreProducto.toLowerCase().includes(busqueda.toLowerCase()) ||
+      (producto.categoria?.toLowerCase().includes(busqueda.toLowerCase()))
+    ), [productos, busqueda]
   );
 
   // Función para limpiar la selección de categoría
@@ -326,10 +331,12 @@ const ProductosMasVendidos: React.FC = () => {
   const seleccionarTalla = async (idTalla: number) => {
     if (!productoSeleccionado) return;
     
+    // Actualizar la talla seleccionada inmediatamente para mostrar feedback visual
     setTallaSeleccionada(idTalla);
     
     try {
       setLoadingVariantes(true);
+      // Mantener las variantes anteriores mientras carga para evitar parpadeo
       const variantes = await ReporteService.getVariantesPorColor(productoSeleccionado.idProducto, idTalla);
       setVariantesPorColor(variantes);
     } catch (error) {
@@ -348,10 +355,9 @@ const ProductosMasVendidos: React.FC = () => {
     setVariantesPorColor([]);
   };
 
-  // Función para aplicar filtros rápidos
+  // Función para aplicar filtros rápidos - simplificada para evitar dobles cargas
   const aplicarFiltroRapido = (tipo: 'hoy' | 'semana' | 'mes') => {
     const hoy = new Date();
-    // Usar zona horaria local para evitar problemas con UTC
     const fechaFinStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
     
     let fechaInicioStr = '';
@@ -374,20 +380,10 @@ const ProductosMasVendidos: React.FC = () => {
       }
     }
     
-    // Actualizar tanto el estado visual como los filtros aplicados
+    // Solo actualizar los estados de entrada, el useEffect se encargará del resto
     setFechaInicio(fechaInicioStr);
     setFechaFin(fechaFinStr);
-    setFiltrosAplicados(prev => ({
-      ...prev,
-      fechaInicio: fechaInicioStr,
-      fechaFin: fechaFinStr
-    }));
   };
-
-  const productosFiltrados = productos.filter(producto =>
-    producto.nombreProducto.toLowerCase().includes(busqueda.toLowerCase()) ||
-    (producto.categoria?.toLowerCase().includes(busqueda.toLowerCase()))
-  );
 
   // Función para generar el formato completo de categorías
   const formatearCategoriaCompleta = (producto: ProductoMasVendido): string => {
@@ -541,38 +537,56 @@ const ProductosMasVendidos: React.FC = () => {
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 relative"
                style={{ zIndex: 1 }}>
-            {/* Campo de búsqueda de categorías */}
-            <div className="relative" ref={categoriaRef} style={{ zIndex: 10 }}>
+            {/* Campo de búsqueda de categorías - optimizado */}
+            <div className="relative h-[4.5rem]" ref={categoriaRef} style={{ zIndex: 10 }}>
               <label htmlFor="searchCategoria" className="block text-sm font-medium text-gray-700 mb-2">
                 🗂️ Categoría Principal
               </label>
-              <input
-                id="searchCategoria"
-                type="text"
-                placeholder={categoriaPadre ? "Categoría seleccionada" : "Buscar categoría principal..."}
-                value={searchCategoria}
-                onChange={(e) => setSearchCategoria(e.target.value)}
-                onFocus={() => setIsCategoriaFocused(true)}
-                onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 150)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Escape') {
-                    setSearchCategoria('');
-                  } else if (e.key === 'Enter' && categoriasFiltradas.length === 1) {
-                    setCategoriaPadre(categoriasFiltradas[0].idCategoria?.toString() || '');
-                    setSearchCategoria('');
-                  }
-                }}
-                onMouseDown={(e) => e.stopPropagation()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-                disabled={!!categoriaPadre}
-              />
-              
-              {/* Indicador de resultados */}
-              {searchCategoria && !categoriaPadre && (
-                <div className="absolute right-3 top-9 text-xs text-gray-500 bg-white px-1">
-                  {categoriasFiltradas.length} resultado{categoriasFiltradas.length !== 1 ? 's' : ''}
-                </div>
-              )}
+              <div className="relative">
+                <input
+                  id="searchCategoria"
+                  type="text"
+                  placeholder={categoriaPadre ? "Categoría seleccionada" : "Buscar categoría principal..."}
+                  value={searchCategoria}
+                  onChange={(e) => setSearchCategoria(e.target.value)}
+                  onFocus={() => setIsCategoriaFocused(true)}
+                  onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 150)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Escape') {
+                      setSearchCategoria('');
+                    } else if (e.key === 'Enter' && categoriasFiltradas.length === 1) {
+                      setCategoriaPadre(categoriasFiltradas[0].idCategoria?.toString() || '');
+                      setSearchCategoria('');
+                    }
+                  }}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  disabled={!!categoriaPadre}
+                />
+                
+                {/* Indicador de resultados */}
+                {searchCategoria && !categoriaPadre && (
+                  <div className="absolute right-3 top-2.5 text-xs text-gray-500 bg-white px-1">
+                    {categoriasFiltradas.length} resultado{categoriasFiltradas.length !== 1 ? 's' : ''}
+                  </div>
+                )}
+                
+                {/* Mostrar categoría seleccionada - con posición corregida */}
+                {categoriaPadre && !searchCategoria && (
+                  <div className="absolute inset-0 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
+                    <span className="text-blue-800 font-medium text-sm">
+                      {categorias.find(c => c.idCategoria?.toString() === categoriaPadre)?.nombre}
+                    </span>
+                    <button
+                      onClick={limpiarSeleccionCategoria}
+                      className="text-blue-600 hover:text-blue-800 ml-2 p-1 hover:bg-blue-100 rounded-full transition-colors"
+                      title="Limpiar selección"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
+              </div>
               
               {/* Lista desplegable de categorías filtradas */}
               {(isCategoriaFocused || searchCategoria) && !categoriaPadre && categoriasFiltradas.length > 0 && (
@@ -631,22 +645,6 @@ const ProductosMasVendidos: React.FC = () => {
                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
                      }}>
                   No se encontraron categorías
-                </div>
-              )}
-              
-              {/* Mostrar categoría seleccionada */}
-              {categoriaPadre && !searchCategoria && (
-                <div className="absolute inset-x-0 top-9 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
-                  <span className="text-blue-800 font-medium text-sm">
-                    {categorias.find(c => c.idCategoria?.toString() === categoriaPadre)?.nombre}
-                  </span>
-                  <button
-                    onClick={limpiarSeleccionCategoria}
-                    className="text-blue-600 hover:text-blue-800 ml-2 p-1"
-                    title="Limpiar selección"
-                  >
-                    ✕
-                  </button>
                 </div>
               )}
             </div>
@@ -1053,12 +1051,18 @@ const ProductosMasVendidos: React.FC = () => {
                   </button>
                 </div>
               </div>
-              {loadingVariantes ? (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                  <span className="ml-2 text-gray-600">Cargando variantes...</span>
-                </div>
-              ) : variantesPorColor.length > 0 ? (
+              {/* Contenedor con altura fija para evitar saltos visuales */}
+              <div className="min-h-[400px] relative">
+                {loadingVariantes && (
+                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                    <div className="flex items-center space-x-3">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                      <span className="text-gray-700 font-medium">Cargando variantes...</span>
+                    </div>
+                  </div>
+                )}
+                
+                {variantesPorColor.length > 0 ? (
                 <div className="space-y-4">
                   {/* Gráfico dinámico para variantes por color */}
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -1066,7 +1070,7 @@ const ProductosMasVendidos: React.FC = () => {
                     <div className="h-64">
                       <ResponsiveContainer width="100%" height="100%">
                         {tipoGraficoVariantes === 'barras' ? (
-                          <BarChart data={variantesPorColor} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                          <BarChart data={variantesPorColor.filter(v => v.cantidadVendida > 0)} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="nombreColor" />
                             <YAxis />
@@ -1147,12 +1151,13 @@ const ProductosMasVendidos: React.FC = () => {
                     </table>
                   </div>
                 </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <CubeIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                  <p>No se encontraron variantes para esta talla</p>
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <CubeIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                    <p>No se encontraron variantes para esta talla</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
