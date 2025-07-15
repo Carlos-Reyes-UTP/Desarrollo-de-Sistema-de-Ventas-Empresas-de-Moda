@@ -203,18 +203,9 @@ const ProductosMasVendidos: React.FC = () => {
       }
     };
 
-    const handleScroll = () => {
-      if (isCategoriaFocused || searchCategoria) {
-        setSearchCategoria('');
-        setIsCategoriaFocused(false);
-      }
-    };
-
     document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', handleScroll, true);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, true);
     };
   }, [isCategoriaFocused, searchCategoria]);
 
@@ -732,13 +723,15 @@ const ProductosMasVendidos: React.FC = () => {
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 relative"
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 relative transition-all duration-300 ease-out"
                style={{ zIndex: 1 }}>
-            {/* Campo de búsqueda de categorías - optimizado */}
-            <div className="relative h-[4.5rem]" ref={categoriaRef} style={{ zIndex: 10 }}>
+            {/* Campo de búsqueda de categorías - DISEÑO NUEVO SIN PROBLEMAS */}
+            <div className="relative" ref={categoriaRef}>
               <label htmlFor="searchCategoria" className="block text-sm font-medium text-gray-700 mb-2">
                 🗂️ Categoría Principal
               </label>
+              
+              {/* Input de búsqueda */}
               <div className="relative">
                 <input
                   id="searchCategoria"
@@ -747,36 +740,31 @@ const ProductosMasVendidos: React.FC = () => {
                   value={searchCategoria}
                   onChange={(e) => setSearchCategoria(e.target.value)}
                   onFocus={() => setIsCategoriaFocused(true)}
-                  onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 150)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') {
-                      setSearchCategoria('');
-                    } else if (e.key === 'Enter' && categoriasFiltradas.length === 1) {
-                      setCategoriaPadre(categoriasFiltradas[0].idCategoria?.toString() || '');
-                      setSearchCategoria('');
-                    }
-                  }}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 200)}
+                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
+                    (isCategoriaFocused || searchCategoria) && !categoriaPadre 
+                      ? 'border-blue-300 shadow-md bg-blue-50/30' 
+                      : 'border-gray-300 bg-white'
+                  }`}
                   disabled={!!categoriaPadre}
                 />
                 
                 {/* Indicador de resultados */}
                 {searchCategoria && !categoriaPadre && (
-                  <div className="absolute right-3 top-2.5 text-xs text-gray-500 bg-white px-1">
+                  <div className="absolute right-3 top-2.5 text-xs text-blue-600 bg-white px-2 py-1 rounded-full shadow-sm border border-blue-200">
                     {categoriasFiltradas.length} resultado{categoriasFiltradas.length !== 1 ? 's' : ''}
                   </div>
                 )}
                 
-                {/* Mostrar categoría seleccionada - con posición corregida */}
+                {/* Mostrar categoría seleccionada */}
                 {categoriaPadre && !searchCategoria && (
-                  <div className="absolute inset-0 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
+                  <div className="absolute inset-0 px-3 py-2 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-300 rounded-lg flex items-center justify-between shadow-md">
                     <span className="text-blue-800 font-medium text-sm">
                       {categorias.find(c => c.idCategoria?.toString() === categoriaPadre)?.nombre}
                     </span>
                     <button
                       onClick={limpiarSeleccionCategoria}
-                      className="text-blue-600 hover:text-blue-800 ml-2 p-1 hover:bg-blue-100 rounded-full transition-colors"
+                      className="text-blue-600 hover:text-blue-800 ml-2 p-1 hover:bg-blue-200 rounded-full transition-all duration-200"
                       title="Limpiar selección"
                     >
                       ✕
@@ -785,63 +773,53 @@ const ProductosMasVendidos: React.FC = () => {
                 )}
               </div>
               
-              {/* Lista desplegable de categorías filtradas */}
-              {(isCategoriaFocused || searchCategoria) && !categoriaPadre && categoriasFiltradas.length > 0 && (
-                <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-2xl max-h-48 overflow-y-auto"
-                     style={{ 
-                       position: 'absolute',
-                       top: '100%',
-                       left: 0,
-                       right: 0,
-                       zIndex: 9999,
-                       backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                       backdropFilter: 'blur(8px)',
-                       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                     }}>
-                  {categoriasFiltradas.map(categoria => (
-                    <button
-                      key={categoria.idCategoria}
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setCategoriaPadre(categoria.idCategoria?.toString() || '');
-                        setSearchCategoria('');
-                        setIsCategoriaFocused(false);
-                      }}
-                      onMouseDown={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          setCategoriaPadre(categoria.idCategoria?.toString() || '');
-                          setSearchCategoria('');
-                          setIsCategoriaFocused(false);
-                        }
-                      }}
-                      className="w-full px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 text-left focus:outline-none focus:bg-blue-50 transition-colors duration-150"
-                    >
-                      <span className="font-medium text-gray-900">{categoria.nombre}</span>
-                    </button>
-                  ))}
-                </div>
-              )}
-              
-              {/* Mensaje cuando no hay resultados */}
-              {searchCategoria && categoriasFiltradas.length === 0 && (
-                <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-2xl p-3 text-center text-gray-500 text-sm"
-                     style={{ 
-                       position: 'absolute',
-                       top: '100%',
-                       left: 0,
-                       right: 0,
-                       zIndex: 9999,
-                       backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                       backdropFilter: 'blur(8px)',
-                       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-                     }}>
-                  No se encontraron categorías
+              {/* Lista de resultados - NUEVO DISEÑO INTEGRADO */}
+              {(isCategoriaFocused || searchCategoria) && !categoriaPadre && (
+                <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-hidden">
+                  {categoriasFiltradas.length > 0 ? (
+                    <>
+                      {/* Header */}
+                      <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
+                        <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                          Categorías Disponibles ({categoriasFiltradas.length})
+                        </span>
+                      </div>
+                      
+                      {/* Lista con scroll interno */}
+                      <div className="max-h-36 overflow-y-auto">
+                        {categoriasFiltradas.map((categoria) => (
+                          <button
+                            key={categoria.idCategoria}
+                            onClick={() => {
+                              setCategoriaPadre(categoria.idCategoria?.toString() || '');
+                              setSearchCategoria('');
+                              setIsCategoriaFocused(false);
+                            }}
+                            onMouseDown={(e) => e.preventDefault()}
+                            className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b border-gray-100 last:border-b-0 transition-colors duration-150 group"
+                          >
+                            <div className="flex items-center space-x-2">
+                              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                              <span className="text-gray-900 group-hover:text-blue-700 font-medium">
+                                {categoria.nombre}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    /* Mensaje de no encontrado */
+                    <div className="p-4 text-center">
+                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">No se encontraron categorías</p>
+                      <p className="text-xs text-gray-500">Intenta con otro término de búsqueda</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -970,7 +948,7 @@ const ProductosMasVendidos: React.FC = () => {
       </div>
 
       {/* Barra de búsqueda y vista */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 relative" style={{ zIndex: 1 }}>
         <div className="relative flex-1">
           <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
           <input
@@ -978,7 +956,7 @@ const ProductosMasVendidos: React.FC = () => {
             placeholder="Buscar productos..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm relative z-1"
           />
         </div>
         
@@ -1400,3 +1378,122 @@ const ProductosMasVendidos: React.FC = () => {
 };
 
 export default ProductosMasVendidos;
+
+// Estilos CSS para animaciones y scrollbar personalizado
+const styles = `
+  @keyframes slideInFromLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+    border-radius: 4px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #3b82f6, #1d4ed8);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #1d4ed8, #1e40af);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  /* Scrollbar para Firefox */
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #3b82f6 #f1f5f9;
+  }
+
+  /* Animaciones adicionales para mejor UX */
+  .animate-in {
+    animation-fill-mode: both;
+  }
+
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .scale-in-95 {
+    animation: scaleIn95 0.2s ease-out;
+  }
+
+  .slide-in-from-right-2 {
+    animation: slideInFromRight2 0.2s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  @keyframes scaleIn95 {
+    from { 
+      opacity: 0; 
+      transform: scale(0.95); 
+    }
+    to { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+  }
+
+  @keyframes slideInFromRight2 {
+    from { 
+      opacity: 0; 
+      transform: translateX(8px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateX(0); 
+    }
+  }
+
+  /* Efecto de backdrop para el dropdown */
+  .dropdown-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(2px);
+    z-index: 99998;
+  }
+
+  /* Estilos para evitar conflictos de z-index */
+  .dropdown-container {
+    position: relative;
+    z-index: 99999 !important;
+  }
+
+  .dropdown-container .dropdown-list {
+    position: absolute !important;
+    z-index: 99999 !important;
+    top: 100% !important;
+    left: 0 !important;
+    right: 0 !important;
+  }
+`;
+
+// Agregar estilos al documento si no existen
+if (typeof document !== 'undefined' && !document.getElementById('productos-mas-vendidos-styles')) {
+  const styleSheet = document.createElement('style');
+  styleSheet.id = 'productos-mas-vendidos-styles';
+  styleSheet.textContent = styles;
+  document.head.appendChild(styleSheet);
+}
