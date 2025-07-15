@@ -18,6 +18,8 @@ import { VentaService } from '../services/VentaServices';
 import { ServicioUsuarios } from '../services/UsuarioServices';
 import { useAuthReady } from '../hooks/useAuthReady';
 import { AuthLoadingScreen } from '../components/auth/AuthLoadingScreen';
+
+
 import ModalHacerMayorista from '../components/mayoristas/ModalHacerMayorista';
 
 // Importar tipos
@@ -300,7 +302,7 @@ const DashboardAdmin = () => {
     setDatosGraficoSemanal(datos);
   };
 
-  // Calcular top 5 clientes compradores
+  // Calcular top 10 clientes compradores
   const calcularTopClientes = (ventasData: Venta[]) => {
     if (!ventasData || ventasData.length === 0) {
       setTopClientes([]);
@@ -343,11 +345,11 @@ const DashboardAdmin = () => {
 
     clientesArray.sort((a, b) => b.totalCompras - a.totalCompras);
 
-    // Tomar los primeros 5
-    setTopClientes(clientesArray.slice(0, 5));
+    // Tomar los primeros 10
+    setTopClientes(clientesArray.slice(0, 10));
   };
 
-  // Calcular top 5 clientes por cantidad de compras
+  // Calcular top 10 clientes por cantidad de compras
   const calcularTopClientesPorCantidad = (ventasData: Venta[]) => {
     if (!ventasData || ventasData.length === 0) {
       setTopClientesPorCompras([]);
@@ -392,8 +394,8 @@ const DashboardAdmin = () => {
 
     clientesArray.sort((a, b) => b.cantidadCompras - a.cantidadCompras);
 
-    // Tomar los primeros 5
-    setTopClientesPorCompras(clientesArray.slice(0, 5));
+    // Tomar los primeros 10
+    setTopClientesPorCompras(clientesArray.slice(0, 10));
   };
 
   // Obtener la fecha actual con formato
@@ -675,8 +677,8 @@ const DashboardAdmin = () => {
         <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-lg">
           <p className="text-sm text-blue-700">
             {modoVisualizacion === 'monto' 
-              ? '📊 Mostrando los 5 clientes que más dinero han gastado en compras'
-              : '🛒 Mostrando los 5 clientes que más compras han realizado (número de transacciones)'
+              ? '📊 Mostrando los 10 clientes que más dinero han gastado en compras'
+              : '🛒 Mostrando los 10 clientes que más compras han realizado (número de transacciones)'
             }
           </p>
         </div>

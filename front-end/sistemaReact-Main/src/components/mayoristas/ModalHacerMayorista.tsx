@@ -20,6 +20,54 @@ import { MayoristaService } from '../../services/MayoristaService';
 import type { Cliente } from '../../interfaces/Cliente';
 import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../../interfaces/MayoristaDTO';
 
+// Estilos CSS para las animaciones del modal
+const modalStyles = `
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  @keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+  }
+  
+  @keyframes scaleIn {
+    from { 
+      opacity: 0; 
+      transform: scale(0.9); 
+    }
+    to { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+  }
+  
+  @keyframes scaleOut {
+    from { 
+      opacity: 1; 
+      transform: scale(1); 
+    }
+    to { 
+      opacity: 0; 
+      transform: scale(0.9); 
+    }
+  }
+  
+  .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+  .animate-fadeOut { animation: fadeOut 0.3s ease-out; }
+  .animate-scaleIn { animation: scaleIn 0.3s ease-out; }
+  .animate-scaleOut { animation: scaleOut 0.3s ease-out; }
+`;
+
+// Inyectar estilos si no existen
+if (typeof document !== 'undefined' && !document.getElementById('modal-animations-mayorista')) {
+  const style = document.createElement('style');
+  style.id = 'modal-animations-mayorista';
+  style.textContent = modalStyles;
+  document.head.appendChild(style);
+}
+
 // Tipos para el modal
 type ModoModal = 'buscar' | 'crear';
 
@@ -71,6 +119,19 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const [mostrarConfirmacionExito, setMostrarConfirmacionExito] = useState(false);
   const [mostrarConfirmacionEliminacion, setMostrarConfirmacionEliminacion] = useState(false);
   const [mostrarModalConfirmacionEliminar, setMostrarModalConfirmacionEliminar] = useState(false);
+  
+  // Estado para animación de cierre
+  const [cerrandoModal, setCerrandoModal] = useState(false);
+
+  // Función para cerrar modal con animación
+  const cerrarModalConAnimacion = () => {
+    setCerrandoModal(true);
+    setTimeout(() => {
+      resetModal(); // Resetear el modal DESPUÉS de la animación
+      onClose();
+      setCerrandoModal(false);
+    }, 300); // Duración de la animación
+  };
 
   // Función para buscar clientes
   const buscarClientes = useCallback(async (termino: string) => {
@@ -526,8 +587,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               console.log('📞 Ejecutando callback onSuccess con:', mayoristaCreadoOConvertido);
               onSuccess(mayoristaCreadoOConvertido);
             }
-            resetModal();
-            onClose();
+            cerrarModalConAnimacion();
           }}
           className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center"
         >
@@ -563,8 +623,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
             if (onSuccess) {
               onSuccess({} as MayoristaDTO);
             }
-            resetModal();
-            onClose();
+            cerrarModalConAnimacion();
           }}
           className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center"
         >
@@ -688,7 +747,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
             }}
             onKeyDown={(e) => {
               if (e.key === 'Escape') {
-                onClose();
+                cerrarModalConAnimacion();
               }
             }}
             placeholder="Buscar por nombre o número de documento..."
@@ -1055,10 +1114,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const renderBotonesAccion = () => (
     <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200/50 bg-white/30 backdrop-blur-sm rounded-lg p-4 mt-6">
       <button
-        onClick={() => {
-          resetModal();
-          onClose();
-        }}
+        onClick={cerrarModalConAnimacion}
         className="px-6 py-3 border border-gray-300/70 bg-white/70 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/90 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
         disabled={convirtiendoMayorista || eliminandoMayorista || creandoMayorista}
       >
@@ -1147,8 +1203,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300">
-      <div className="bg-white/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
+    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+      <div className={`bg-white/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
         
         {/* Header */}
         <div className="bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-white/10">
@@ -1157,10 +1213,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
             <h2 className="text-xl font-bold text-white drop-shadow-sm">Gestionar Cliente Mayorista</h2>
           </div>
           <button
-            onClick={() => {
-              resetModal();
-              onClose();
-            }}
+            onClick={cerrarModalConAnimacion}
             className="text-white hover:text-gray-200 hover:bg-black hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
           >
             <X size={20} />
