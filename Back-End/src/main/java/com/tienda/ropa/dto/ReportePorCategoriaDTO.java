@@ -59,4 +59,21 @@ public class ReportePorCategoriaDTO {
         this.productoMasVendidoNombre = productoMasVendidoNombre;
         this.productoMasVendidoCantidad = productoMasVendidoCantidad != null ? productoMasVendidoCantidad.longValue() : null;
     }
+    
+    // Getter para el objeto productoMasVendido que espera el frontend
+    public ProductoMasVendido getProductoMasVendido() {
+        if (productoMasVendidoNombre != null && productoMasVendidoCantidad != null) {
+            return new ProductoMasVendido(productoMasVendidoNombre, productoMasVendidoCantidad);
+        }
+        return null;
+    }
+    
+    // Clase interna para el producto más vendido
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class ProductoMasVendido {
+        private String nombre;
+        private Long cantidadVendida;
+    }
 }

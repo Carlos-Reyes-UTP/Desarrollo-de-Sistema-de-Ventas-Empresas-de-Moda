@@ -408,6 +408,11 @@ const ReportePorCategoria: React.FC = () => {
                   // Ocultar panel expandible cuando se cambia a gráfico/torta
                   if (vista !== 'tabla') {
                     setPanelExpandido(false);
+                  } else {
+                    // Reactivar panel si vuelve a tabla y ya había navegado
+                    if (breadcrumbs.length > 1) {
+                      setPanelExpandido(true);
+                    }
                   }
                 }}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -585,11 +590,16 @@ const ReportePorCategoria: React.FC = () => {
                     <h3 className="text-lg font-semibold text-blue-900">
                       📊 Análisis Detallado: {breadcrumbs[breadcrumbs.length - 1].nombre}
                     </h3>
-                    <p className="text-sm text-blue-700">
-                      Drill-down de {nivelActual === 'subcategoria' ? 'subcategorías' : 'segunda subcategoría'} 
-                      con visualizaciones interactivas
-                    </p>
                   </div>
+                  <button
+                    onClick={() => setPanelExpandido(false)}
+                    className="flex-shrink-0 p-2 hover:bg-blue-200 rounded-lg transition-colors"
+                    title="Cerrar panel de análisis"
+                  >
+                    <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
