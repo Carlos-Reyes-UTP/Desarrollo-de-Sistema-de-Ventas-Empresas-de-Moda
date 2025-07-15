@@ -384,7 +384,9 @@ const GestionCategorias: React.FC = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 
+                           focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 
+                           transition-all duration-200 hover:border-indigo-400"
                 />
               </div>
 
@@ -470,43 +472,53 @@ const GestionCategorias: React.FC = () => {
       {/* Modal Formulario igual a tallas, mantiene animación e iconos */}
       {showFormulario && (
         <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
-            <div className="flex items-center justify-between p-6 border-b border-gray-100">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-indigo-50 rounded-lg">
-                  {categoriaEditar ? (
-                    <Edit className="w-5 h-5 text-green-600" />
-                  ) : (
-                    <TreePine className="w-5 h-5 text-green-600" />
-                  )}
+          <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-md ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+            <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
+              <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                    {categoriaEditar ? (
+                      <Edit className="w-6 h-6 text-white" />
+                    ) : (
+                      <TreePine className="w-6 h-6 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">
+                      {categoriaEditar 
+                        ? 'Editar Categoría' 
+                        : categoriaPadreId 
+                          ? 'Nueva Subcategoría' 
+                          : 'Nueva Categoría Principal'}
+                    </h2>
+                    <p className="text-indigo-100 text-sm">
+                      {categoriaEditar ? 'Modifica la información de la categoría' : 'Complete la información para crear la categoría'}
+                    </p>
+                  </div>
                 </div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {categoriaEditar 
-                    ? 'Editar Categoría' 
-                    : categoriaPadreId 
-                      ? 'Nueva Subcategoría' 
-                      : 'Nueva Categoría Principal'}
-                </h2>
+                <button
+                  onClick={cerrarModalConAnimacion}
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
+                >
+                  <X size={20} />
+                </button>
               </div>
-              <button
-                onClick={cerrarModalConAnimacion}
-                className="text-gray-400 hover:text-gray-500 transition-colors"
-              >
-                <X size={20} />
-              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div>
-                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre de la Categoría *
+              <div className="space-y-2">
+                <label htmlFor="nombre" className="block text-sm font-medium text-gray-700">
+                  Nombre de la Categoría <span className="text-red-500">*</span>
                 </label>
                 <input
                   id="nombre"
                   type="text"
                   value={formData.nombre}
                   onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-green-500 focus:border-green-500 transition-colors"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 text-gray-900 
+                           focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 
+                           transition-all duration-200 hover:border-indigo-400"
                   placeholder="Nombre de la categoría"
                   required
                 />
@@ -517,17 +529,21 @@ const GestionCategorias: React.FC = () => {
                 )}
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100">
                 <button
                   type="button"
                   onClick={cerrarModalConAnimacion}
-                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                  className="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl 
+                           hover:bg-gray-200 transition-all duration-200 hover:shadow-md"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2"
+                  className="px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 
+                           rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 
+                           hover:shadow-lg hover:shadow-indigo-500/25 flex items-center gap-2 
+                           focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
                 >
                   <Save className="w-4 h-4" />
                   {categoriaEditar ? 'Actualizar' : 'Guardar'}

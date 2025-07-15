@@ -206,39 +206,40 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       <div className={`bg-gray-50 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
 
         {/* Header con diseño mejorado */}
-        <div className="bg-white/80 backdrop-blur-sm border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="bg-blue-100 p-3 rounded-xl">
-                <ShoppingBag className="w-6 h-6 text-blue-600" />
+        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
+          <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                <ShoppingBag className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Gestión de Variantes</h2>
-                <p className="text-sm text-gray-600 font-medium">{producto.nombre}</p>
+                <h2 className="text-xl font-bold text-white">Gestión de Variantes</h2>
+                <p className="text-indigo-100 text-sm">{producto.nombre}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-semibold">
+              <span className="inline-flex items-center gap-2 text-xs bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full font-semibold border border-white/30">
                 <Package className="w-4 h-4" />
                 {producto.codigoIdentificacion}
               </span>
               {(() => {
                 let stockClass;
                 if (totalStock === 0) {
-                  stockClass = 'bg-red-100 text-red-700';
+                  stockClass = 'bg-red-500/20 text-red-100 border-red-400/30';
                 } else if (totalStock < 50) {
-                  stockClass = 'bg-orange-100 text-orange-700';
+                  stockClass = 'bg-orange-500/20 text-orange-100 border-orange-400/30';
                 } else {
-                  stockClass = 'bg-green-100 text-green-700';
+                  stockClass = 'bg-green-500/20 text-green-100 border-green-400/30';
                 }
                 return (
-                  <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-bold ${stockClass}`}>
+                  <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-bold backdrop-blur-sm border ${stockClass}`}>
                     <ShoppingBag className="w-4 h-4" />
                     Stock Total: {totalStock}
                   </span>
                 );
               })()}
-              <button onClick={handleClose} className="text-gray-400 hover:text-gray-600 transition-colors duration-200 hover:bg-gray-100 p-2 rounded-full">
+              <button onClick={handleClose} className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -316,16 +317,25 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       {showNuevaVariante && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 border border-gray-200 max-h-[90vh] flex flex-col">
-            <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">Nueva Variante</h3>
+            <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
+              <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                    <Plus className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-white">Nueva Variante</h3>
+                    <p className="text-indigo-100 text-sm">Agregue una nueva variante del producto</p>
+                  </div>
+                </div>
                 <button
                   onClick={() => {
                     setShowNuevaVariante(false);
                     setFormVariante({ tallaId: '', colorId: '', cantidad: '', codigoIdentificacion: '' });
                     setError(null);
                   }}
-                  className="text-gray-400 hover:text-gray-600 p-2 rounded-full hover:bg-gray-100"
+                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -333,17 +343,21 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <form onSubmit={handleCrearVariante} className="p-6 space-y-4">
+              <form onSubmit={handleCrearVariante} className="p-6 space-y-6">
                 {/* Selector de Talla */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Ruler className="w-4 h-4 inline mr-1" />
-                    Talla *
+                <div className="space-y-2">
+                  <label htmlFor="tallaSelect" className="block text-sm font-semibold text-gray-700">
+                    <span className="flex items-center">
+                      <Ruler className="w-4 h-4 mr-2 text-indigo-500" />
+                      Talla
+                      <span className="text-red-500 ml-1">*</span>
+                    </span>
                   </label>
                   <select
+                    id="tallaSelect"
                     value={formVariante.tallaId}
                     onChange={(e) => setFormVariante({ ...formVariante, tallaId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                     required
                   >
                     <option value="">Seleccionar talla</option>
@@ -356,15 +370,19 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                 </div>
 
                 {/* Selector de Color */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Palette className="w-4 h-4 inline mr-1" />
-                    Color *
+                <div className="space-y-2">
+                  <label htmlFor="colorSelect" className="block text-sm font-semibold text-gray-700">
+                    <span className="flex items-center">
+                      <Palette className="w-4 h-4 mr-2 text-indigo-500" />
+                      Color
+                      <span className="text-red-500 ml-1">*</span>
+                    </span>
                   </label>
                   <select
+                    id="colorSelect"
                     value={formVariante.colorId}
                     onChange={(e) => setFormVariante({ ...formVariante, colorId: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                     required
                   >
                     <option value="">Seleccionar color</option>
@@ -377,25 +395,29 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                 </div>
 
                 {/* Cantidad */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Package className="w-4 h-4 inline mr-1" />
-                    Cantidad Inicial *
+                <div className="space-y-2">
+                  <label htmlFor="cantidadInput" className="block text-sm font-semibold text-gray-700">
+                    <span className="flex items-center">
+                      <Package className="w-4 h-4 mr-2 text-indigo-500" />
+                      Cantidad Inicial
+                      <span className="text-red-500 ml-1">*</span>
+                    </span>
                   </label>
                   <input
+                    id="cantidadInput"
                     type="number"
                     value={formVariante.cantidad}
                     onChange={(e) => setFormVariante({ ...formVariante, cantidad: e.target.value })}
                     placeholder="Ej: 10"
                     min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                     required
                   />
                 </div>
 
                 {/* Código de Identificación (opcional) */}
-                <div>
-                  <label htmlFor="codigoIdentificacion" className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="space-y-2">
+                  <label htmlFor="codigoIdentificacion" className="block text-sm font-semibold text-gray-700">
                     Código de Barras (opcional)
                   </label>
                   <input
@@ -404,7 +426,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     value={formVariante.codigoIdentificacion}
                     onChange={(e) => setFormVariante({ ...formVariante, codigoIdentificacion: e.target.value })}
                     placeholder="Ej: PROD001-M-AZUL"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                   />
                 </div>
 
@@ -432,7 +454,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                   </div>
                 )}
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex justify-end space-x-4 pt-8 border-t-2 border-gray-100">
                   <button
                     type="button"
                     onClick={() => {
@@ -440,14 +462,15 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                       setFormVariante({ tallaId: '', colorId: '', cantidad: '', codigoIdentificacion: '' });
                       setError(null);
                     }}
-                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                    className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-transparent rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 inline-flex items-center"
                   >
+                    <Save className="w-4 h-4 mr-2" />
                     Crear Variante
                   </button>
                 </div>
@@ -538,7 +561,7 @@ const VarianteRow: React.FC<{
               onKeyDown={handleKeyDown}
               min="0"
               disabled={guardando}
-              className="w-24 px-3 py-2 border border-blue-300 rounded-lg text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-24 px-3 py-2 border-2 border-indigo-300 rounded-xl bg-indigo-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 text-sm text-center transition-all duration-200"
               autoFocus
             />
           </div>
