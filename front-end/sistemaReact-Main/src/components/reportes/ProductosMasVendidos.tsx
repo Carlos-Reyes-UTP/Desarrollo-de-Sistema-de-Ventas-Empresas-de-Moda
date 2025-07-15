@@ -21,6 +21,7 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
+import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 import type { ProductoMasVendido, TallaProducto, VariantesPorColor } from '../../interfaces/ReporteVentas';
 import { CategoriaService } from '../../services/CategoriaServices';
 import type { Categoria } from '../../interfaces/Categoria';
@@ -404,44 +405,236 @@ const ProductosMasVendidos: React.FC = () => {
     return partes.length > 0 ? partes.join('-') : 'Sin categoría';
   };
 
-  const exportarDatos = () => {
+  const exportarDatos = async () => {
     if (productosFiltrados.length === 0) {
       alert('No hay datos para exportar');
       return;
     }
 
-    // Preparar datos para Excel
-    const datosExcel = productosFiltrados.map(producto => ({
-      'Producto': producto.nombreProducto,
-      'Categoría': formatearCategoriaCompleta(producto),
-      'Cantidad Vendida': producto.cantidadVendida,
-      'Ingreso Total (S/)': producto.ingresosTotales,
-      'Precio Promedio (S/)': producto.precioPromedio,
-      'Código': producto.codigoIdentificacion
-    }));
+    try {
+      // Mostrar indicador de carga
+      const loadingToast = document.createElement('div');
+      loadingToast.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      loadingToast.innerHTML = `
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        <span>Generando reporte detallado...</span>
+      `;
+      document.body.appendChild(loadingToast);
 
-    // Crear libro de Excel
-    const ws = XLSX.utils.json_to_sheet(datosExcel);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Productos Más Vendidos');
+      // Preparar datos detallados para Excel
+      const datosDetallados = [];
+      
+      for (const producto of productosFiltrados) {
+        // Agregar fila del producto principal
+        datosDetallados.push({
+          'Tipo': 'PRODUCTO',
+          'Nombre del Producto': producto.nombreProducto,
+          'Categoría': formatearCategoriaCompleta(producto),
+          'Código de Barras': producto.codigoIdentificacion,
+          'Stock Actual': '', // Se calculará el total después
+          'Cantidad Total Vendida': producto.cantidadVendida,
+          'Ingresos Totales (S/)': producto.ingresosTotales
+        });
 
-    // Ajustar ancho de columnas
-    const colWidths = [
-      { wch: 30 }, // Producto
-      { wch: 20 }, // Categoría
-      { wch: 15 }, // Cantidad
-      { wch: 15 }, // Ingreso
-      { wch: 15 }, // Precio
-      { wch: 15 }  // Código
-    ];
-    ws['!cols'] = colWidths;
+        let stockTotalProducto = 0; // Para calcular el stock total del producto
 
-    // Generar nombre del archivo con fecha
-    const fechaActual = new Date().toISOString().split('T')[0];
-    const nombreArchivo = `productos_mas_vendidos_${fechaActual}.xlsx`;
+        try {
+          // Obtener tallas del producto
+          const tallas = await ReporteService.getTallasPorProducto(producto.idProducto);
+          
+          for (const talla of tallas) {
+            try {
+              // Obtener variantes por color para cada talla
+              const variantes = await ReporteService.getVariantesPorColor(producto.idProducto, talla.idTalla);
+              
+              for (const variante of variantes) {
+                stockTotalProducto += variante.cantidadStock; // Sumar al stock total
+                
+                // Obtener información completa de la variante para el código de barras
+                let codigoBarras = 'Sin código';
+                try {
+                  const varianteCompleta = await ProductoVarianteService.obtenerVariantePorProductoTallaColor(
+                    producto.idProducto, 
+                    talla.idTalla, 
+                    variante.idColor
+                  );
+                  codigoBarras = varianteCompleta?.codigoBarrasVariante || varianteCompleta?.codigoIdentificacion || 'Sin código';
+                } catch (error) {
+                  console.warn(`Error al obtener código de barras para variante:`, error);
+                }
+                
+                // Agregar fila de cada variante con formato mejorado
+                datosDetallados.push({
+                  'Tipo': 'VARIANTE',
+                  'Nombre del Producto': `${producto.nombreProducto} - ${talla.nombreTalla} - ${variante.nombreColor}`,
+                  'Categoría': '',
+                  'Código de Barras': codigoBarras,
+                  'Stock Actual': variante.cantidadStock,
+                  'Cantidad Total Vendida': variante.cantidadVendida,
+                  'Ingresos Totales (S/)': parseFloat(variante.ingresosTotales.toString())
+                });
+              }
+            } catch (error) {
+              console.warn(`Error al cargar variantes para talla ${talla.nombreTalla}:`, error);
+            }
+          }
 
-    // Descargar archivo
-    XLSX.writeFile(wb, nombreArchivo);
+          // Actualizar el stock total en la fila del producto principal
+          if (datosDetallados.length > 0) {
+            const filaProducto = datosDetallados.find(fila => 
+              fila.Tipo === 'PRODUCTO' && fila['Nombre del Producto'] === producto.nombreProducto
+            );
+            if (filaProducto) {
+              filaProducto['Stock Actual'] = stockTotalProducto;
+            }
+          }
+
+        } catch (error) {
+          console.warn(`Error al cargar tallas para producto ${producto.nombreProducto}:`, error);
+        }
+        
+        // Agregar fila separadora entre productos
+        datosDetallados.push({
+          'Tipo': '',
+          'Nombre del Producto': '',
+          'Categoría': '',
+          'Código de Barras': '',
+          'Stock Actual': '',
+          'Cantidad Total Vendida': '',
+          'Ingresos Totales (S/)': ''
+        });
+      }
+
+      // Crear libro de Excel con múltiples hojas
+      const wb = XLSX.utils.book_new();
+
+      // Hoja 1: Resumen general (datos originales)
+      const datosResumen = productosFiltrados.map(producto => ({
+        'Producto': producto.nombreProducto,
+        'Categoría': formatearCategoriaCompleta(producto),
+        'Código': producto.codigoIdentificacion,
+        'Cantidad Vendida': producto.cantidadVendida,
+        'Ingreso Total (S/)': producto.ingresosTotales,
+        'Precio Promedio (S/)': producto.precioPromedio
+      }));
+
+      const wsResumen = XLSX.utils.json_to_sheet(datosResumen);
+      XLSX.utils.book_append_sheet(wb, wsResumen, 'Resumen General');
+
+      // Hoja 2: Detalle completo con variantes
+      const wsDetalle = XLSX.utils.json_to_sheet(datosDetallados);
+      XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle por Variantes');
+
+      // Aplicar formato de negrita a las filas de productos principales
+      const range = XLSX.utils.decode_range(wsDetalle['!ref'] || 'A1:A1');
+      
+      // Formatear encabezados (fila 1)
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const headerCellAddress = XLSX.utils.encode_cell({c: C, r: 0});
+        if (wsDetalle[headerCellAddress]) {
+          wsDetalle[headerCellAddress].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "4F46E5" } }, // Fondo azul
+            alignment: { horizontal: "center", vertical: "center" }
+          };
+        }
+      }
+      
+      // Formatear filas de productos principales
+      for (let R = range.s.r + 1; R <= range.e.r; ++R) { // Empezar desde fila 2 (saltar encabezados)
+        const tipoCell = wsDetalle[XLSX.utils.encode_cell({c: 0, r: R})]; // Columna A (Tipo)
+        if (tipoCell && String(tipoCell.v).trim() === 'PRODUCTO') {
+          // Aplicar negrita a toda la fila del producto
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
+            if (wsDetalle[cellAddress]) {
+              wsDetalle[cellAddress].s = {
+                font: { bold: true, size: 12 },
+                fill: { fgColor: { rgb: "E6F3FF" } }, // Fondo azul claro para destacar
+                alignment: { horizontal: "left", vertical: "center" }
+              };
+            }
+          }
+        } else if (tipoCell && String(tipoCell.v).trim() === 'VARIANTE') {
+          // Formatear filas de variantes con un estilo más sutil
+          for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({c: C, r: R});
+            if (wsDetalle[cellAddress]) {
+              wsDetalle[cellAddress].s = {
+                font: { size: 10 },
+                fill: { fgColor: { rgb: "F8FAFC" } }, // Fondo gris muy claro
+                alignment: { horizontal: "left", vertical: "center" }
+              };
+            }
+          }
+        }
+      }
+
+      // Ajustar ancho de columnas para ambas hojas
+      const colWidthsResumen = [
+        { wch: 30 }, // Producto
+        { wch: 25 }, // Categoría
+        { wch: 15 }, // Código
+        { wch: 15 }, // Cantidad
+        { wch: 18 }, // Ingreso
+        { wch: 18 }  // Precio
+      ];
+      wsResumen['!cols'] = colWidthsResumen;
+
+      const colWidthsDetalle = [
+        { wch: 12 }, // Tipo
+        { wch: 40 }, // Nombre del Producto (más ancho para: producto - talla - color)
+        { wch: 25 }, // Categoría
+        { wch: 20 }, // Código de Barras
+        { wch: 15 }, // Stock Actual
+        { wch: 20 }, // Cantidad Total Vendida
+        { wch: 20 }  // Ingresos Totales
+      ];
+      wsDetalle['!cols'] = colWidthsDetalle;
+
+      // Generar nombre del archivo con información de filtros
+      let nombreArchivo = 'productos_mas_vendidos';
+      const fechaActual = new Date().toISOString().split('T')[0];
+      
+      if (filtrosAplicados.fechaInicio && filtrosAplicados.fechaFin) {
+        nombreArchivo += `_${filtrosAplicados.fechaInicio}_${filtrosAplicados.fechaFin}`;
+      }
+      
+      if (filtrosAplicados.categoriaPadre) {
+        const categoria = categorias.find(c => c.idCategoria?.toString() === filtrosAplicados.categoriaPadre);
+        if (categoria) {
+          nombreArchivo += `_${categoria.nombre.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        }
+      }
+      
+      nombreArchivo += `_${fechaActual}.xlsx`;
+
+      // Descargar archivo
+      XLSX.writeFile(wb, nombreArchivo);
+
+      // Remover indicador de carga y mostrar éxito
+      document.body.removeChild(loadingToast);
+      
+      const successToast = document.createElement('div');
+      successToast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      successToast.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span>Reporte detallado exportado exitosamente</span>
+      `;
+      document.body.appendChild(successToast);
+      
+      setTimeout(() => {
+        if (document.body.contains(successToast)) {
+          document.body.removeChild(successToast);
+        }
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error al exportar datos:', error);
+      alert('Error al generar el reporte. Inténtalo nuevamente.');
+    }
   };
 
   if (loading) {
@@ -508,9 +701,10 @@ const ProductosMasVendidos: React.FC = () => {
           <button
             onClick={exportarDatos}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            title="Exportar reporte detallado con variantes por talla y color"
           >
             <ArrowDownTrayIcon className="h-4 w-4" />
-            Exportar Excel
+            Exportar Detallado
           </button>
         </div>
       </div>
