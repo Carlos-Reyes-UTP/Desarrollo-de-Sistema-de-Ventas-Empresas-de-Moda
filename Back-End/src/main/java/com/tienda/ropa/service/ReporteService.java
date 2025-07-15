@@ -12,8 +12,6 @@ import org.springframework.stereotype.Service;
 
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
-import com.tienda.ropa.dto.ReportePorColorDTO;
-import com.tienda.ropa.dto.ReportePorTallaDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.repository.ReporteRepository;
@@ -66,92 +64,6 @@ public class ReporteService {
         // Calcular porcentajes
         BigDecimal totalIngresos = reporte.stream()
                 .map(ReportePorCategoriaDTO::getIngresosTotales)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        reporte.forEach(item -> {
-            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal porcentaje = item.getIngresosTotales()
-                        .multiply(BigDecimal.valueOf(100))
-                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
-                item.setPorcentajeDelTotal(porcentaje);
-            }
-        });
-
-        return reporte;
-    }
-
-    // Reportes por color
-    public List<ReportePorColorDTO> obtenerReportePorColor() {
-        List<ReportePorColorDTO> reporte = reporteRepository.findReportePorColor();
-
-        // Calcular porcentajes
-        BigDecimal totalIngresos = reporte.stream()
-                .map(ReportePorColorDTO::getIngresosTotales)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        reporte.forEach(item -> {
-            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal porcentaje = item.getIngresosTotales()
-                        .multiply(BigDecimal.valueOf(100))
-                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
-                item.setPorcentajeDelTotal(porcentaje);
-            }
-        });
-
-        return reporte;
-    }
-
-    public List<ReportePorColorDTO> obtenerReportePorColorEntreFechas(
-            LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        List<ReportePorColorDTO> reporte = reporteRepository
-                .findReportePorColorEntreFechas(fechaInicio, fechaFin);
-
-        // Calcular porcentajes
-        BigDecimal totalIngresos = reporte.stream()
-                .map(ReportePorColorDTO::getIngresosTotales)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        reporte.forEach(item -> {
-            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal porcentaje = item.getIngresosTotales()
-                        .multiply(BigDecimal.valueOf(100))
-                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
-                item.setPorcentajeDelTotal(porcentaje);
-            }
-        });
-
-        return reporte;
-    }
-
-    // Reportes por talla
-    public List<ReportePorTallaDTO> obtenerReportePorTalla() {
-        List<ReportePorTallaDTO> reporte = reporteRepository.findReportePorTalla();
-
-        // Calcular porcentajes
-        BigDecimal totalIngresos = reporte.stream()
-                .map(ReportePorTallaDTO::getIngresosTotales)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        reporte.forEach(item -> {
-            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
-                BigDecimal porcentaje = item.getIngresosTotales()
-                        .multiply(BigDecimal.valueOf(100))
-                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
-                item.setPorcentajeDelTotal(porcentaje);
-            }
-        });
-
-        return reporte;
-    }
-
-    public List<ReportePorTallaDTO> obtenerReportePorTallaEntreFechas(
-            LocalDateTime fechaInicio, LocalDateTime fechaFin) {
-        List<ReportePorTallaDTO> reporte = reporteRepository
-                .findReportePorTallaEntreFechas(fechaInicio, fechaFin);
-
-        // Calcular porcentajes
-        BigDecimal totalIngresos = reporte.stream()
-                .map(ReportePorTallaDTO::getIngresosTotales)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         reporte.forEach(item -> {

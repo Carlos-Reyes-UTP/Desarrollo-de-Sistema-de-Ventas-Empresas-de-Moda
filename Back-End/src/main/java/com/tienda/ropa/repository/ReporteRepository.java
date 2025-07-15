@@ -11,8 +11,6 @@ import org.springframework.stereotype.Repository;
 
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
-import com.tienda.ropa.dto.ReportePorColorDTO;
-import com.tienda.ropa.dto.ReportePorTallaDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.entity.DetalleVenta;
@@ -133,72 +131,6 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "GROUP BY c.id, c.nombre " +
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ReportePorCategoriaDTO> findReportePorCategoriaEntreFechas(
-                     @Param("fechaInicio") LocalDateTime fechaInicio,
-                     @Param("fechaFin") LocalDateTime fechaFin);
-
-       // Consulta para reporte por color
-       @Query("SELECT new com.tienda.ropa.dto.ReportePorColorDTO(" +
-                     "col.nombre, " +
-                     "SUM(dv.cantidad), " +
-                     "SUM(dv.precioUnitario * dv.cantidad), " +
-                     "COUNT(DISTINCT p.id)) " +
-                     "FROM DetalleVenta dv " +
-                     "JOIN dv.productoVariante pv " +
-                     "JOIN pv.producto p " +
-                     "JOIN pv.color col " +
-                     "GROUP BY col.id, col.nombre " +
-                     "ORDER BY SUM(dv.cantidad) DESC")
-       List<ReportePorColorDTO> findReportePorColor();
-
-       // Consulta para reporte por color con fechas
-       @Query("SELECT new com.tienda.ropa.dto.ReportePorColorDTO(" +
-                     "col.nombre, " +
-                     "SUM(dv.cantidad), " +
-                     "SUM(dv.precioUnitario * dv.cantidad), " +
-                     "COUNT(DISTINCT p.id)) " +
-                     "FROM DetalleVenta dv " +
-                     "JOIN dv.productoVariante pv " +
-                     "JOIN pv.producto p " +
-                     "JOIN pv.color col " +
-                     "JOIN dv.venta v " +
-                     "WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
-                     "GROUP BY col.id, col.nombre " +
-                     "ORDER BY SUM(dv.cantidad) DESC")
-       List<ReportePorColorDTO> findReportePorColorEntreFechas(
-                     @Param("fechaInicio") LocalDateTime fechaInicio,
-                     @Param("fechaFin") LocalDateTime fechaFin);
-
-       // Consulta para reporte por talla
-       @Query("SELECT new com.tienda.ropa.dto.ReportePorTallaDTO(" +
-                     "t.nombreTalla, " +
-                     "SUM(dv.cantidad), " +
-                     "SUM(dv.precioUnitario * dv.cantidad), " +
-                     "COUNT(DISTINCT p.id), " +
-                     "AVG(dv.precioUnitario)) " +
-                     "FROM DetalleVenta dv " +
-                     "JOIN dv.productoVariante pv " +
-                     "JOIN pv.producto p " +
-                     "JOIN pv.talla t " +
-                     "GROUP BY t.id, t.nombreTalla " +
-                     "ORDER BY SUM(dv.cantidad) DESC")
-       List<ReportePorTallaDTO> findReportePorTalla();
-
-       // Consulta para reporte por talla con fechas
-       @Query("SELECT new com.tienda.ropa.dto.ReportePorTallaDTO(" +
-                     "t.nombreTalla, " +
-                     "SUM(dv.cantidad), " +
-                     "SUM(dv.precioUnitario * dv.cantidad), " +
-                     "COUNT(DISTINCT p.id), " +
-                     "AVG(dv.precioUnitario)) " +
-                     "FROM DetalleVenta dv " +
-                     "JOIN dv.productoVariante pv " +
-                     "JOIN pv.producto p " +
-                     "JOIN pv.talla t " +
-                     "JOIN dv.venta v " +
-                     "WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
-                     "GROUP BY t.id, t.nombreTalla " +
-                     "ORDER BY SUM(dv.cantidad) DESC")
-       List<ReportePorTallaDTO> findReportePorTallaEntreFechas(
                      @Param("fechaInicio") LocalDateTime fechaInicio,
                      @Param("fechaFin") LocalDateTime fechaFin);
 

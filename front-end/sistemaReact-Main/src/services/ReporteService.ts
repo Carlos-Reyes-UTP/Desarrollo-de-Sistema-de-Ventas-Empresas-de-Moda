@@ -3,8 +3,6 @@ import { RUTAS_REPORTES } from '../config/apiConfig';
 import type {
   ProductoMasVendido,
   ReporteCategoriaData,
-  ReporteColorData,
-  ReporteTallaData,
   FiltrosReporte,
   ResumenGeneralVentas,
   ProductoDetalleVenta,
@@ -66,52 +64,6 @@ export const ReporteService = {
     } catch (error: any) {
       console.error('Error al obtener reporte por categoría:', error);
       throw new Error(error.response?.data?.message || 'Error al cargar el reporte por categoría');
-    }
-  },
-
-  /**
-   * Obtiene el reporte de ventas por color
-   */
-  getReportePorColor: async (filtros?: FiltrosReporte): Promise<ReporteColorData[]> => {
-    try {
-      const params = new URLSearchParams();
-      
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
-      if (filtros?.categoria) params.append('categoria', filtros.categoria);
-      
-      const url = params.toString() 
-        ? `${RUTAS_REPORTES.POR_COLOR}?${params.toString()}`
-        : RUTAS_REPORTES.POR_COLOR;
-        
-      const response = await apiClient.get<ReporteColorData[]>(url);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error al obtener reporte por color:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar el reporte por color');
-    }
-  },
-
-  /**
-   * Obtiene el reporte de ventas por talla
-   */
-  getReportePorTalla: async (filtros?: FiltrosReporte): Promise<ReporteTallaData[]> => {
-    try {
-      const params = new URLSearchParams();
-      
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
-      if (filtros?.categoria) params.append('categoria', filtros.categoria);
-      
-      const url = params.toString() 
-        ? `${RUTAS_REPORTES.POR_TALLA}?${params.toString()}`
-        : RUTAS_REPORTES.POR_TALLA;
-        
-      const response = await apiClient.get<ReporteTallaData[]>(url);
-      return response.data;
-    } catch (error: any) {
-      console.error('Error al obtener reporte por talla:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar el reporte por talla');
     }
   },
 

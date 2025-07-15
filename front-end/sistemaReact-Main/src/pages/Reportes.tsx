@@ -2,20 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { 
   ChartBarIcon, 
   TableCellsIcon, 
-  SwatchIcon,
-  TagIcon,
   CubeIcon,
   DocumentChartBarIcon
 } from '@heroicons/react/24/outline';
 import ProductosMasVendidos from '../components/reportes/ProductosMasVendidos';
 import ReportePorCategoria from '../components/reportes/ReportePorCategoria';
-import ReportePorColor from '../components/reportes/ReportePorColor';
-import ReportePorTalla from '../components/reportes/ReportePorTalla';
 import ResumenGeneral from '../components/reportes/ResumenGeneral';
 import ReporteDeVentas from '../components/reportes/ReporteDeVentas';
 import { useAuth } from '../context/AuthContext';
 
-type TabReporte = 'resumen' | 'productos' | 'categorias' | 'colores' | 'tallas' | 'ventas';
+type TabReporte = 'resumen' | 'productos' | 'categorias' | 'ventas';
 
 const Reportes: React.FC = () => {
   const [tabActiva, setTabActiva] = useState<TabReporte>('ventas');
@@ -52,18 +48,6 @@ const Reportes: React.FC = () => {
       nombre: 'Por Categoría',
       icono: TableCellsIcon,
       descripcion: 'Análisis de ventas segmentado por categorías de productos'
-    },
-    {
-      id: 'colores' as TabReporte,
-      nombre: 'Por Color',
-      icono: SwatchIcon,
-      descripcion: 'Distribución de ventas por colores de productos'
-    },
-    {
-      id: 'tallas' as TabReporte,
-      nombre: 'Por Talla',
-      icono: TagIcon,
-      descripcion: 'Análisis de preferencias y ventas por tallas'
     }
   ];
 
@@ -77,10 +61,6 @@ const Reportes: React.FC = () => {
         return <ProductosMasVendidos />;
       case 'categorias':
         return <ReportePorCategoria />;
-      case 'colores':
-        return <ReportePorColor />;
-      case 'tallas':
-        return <ReportePorTalla />;
       default:
         return <ReporteDeVentas />;
     }

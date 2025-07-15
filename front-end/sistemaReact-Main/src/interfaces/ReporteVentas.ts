@@ -27,22 +27,6 @@ export interface ReporteCategoriaData {
   };
 }
 
-export interface ReporteColorData {
-  nombreColor: string;
-  cantidadVendida: number;
-  ingresosTotales: number;
-  productosDistintos: number;
-  porcentajeDelTotal: number;
-}
-
-export interface ReporteTallaData {
-  nombreTalla: string;
-  cantidadVendida: number;
-  ingresosTotales: number;
-  productosDistintos: number;
-  porcentajeDelTotal: number;
-}
-
 export interface TallaProducto {
   idTalla: number;
   nombreTalla: string;

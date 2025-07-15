@@ -2,18 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   ChartBarIcon, 
   TableCellsIcon, 
-  SwatchIcon,
-  TagIcon,
   CubeIcon
 } from '@heroicons/react/24/outline';
 import ProductosMasVendidos from './ProductosMasVendidos';
 import ReportePorCategoria from './ReportePorCategoria';
-import ReportePorColor from './ReportePorColor';
-import ReportePorTalla from './ReportePorTalla';
 import ResumenGeneral  from './ResumenGeneral';
 import { useAuth } from '../../context/AuthContext';
 
-type TabReporte = 'resumen' | 'productos' | 'categorias' | 'colores' | 'tallas';
+type TabReporte = 'resumen' | 'productos' | 'categorias';
 
 const DashboardReportes: React.FC = () => {
   const [tabActiva, setTabActiva] = useState<TabReporte>('resumen');
@@ -45,18 +41,6 @@ const DashboardReportes: React.FC = () => {
       nombre: 'Por Categoría',
       icono: TableCellsIcon,
       descripcion: 'Análisis por categorías'
-    },
-    {
-      id: 'colores' as TabReporte,
-      nombre: 'Por Color',
-      icono: SwatchIcon,
-      descripcion: 'Distribución por colores'
-    },
-    {
-      id: 'tallas' as TabReporte,
-      nombre: 'Por Talla',
-      icono: TagIcon,
-      descripcion: 'Análisis por tallas'
     }
   ];
 
@@ -68,10 +52,6 @@ const DashboardReportes: React.FC = () => {
         return <ProductosMasVendidos />;
       case 'categorias':
         return <ReportePorCategoria />;
-      case 'colores':
-        return <ReportePorColor />;
-      case 'tallas':
-        return <ReportePorTalla />;
       default:
         return <ResumenGeneral />;
     }

@@ -16,8 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
-import com.tienda.ropa.dto.ReportePorColorDTO;
-import com.tienda.ropa.dto.ReportePorTallaDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.service.ReporteService;
@@ -100,54 +98,6 @@ public class ReporteController {
         }
     }
 
-    // Endpoints para reportes por color
-    @GetMapping("/por-color")
-    public ResponseEntity<List<ReportePorColorDTO>> obtenerReportePorColor() {
-        try {
-            List<ReportePorColorDTO> reporte = reporteService.obtenerReportePorColor();
-            return ResponseEntity.ok(reporte);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/por-color/por-fecha")
-    public ResponseEntity<List<ReportePorColorDTO>> obtenerReportePorColorEntreFechas(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
-        try {
-            List<ReportePorColorDTO> reporte = reporteService.obtenerReportePorColorEntreFechas(
-                    fechaInicio, fechaFin);
-            return ResponseEntity.ok(reporte);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    // Endpoints para reportes por talla
-    @GetMapping("/por-talla")
-    public ResponseEntity<List<ReportePorTallaDTO>> obtenerReportePorTalla() {
-        try {
-            List<ReportePorTallaDTO> reporte = reporteService.obtenerReportePorTalla();
-            return ResponseEntity.ok(reporte);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    @GetMapping("/por-talla/por-fecha")
-    public ResponseEntity<List<ReportePorTallaDTO>> obtenerReportePorTallaEntreFechas(
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
-        try {
-            List<ReportePorTallaDTO> reporte = reporteService.obtenerReportePorTallaEntreFechas(
-                    fechaInicio, fechaFin);
-            return ResponseEntity.ok(reporte);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
     // Endpoint combinado para obtener todos los reportes
     @GetMapping("/resumen-completo")
     public ResponseEntity<Map<String, Object>> obtenerResumenCompleto(
@@ -161,13 +111,7 @@ public class ReporteController {
                             : reporteService.obtenerProductosMasVendidos(limite),
                     "reportePorCategoria", fechaInicio != null && fechaFin != null
                             ? reporteService.obtenerReportePorCategoriaEntreFechas(fechaInicio, fechaFin)
-                            : reporteService.obtenerReportePorCategoria(),
-                    "reportePorColor", fechaInicio != null && fechaFin != null
-                            ? reporteService.obtenerReportePorColorEntreFechas(fechaInicio, fechaFin)
-                            : reporteService.obtenerReportePorColor(),
-                    "reportePorTalla", fechaInicio != null && fechaFin != null
-                            ? reporteService.obtenerReportePorTallaEntreFechas(fechaInicio, fechaFin)
-                            : reporteService.obtenerReportePorTalla());
+                            : reporteService.obtenerReportePorCategoria());
 
             return ResponseEntity.ok(resumen);
         } catch (Exception e) {
