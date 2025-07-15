@@ -274,7 +274,6 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-100/70">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Variante</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Talla</th>
                       <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Color</th>
                       <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
@@ -288,6 +287,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                         variante={variante}
                         onActualizarCantidad={handleActualizarCantidad}
                         onEliminar={solicitarEliminarVariante}
+                        ocultarColumnaVariante={true}
                       />
                     ))}
                   </tbody>
@@ -467,7 +467,8 @@ const VarianteRow: React.FC<{
   variante: ProductoVariante;
   onActualizarCantidad: (id: number, cantidad: number) => void;
   onEliminar: (id: number) => void;
-}> = ({ variante, onActualizarCantidad, onEliminar }) => {
+  ocultarColumnaVariante?: boolean;
+}> = ({ variante, onActualizarCantidad, onEliminar, ocultarColumnaVariante }) => {
   const [editandoCantidad, setEditandoCantidad] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(variante.cantidad.toString());
   const [guardando, setGuardando] = useState(false);
@@ -512,7 +513,10 @@ const VarianteRow: React.FC<{
 
   return (
     <tr className="hover:bg-gray-50/70 transition-colors duration-200 group">
-      <td className="px-6 py-4 font-mono text-sm text-gray-700">{variante.codigoIdentificacion ?? 'N/A'}</td>
+      {/* Solo mostrar la columna Variante si no está oculta (por compatibilidad futura) */}
+      {!ocultarColumnaVariante && (
+        <td className="px-6 py-4 font-mono text-sm text-gray-700">{variante.codigoIdentificacion ?? 'N/A'}</td>
+      )}
       <td className="px-6 py-4 font-semibold text-gray-800">{variante.talla.nombreTalla}</td>
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
