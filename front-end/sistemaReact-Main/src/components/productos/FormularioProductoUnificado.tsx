@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, Minus, Search } from 'lucide-react';
+import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, Minus, Search, AlertCircle } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -938,16 +938,31 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
       <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto border border-gray-200 relative transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
         {/* Header */}
-        <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 px-8 py-5 rounded-t-2xl z-10">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-900">
-              {producto ? 'Editar Producto' : 'Nuevo Producto'}
-            </h2>
-            <button 
+        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
+          <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                {producto ? (
+                  <Package2 className="w-6 h-6 text-white" />
+                ) : (
+                  <Package2 className="w-6 h-6 text-white" />
+                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {producto ? 'Editar Producto' : 'Crear Nuevo Producto'}
+                </h2>
+                <p className="text-indigo-100 text-sm">
+                  {producto ? 'Modifica la información del producto' : 'Complete la información para crear el producto'}
+                </p>
+              </div>
+            </div>
+            <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors hover:bg-gray-100 p-2 rounded-lg"
+              className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
             >
-              <X className="w-6 h-6" />
+              <X size={20} />
             </button>
           </div>
         </div>
@@ -955,10 +970,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         {/* Content */}
         <div className="px-8 py-6">
           {error && (
-            <div className="mb-6 p-4 border-l-4 border-red-500 bg-red-50 rounded-lg">
-              <div className="flex">
+            <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-400 rounded-lg shadow-sm">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-red-500" />
+                </div>
                 <div className="ml-3">
-                  <p className="text-red-700">{error}</p>
+                  <p className="text-sm font-medium text-red-800">{error}</p>
                 </div>
               </div>
             </div>
@@ -972,7 +990,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 onClick={() => setTabActiva('informacion')}
                 className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
                   tabActiva === 'informacion' 
-                  ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50' 
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -985,7 +1003,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 onClick={() => setTabActiva('variantes')}
                 className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
                   tabActiva === 'variantes' 
-                  ? 'text-green-600 border-b-2 border-green-600 bg-green-50' 
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -998,7 +1016,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 onClick={() => setTabActiva('precios')}
                 className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
                   tabActiva === 'precios' 
-                  ? 'text-amber-600 border-b-2 border-amber-600 bg-amber-50' 
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -1011,7 +1029,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 onClick={() => setTabActiva('codigosBarras')}
                 className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
                   tabActiva === 'codigosBarras' 
-                  ? 'text-purple-600 border-b-2 border-purple-600 bg-purple-50' 
+                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
                   : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
                 }`}
               >
@@ -1025,7 +1043,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               <div className="bg-gray-50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">Información Básica</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Código de Identificación *
                     </label>
                     <input
@@ -1033,13 +1051,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       name="codigoIdentificacion"
                       value={formData.codigoIdentificacion}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                      placeholder="Ingrese el código de identificación..."
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Código de Barras
                     </label>
                     <div className="flex gap-2">
@@ -1049,12 +1068,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         value={formData.codigoBarras}
                         onChange={handleInputChange}
                         placeholder="Código de barras (opcional)"
-                        className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+                        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 font-mono text-sm"
                       />
                       <button
                         type="button"
                         onClick={() => generarCodigoBarrasAutomatico()}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
                         title="Generar código de barras automático"
                       >
                         <Barcode size={16} />
@@ -1067,7 +1086,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Nombre del Producto *
                     </label>
                     <input
@@ -1075,20 +1094,21 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       name="nombre"
                       value={formData.nombre}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                      placeholder="Ingrese el nombre del producto..."
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Sexo
                     </label>
                     <select
                       name="sexo"
                       value={formData.sexo}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                     >
                       <option value="">Seleccionar sexo</option>
                       <option value="Hombre">Hombre</option>
@@ -1098,14 +1118,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Tipo de Público <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="tipoPublico"
                       value={formData.tipoPublico}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                       required
                     >
                       <option value="">Seleccionar tipo de público</option>
@@ -1115,7 +1135,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Marca
                     </label>
                     <input
@@ -1123,12 +1143,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       name="marca"
                       value={formData.marca}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                      placeholder="Ingrese la marca del producto..."
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Categoría Principal (Nivel 1) *
                     </label>
                     <div className="relative">
@@ -1150,7 +1171,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } } as any);
                           }
                         }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                         disabled={!!categoriaSeleccionada}
                         required
                       />
@@ -1192,8 +1213,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       
                       {/* Mostrar categoría seleccionada */}
                       {categoriaSeleccionada && !searchCategoria && (
-                        <div className="absolute inset-0 px-4 py-3 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
-                          <span className="text-blue-800 font-medium">📁 {categoriaSeleccionada}</span>
+                        <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
+                          <span className="text-indigo-800 font-medium">📁 {categoriaSeleccionada}</span>
                           <button
                             onClick={() => {
                               setCategoriaSeleccionada('');
@@ -1201,7 +1222,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               setSearchCategoria('');
                               handleCategoriaChange({ target: { value: '' } } as any);
                             }}
-                            className="text-blue-600 hover:text-blue-800"
+                            className="text-indigo-600 hover:text-indigo-800"
                             title="Limpiar selección"
                             type="button"
                           >
@@ -1214,7 +1235,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   {subcategorias.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Subcategoría (Nivel 2) *
                       </label>
                       <div className="relative">
@@ -1236,7 +1257,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } } as any);
                             }
                           }}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                           disabled={!!subcategoriaSeleccionada}
                           required
                         />
@@ -1272,8 +1293,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         
                         {/* Mostrar subcategoría seleccionada */}
                         {subcategoriaSeleccionada && !searchSubcategoria && (
-                          <div className="absolute inset-0 px-4 py-3 bg-purple-50 border border-purple-300 rounded-lg flex items-center justify-between">
-                            <span className="text-purple-800 font-medium">📂 {subcategoriaSeleccionada}</span>
+                          <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
+                            <span className="text-indigo-800 font-medium">📂 {subcategoriaSeleccionada}</span>
                             <button
                               onClick={() => {
                                 setSubcategoriaSeleccionada('');
@@ -1281,7 +1302,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 setSearchSubcategoria('');
                                 handleSubcategoriaChange({ target: { value: '' } } as any);
                               }}
-                              className="text-purple-600 hover:text-purple-800"
+                              className="text-indigo-600 hover:text-indigo-800"
                               title="Limpiar selección"
                               type="button"
                             >
@@ -1302,7 +1323,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   {subCategorias2.length > 0 && (
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Segunda Subcategoría (Nivel 3) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
@@ -1323,7 +1344,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               setSearchSubcategoria2('');
                             }
                           }}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                           disabled={!!subcategoria2Seleccionada}
                           required
                         />
@@ -1397,7 +1418,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   )}
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Proveedor *
                     </label>
                     <div className="relative">
@@ -1418,7 +1439,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             setSearchProveedor('');
                           }
                         }}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                         disabled={!!proveedorSeleccionado}
                         required
                       />
@@ -1453,15 +1474,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       
                       {/* Mostrar proveedor seleccionado */}
                       {proveedorSeleccionado && !searchProveedor && (
-                        <div className="absolute inset-0 px-4 py-3 bg-green-50 border border-green-300 rounded-lg flex items-center justify-between">
-                          <span className="text-green-800 font-medium">🏢 {proveedorSeleccionado}</span>
+                        <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
+                          <span className="text-indigo-800 font-medium">🏢 {proveedorSeleccionado}</span>
                           <button
                             onClick={() => {
                               setProveedorSeleccionado('');
                               setFormData(prev => ({ ...prev, proveedorId: '' }));
                               setSearchProveedor('');
                             }}
-                            className="text-green-600 hover:text-green-800"
+                            className="text-indigo-600 hover:text-indigo-800"
                             title="Limpiar selección"
                             type="button"
                           >
@@ -1481,7 +1502,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   <div className="md:col-span-2">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Precio Unitario (S/) *
                         </label>
                         <input
@@ -1491,13 +1512,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           name="precioUnitario"
                           value={formData.precioUnitario}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          placeholder="0.00"
                           required
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Precio por Cuarto (S/)
                         </label>
                         <input
@@ -1507,12 +1529,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           name="precioCuarto"
                           value={formData.precioCuarto}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          placeholder="0.00"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Precio Media Docena (S/)
                         </label>
                         <input
@@ -1522,12 +1545,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           name="precioMediaDocena"
                           value={formData.precioMediaDocena}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          placeholder="0.00"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
                           Precio por Docena (S/)
                         </label><input
                           type="number"
@@ -1536,7 +1560,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           name="precioDocena"
                           value={formData.precioDocena}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          placeholder="0.00"
                         />
                       </div>
                     </div>
@@ -1545,7 +1570,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               </div>
             )}            {/* Pestaña: Variantes */}
             {tabActiva === 'variantes' && (
-              <div className="bg-green-50 rounded-xl p-6">
+              <div className="bg-indigo-50 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">
                     Variantes del Producto ({variantes.length})
@@ -1557,7 +1582,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       <select
                         value={modoFormulario}
                         onChange={(e) => setModoFormulario(e.target.value as 'simple' | 'optimizado')}
-                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                       >
                         <option value="optimizado">Optimizado (por talla)</option>
                         <option value="simple">Simple (individual)</option>
@@ -1566,7 +1591,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     <button
                       type="button"
                       onClick={() => setShowFormularioVariante(!showFormularioVariante)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       {showFormularioVariante ? 'Cancelar' : 'Agregar Variante'}
                     </button>
@@ -1580,13 +1605,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       <h4 className="text-md font-semibold mb-3 text-gray-800">Nueva Variante (Modo Simple)</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Talla *
                           </label>
                           <select
                             value={nuevaVariante.tallaId}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, tallaId: parseInt(e.target.value) }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
                           >
                             <option value={0}>Seleccionar talla</option>
                             {tallasDisponibles.map(talla => (
@@ -1598,13 +1623,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Color *
                           </label>
                           <select
                             value={nuevaVariante.colorId}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, colorId: parseInt(e.target.value) }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
                           >
                             <option value={0}>Seleccionar color</option>
                             {coloresDisponibles.map(color => (
@@ -1616,7 +1641,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         </div>
 
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Cantidad *
                           </label>
                           <input
@@ -1624,17 +1649,17 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             min="1"
                             value={nuevaVariante.cantidad}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
                           />
                         </div>                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Código (opcional)
                           </label>
                           <input
                             type="text"
                             value={nuevaVariante.codigoIdentificacion}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, codigoIdentificacion: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
                             placeholder="Se genera automáticamente"
                           />
                           <p className="mt-1 text-xs text-gray-500 italic">
@@ -1666,13 +1691,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       <div className="space-y-4">
                         {/* Selector de talla */}
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Talla *
                           </label>
                           <select
                             value={formularioOptimizado.tallaSeleccionada}
                             onChange={(e) => cambiarTallaOptimizada(parseInt(e.target.value))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-sm"
+                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
                           >
                             <option value={0}>Seleccionar talla</option>
                             {tallasDisponibles.map(talla => (
@@ -1704,7 +1729,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                     min="0"
                                     value={formularioOptimizado.cantidadesPorColor[color.idColor!] || 0}
                                     onChange={(e) => actualizarCantidadColor(color.idColor!, parseInt(e.target.value) || 0)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                                     placeholder="0"
                                   />
                                 </div>
@@ -1772,7 +1797,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 min="1"
                                 value={variante.cantidad}
                                 onChange={(e) => actualizarCantidadVariante(index, parseInt(e.target.value) || 1)}
-                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                               />
                             </td>
                             <td className="py-3 px-4 text-xs text-gray-600 font-mono">
@@ -1996,9 +2021,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
             )}
 
             {/* Pestaña: Códigos de Barras */}
-            {tabActiva === 'codigosBarras' && (              <div className="bg-white rounded-xl border border-purple-200 shadow-sm">
+            {tabActiva === 'codigosBarras' && (              <div className="bg-white rounded-xl border border-indigo-200 shadow-sm">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-purple-800 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold mb-4 text-indigo-800 flex items-center gap-2">
                     <Barcode className="w-5 h-5" />
                     Códigos de Barras
                   </h3>
@@ -2012,7 +2037,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
                     <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <div className="bg-purple-50 p-5 rounded-lg border border-purple-200 h-full"><h4 className="font-medium text-purple-800 mb-3">
+                      <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-200 h-full"><h4 className="font-medium text-indigo-800 mb-3">
                           {varianteSeleccionada 
                             ? 'Etiqueta con Información Completa'
                             : 'Etiquetas de Variantes (con nombre del producto)'}
@@ -2046,7 +2071,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 <button
                                   type="button"
                                   onClick={descargarCodigoBarrasVariante}
-                                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2"
+                                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2"
                                 >
                                   <Download className="w-4 h-4" />
                                   Descargar
@@ -2083,14 +2108,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                       key={index}
                                       type="button"
                                       onClick={() => generarCodigoBarrasVariante(variante.id!)}
-                                      className="flex flex-col items-start gap-1 w-full p-3 mb-2 rounded-lg border border-purple-100 hover:bg-purple-100 transition-colors text-left"
+                                      className="flex flex-col items-start gap-1 w-full p-3 mb-2 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors text-left"
                                       disabled={loading}
                                     >
                                       <div className="flex items-center gap-2 w-full">
                                         <div className="w-3 h-3 rounded-full" style={{
                                           backgroundColor: color?.codigoHex || '#CCCCCC'
                                         }} />                                        <span className="font-medium flex-1">T/{talla?.nombreTalla} - {color?.nombre}</span>
-                                        <Barcode className="w-4 h-4 text-purple-600" />
+                                        <Barcode className="w-4 h-4 text-indigo-600" />
                                       </div>
                                       <span className="text-xs text-green-600 font-medium">
                                         "{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"
@@ -2163,7 +2188,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     <button
                       type="button"
                       onClick={() => setTabActiva('precios')}
-                      className="px-5 py-2.5 rounded-lg border border-amber-300 bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium text-sm transition-colors"
+                      className="px-5 py-2.5 rounded-xl border border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-medium text-sm transition-colors"
                     >
                       Continuar a Precios
                     </button>
@@ -2173,7 +2198,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               
               <button
                 type="submit"
-                className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl text-base font-semibold shadow-lg transition-all disabled:bg-gray-400 flex items-center gap-2 w-full sm:w-auto justify-center"
+                className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-transparent rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-600 disabled:hover:to-purple-600 inline-flex items-center gap-2"
                 disabled={loading}
               >
                 <Save className="w-5 h-5" />

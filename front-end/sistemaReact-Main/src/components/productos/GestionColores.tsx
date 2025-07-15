@@ -128,8 +128,8 @@ const GestionColores: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div className="pl-4 flex items-center gap-3">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Palette className="w-8 h-8 text-blue-600" />
+            <div className="bg-indigo-100 p-3 rounded-lg">
+              <Palette className="w-8 h-8 text-indigo-600" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">Gestión de Colores</h1>
@@ -139,7 +139,7 @@ const GestionColores: React.FC = () => {
           <button
             onClick={handleNuevo}
             disabled={editingId !== null}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
             <Plus className="w-5 h-5" />
             Nuevo Color
@@ -353,7 +353,7 @@ const GestionColores: React.FC = () => {
                       <button
                         key={num}
                         onClick={() => setPaginaActual(num)}
-                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
                         aria-current={paginaActual === num ? 'page' : undefined}
                       >
                         {num}

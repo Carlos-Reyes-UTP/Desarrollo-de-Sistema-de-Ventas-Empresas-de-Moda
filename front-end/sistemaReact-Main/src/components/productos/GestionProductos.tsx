@@ -318,18 +318,18 @@ const GestionProductos: React.FC = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-10">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
-          <div className="bg-blue-100 p-3 rounded-lg">
-            <Package className="w-8 h-8 text-blue-600" />
+          <div className="bg-indigo-100 p-3 rounded-lg">
+            <Package className="w-8 h-8 text-indigo-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
         </div>
         <button
           onClick={() => setShowFormulario(true)}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Nuevo Producto
@@ -464,8 +464,8 @@ const GestionProductos: React.FC = () => {
             
             {/* Mostrar categoría seleccionada */}
             {selectedCategoriaPrincipal && !searchCategoriaPrincipal && (
-              <div className="absolute inset-0 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
-                <span className="text-blue-800 font-medium">📁 {selectedCategoriaPrincipal}</span>
+              <div className="absolute inset-0 px-3 py-2 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
+                <span className="text-indigo-800 font-medium">📁 {selectedCategoriaPrincipal}</span>
                 <button
                   onClick={() => {
                     setSelectedCategoriaPrincipal('');
@@ -663,7 +663,7 @@ const GestionProductos: React.FC = () => {
                 setSearchSubCategoria2('');
                 setSelectedProveedor('');
               }}
-              className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
             >
               Limpiar filtros
             </button>
@@ -731,7 +731,7 @@ const GestionProductos: React.FC = () => {
                     <div>
                       <div className="text-sm font-medium text-gray-900">{producto.nombre}</div>
                       {producto.codigoBarras && (
-                        <div className="text-xs text-blue-600 font-mono">📊 {producto.codigoBarras}</div>
+                        <div className="text-xs text-indigo-600 font-mono">📊 {producto.codigoBarras}</div>
                       )}
                       {producto.descripcion && (
                         <div className="text-sm text-gray-500">{producto.descripcion}</div>
@@ -926,7 +926,7 @@ const GestionProductos: React.FC = () => {
                       <button
                         key={num}
                         onClick={() => setPaginaActual(num)}
-                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
                         aria-current={paginaActual === num ? 'page' : undefined}
                       >
                         {num}

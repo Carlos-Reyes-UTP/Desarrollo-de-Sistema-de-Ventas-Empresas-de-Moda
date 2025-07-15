@@ -146,8 +146,8 @@ const GestionTallas: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div className="flex items-center gap-3 pl-4">
-            <div className="bg-blue-100 p-3 rounded-lg">
-              <Ruler className="w-8 h-8 text-blue-600" />
+            <div className="bg-indigo-100 p-3 rounded-lg">
+              <Ruler className="w-8 h-8 text-indigo-600" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Tallas</h1>
@@ -156,7 +156,7 @@ const GestionTallas: React.FC = () => {
           </div>
           <button
             onClick={handleNuevo}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <Plus className="w-5 h-5" />
             Nueva Talla
@@ -213,7 +213,7 @@ const GestionTallas: React.FC = () => {
                   <tr key={talla.idTalla} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="bg-blue-100 p-2 rounded-lg mr-3">
+                        <div className="bg-indigo-100 p-2 rounded-lg mr-3">
                           <Ruler className="w-5 h-5 text-blue-600" />
                         </div>
                         <div>
@@ -335,7 +335,7 @@ const GestionTallas: React.FC = () => {
                         <button
                           key={num}
                           onClick={() => setPaginaActual(num)}
-                          className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+                          className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
                           aria-current={paginaActual === num ? 'page' : undefined}
                         >
                           {num}
@@ -366,7 +366,7 @@ const GestionTallas: React.FC = () => {
           <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-50 rounded-lg">
+                <div className="p-2 bg-indigo-50 rounded-lg">
                   {tallaEditar ? (
                     <Edit className="w-5 h-5 text-blue-600" />
                   ) : (
@@ -425,7 +425,7 @@ const GestionTallas: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center gap-2"
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   {tallaEditar ? 'Actualizar' : 'Guardar'}

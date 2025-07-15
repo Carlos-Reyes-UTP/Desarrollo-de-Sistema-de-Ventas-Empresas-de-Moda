@@ -345,8 +345,8 @@ const GestionCategorias: React.FC = () => {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
           <div className="flex items-center gap-3 pl-4">
-            <div className="bg-green-100 p-3 rounded-lg">
-              <TreePine className="w-8 h-8 text-green-600" />
+            <div className="bg-indigo-100 p-3 rounded-lg">
+              <TreePine className="w-8 h-8 text-indigo-600" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Categorías</h1>
@@ -355,7 +355,7 @@ const GestionCategorias: React.FC = () => {
           </div>
           <button
             onClick={handleNuevaCategoria}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
           >
             <Plus className="w-5 h-5" />
             Nueva Categoría
@@ -423,7 +423,7 @@ const GestionCategorias: React.FC = () => {
               {!searchTerm && (
                 <button
                   onClick={handleNuevaCategoria}
-                  className="mt-4 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
+                  className="mt-4 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 mx-auto transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                   Crear primera categoría
@@ -473,7 +473,7 @@ const GestionCategorias: React.FC = () => {
           <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="flex items-center justify-between p-6 border-b border-gray-100">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-50 rounded-lg">
+                <div className="p-2 bg-indigo-50 rounded-lg">
                   {categoriaEditar ? (
                     <Edit className="w-5 h-5 text-green-600" />
                   ) : (
@@ -527,7 +527,7 @@ const GestionCategorias: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 flex items-center gap-2"
+                  className="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   {categoriaEditar ? 'Actualizar' : 'Guardar'}
