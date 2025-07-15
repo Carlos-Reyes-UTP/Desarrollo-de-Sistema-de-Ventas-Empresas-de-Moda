@@ -25,17 +25,21 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "p.codigoIdentificacion, " +
                      "SUM(dv.cantidad), " +
                      "SUM(dv.precioUnitario * dv.cantidad), " +
-                     "c.nombre, " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
                      "prov.nombre, " +
                      "AVG(dv.precioUnitario), " +
                      "MAX(v.fechaVenta)) " +
                      "FROM DetalleVenta dv " +
                      "JOIN dv.productoVariante pv " +
                      "JOIN pv.producto p " +
-                     "JOIN p.categoria c " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
                      "JOIN p.proveedor prov " +
                      "JOIN dv.venta v " +
-                     "GROUP BY pv.producto.id, p.nombre, p.codigoIdentificacion, c.nombre, prov.nombre " +
+                     "GROUP BY pv.producto.id, p.nombre, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ProductoMasVendidoDTO> findProductosMasVendidos(Pageable pageable);
 
@@ -46,18 +50,22 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "p.codigoIdentificacion, " +
                      "SUM(dv.cantidad), " +
                      "SUM(dv.precioUnitario * dv.cantidad), " +
-                     "c.nombre, " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
                      "prov.nombre, " +
                      "AVG(dv.precioUnitario), " +
                      "MAX(v.fechaVenta)) " +
                      "FROM DetalleVenta dv " +
                      "JOIN dv.productoVariante pv " +
                      "JOIN pv.producto p " +
-                     "JOIN p.categoria c " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
                      "JOIN p.proveedor prov " +
                      "JOIN dv.venta v " +
                      "WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
-                     "GROUP BY pv.producto.id, p.nombre, p.codigoIdentificacion, c.nombre, prov.nombre " +
+                     "GROUP BY pv.producto.id, p.nombre, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ProductoMasVendidoDTO> findProductosMasVendidosPorFecha(
                      @Param("fechaInicio") LocalDateTime fechaInicio,
@@ -198,19 +206,22 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "p.codigoIdentificacion, " +
                      "SUM(dv.cantidad), " +
                      "SUM(dv.precioUnitario * dv.cantidad), " +
-                     "c.nombre, " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
                      "prov.nombre, " +
                      "AVG(dv.precioUnitario), " +
                      "MAX(v.fechaVenta)) " +
                      "FROM DetalleVenta dv " +
                      "JOIN dv.productoVariante pv " +
                      "JOIN pv.producto p " +
-                     "JOIN p.categoria c " +
-                     "JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
                      "JOIN p.proveedor prov " +
                      "JOIN dv.venta v " +
                      "WHERE cp.idCategoria = :idCategoriaPadre " +
-                     "GROUP BY pv.producto.id, p.nombre, p.codigoIdentificacion, c.nombre, prov.nombre " +
+                     "GROUP BY pv.producto.id, p.nombre, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ProductoMasVendidoDTO> findProductosMasVendidosPorCategoriaPadre(
                      @Param("idCategoriaPadre") Long idCategoriaPadre, Pageable pageable);

@@ -22,6 +22,25 @@ import type { ProductoMasVendido, FiltrosReporte } from '../../interfaces/Report
 import { CategoriaService } from '../../services/CategoriaServices';
 import type { Categoria } from '../../interfaces/Categoria';
 
+// Componente para tooltip personalizado de gráficos
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload?.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
+        <h4 className="font-semibold text-gray-900 mb-2">{data.nombreProducto}</h4>
+        <div className="space-y-1 text-sm">
+          <p><span className="font-medium">Categoría Principal:</span> {data.categoriaPadre || 'No especificada'}</p>
+          <p><span className="font-medium">Sub Categoría:</span> {data.categoria || 'No especificada'}</p>
+          <p><span className="font-medium">Segunda Sub Categoría:</span> {data.subCategoria2 || 'No especificada'}</p>
+          <p><span className="font-medium">Cantidad Vendida:</span> {data.cantidadVendida}</p>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 const ProductosMasVendidos: React.FC = () => {
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,8 +79,27 @@ const ProductosMasVendidos: React.FC = () => {
 
   const productosFiltrados = productos.filter(producto =>
     producto.nombreProducto.toLowerCase().includes(busqueda.toLowerCase()) ||
-    (producto.categoria && producto.categoria.toLowerCase().includes(busqueda.toLowerCase()))
+    (producto.categoria?.toLowerCase().includes(busqueda.toLowerCase()))
   );
+
+  // Función para generar el formato completo de categorías
+  const formatearCategoriaCompleta = (producto: ProductoMasVendido): string => {
+    const partes: string[] = [];
+    
+    if (producto.categoriaPadre) {
+      partes.push(producto.categoriaPadre);
+    }
+    
+    if (producto.categoria) {
+      partes.push(producto.categoria);
+    }
+    
+    if (producto.subCategoria2) {
+      partes.push(producto.subCategoria2);
+    }
+    
+    return partes.length > 0 ? partes.join('-') : 'Sin categoría';
+  };
 
   const exportarDatos = () => {
     if (productosFiltrados.length === 0) {
@@ -72,7 +110,7 @@ const ProductosMasVendidos: React.FC = () => {
     // Preparar datos para Excel
     const datosExcel = productosFiltrados.map(producto => ({
       'Producto': producto.nombreProducto,
-      'Categoría': producto.categoria || 'Sin categoría',
+      'Categoría': formatearCategoriaCompleta(producto),
       'Cantidad Vendida': producto.cantidadVendida,
       'Ingreso Total (S/)': producto.ingresosTotales,
       'Precio Promedio (S/)': producto.precioPromedio,
@@ -174,19 +212,25 @@ const ProductosMasVendidos: React.FC = () => {
         </div>
         
         <div className="flex bg-gray-100 rounded-lg p-1">
-          {['barras', 'linea', 'tabla'].map((vista) => (
-            <button
-              key={vista}
-              onClick={() => setVistaGrafico(vista as any)}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                vistaGrafico === vista
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              {vista === 'barras' ? 'Barras' : vista === 'linea' ? 'Línea' : 'Tabla'}
-            </button>
-          ))}
+          {['barras', 'linea', 'tabla'].map((vista) => {
+            let textoVista = 'Tabla';
+            if (vista === 'barras') textoVista = 'Barras';
+            else if (vista === 'linea') textoVista = 'Línea';
+            
+            return (
+              <button
+                key={vista}
+                onClick={() => setVistaGrafico(vista as any)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  vistaGrafico === vista
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {textoVista}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -237,7 +281,7 @@ const ProductosMasVendidos: React.FC = () => {
                   interval={0}
                 />
                 <YAxis />
-                <Tooltip formatter={(value) => [value, 'Cantidad Vendida']} />
+                <Tooltip content={<CustomTooltip />} />
                 <Bar dataKey="cantidadVendida" fill="#3B82F6" />
               </BarChart>
             </ResponsiveContainer>
@@ -260,7 +304,7 @@ const ProductosMasVendidos: React.FC = () => {
                   interval={0}
                 />
                 <YAxis />
-                <Tooltip formatter={(value) => [`S/.${Number(value).toLocaleString()}`, 'Ingresos']} />
+                <Tooltip content={<CustomTooltip />} />
                 <Line type="monotone" dataKey="ingresosTotales" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} />
               </LineChart>
             </ResponsiveContainer>
@@ -309,7 +353,7 @@ const ProductosMasVendidos: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                        {producto.categoria || 'Sin categoría'}
+                        {formatearCategoriaCompleta(producto)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">

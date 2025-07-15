@@ -1,10 +1,10 @@
 package com.tienda.ropa.dto;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -16,6 +16,8 @@ public class ProductoMasVendidoDTO {
     private BigDecimal ingresosTotales;
     private String categoria;
     private String subcategoria;
+    private String categoriaPadre;
+    private String subCategoria2;
     private String proveedor;
     private BigDecimal precioPromedio;
     private LocalDateTime ultimaVenta;
@@ -25,15 +27,18 @@ public class ProductoMasVendidoDTO {
     // SUM(dv.cantidad) devuelve Long cuando cantidad es int en la entidad
     // COUNT() y AVG() también devuelven tipos específicos que debemos manejar
     public ProductoMasVendidoDTO(Long idProducto, String nombreProducto, String codigoIdentificacion, 
-                               Long cantidadVendida, BigDecimal ingresosTotales, String categoria, 
-                               String proveedor, Double precioPromedio, LocalDateTime ultimaVenta) {
+                               Long cantidadVendida, BigDecimal ingresosTotales, String categoriaPadre,
+                               String categoria, String subCategoria2, String proveedor, 
+                               Double precioPromedio, LocalDateTime ultimaVenta) {
         this.idProducto = idProducto;
         this.nombreProducto = nombreProducto;
         this.codigoIdentificacion = codigoIdentificacion;
         this.cantidadVendida = cantidadVendida;
         this.ingresosTotales = ingresosTotales;
-        this.categoria = categoria;
-        this.subcategoria = null; // No proporcionado en la consulta
+        this.categoriaPadre = categoriaPadre;
+        this.categoria = categoria; // subcategoría
+        this.subcategoria = categoria; // Para compatibilidad
+        this.subCategoria2 = subCategoria2;
         this.proveedor = proveedor;
         this.precioPromedio = precioPromedio != null ? BigDecimal.valueOf(precioPromedio) : null;
         this.ultimaVenta = ultimaVenta;
@@ -41,15 +46,17 @@ public class ProductoMasVendidoDTO {
     
     // Constructor alternativo sin fecha para consultas básicas
     public ProductoMasVendidoDTO(Long idProducto, String nombreProducto, String codigoIdentificacion, 
-                               Long cantidadVendida, BigDecimal ingresosTotales, String categoria, 
-                               String proveedor, Double precioPromedio) {
+                               Long cantidadVendida, BigDecimal ingresosTotales, String categoriaPadre,
+                               String categoria, String subCategoria2, String proveedor, Double precioPromedio) {
         this.idProducto = idProducto;
         this.nombreProducto = nombreProducto;
         this.codigoIdentificacion = codigoIdentificacion;
         this.cantidadVendida = cantidadVendida;
         this.ingresosTotales = ingresosTotales;
-        this.categoria = categoria;
-        this.subcategoria = null;
+        this.categoriaPadre = categoriaPadre;
+        this.categoria = categoria; // subcategoría
+        this.subcategoria = categoria; // Para compatibilidad
+        this.subCategoria2 = subCategoria2;
         this.proveedor = proveedor;
         this.precioPromedio = precioPromedio != null ? BigDecimal.valueOf(precioPromedio) : null;
         this.ultimaVenta = null;

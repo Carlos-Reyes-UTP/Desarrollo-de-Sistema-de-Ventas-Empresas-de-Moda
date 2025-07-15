@@ -8,6 +8,8 @@ export interface ProductoMasVendido {
   ingresosTotales: number;
   categoria?: string;
   subcategoria?: string;
+  categoriaPadre?: string;
+  subCategoria2?: string;
   proveedor?: string;
   precioPromedio: number;
   ultimaVenta?: string;
