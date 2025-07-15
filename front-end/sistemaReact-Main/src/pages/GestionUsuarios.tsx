@@ -1472,39 +1472,88 @@ const GestionUsuarios = () => {
                         <span className="text-red-500 ml-1">*</span>
                       </span>
                     </label>
+                    
+                    {/* Mensaje de advertencia para último administrador */}
+                    {modoEdicion && esUltimoAdministradorActivo(usuarioEditando as Usuario) && (
+                      <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-100 border-l-4 border-amber-400 rounded-lg shadow-sm">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            <AlertCircle className="w-5 h-5 text-amber-500" />
+                          </div>
+                          <div className="ml-3">
+                            <h4 className="text-sm font-semibold text-amber-800 mb-1">
+                              Restricción de Seguridad
+                            </h4>
+                            <p className="text-sm text-amber-700">
+                              Este es el último administrador activo del sistema. No se puede cambiar su rol para garantizar que siempre haya al menos un administrador disponible.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="grid grid-cols-3 gap-3">
                       {[
                         { value: 'ROLE_ADMIN', label: 'ADMIN', color: 'bg-yellow-500 hover:bg-yellow-600 border-yellow-500' },
                         { value: 'ROLE_CAJERO', label: 'CAJERO', color: 'bg-green-500 hover:bg-green-600 border-green-500' },
                         { value: 'ROLE_ALMACENERO', label: 'ALMACENERO', color: 'bg-blue-500 hover:bg-blue-600 border-blue-500' }
-                      ].map((rol) => (
-                        <button
-                          key={rol.value}
-                          type="button"
-                          onClick={() => {
-                            setFormUsuario(prev => ({
-                              ...prev,
-                              roles: [rol.value as RolNombre]
-                            }));
-                          }}
-                          className={`relative px-4 py-3 text-sm font-semibold rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-offset-2 ${
-                            formUsuario.roles.includes(rol.value as RolNombre)
-                              ? `${rol.color} text-white shadow-lg transform scale-105 focus:ring-opacity-50`
-                              : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200 hover:border-gray-400 focus:ring-gray-500/20'
-                          }`}
-                        >
-                          {formUsuario.roles.includes(rol.value as RolNombre) && (
-                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg">
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            </div>
-                          )}
-                          {rol.label}
-                        </button>
-                      ))}
+                      ].map((rol) => {
+                        // Verificar si este rol está deshabilitado para el último administrador
+                        const esUltimoAdmin = modoEdicion && esUltimoAdministradorActivo(usuarioEditando as Usuario);
+                        const deshabilitado = esUltimoAdmin && rol.value !== 'ROLE_ADMIN';
+
+                        return (
+                          <div key={rol.value} className="relative">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (deshabilitado) {
+                                  // Mostrar mensaje de advertencia
+                                  setError('No se puede cambiar el rol del último administrador del sistema');
+                                  setTimeout(() => setError(null), 5000);
+                                  return;
+                                }
+                                setFormUsuario(prev => ({
+                                  ...prev,
+                                  roles: [rol.value as RolNombre]
+                                }));
+                              }}
+                              disabled={deshabilitado}
+                              className={`relative w-full px-4 py-3 text-sm font-semibold rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-offset-2 ${
+                                deshabilitado
+                                  ? 'bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed opacity-60'
+                                  : formUsuario.roles.includes(rol.value as RolNombre)
+                                    ? `${rol.color} text-white shadow-lg transform scale-105 focus:ring-opacity-50`
+                                    : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200 hover:border-gray-400 focus:ring-gray-500/20'
+                              }`}
+                              title={
+                                deshabilitado 
+                                  ? 'No se puede cambiar el rol del último administrador del sistema'
+                                  : `Seleccionar rol ${rol.label}`
+                              }
+                            >
+                              {formUsuario.roles.includes(rol.value as RolNombre) && (
+                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg">
+                                  <CheckCircle className="w-4 h-4 text-green-500" />
+                                </div>
+                              )}
+                              {deshabilitado && rol.value !== 'ROLE_ADMIN' && (
+                                <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <X className="w-4 h-4 text-white" />
+                                </div>
+                              )}
+                              {rol.label}
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                     <p className="text-xs text-gray-500 italic flex items-center">
                       <Info className="w-3 h-3 mr-1" />
-                      Selecciona un rol para el usuario
+                      {modoEdicion && esUltimoAdministradorActivo(usuarioEditando as Usuario)
+                        ? 'El rol de administrador no se puede cambiar para el último administrador del sistema'
+                        : 'Selecciona un rol para el usuario'
+                      }
                     </p>
                   </div>
                 </div>
