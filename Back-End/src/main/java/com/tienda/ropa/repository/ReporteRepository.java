@@ -225,4 +225,34 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ProductoMasVendidoDTO> findProductosMasVendidosPorCategoriaPadre(
                      @Param("idCategoriaPadre") Long idCategoriaPadre, Pageable pageable);
+
+       // Consulta para productos más vendidos por categoría padre y fecha
+       @Query("SELECT new com.tienda.ropa.dto.ProductoMasVendidoDTO(" +
+                     "pv.producto.id, " +
+                     "p.nombre, " +
+                     "p.codigoIdentificacion, " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
+                     "prov.nombre, " +
+                     "AVG(dv.precioUnitario), " +
+                     "MAX(v.fechaVenta)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
+                     "JOIN p.proveedor prov " +
+                     "JOIN dv.venta v " +
+                     "WHERE cp.idCategoria = :idCategoriaPadre AND v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     "GROUP BY pv.producto.id, p.nombre, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<ProductoMasVendidoDTO> findProductosMasVendidosPorCategoriaPadreYFecha(
+                     @Param("idCategoriaPadre") Long idCategoriaPadre, 
+                     @Param("fechaInicio") LocalDateTime fechaInicio,
+                     @Param("fechaFin") LocalDateTime fechaFin,
+                     Pageable pageable);
 }

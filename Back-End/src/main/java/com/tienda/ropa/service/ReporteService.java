@@ -1,16 +1,20 @@
 package com.tienda.ropa.service;
 
-import com.tienda.ropa.dto.*;
-import com.tienda.ropa.repository.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
-import java.util.List;
+import com.tienda.ropa.dto.ProductoMasVendidoDTO;
+import com.tienda.ropa.dto.ReportePorCategoriaDTO;
+import com.tienda.ropa.dto.ReportePorColorDTO;
+import com.tienda.ropa.dto.ReportePorTallaDTO;
+import com.tienda.ropa.repository.ReporteRepository;
 
 @Service
 public class ReporteService {
@@ -163,5 +167,12 @@ public class ReporteService {
     public List<ProductoMasVendidoDTO> obtenerProductosMasVendidosPorCategoriaPadre(Long idCategoriaPadre, int limite) {
         Pageable pageable = PageRequest.of(0, limite);
         return reporteRepository.findProductosMasVendidosPorCategoriaPadre(idCategoriaPadre, pageable);
+    }
+
+    public List<ProductoMasVendidoDTO> obtenerProductosMasVendidosPorCategoriaPadreYFecha(
+            Long idCategoriaPadre, LocalDateTime fechaInicio, LocalDateTime fechaFin, int limite) {
+        Pageable pageable = PageRequest.of(0, limite);
+        return reporteRepository.findProductosMasVendidosPorCategoriaPadreYFecha(
+                idCategoriaPadre, fechaInicio, fechaFin, pageable);
     }
 }

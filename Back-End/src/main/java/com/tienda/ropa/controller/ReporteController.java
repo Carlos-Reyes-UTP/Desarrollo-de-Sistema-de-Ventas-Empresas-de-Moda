@@ -1,16 +1,24 @@
 package com.tienda.ropa.controller;
 
-import com.tienda.ropa.dto.*;
-import com.tienda.ropa.service.ReporteService;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
+import com.tienda.ropa.dto.ProductoMasVendidoDTO;
+import com.tienda.ropa.dto.ReportePorCategoriaDTO;
+import com.tienda.ropa.dto.ReportePorColorDTO;
+import com.tienda.ropa.dto.ReportePorTallaDTO;
+import com.tienda.ropa.service.ReporteService;
 
 @RestController
 @RequestMapping("/api/admin/reportes")
@@ -25,13 +33,26 @@ public class ReporteController {
     @GetMapping("/productos-mas-vendidos")
     public ResponseEntity<List<ProductoMasVendidoDTO>> obtenerProductosMasVendidos(
             @RequestParam(defaultValue = "10") int limite,
-            @RequestParam(required = false) Long idCategoriaPadre) {
+            @RequestParam(required = false) Long idCategoriaPadre,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
         try {
             List<ProductoMasVendidoDTO> productos;
-            if (idCategoriaPadre != null) {
-                productos = reporteService.obtenerProductosMasVendidosPorCategoriaPadre(idCategoriaPadre, limite);
+            
+            // Si se proporcionan fechas, usar consulta con filtro de fecha
+            if (fechaInicio != null && fechaFin != null) {
+                if (idCategoriaPadre != null) {
+                    productos = reporteService.obtenerProductosMasVendidosPorCategoriaPadreYFecha(idCategoriaPadre, fechaInicio, fechaFin, limite);
+                } else {
+                    productos = reporteService.obtenerProductosMasVendidosPorFecha(fechaInicio, fechaFin, limite);
+                }
             } else {
-                productos = reporteService.obtenerProductosMasVendidos(limite);
+                // Sin filtro de fecha
+                if (idCategoriaPadre != null) {
+                    productos = reporteService.obtenerProductosMasVendidosPorCategoriaPadre(idCategoriaPadre, limite);
+                } else {
+                    productos = reporteService.obtenerProductosMasVendidos(limite);
+                }
             }
             return ResponseEntity.ok(productos);
         } catch (Exception e) {
