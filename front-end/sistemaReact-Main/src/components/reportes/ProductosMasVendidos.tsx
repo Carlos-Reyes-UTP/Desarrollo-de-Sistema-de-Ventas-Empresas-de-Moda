@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   CubeIcon,
   FunnelIcon,
@@ -53,9 +53,70 @@ const ProductosMasVendidos: React.FC = () => {
   const [fechaInicio, setFechaInicio] = useState<string>('');
   const [fechaFin, setFechaFin] = useState<string>('');
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
+  const [filtrosAplicados, setFiltrosAplicados] = useState<{
+    fechaInicio?: string;
+    fechaFin?: string;
+    categoriaPadre?: string;
+  }>({});
+  const [searchCategoria, setSearchCategoria] = useState<string>('');
+  const [isCategoriaFocused, setIsCategoriaFocused] = useState(false);
+  
+  // Referencias para el campo de búsqueda
+  const categoriaRef = useRef<HTMLDivElement>(null);
+  
   useEffect(() => {
     CategoriaService.obtenerCategoriasPrincipales().then(setCategorias);
   }, []);
+
+  // Manejar clics fuera del componente de búsqueda para cerrar la lista
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoriaRef.current && !categoriaRef.current.contains(event.target as Node)) {
+        setSearchCategoria('');
+        setIsCategoriaFocused(false);
+      }
+    };
+
+    const handleScroll = () => {
+      if (isCategoriaFocused || searchCategoria) {
+        setSearchCategoria('');
+        setIsCategoriaFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
+  }, [isCategoriaFocused, searchCategoria]);
+
+  // Efecto separado para aplicar filtros solo cuando sea necesario
+  useEffect(() => {
+    const aplicarFiltros = () => {
+      // Solo aplicar filtros si:
+      // 1. No hay fechas seleccionadas (carga inicial)
+      // 2. Ambas fechas están seleccionadas
+      // 3. Solo cambió la categoría
+      const debeAplicarFiltros = 
+        (!fechaInicio && !fechaFin) || // Carga inicial
+        (fechaInicio && fechaFin) || // Ambas fechas completas
+        (categoriaPadre !== filtrosAplicados.categoriaPadre); // Categoría cambió
+
+      if (debeAplicarFiltros) {
+        setFiltrosAplicados({
+          fechaInicio: fechaInicio && fechaFin ? fechaInicio : filtrosAplicados.fechaInicio,
+          fechaFin: fechaInicio && fechaFin ? fechaFin : filtrosAplicados.fechaFin,
+          categoriaPadre
+        });
+      }
+    };
+
+    // Usar timeout para evitar llamadas excesivas
+    const timeoutId = setTimeout(aplicarFiltros, 300);
+    return () => clearTimeout(timeoutId);
+  }, [fechaInicio, fechaFin, categoriaPadre]);
 
   useEffect(() => {
     const cargarProductos = async () => {
@@ -64,14 +125,14 @@ const ProductosMasVendidos: React.FC = () => {
         setError(null);
         let filtrosReporte = { ...filtros };
         
-        if (categoriaPadre) {
-          filtrosReporte = { ...filtrosReporte, idCategoriaPadre: categoriaPadre };
+        if (filtrosAplicados.categoriaPadre) {
+          filtrosReporte = { ...filtrosReporte, idCategoriaPadre: filtrosAplicados.categoriaPadre };
         }
         
-        if (fechaInicio && fechaFin) {
+        if (filtrosAplicados.fechaInicio && filtrosAplicados.fechaFin) {
           // Convertir fechas a formato ISO con hora
-          const fechaInicioISO = new Date(fechaInicio + 'T00:00:00').toISOString();
-          const fechaFinISO = new Date(fechaFin + 'T23:59:59').toISOString();
+          const fechaInicioISO = new Date(filtrosAplicados.fechaInicio + 'T00:00:00').toISOString();
+          const fechaFinISO = new Date(filtrosAplicados.fechaFin + 'T23:59:59').toISOString();
           filtrosReporte = { 
             ...filtrosReporte, 
             fechaInicio: fechaInicioISO,
@@ -91,7 +152,19 @@ const ProductosMasVendidos: React.FC = () => {
       }
     };
     cargarProductos();
-  }, [filtros, categoriaPadre, fechaInicio, fechaFin]);
+  }, [filtros, filtrosAplicados]);
+
+  // Función para filtrar categorías según el término de búsqueda
+  const categoriasFiltradas = categorias.filter(categoria =>
+    searchCategoria === '' || 
+    categoria.nombre.toLowerCase().includes(searchCategoria.toLowerCase())
+  );
+
+  // Función para limpiar la selección de categoría
+  const limpiarSeleccionCategoria = () => {
+    setCategoriaPadre('');
+    setSearchCategoria('');
+  };
 
   // Función para limpiar todos los filtros
   const limpiarFiltros = () => {
@@ -99,6 +172,8 @@ const ProductosMasVendidos: React.FC = () => {
     setFechaInicio('');
     setFechaFin('');
     setBusqueda('');
+    setSearchCategoria('');
+    setFiltrosAplicados({});
     // No cerramos el panel de filtros automáticamente
   };
 
@@ -108,28 +183,34 @@ const ProductosMasVendidos: React.FC = () => {
     // Usar zona horaria local para evitar problemas con UTC
     const fechaFinStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
     
+    let fechaInicioStr = '';
+    
     switch (tipo) {
       case 'hoy':
-        setFechaInicio(fechaFinStr);
-        setFechaFin(fechaFinStr);
+        fechaInicioStr = fechaFinStr;
         break;
       case 'semana': {
         const hace7Dias = new Date(hoy);
         hace7Dias.setDate(hoy.getDate() - 7);
-        const fechaInicioStr = `${hace7Dias.getFullYear()}-${String(hace7Dias.getMonth() + 1).padStart(2, '0')}-${String(hace7Dias.getDate()).padStart(2, '0')}`;
-        setFechaInicio(fechaInicioStr);
-        setFechaFin(fechaFinStr);
+        fechaInicioStr = `${hace7Dias.getFullYear()}-${String(hace7Dias.getMonth() + 1).padStart(2, '0')}-${String(hace7Dias.getDate()).padStart(2, '0')}`;
         break;
       }
       case 'mes': {
         const hace30Dias = new Date(hoy);
         hace30Dias.setDate(hoy.getDate() - 30);
-        const fechaInicioStr = `${hace30Dias.getFullYear()}-${String(hace30Dias.getMonth() + 1).padStart(2, '0')}-${String(hace30Dias.getDate()).padStart(2, '0')}`;
-        setFechaInicio(fechaInicioStr);
-        setFechaFin(fechaFinStr);
+        fechaInicioStr = `${hace30Dias.getFullYear()}-${String(hace30Dias.getMonth() + 1).padStart(2, '0')}-${String(hace30Dias.getDate()).padStart(2, '0')}`;
         break;
       }
     }
+    
+    // Actualizar tanto el estado visual como los filtros aplicados
+    setFechaInicio(fechaInicioStr);
+    setFechaFin(fechaFinStr);
+    setFiltrosAplicados(prev => ({
+      ...prev,
+      fechaInicio: fechaInicioStr,
+      fechaFin: fechaFinStr
+    }));
   };
 
   const productosFiltrados = productos.filter(producto =>
@@ -237,23 +318,6 @@ const ProductosMasVendidos: React.FC = () => {
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
-          <select
-            value={categoriaPadre}
-            onChange={e => setCategoriaPadre(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white"
-          >
-            <option value="">Todas las categorías</option>
-            {categorias.map(cat => (
-              <option key={cat.idCategoria} value={cat.idCategoria}>{cat.nombre}</option>
-            ))}
-          </select>
-          <button
-            onClick={exportarDatos}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-          >
-            <ArrowDownTrayIcon className="h-4 w-4" />
-            Exportar Excel
-          </button>
           <button 
             onClick={() => setMostrarFiltros(!mostrarFiltros)}
             className={`relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ease-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
@@ -268,22 +332,29 @@ const ProductosMasVendidos: React.FC = () => {
             <span className="font-medium">
               {mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
             </span>
-            {(fechaInicio || fechaFin || categoriaPadre) && !mostrarFiltros && (
+            {(filtrosAplicados.fechaInicio || filtrosAplicados.fechaFin || filtrosAplicados.categoriaPadre) && !mostrarFiltros && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
                 !
               </span>
             )}
           </button>
+          <button
+            onClick={exportarDatos}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            <ArrowDownTrayIcon className="h-4 w-4" />
+            Exportar Excel
+          </button>
         </div>
       </div>
 
       {/* Panel de filtros expandible con animación */}
-      <div className={`transition-all duration-500 ease-out overflow-hidden ${
+      <div className={`transition-all duration-500 ease-out ${
         mostrarFiltros 
           ? 'max-h-screen opacity-100 transform translate-y-0' 
-          : 'max-h-0 opacity-0 transform -translate-y-2'
+          : 'max-h-0 opacity-0 transform -translate-y-2 overflow-hidden'
       }`}>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transform transition-all duration-300 ease-out">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transform transition-all duration-300 ease-out relative">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold text-gray-900">Filtros de Búsqueda</h3>
             <button
@@ -297,44 +368,170 @@ const ProductosMasVendidos: React.FC = () => {
             </button>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 relative"
+               style={{ zIndex: 1 }}>
+            {/* Campo de búsqueda de categorías */}
+            <div className="relative" ref={categoriaRef} style={{ zIndex: 10 }}>
+              <label htmlFor="searchCategoria" className="block text-sm font-medium text-gray-700 mb-2">
+                🗂️ Categoría Principal
+              </label>
+              <input
+                id="searchCategoria"
+                type="text"
+                placeholder={categoriaPadre ? "Categoría seleccionada" : "Buscar categoría principal..."}
+                value={searchCategoria}
+                onChange={(e) => setSearchCategoria(e.target.value)}
+                onFocus={() => setIsCategoriaFocused(true)}
+                onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 150)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') {
+                    setSearchCategoria('');
+                  } else if (e.key === 'Enter' && categoriasFiltradas.length === 1) {
+                    setCategoriaPadre(categoriasFiltradas[0].idCategoria?.toString() || '');
+                    setSearchCategoria('');
+                  }
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                disabled={!!categoriaPadre}
+              />
+              
+              {/* Indicador de resultados */}
+              {searchCategoria && !categoriaPadre && (
+                <div className="absolute right-3 top-9 text-xs text-gray-500 bg-white px-1">
+                  {categoriasFiltradas.length} resultado{categoriasFiltradas.length !== 1 ? 's' : ''}
+                </div>
+              )}
+              
+              {/* Lista desplegable de categorías filtradas */}
+              {(isCategoriaFocused || searchCategoria) && !categoriaPadre && categoriasFiltradas.length > 0 && (
+                <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-2xl max-h-48 overflow-y-auto"
+                     style={{ 
+                       position: 'absolute',
+                       top: '100%',
+                       left: 0,
+                       right: 0,
+                       zIndex: 9999,
+                       backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                       backdropFilter: 'blur(8px)',
+                       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                     }}>
+                  {categoriasFiltradas.map(categoria => (
+                    <button
+                      key={categoria.idCategoria}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCategoriaPadre(categoria.idCategoria?.toString() || '');
+                        setSearchCategoria('');
+                        setIsCategoriaFocused(false);
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setCategoriaPadre(categoria.idCategoria?.toString() || '');
+                          setSearchCategoria('');
+                          setIsCategoriaFocused(false);
+                        }
+                      }}
+                      className="w-full px-3 py-2 hover:bg-blue-50 cursor-pointer text-sm border-b border-gray-100 last:border-b-0 text-left focus:outline-none focus:bg-blue-50 transition-colors duration-150"
+                    >
+                      <span className="font-medium text-gray-900">{categoria.nombre}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              {/* Mensaje cuando no hay resultados */}
+              {searchCategoria && categoriasFiltradas.length === 0 && (
+                <div className="absolute z-[9999] w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-2xl p-3 text-center text-gray-500 text-sm"
+                     style={{ 
+                       position: 'absolute',
+                       top: '100%',
+                       left: 0,
+                       right: 0,
+                       zIndex: 9999,
+                       backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                       backdropFilter: 'blur(8px)',
+                       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+                     }}>
+                  No se encontraron categorías
+                </div>
+              )}
+              
+              {/* Mostrar categoría seleccionada */}
+              {categoriaPadre && !searchCategoria && (
+                <div className="absolute inset-x-0 top-9 px-3 py-2 bg-blue-50 border border-blue-300 rounded-lg flex items-center justify-between">
+                  <span className="text-blue-800 font-medium text-sm">
+                    {categorias.find(c => c.idCategoria?.toString() === categoriaPadre)?.nombre}
+                  </span>
+                  <button
+                    onClick={limpiarSeleccionCategoria}
+                    className="text-blue-600 hover:text-blue-800 ml-2 p-1"
+                    title="Limpiar selección"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+            
             {/* Filtros de fecha */}
             <div>
               <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de inicio
+                📅 Fecha de inicio
               </label>
               <input
                 id="fechaInicio"
                 type="date"
                 value={fechaInicio}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  setFechaInicio(e.target.value);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                onFocus={(e) => e.stopPropagation()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => setFechaInicio(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                title="Selecciona la fecha de inicio para filtrar los datos"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               />
             </div>
             
             <div>
               <label htmlFor="fechaFin" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de fin
+                📅 Fecha de fin
               </label>
               <input
                 id="fechaFin"
                 type="date"
                 value={fechaFin}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  setFechaFin(e.target.value);
-                }}
-                onClick={(e) => e.stopPropagation()}
-                onFocus={(e) => e.stopPropagation()}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => setFechaFin(e.target.value)}
+                onMouseDown={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
+                title="Selecciona la fecha de fin para filtrar los datos"
+                min={fechaInicio || undefined}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
               />
             </div>
           </div>
+
+          {/* Botón para aplicar filtros de fechas manualmente */}
+          {(fechaInicio || fechaFin) && (fechaInicio !== filtrosAplicados.fechaInicio || fechaFin !== filtrosAplicados.fechaFin) && (
+            <div className="mb-4">
+              <button
+                onClick={() => {
+                  setFiltrosAplicados(prev => ({
+                    ...prev,
+                    fechaInicio,
+                    fechaFin
+                  }));
+                }}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                🔄 Aplicar filtros de fecha
+              </button>
+            </div>
+          )}
 
           {/* Filtros rápidos */}
           <div className="flex flex-wrap gap-2 mb-4">
@@ -378,26 +575,26 @@ const ProductosMasVendidos: React.FC = () => {
           </div>
 
           {/* Indicador de filtros activos */}
-          {(fechaInicio || fechaFin || categoriaPadre) && (
+          {(filtrosAplicados.fechaInicio || filtrosAplicados.fechaFin || filtrosAplicados.categoriaPadre) && (
             <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-3 border border-green-200">
               <div className="flex items-center space-x-2 mb-2">
                 <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                 <span className="text-sm font-semibold text-gray-800">Filtros aplicados:</span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {fechaInicio && (
+                {filtrosAplicados.fechaInicio && (
                   <span className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium shadow-sm">
-                    📅 Desde: {fechaInicio}
+                    📅 Desde: {filtrosAplicados.fechaInicio}
                   </span>
                 )}
-                {fechaFin && (
+                {filtrosAplicados.fechaFin && (
                   <span className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium shadow-sm">
-                    📅 Hasta: {fechaFin}
+                    📅 Hasta: {filtrosAplicados.fechaFin}
                   </span>
                 )}
-                {categoriaPadre && (
+                {filtrosAplicados.categoriaPadre && (
                   <span className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded-full font-medium shadow-sm">
-                    🏷️ {categorias.find(c => c.idCategoria?.toString() === categoriaPadre)?.nombre}
+                    🏷️ {categorias.find(c => c.idCategoria?.toString() === filtrosAplicados.categoriaPadre)?.nombre}
                   </span>
                 )}
               </div>
