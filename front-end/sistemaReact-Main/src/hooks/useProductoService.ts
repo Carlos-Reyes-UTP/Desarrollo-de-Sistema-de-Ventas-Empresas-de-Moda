@@ -4,10 +4,10 @@ import { ProductoService } from '../services/ProductoServices';
 
 export const useProductoService = () => {
   const { usuario } = useAuth();
-  
+
   // Get the user's primary role
   const getUserRole = useCallback((): string | undefined => {
-    if (!usuario || !usuario.roles || usuario.roles.length === 0) {
+    if (!usuario?.roles?.length) {
       return undefined;
     }
     // Return the first role (could be enhanced to handle multiple roles)
@@ -33,19 +33,19 @@ export const useProductoService = () => {
     getProductosByNombre,
     buscarProductos,
     buscarProductosCompleto,
-    
+
     // Write operations (only for authorized roles)
     createProducto: ProductoService.createProducto,
     updateProducto: ProductoService.updateProducto,
     deleteProducto: ProductoService.deleteProducto,
-    
+
     // Stock operations
     disminuirCantidadProducto,
-    
+
     // Legacy operations (maintain backward compatibility)
     getProductosByCategoria: ProductoService.getProductosByCategoria,
     getProductosByProveedor: ProductoService.getProductosByProveedor,
-    
+
     // User info
     userRole,
     canWrite: userRole === 'ROLE_ADMIN' || userRole === 'ROLE_ALMACENERO',

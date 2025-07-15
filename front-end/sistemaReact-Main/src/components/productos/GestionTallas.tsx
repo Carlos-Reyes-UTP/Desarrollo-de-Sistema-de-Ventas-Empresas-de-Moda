@@ -301,7 +301,7 @@ const GestionTallas: React.FC = () => {
                         {num}
                       </button>
                     ) : (
-                      <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
+                    <span key={`ellipsis-${num}-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
                     )
                   );
                 })()}

@@ -73,7 +73,8 @@ apiClient.interceptors.request.use(
     return config;
   },
   (error) => {
-    return Promise.reject(error);
+    console.error('Error en interceptor de request:', error);
+    return Promise.reject(error instanceof Error ? error : new Error(error?.message || 'Error desconocido'));
   }
 );
 
@@ -118,7 +119,7 @@ apiClient.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+    return Promise.reject(error instanceof Error ? error : new Error(error?.message || 'Error desconocido'));
   }
 );
 

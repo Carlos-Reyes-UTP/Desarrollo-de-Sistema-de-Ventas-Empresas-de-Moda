@@ -61,7 +61,7 @@ const GestionColores: React.FC = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   // Inicia la creación de un nuevo color en una nueva fila.
   const handleNuevo = () => {
     if (editingId) return; // Evitar añadir más de uno a la vez
@@ -88,21 +88,21 @@ const GestionColores: React.FC = () => {
       setError('El nombre del color no puede estar vacío.');
       return;
     }
-    
+
     try {
       if (editingId === 'new') {
         await ColorService.createColor(formData);
       } else {
         await ColorService.updateColor(editingId!, { ...formData, idColor: editingId! });
       }
-      
+
       handleCancelar(); // Salir del modo edición
       cargarColores(); // Recargar la lista
     } catch (err: any) {
       setError('Error al guardar el color: ' + (err.response?.data?.message || err.message));
     }
   };
-  
+
   // Lógica para eliminar un color.
   const handleEliminar = async (id: number) => {
     // Usar un modal personalizado en el futuro sería ideal.
@@ -111,11 +111,12 @@ const GestionColores: React.FC = () => {
         await ColorService.deleteColor(id);
         cargarColores();
       } catch (err: any) {
+        console.error('Error al eliminar el color:', err);
         setError('Error al eliminar el color. Asegúrate de que no esté en uso por algún producto.');
       }
     }
   };
-  
+
   const coloresPaginados = coloresFiltrados.slice(
     (paginaActual - 1) * coloresPorPagina,
     paginaActual * coloresPorPagina
@@ -154,117 +155,117 @@ const GestionColores: React.FC = () => {
 
         {/* Contenedor principal con sombra */}
         <div className="bg-white rounded-lg shadow-md border border-gray-200">
-            {/* Barra de búsqueda */}
-            <div className="p-4 border-b border-gray-200">
-                <div className="relative">
-                    <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Buscar por nombre o código hexadecimal..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                </div>
+          {/* Barra de búsqueda */}
+          <div className="p-4 border-b border-gray-200">
+            <div className="relative">
+              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre o código hexadecimal..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
             </div>
-            
-            {/* Tabla de colores */}
-            <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                        <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código Hex</th>
-                            <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                        {/* Fila para crear un nuevo color */}
-                        {editingId === 'new' && (
-                            <tr className="bg-blue-50">
-                                <td className="px-6 py-4">
-                                    <input
-                                        type="color"
-                                        name="codigoHex"
-                                        value={formData.codigoHex}
-                                        onChange={handleInputChange}
-                                        className="w-10 h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
-                                    />
-                                </td>
-                                <td className="px-6 py-4">
-                                    <input
-                                        type="text"
-                                        name="nombre"
-                                        value={formData.nombre}
-                                        onChange={handleInputChange}
-                                        placeholder="Nombre del color"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                                        autoFocus
-                                    />
-                                </td>
-                                <td className="px-6 py-4">
-                                    <input
-                                        type="text"
-                                        name="codigoHex"
-                                        value={formData.codigoHex}
-                                        onChange={handleInputChange}
-                                        placeholder="#FFFFFF"
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
-                                    />
-                                </td>
-                                <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                    <button onClick={handleGuardar} className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-100" title="Guardar"><Save className="w-5 h-5" /></button>
-                                    <button onClick={handleCancelar} className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" title="Cancelar"><X className="w-5 h-5" /></button>
-                                </td>
-                            </tr>
-                        )}
-                        
-                        {/* Filas de colores existentes */}
-                        {coloresPaginados.map((color) => (
-                            <tr key={color.idColor}>
-                                {editingId === color.idColor ? (
-                                    // ---- VISTA DE EDICIÓN ----
-                                    <>
-                                        <td className="px-6 py-4"><input type="color" name="codigoHex" value={formData.codigoHex} onChange={handleInputChange} className="w-10 h-10 p-1 border border-gray-300 rounded-md cursor-pointer" /></td>
-                                        <td className="px-6 py-4"><input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg" autoFocus/></td>
-                                        <td className="px-6 py-4"><input type="text" name="codigoHex" value={formData.codigoHex} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"/></td>
-                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                            <button onClick={handleGuardar} className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-100" title="Guardar"><Save className="w-5 h-5" /></button>
-                                            <button onClick={handleCancelar} className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" title="Cancelar"><X className="w-5 h-5" /></button>
-                                        </td>
-                                    </>
-                                ) : (
-                                    // ---- VISTA NORMAL ----
-                                    <>
-                                        <td className="px-6 py-4"><ColorPill hexCode={color.codigoHex} /></td>
-                                        <td className="px-6 py-4 font-medium text-gray-900">{color.nombre}</td>
-                                        <td className="px-6 py-4 text-gray-500 font-mono">{color.codigoHex}</td>
-                                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                                            <button onClick={() => handleEditar(color)} disabled={editingId !== null} className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 disabled:text-gray-300 disabled:cursor-not-allowed" title="Editar"><Edit className="w-5 h-5" /></button>
-                                            <button onClick={() => color.idColor && handleEliminar(color.idColor)} disabled={editingId !== null} className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 disabled:text-gray-300 disabled:cursor-not-allowed" title="Eliminar"><Trash2 className="w-5 h-5" /></button>
-                                        </td>
-                                    </>
-                                )}
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
+          </div>
+
+          {/* Tabla de colores */}
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código Hex</th>
+                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {/* Fila para crear un nuevo color */}
+                {editingId === 'new' && (
+                  <tr className="bg-blue-50">
+                    <td className="px-6 py-4">
+                      <input
+                        type="color"
+                        name="codigoHex"
+                        value={formData.codigoHex}
+                        onChange={handleInputChange}
+                        className="w-10 h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input
+                        type="text"
+                        name="nombre"
+                        value={formData.nombre}
+                        onChange={handleInputChange}
+                        placeholder="Nombre del color"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                        autoFocus
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input
+                        type="text"
+                        name="codigoHex"
+                        value={formData.codigoHex}
+                        onChange={handleInputChange}
+                        placeholder="#FFFFFF"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
+                      />
+                    </td>
+                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                      <button onClick={handleGuardar} className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-100" title="Guardar"><Save className="w-5 h-5" /></button>
+                      <button onClick={handleCancelar} className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" title="Cancelar"><X className="w-5 h-5" /></button>
+                    </td>
+                  </tr>
+                )}
+
+                {/* Filas de colores existentes */}
+                {coloresPaginados.map((color) => (
+                  <tr key={color.idColor}>
+                    {editingId === color.idColor ? (
+                      // ---- VISTA DE EDICIÓN ----
+                      <>
+                        <td className="px-6 py-4"><input type="color" name="codigoHex" value={formData.codigoHex} onChange={handleInputChange} className="w-10 h-10 p-1 border border-gray-300 rounded-md cursor-pointer" /></td>
+                        <td className="px-6 py-4"><input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg" autoFocus /></td>
+                        <td className="px-6 py-4"><input type="text" name="codigoHex" value={formData.codigoHex} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" /></td>
+                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                          <button onClick={handleGuardar} className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-100" title="Guardar"><Save className="w-5 h-5" /></button>
+                          <button onClick={handleCancelar} className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" title="Cancelar"><X className="w-5 h-5" /></button>
+                        </td>
+                      </>
+                    ) : (
+                      // ---- VISTA NORMAL ----
+                      <>
+                        <td className="px-6 py-4"><ColorPill hexCode={color.codigoHex} /></td>
+                        <td className="px-6 py-4 font-medium text-gray-900">{color.nombre}</td>
+                        <td className="px-6 py-4 text-gray-500 font-mono">{color.codigoHex}</td>
+                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
+                          <button onClick={() => handleEditar(color)} disabled={editingId !== null} className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 disabled:text-gray-300 disabled:cursor-not-allowed" title="Editar"><Edit className="w-5 h-5" /></button>
+                          <button onClick={() => color.idColor && handleEliminar(color.idColor)} disabled={editingId !== null} className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 disabled:text-gray-300 disabled:cursor-not-allowed" title="Eliminar"><Trash2 className="w-5 h-5" /></button>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Mensaje si no hay colores */}
+          {loading && (
+            <div className="text-center p-12 text-gray-500">Cargando colores...</div>
+          )}
+          {!loading && coloresFiltrados.length === 0 && (
+            <div className="text-center p-12">
+              <Palette className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron colores</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm ? 'Intenta con otra búsqueda o limpia el filtro.' : '¡Comienza añadiendo tu primer color!'}
+              </p>
             </div>
-            
-            {/* Mensaje si no hay colores */}
-            {loading && (
-                 <div className="text-center p-12 text-gray-500">Cargando colores...</div>
-            )}
-            {!loading && coloresFiltrados.length === 0 && (
-              <div className="text-center p-12">
-                <Palette className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron colores</h3>
-                <p className="mt-1 text-sm text-gray-500">
-                  {searchTerm ? 'Intenta con otra búsqueda o limpia el filtro.' : '¡Comienza añadiendo tu primer color!'}
-                </p>
-              </div>
-            )}
+          )}
         </div>
       </div>
       {/* Controles de paginación separados, igual que en usuarios */}
@@ -318,7 +319,7 @@ const GestionColores: React.FC = () => {
                       {num}
                     </button>
                   ) : (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
+                    <span key={`ellipsis-${num}-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
                   )
                 );
               })()}

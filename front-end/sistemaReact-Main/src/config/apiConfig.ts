@@ -13,7 +13,6 @@ export const RUTAS_USUARIOS = {
   POR_ID: (id: number) => `${API_BASE_URL}/api/admin/user/${id}`, // Para actualizar
   DESHABILITAR: (id: number) => `${API_BASE_URL}/api/admin/user/deshabilitar/${id}`,
   HABILITAR: (id: number) => `${API_BASE_URL}/api/admin/user/habilitar/${id}`,
-  // VERIFICAR_CONTRASENA: `${API_BASE_URL}/api/autenticacion/verify-password`, // TODO: Implementar en backend
 };
 
 // Rutas de Productos
