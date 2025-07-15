@@ -51,6 +51,7 @@ export interface FiltrosReporte {
   metodoPago?: string;
   tipoCliente?: 'MAYORISTA' | 'REGULAR' | 'TODOS';
   limite?: number;
+  idCategoriaPadre?: string;
 }
 
 export interface ResumenGeneralVentas {

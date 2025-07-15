@@ -29,6 +29,7 @@ export const ReporteService = {
       if (filtros?.metodoPago) params.append('metodoPago', filtros.metodoPago);
       if (filtros?.tipoCliente) params.append('tipoCliente', filtros.tipoCliente);
       if (filtros?.limite) params.append('limite', filtros.limite.toString());
+      if (filtros?.idCategoriaPadre) params.append('idCategoriaPadre', filtros.idCategoriaPadre);
       
       const url = params.toString() 
         ? `${RUTAS_REPORTES.PRODUCTOS_MAS_VENDIDOS}?${params.toString()}`

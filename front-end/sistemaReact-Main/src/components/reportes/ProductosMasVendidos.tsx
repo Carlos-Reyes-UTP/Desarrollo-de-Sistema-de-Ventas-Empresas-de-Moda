@@ -19,6 +19,8 @@ import {
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
 import type { ProductoMasVendido, FiltrosReporte } from '../../interfaces/ReporteVentas';
+import { CategoriaService } from '../../services/CategoriaServices';
+import type { Categoria } from '../../interfaces/Categoria';
 
 const ProductosMasVendidos: React.FC = () => {
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
@@ -27,28 +29,34 @@ const ProductosMasVendidos: React.FC = () => {
   const [filtros] = useState<FiltrosReporte>({});
   const [vistaGrafico, setVistaGrafico] = useState<'barras' | 'linea' | 'tabla'>('barras');
   const [busqueda, setBusqueda] = useState('');
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [categoriaPadre, setCategoriaPadre] = useState<string>('');
+  useEffect(() => {
+    CategoriaService.obtenerCategoriasPrincipales().then(setCategorias);
+  }, []);
 
   useEffect(() => {
     const cargarProductos = async () => {
       try {
         setLoading(true);
         setError(null);
-        
-        // Obtener datos reales del backend
-        const data = await ReporteService.getProductosMasVendidos(filtros);
+        let filtrosReporte = { ...filtros };
+        if (categoriaPadre) {
+          filtrosReporte = { ...filtrosReporte, idCategoriaPadre: categoriaPadre };
+        }
+        console.log('Filtros enviados al backend:', filtrosReporte);
+        const data = await ReporteService.getProductosMasVendidos(filtrosReporte);
         setProductos(data);
       } catch (err: any) {
         setError(err.message || 'Error al cargar los productos más vendidos');
         console.error('Error:', err);
-        // En caso de error, mantener lista vacía en lugar de datos de ejemplo
         setProductos([]);
       } finally {
         setLoading(false);
       }
     };
-
     cargarProductos();
-  }, [filtros]);
+  }, [filtros, categoriaPadre]);
 
   const productosFiltrados = productos.filter(producto =>
     producto.nombreProducto.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -127,8 +135,17 @@ const ProductosMasVendidos: React.FC = () => {
             Ranking de productos por cantidad vendida e ingresos generados
           </p>
         </div>
-        
         <div className="flex gap-2">
+          <select
+            value={categoriaPadre}
+            onChange={e => setCategoriaPadre(e.target.value)}
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 bg-white"
+          >
+            <option value="">Todas las categorías</option>
+            {categorias.map(cat => (
+              <option key={cat.idCategoria} value={cat.idCategoria}>{cat.nombre}</option>
+            ))}
+          </select>
           <button
             onClick={exportarDatos}
             className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
@@ -136,7 +153,6 @@ const ProductosMasVendidos: React.FC = () => {
             <ArrowDownTrayIcon className="h-4 w-4" />
             Exportar Excel
           </button>
-          
           <button className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
             <FunnelIcon className="h-4 w-4" />
             Filtros
@@ -192,14 +208,14 @@ const ProductosMasVendidos: React.FC = () => {
         
         <div className="bg-purple-50 rounded-lg p-4">
           <div className="text-2xl font-bold text-purple-900">
-            S/.{productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString()}
+            S/ {productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString()}
           </div>
           <div className="text-sm text-purple-600">Ingresos totales</div>
         </div>
         
         <div className="bg-orange-50 rounded-lg p-4">
           <div className="text-2xl font-bold text-orange-900">
-            S/.{(productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0)}
+            {`S/ ${(productosFiltrados.length > 0 ? (productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0) : '0')}`}
           </div>
           <div className="text-sm text-orange-600">Precio promedio</div>
         </div>
