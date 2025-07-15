@@ -1353,9 +1353,9 @@ const clienteValidoParaVenta = useMemo(() => {
               <label htmlFor="documentoClienteInput" className="block mb-2 text-sm font-medium text-gray-700">
                 Documento del Cliente:
               </label>
-              <div className="flex">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
                 <select 
-                  className="px-4 py-3 border border-gray-300 border-r-0 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 font-medium text-gray-700"
+                  className="px-4 py-3 border border-gray-300 sm:border-r-0 rounded-lg sm:rounded-l-lg sm:rounded-r-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 font-medium text-gray-700 min-w-0"
                   value={tipoDocumento}
                   onChange={(e) => {
                     setTipoDocumento(e.target.value as 'DNI' | 'RUC');
@@ -1369,7 +1369,7 @@ const clienteValidoParaVenta = useMemo(() => {
                 <input 
                   id="documentoClienteInput" 
                   type="text" 
-                  className={`flex-1 px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colores ${
+                  className={`flex-1 min-w-0 px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colores rounded-lg sm:rounded-l-none sm:rounded-r-none ${
                     documentoCliente && 
                     ((tipoDocumento === 'DNI' && (documentoCliente.length !== 8 || !/^\d+$/.test(documentoCliente))) || 
                      (tipoDocumento === 'RUC' && (documentoCliente.length !== 11 || !/^\d+$/.test(documentoCliente)))) 
@@ -1399,7 +1399,7 @@ const clienteValidoParaVenta = useMemo(() => {
                            !documentoCliente.trim() || 
                            (tipoDocumento === 'DNI' && documentoCliente.length !== 8) || 
                            (tipoDocumento === 'RUC' && documentoCliente.length !== 11)} 
-                  className="px-4 py-3 bg-blue-600 text-white rounded-r-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colores font-medium flex items-center gap-2"
+                  className="px-4 py-3 bg-blue-600 text-white rounded-lg sm:rounded-l-none sm:rounded-r-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colores font-medium flex items-center justify-center gap-2 min-w-0"
                 >
                   {cargandoBusquedaAccion && documentoCliente ? (
                     <Loader2 className="animate-spin" size={18}/>
