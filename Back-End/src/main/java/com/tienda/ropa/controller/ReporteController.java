@@ -85,6 +85,44 @@ public class ReporteController {
         }
     }
 
+    // Endpoint para obtener subcategorías de una categoría padre específica
+    @GetMapping("/por-categoria/subcategorias")
+    public ResponseEntity<List<ReportePorCategoriaDTO>> obtenerReportePorSubcategoria(
+            @RequestParam Long idCategoriaPadre,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
+        try {
+            List<ReportePorCategoriaDTO> reporte;
+            if (fechaInicio != null && fechaFin != null) {
+                reporte = reporteService.obtenerReportePorSubcategoriaEntreFechas(idCategoriaPadre, fechaInicio, fechaFin);
+            } else {
+                reporte = reporteService.obtenerReportePorSubcategoria(idCategoriaPadre);
+            }
+            return ResponseEntity.ok(reporte);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Endpoint para obtener segunda subcategoría de una subcategoría específica
+    @GetMapping("/por-categoria/segunda-subcategoria")
+    public ResponseEntity<List<ReportePorCategoriaDTO>> obtenerReportePorSegundaSubcategoria(
+            @RequestParam Long idSubcategoria,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
+        try {
+            List<ReportePorCategoriaDTO> reporte;
+            if (fechaInicio != null && fechaFin != null) {
+                reporte = reporteService.obtenerReportePorSegundaSubcategoriaEntreFechas(idSubcategoria, fechaInicio, fechaFin);
+            } else {
+                reporte = reporteService.obtenerReportePorSegundaSubcategoria(idSubcategoria);
+            }
+            return ResponseEntity.ok(reporte);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @GetMapping("/por-categoria/por-fecha")
     public ResponseEntity<List<ReportePorCategoriaDTO>> obtenerReportePorCategoriaEntreFechas(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,

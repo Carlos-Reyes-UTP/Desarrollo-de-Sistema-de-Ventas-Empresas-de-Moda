@@ -68,6 +68,46 @@ export const ReporteService = {
   },
 
   /**
+   * Obtiene el reporte de ventas por subcategoría
+   */
+  getReportePorSubcategoria: async (idCategoriaPadre: number, filtros?: FiltrosReporte): Promise<ReporteCategoriaData[]> => {
+    try {
+      const params = new URLSearchParams();
+      params.append('idCategoriaPadre', idCategoriaPadre.toString());
+      
+      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
+      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      
+      const url = `${RUTAS_REPORTES.POR_CATEGORIA}/subcategorias?${params.toString()}`;
+      const response = await apiClient.get<ReporteCategoriaData[]>(url);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener reporte por subcategoría:', error);
+      throw new Error(error.response?.data?.message || 'Error al cargar el reporte por subcategoría');
+    }
+  },
+
+  /**
+   * Obtiene el reporte de ventas por segunda subcategoría
+   */
+  getReportePorSegundaSubcategoria: async (idSubcategoria: number, filtros?: FiltrosReporte): Promise<ReporteCategoriaData[]> => {
+    try {
+      const params = new URLSearchParams();
+      params.append('idSubcategoria', idSubcategoria.toString());
+      
+      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
+      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      
+      const url = `${RUTAS_REPORTES.POR_CATEGORIA}/segunda-subcategoria?${params.toString()}`;
+      const response = await apiClient.get<ReporteCategoriaData[]>(url);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener reporte por segunda subcategoría:', error);
+      throw new Error(error.response?.data?.message || 'Error al cargar el reporte por segunda subcategoría');
+    }
+  },
+
+  /**
    * Obtiene el resumen general de ventas
    */
   getResumenGeneral: async (filtros?: FiltrosReporte): Promise<ResumenGeneralVentas> => {

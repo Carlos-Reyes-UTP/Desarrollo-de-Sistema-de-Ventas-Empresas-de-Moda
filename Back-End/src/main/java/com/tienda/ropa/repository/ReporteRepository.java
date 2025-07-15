@@ -72,36 +72,36 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      @Param("fechaFin") LocalDateTime fechaFin,
                      Pageable pageable);
 
-       // Consulta para reporte por categoría
+       // Consulta para reporte por categoría principal (agrupando por categoriaPadre del producto)
        @Query("SELECT new com.tienda.ropa.dto.ReportePorCategoriaDTO(" +
-                     "c.nombre, " +
+                     "p.categoriaPadre.id, " +
+                     "p.categoriaPadre.nombre, " +
                      "COUNT(DISTINCT p.id), " +
                      "SUM(dv.cantidad), " +
                      "SUM(dv.precioUnitario * dv.cantidad), " +
                      "(SELECT p2.nombre FROM DetalleVenta dv2 " +
                      " JOIN dv2.productoVariante pv2 " +
                      " JOIN pv2.producto p2 " +
-                     " JOIN p2.categoria c2 " +
-                     " WHERE c2.id = c.id " +
+                     " WHERE p2.categoriaPadre.id = p.categoriaPadre.id " +
                      " GROUP BY p2.id, p2.nombre " +
                      " ORDER BY SUM(dv2.cantidad) DESC LIMIT 1), " +
                      "(SELECT SUM(dv3.cantidad) FROM DetalleVenta dv3 " +
                      " JOIN dv3.productoVariante pv3 " +
                      " JOIN pv3.producto p3 " +
-                     " JOIN p3.categoria c3 " +
-                     " WHERE c3.id = c.id " +
+                     " WHERE p3.categoriaPadre.id = p.categoriaPadre.id " +
                      " GROUP BY p3.id " +
                      " ORDER BY SUM(dv3.cantidad) DESC LIMIT 1)) " +
                      "FROM DetalleVenta dv " +
                      "JOIN dv.productoVariante pv " +
                      "JOIN pv.producto p " +
-                     "JOIN p.categoria c " +
-                     "GROUP BY c.id, c.nombre " +
+                     "WHERE p.categoriaPadre IS NOT NULL " +
+                     "GROUP BY p.categoriaPadre.id, p.categoriaPadre.nombre " +
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ReportePorCategoriaDTO> findReportePorCategoria();
 
        // Consulta para reporte por categoría con fechas
        @Query("SELECT new com.tienda.ropa.dto.ReportePorCategoriaDTO(" +
+                     "c.id, " +
                      "c.nombre, " +
                      "COUNT(DISTINCT p.id), " +
                      "SUM(dv.cantidad), " +
@@ -127,10 +127,135 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "JOIN pv.producto p " +
                      "JOIN p.categoria c " +
                      "JOIN dv.venta v " +
-                     "WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     "WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin AND c.categoriaPadre IS NULL " +
                      "GROUP BY c.id, c.nombre " +
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ReportePorCategoriaDTO> findReportePorCategoriaEntreFechas(
+                     @Param("fechaInicio") LocalDateTime fechaInicio,
+                     @Param("fechaFin") LocalDateTime fechaFin);
+
+       // Consultas para reportes por subcategoría (drill-down nivel 1)
+       @Query("SELECT new com.tienda.ropa.dto.ReportePorCategoriaDTO(" +
+                     "p.categoria.id, " +
+                     "p.categoria.nombre, " +
+                     "COUNT(DISTINCT p.id), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "(SELECT p2.nombre FROM DetalleVenta dv2 " +
+                     " JOIN dv2.productoVariante pv2 " +
+                     " JOIN pv2.producto p2 " +
+                     " WHERE p2.categoria.id = p.categoria.id " +
+                     " GROUP BY p2.id, p2.nombre " +
+                     " ORDER BY SUM(dv2.cantidad) DESC LIMIT 1), " +
+                     "(SELECT SUM(dv3.cantidad) FROM DetalleVenta dv3 " +
+                     " JOIN dv3.productoVariante pv3 " +
+                     " JOIN pv3.producto p3 " +
+                     " WHERE p3.categoria.id = p.categoria.id " +
+                     " GROUP BY p3.id " +
+                     " ORDER BY SUM(dv3.cantidad) DESC LIMIT 1)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "WHERE p.categoriaPadre.id = :idCategoriaPadre AND p.categoria IS NOT NULL " +
+                     "GROUP BY p.categoria.id, p.categoria.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<ReportePorCategoriaDTO> findReportePorSubcategoria(@Param("idCategoriaPadre") Long idCategoriaPadre);
+
+       @Query("SELECT new com.tienda.ropa.dto.ReportePorCategoriaDTO(" +
+                     "c.id, " +
+                     "c.nombre, " +
+                     "COUNT(DISTINCT p.id), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "(SELECT p2.nombre FROM DetalleVenta dv2 " +
+                     " JOIN dv2.productoVariante pv2 " +
+                     " JOIN pv2.producto p2 " +
+                     " JOIN p2.categoria c2 " +
+                     " JOIN dv2.venta v2 " +
+                     " WHERE c2.id = c.id AND v2.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     " GROUP BY p2.id, p2.nombre " +
+                     " ORDER BY SUM(dv2.cantidad) DESC LIMIT 1), " +
+                     "(SELECT SUM(dv3.cantidad) FROM DetalleVenta dv3 " +
+                     " JOIN dv3.productoVariante pv3 " +
+                     " JOIN pv3.producto p3 " +
+                     " JOIN p3.categoria c3 " +
+                     " JOIN dv3.venta v3 " +
+                     " WHERE c3.id = c.id AND v3.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     " GROUP BY p3.id " +
+                     " ORDER BY SUM(dv3.cantidad) DESC LIMIT 1)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "JOIN p.categoria c " +
+                     "JOIN dv.venta v " +
+                     "WHERE c.categoriaPadre.id = :idCategoriaPadre AND v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     "GROUP BY c.id, c.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<ReportePorCategoriaDTO> findReportePorSubcategoriaEntreFechas(
+                     @Param("idCategoriaPadre") Long idCategoriaPadre,
+                     @Param("fechaInicio") LocalDateTime fechaInicio,
+                     @Param("fechaFin") LocalDateTime fechaFin);
+
+       // Consultas para reportes por segunda subcategoría (drill-down nivel 2)
+       // Consultas para reportes por segunda subcategoría (drill-down nivel 2)
+       @Query("SELECT new com.tienda.ropa.dto.ReportePorCategoriaDTO(" +
+                     "p.subCategoria2.id, " +
+                     "p.subCategoria2.nombre, " +
+                     "COUNT(DISTINCT p.id), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "(SELECT p2.nombre FROM DetalleVenta dv2 " +
+                     " JOIN dv2.productoVariante pv2 " +
+                     " JOIN pv2.producto p2 " +
+                     " WHERE p2.subCategoria2.id = p.subCategoria2.id " +
+                     " GROUP BY p2.id, p2.nombre " +
+                     " ORDER BY SUM(dv2.cantidad) DESC LIMIT 1), " +
+                     "(SELECT SUM(dv3.cantidad) FROM DetalleVenta dv3 " +
+                     " JOIN dv3.productoVariante pv3 " +
+                     " JOIN pv3.producto p3 " +
+                     " WHERE p3.subCategoria2.id = p.subCategoria2.id " +
+                     " GROUP BY p3.id " +
+                     " ORDER BY SUM(dv3.cantidad) DESC LIMIT 1)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "WHERE p.categoria.id = :idSubcategoria AND p.subCategoria2 IS NOT NULL " +
+                     "GROUP BY p.subCategoria2.id, p.subCategoria2.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<ReportePorCategoriaDTO> findReportePorSegundaSubcategoria(@Param("idSubcategoria") Long idSubcategoria);
+
+       @Query("SELECT new com.tienda.ropa.dto.ReportePorCategoriaDTO(" +
+                     "c.id, " +
+                     "c.nombre, " +
+                     "COUNT(DISTINCT p.id), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "(SELECT p2.nombre FROM DetalleVenta dv2 " +
+                     " JOIN dv2.productoVariante pv2 " +
+                     " JOIN pv2.producto p2 " +
+                     " JOIN p2.categoria c2 " +
+                     " JOIN dv2.venta v2 " +
+                     " WHERE c2.id = c.id AND v2.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     " GROUP BY p2.id, p2.nombre " +
+                     " ORDER BY SUM(dv2.cantidad) DESC LIMIT 1), " +
+                     "(SELECT SUM(dv3.cantidad) FROM DetalleVenta dv3 " +
+                     " JOIN dv3.productoVariante pv3 " +
+                     " JOIN pv3.producto p3 " +
+                     " JOIN p3.categoria c3 " +
+                     " JOIN dv3.venta v3 " +
+                     " WHERE c3.id = c.id AND v3.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     " GROUP BY p3.id " +
+                     " ORDER BY SUM(dv3.cantidad) DESC LIMIT 1)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "JOIN p.categoria c " +
+                     "JOIN dv.venta v " +
+                     "WHERE c.categoriaPadre.id = :idSubcategoria AND v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     "GROUP BY c.id, c.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<ReportePorCategoriaDTO> findReportePorSegundaSubcategoriaEntreFechas(
+                     @Param("idSubcategoria") Long idSubcategoria,
                      @Param("fechaInicio") LocalDateTime fechaInicio,
                      @Param("fechaFin") LocalDateTime fechaFin);
 

@@ -99,4 +99,90 @@ public class ReporteService {
     public List<VariantesPorColorDTO> obtenerVariantesPorColor(Long idProducto, Long idTalla) {
         return reporteRepository.findVariantesPorColorByProductoAndTalla(idProducto, idTalla);
     }
+
+    // Reportes por subcategoría (hijos de una categoría padre)
+    public List<ReportePorCategoriaDTO> obtenerReportePorSubcategoria(Long idCategoriaPadre) {
+        List<ReportePorCategoriaDTO> reporte = reporteRepository.findReportePorSubcategoria(idCategoriaPadre);
+
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+                .map(ReportePorCategoriaDTO::getIngresosTotales)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+
+        return reporte;
+    }
+
+    public List<ReportePorCategoriaDTO> obtenerReportePorSubcategoriaEntreFechas(
+            Long idCategoriaPadre, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<ReportePorCategoriaDTO> reporte = reporteRepository
+                .findReportePorSubcategoriaEntreFechas(idCategoriaPadre, fechaInicio, fechaFin);
+
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+                .map(ReportePorCategoriaDTO::getIngresosTotales)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+
+        return reporte;
+    }
+
+    // Reportes por segunda subcategoría (hijos de una subcategoría)
+    public List<ReportePorCategoriaDTO> obtenerReportePorSegundaSubcategoria(Long idSubcategoria) {
+        List<ReportePorCategoriaDTO> reporte = reporteRepository.findReportePorSegundaSubcategoria(idSubcategoria);
+
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+                .map(ReportePorCategoriaDTO::getIngresosTotales)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+
+        return reporte;
+    }
+
+    public List<ReportePorCategoriaDTO> obtenerReportePorSegundaSubcategoriaEntreFechas(
+            Long idSubcategoria, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        List<ReportePorCategoriaDTO> reporte = reporteRepository
+                .findReportePorSegundaSubcategoriaEntreFechas(idSubcategoria, fechaInicio, fechaFin);
+
+        // Calcular porcentajes
+        BigDecimal totalIngresos = reporte.stream()
+                .map(ReportePorCategoriaDTO::getIngresosTotales)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        reporte.forEach(item -> {
+            if (totalIngresos.compareTo(BigDecimal.ZERO) > 0) {
+                BigDecimal porcentaje = item.getIngresosTotales()
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(totalIngresos, 2, RoundingMode.HALF_UP);
+                item.setPorcentajeDelTotal(porcentaje);
+            }
+        });
+
+        return reporte;
+    }
 }

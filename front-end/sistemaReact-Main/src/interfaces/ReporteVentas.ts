@@ -16,6 +16,7 @@ export interface ProductoMasVendido {
 }
 
 export interface ReporteCategoriaData {
+  idCategoria?: number;
   categoria: string;
   subcategoria?: string;
   cantidadProductosVendidos: number;

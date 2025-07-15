@@ -1,15 +1,16 @@
 package com.tienda.ropa.dto;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ReportePorCategoriaDTO {
+    private Long idCategoria;
     private String categoria;
     private String subcategoria;
     private Long cantidadProductosVendidos;
@@ -22,6 +23,19 @@ public class ReportePorCategoriaDTO {
     // Constructor exacto para la consulta JPQL en ReporteRepository
     // COUNT(DISTINCT p.id) devuelve Long
     // SUM(dv.cantidad) devuelve Long cuando cantidad es int en la entidad
+    public ReportePorCategoriaDTO(Long idCategoria, String categoria, Long cantidadProductosVendidos, 
+                                 Long cantidadTotalVendida, BigDecimal ingresosTotales,
+                                 String productoMasVendidoNombre, Long productoMasVendidoCantidad) {
+        this.idCategoria = idCategoria;
+        this.categoria = categoria;
+        this.cantidadProductosVendidos = cantidadProductosVendidos;
+        this.cantidadTotalVendida = cantidadTotalVendida;
+        this.ingresosTotales = ingresosTotales;
+        this.productoMasVendidoNombre = productoMasVendidoNombre;
+        this.productoMasVendidoCantidad = productoMasVendidoCantidad;
+    }
+
+    // Constructor para consultas sin ID (mantener para compatibilidad)
     public ReportePorCategoriaDTO(String categoria, Long cantidadProductosVendidos, 
                                  Long cantidadTotalVendida, BigDecimal ingresosTotales,
                                  String productoMasVendidoNombre, Long productoMasVendidoCantidad) {
