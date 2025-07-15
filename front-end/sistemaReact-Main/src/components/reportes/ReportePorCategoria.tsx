@@ -117,7 +117,9 @@ const ReportePorCategoria: React.FC = () => {
   const totalIngresos = reportes.reduce((sum, r) => sum + r.ingresosTotales, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        <div className="space-y-6">
       {/* Cabecera */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -300,6 +302,8 @@ const ReportePorCategoria: React.FC = () => {
           </div>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -668,7 +668,9 @@ const ProductosMasVendidos: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 bg-gray-50">
+      <div className="max-w-7xl mx-auto">
+        <div className="space-y-6">
       {/* Cabecera con controles */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -976,7 +978,7 @@ const ProductosMasVendidos: React.FC = () => {
             placeholder="Buscar productos..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
           />
         </div>
         
@@ -1004,33 +1006,67 @@ const ProductosMasVendidos: React.FC = () => {
       </div>
 
       {/* Resumen estadístico */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-blue-900">
-            {productosFiltrados.length}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Productos En Ranking</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {productosFiltrados.length}
+              </p>
+            </div>
+            <div className="p-3 bg-blue-100 rounded-full">
+              <CubeIcon className="h-8 w-8 text-blue-600" />
+            </div>
           </div>
-          <div className="text-sm text-blue-600">Productos en ranking</div>
         </div>
         
-        <div className="bg-green-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-green-900">
-            {productosFiltrados.reduce((sum, p) => sum + p.cantidadVendida, 0)}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Unidades Vendidas</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {productosFiltrados.reduce((sum, p) => sum + p.cantidadVendida, 0)}
+              </p>
+            </div>
+            <div className="p-2 bg-green-100 rounded-full">
+              <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+            </div>
           </div>
-          <div className="text-sm text-green-600">Total unidades vendidas</div>
         </div>
         
-        <div className="bg-purple-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-purple-900">
-            S/ {productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString()}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Ingresos totales</p>
+              <p className="text-2xl font-bold text-gray-900">
+                S/ {productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString()}
+              </p>
+            </div>
+            <div className="p-1 bg-purple-100 rounded-full">
+              <svg className="h-10 w-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+              </svg>
+            </div>
           </div>
-          <div className="text-sm text-purple-600">Ingresos totales</div>
         </div>
         
-        <div className="bg-orange-50 rounded-lg p-4">
-          <div className="text-2xl font-bold text-orange-900">
-            {`S/ ${(productosFiltrados.length > 0 ? (productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0) : '0')}`}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600">Precio promedio</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {`S/ ${(productosFiltrados.length > 0 ? (productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0) : '0')}`}
+              </p>
+            </div>
+            <div className="p-3 bg-orange-100 rounded-full">
+              <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+              </svg>
+            </div>
           </div>
-          <div className="text-sm text-orange-600">Precio promedio</div>
         </div>
       </div>
 
@@ -1357,6 +1393,8 @@ const ProductosMasVendidos: React.FC = () => {
           )}
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 };

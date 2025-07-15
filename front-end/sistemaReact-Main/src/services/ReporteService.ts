@@ -81,8 +81,33 @@ export const ReporteService = {
         ? `${RUTAS_REPORTES.RESUMEN_GENERAL}?${params.toString()}`
         : RUTAS_REPORTES.RESUMEN_GENERAL;
         
-      const response = await apiClient.get<ResumenGeneralVentas>(url);
-      return response.data;
+      const response = await apiClient.get<any>(url);
+      
+      // El endpoint /resumen-completo devuelve productos y categorías
+      // Vamos a calcular métricas básicas desde estos datos
+      const data = response.data;
+      const productos = data.productosMasVendidos || [];
+      const categorias = data.reportePorCategoria || [];
+      
+      const totalIngresos = productos.reduce((sum: number, p: any) => sum + (p.ingresosTotales || 0), 0);
+      const totalVentas = productos.reduce((sum: number, p: any) => sum + (p.cantidadVendida || 0), 0);
+      
+      const resumen: ResumenGeneralVentas = {
+        totalProductosVendidos: productos.length,
+        totalIngresos,
+        totalVentas,
+        promedioVentaPorDia: totalIngresos / 30, // Estimación aproximada
+        categoriaTopVentas: categorias.length > 0 ? categorias[0]?.categoria || 'Sin categoría' : 'Sin categoría',
+        colorMasVendido: 'N/A',
+        tallaMasVendida: 'N/A',
+        periodoAnalizado: {
+          fechaInicio: filtros?.fechaInicio || 'N/A',
+          fechaFin: filtros?.fechaFin || 'N/A',
+          dias: 30
+        }
+      };
+      
+      return resumen;
     } catch (error: any) {
       console.error('Error al obtener resumen general:', error);
       throw new Error(error.response?.data?.message || 'Error al cargar el resumen general');

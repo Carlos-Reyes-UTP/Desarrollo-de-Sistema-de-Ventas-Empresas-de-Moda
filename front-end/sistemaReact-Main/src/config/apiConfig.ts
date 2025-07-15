@@ -206,7 +206,7 @@ export const RUTAS_REPORTES = {
   BASE: `${API_BASE_URL}/api/admin/reportes`,
   PRODUCTOS_MAS_VENDIDOS: `${API_BASE_URL}/api/admin/reportes/productos-mas-vendidos`,
   POR_CATEGORIA: `${API_BASE_URL}/api/admin/reportes/por-categoria`,
-  RESUMEN_GENERAL: `${API_BASE_URL}/api/admin/reportes/resumen-general`,
+  RESUMEN_GENERAL: `${API_BASE_URL}/api/admin/reportes/resumen-completo`,
   VENTAS_POR_PERIODO: `${API_BASE_URL}/api/admin/reportes/ventas-por-periodo`,
   PRODUCTOS_DETALLE: `${API_BASE_URL}/api/admin/reportes/productos-detalle`,
 };

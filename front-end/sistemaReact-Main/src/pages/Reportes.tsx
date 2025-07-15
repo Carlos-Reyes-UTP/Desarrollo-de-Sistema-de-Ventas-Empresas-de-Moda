@@ -133,7 +133,7 @@ const Reportes: React.FC = () => {
         </div>
 
         {/* Contenido del Tab */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 min-h-[600px]">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
           <div className="p-6">
             {renderizarContenidoTab()}
           </div>
