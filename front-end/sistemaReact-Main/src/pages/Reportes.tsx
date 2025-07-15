@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { 
   ChartBarIcon, 
   TableCellsIcon, 
@@ -14,8 +15,17 @@ import { useAuth } from '../context/AuthContext';
 type TabReporte = 'resumen' | 'productos' | 'categorias' | 'ventas';
 
 const Reportes: React.FC = () => {
-  const [tabActiva, setTabActiva] = useState<TabReporte>('ventas');
+  const [searchParams] = useSearchParams();
+  const [tabActiva, setTabActiva] = useState<TabReporte>('resumen');
   const { tieneRol } = useAuth();
+
+  // Leer parámetro de URL para establecer la pestaña inicial
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as TabReporte;
+    if (tabParam && ['resumen', 'productos', 'categorias', 'ventas'].includes(tabParam)) {
+      setTabActiva(tabParam);
+    }
+  }, [searchParams]);
 
   // Verificar permisos de administrador o almacenero
   useEffect(() => {
@@ -62,7 +72,7 @@ const Reportes: React.FC = () => {
       case 'categorias':
         return <ReportePorCategoria />;
       default:
-        return <ReporteDeVentas />;
+        return <ResumenGeneral />;
     }
   };
 

@@ -1032,50 +1032,91 @@ const GestionUsuarios = () => {
           )}
         </div>
         
-        {/* Controles de paginación */}
+        {/* Controles de paginación responsiva */}
         {totalPaginas > 1 && (
-          <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border border-gray-200 sm:px-6 rounded-lg shadow-sm">
-            <div className="flex items-center">
-              <p className="text-sm text-gray-600">
-                Mostrando{' '}
-                <span className="font-medium">{indiceInicio + 1}</span>{' '}
-                a{' '}
-                <span className="font-medium">{Math.min(indiceFin, usuariosOrdenados.length)}</span>{' '}
-                de{' '}
-                <span className="font-medium">{usuariosOrdenados.length}</span>{' '}
-                usuarios
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
-                disabled={paginaActual === 1}
-                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-              >
-                Anterior
-              </button>
-              <div className="flex items-center space-x-1">
-                {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
-                  <button
-                    key={num}
-                    onClick={() => setPaginaActual(num)}
-                    className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${
-                      num === paginaActual
-                        ? 'bg-indigo-600 text-white border-indigo-600'
-                        : 'text-gray-700 bg-white border-gray-300 hover:bg-indigo-50'
-                    }`}
-                  >
-                    {num}
-                  </button>
-                ))}
+          <div className="mt-6 bg-gray-50 border border-gray-200 rounded-lg shadow-sm">
+            {/* Versión móvil */}
+            <div className="block sm:hidden px-3 py-2">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                    paginaActual === 1 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  ← Anterior
+                </button>
+                
+                <div className="flex flex-col items-center">
+                  <span className="text-sm text-gray-700 font-medium">
+                    Página {paginaActual} de {totalPaginas}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {usuariosOrdenados.length} usuarios
+                  </span>
+                </div>
+                
+                <button
+                  onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                    paginaActual === totalPaginas 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Siguiente →
+                </button>
               </div>
-              <button
-                onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-                disabled={paginaActual === totalPaginas}
-                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-              >
-                Siguiente
-              </button>
+            </div>
+
+            {/* Versión desktop */}
+            <div className="hidden sm:flex items-center justify-between px-4 py-3">
+              <div className="flex items-center">
+                <p className="text-sm text-gray-600">
+                  Mostrando{' '}
+                  <span className="font-medium">{indiceInicio + 1}</span>{' '}
+                  a{' '}
+                  <span className="font-medium">{Math.min(indiceFin, usuariosOrdenados.length)}</span>{' '}
+                  de{' '}
+                  <span className="font-medium">{usuariosOrdenados.length}</span>{' '}
+                  usuarios
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                >
+                  Anterior
+                </button>
+                <div className="flex items-center space-x-1">
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(num => (
+                    <button
+                      key={num}
+                      onClick={() => setPaginaActual(num)}
+                      className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${
+                        num === paginaActual
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'text-gray-700 bg-white border-gray-300 hover:bg-indigo-50'
+                      }`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
           </div>
         )}

@@ -646,7 +646,7 @@ const ReporteDeVentas: React.FC = () => {
             </table>
           </div>
           
-          {/* Controles de paginación */}
+          {/* Controles de paginación responsiva */}
           {(() => {
             const ventasOrdenadas = [...ventas].sort((a, b) => {
               const fechaA = parsearFechaVenta(a.fechaVenta);
@@ -658,118 +658,161 @@ const ReporteDeVentas: React.FC = () => {
             if (totalPaginas <= 1) return null;
 
             return (
-              <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6">
-                <div className="flex items-center">
-                  <p className="text-sm text-gray-700">
-                    Mostrando{' '}
-                    <span className="font-medium">
-                      {((paginaActual - 1) * ventasPorPagina) + 1}
-                    </span>{' '}
-                    a{' '}
-                    <span className="font-medium">
-                      {Math.min(paginaActual * ventasPorPagina, ventasOrdenadas.length)}
-                    </span>{' '}
-                    de{' '}
-                    <span className="font-medium">{ventasOrdenadas.length}</span>{' '}
-                    resultados
-                  </p>
+              <div className="mt-6 bg-gray-50 border-t border-gray-200">
+                {/* Versión móvil */}
+                <div className="block sm:hidden px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                      disabled={paginaActual === 1}
+                      className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                        paginaActual === 1 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      Anterior
+                    </button>
+                    
+                    <div className="flex flex-col items-center">
+                      <span className="text-sm text-gray-700 font-medium">
+                        Página {paginaActual} de {totalPaginas}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {ventasOrdenadas.length} resultados
+                      </span>
+                    </div>
+                    
+                    <button
+                      onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                      disabled={paginaActual === totalPaginas}
+                      className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                        paginaActual === totalPaginas 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </button>
+                  </div>
                 </div>
-                
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
-                    disabled={paginaActual === 1}
-                    className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                    Anterior
-                  </button>
-                  
-                  <div className="flex items-center space-x-1">
-                    {(() => {
-                      const páginas = [];
-                      if (totalPaginas <= 5) {
-                        for (let i = 1; i <= totalPaginas; i++) {
-                          páginas.push(
-                            <button
-                              key={i}
-                              onClick={() => setPaginaActual(i)}
-                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                                i === paginaActual
-                                  ? 'bg-blue-600 text-white border-blue-600'
-                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                              }`}
-                            >
-                              {i}
-                            </button>
-                          );
-                        }
-                      } else {
-                        páginas.push(
-                          <button
-                            key={1}
-                            onClick={() => setPaginaActual(1)}
-                            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                              paginaActual === 1
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            1
-                          </button>
-                        );
-                        let rangeStart = Math.max(2, paginaActual - 2);
-                        let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
-                        if (paginaActual <= 3) {
-                          rangeStart = 2;
-                          rangeEnd = 5;
-                        } else if (paginaActual >= totalPaginas - 2) {
-                          rangeStart = totalPaginas - 4;
-                          rangeEnd = totalPaginas - 1;
-                        }
-                        if (rangeStart > 2) páginas.push(<span key="start-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
-                        for (let i = rangeStart; i <= rangeEnd; i++) {
-                          páginas.push(
-                            <button
-                              key={i}
-                              onClick={() => setPaginaActual(i)}
-                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                                i === paginaActual
-                                  ? 'bg-blue-600 text-white border-blue-600'
-                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                              }`}
-                            >
-                              {i}
-                            </button>
-                          );
-                        }
-                        if (rangeEnd < totalPaginas - 1) páginas.push(<span key="end-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
-                        páginas.push(
-                          <button
-                            key={totalPaginas}
-                            onClick={() => setPaginaActual(totalPaginas)}
-                            className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                              paginaActual === totalPaginas
-                                ? 'bg-blue-600 text-white border-blue-600'
-                                : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                            }`}
-                          >
-                            {totalPaginas}
-                          </button>
-                        );
-                      }
-                      return páginas;
-                    })()}
+
+                {/* Versión desktop */}
+                <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6">
+                  <div className="flex items-center">
+                    <p className="text-sm text-gray-700">
+                      Mostrando{' '}
+                      <span className="font-medium">
+                        {((paginaActual - 1) * ventasPorPagina) + 1}
+                      </span>{' '}
+                      a{' '}
+                      <span className="font-medium">
+                        {Math.min(paginaActual * ventasPorPagina, ventasOrdenadas.length)}
+                      </span>{' '}
+                      de{' '}
+                      <span className="font-medium">{ventasOrdenadas.length}</span>{' '}
+                      resultados
+                    </p>
                   </div>
                   
-                  <button
-                    onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-                    disabled={paginaActual === totalPaginas}
-                    className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Siguiente
-                    <ChevronRight className="h-4 w-4" />
-                  </button>
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
+                      disabled={paginaActual === 1}
+                      className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Anterior
+                    </button>
+                    
+                    <div className="flex items-center space-x-1">
+                      {(() => {
+                        const páginas = [];
+                        if (totalPaginas <= 5) {
+                          for (let i = 1; i <= totalPaginas; i++) {
+                            páginas.push(
+                              <button
+                                key={i}
+                                onClick={() => setPaginaActual(i)}
+                                className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                                  i === paginaActual
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {i}
+                              </button>
+                            );
+                          }
+                        } else {
+                          páginas.push(
+                            <button
+                              key={1}
+                              onClick={() => setPaginaActual(1)}
+                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                                paginaActual === 1
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              1
+                            </button>
+                          );
+                          let rangeStart = Math.max(2, paginaActual - 2);
+                          let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
+                          if (paginaActual <= 3) {
+                            rangeStart = 2;
+                            rangeEnd = 5;
+                          } else if (paginaActual >= totalPaginas - 2) {
+                            rangeStart = totalPaginas - 4;
+                            rangeEnd = totalPaginas - 1;
+                          }
+                          if (rangeStart > 2) páginas.push(<span key="start-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
+                          for (let i = rangeStart; i <= rangeEnd; i++) {
+                            páginas.push(
+                              <button
+                                key={i}
+                                onClick={() => setPaginaActual(i)}
+                                className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                                  i === paginaActual
+                                    ? 'bg-blue-600 text-white border-blue-600'
+                                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                                }`}
+                              >
+                                {i}
+                              </button>
+                            );
+                          }
+                          if (rangeEnd < totalPaginas - 1) páginas.push(<span key="end-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
+                          páginas.push(
+                            <button
+                              key={totalPaginas}
+                              onClick={() => setPaginaActual(totalPaginas)}
+                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
+                                paginaActual === totalPaginas
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                              }`}
+                            >
+                              {totalPaginas}
+                            </button>
+                          );
+                        }
+                        return páginas;
+                      })()}
+                    </div>
+                    
+                    <button
+                      onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
+                      disabled={paginaActual === totalPaginas}
+                      className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Siguiente
+                      <ChevronRight className="h-4 w-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );

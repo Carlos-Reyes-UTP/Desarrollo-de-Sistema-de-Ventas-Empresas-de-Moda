@@ -1737,77 +1737,113 @@ const clienteValidoParaVenta = useMemo(() => {
                 )}
               </div>
             </div>
-            {/* PAGINACIÓN DE PRODUCTOS - estilo igual a Gestión de Usuarios y sticky abajo */}
+            {/* PAGINACIÓN DE PRODUCTOS - Responsiva */}
             {totalPaginas > 1 && (
-              <div className="absolute left-0 right-0 bottom-0 flex items-center justify-between px-4 py-3 bg-white border-t border-gray-200 rounded-b-xl shadow-sm z-10" style={{ minHeight: 64 }}>
-                <div className="flex-1" />
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
-                    disabled={paginaActual === 1}
-                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colores font-medium ${paginaActual === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    Anterior
-                  </button>
-                  {(() => {
-  let start = 1;
-  let end = totalPaginas;
-  let pages: (number | string)[] = [];
-  if (totalPaginas <= 5) {
-    // Mostrar todas las páginas si son 5 o menos
-    pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
-  } else {
-    // Siempre mostrar la primera página
-    pages.push(1);
-    // Determinar el rango central
-    let rangeStart = Math.max(2, paginaActual - 2);
-    let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
-    // Ajustar si estamos cerca de los extremos
-    if (paginaActual <= 3) {
-      rangeStart = 2;
-      rangeEnd = 5;
-    } else if (paginaActual >= totalPaginas - 2) {
-      rangeStart = totalPaginas - 4;
-      rangeEnd = totalPaginas - 1;
-    }
-    // Puntos suspensivos si hay salto entre 1 y el rango
-    if (rangeStart > 2) pages.push('...');
-    // Páginas centrales
-    for (let i = rangeStart; i <= rangeEnd; i++) {
-      pages.push(i);
-    }
-    // Puntos suspensivos si hay salto entre el rango y la última
-    if (rangeEnd < totalPaginas - 1) pages.push('...');
-    // Siempre mostrar la última página
-    pages.push(totalPaginas);
-  }
-  return pages.map((num, idx) =>
-    typeof num === 'number' ? (
-      <button
-        key={num}
-        onClick={() => setPaginaActual(num)}
-        className={`px-3 py-1 border font-medium rounded-md transition-colores ${
-          paginaActual === num
-            ? 'bg-blue-600 text-white border-blue-600 shadow font-bold'
-            : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100'
-        }`}
-      >
-        {num}
-      </button>
-    ) : (
-      <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none">...</span>
-    )
-  );
-})()}
-                  <button
-                    onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
-                    disabled={paginaActual === totalPaginas}
-                    className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colores font-medium ${paginaActual === totalPaginas ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    Siguiente
-                  </button>
+              <div className="absolute left-0 right-0 bottom-0 bg-white border-t border-gray-200 rounded-b-xl shadow-sm z-10">
+                {/* Versión móvil */}
+                <div className="block sm:hidden px-3 py-2">
+                  <div className="flex items-center justify-between">
+                    <button
+                      onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                      disabled={paginaActual === 1}
+                      className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                        paginaActual === 1 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      ← Anterior
+                    </button>
+                    
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm text-gray-700 font-medium">
+                        {paginaActual} de {totalPaginas}
+                      </span>
+                    </div>
+                    
+                    <button
+                      onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                      disabled={paginaActual === totalPaginas}
+                      className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                        paginaActual === totalPaginas 
+                          ? 'text-gray-400 cursor-not-allowed' 
+                          : 'text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
                 </div>
-                <div className="flex-1" />
+
+                {/* Versión desktop */}
+                <div className="hidden sm:flex items-center justify-between px-4 py-3" style={{ minHeight: 64 }}>
+                  <div className="flex-1" />
+                  <div className="flex items-center space-x-2">
+                    <button
+                      onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                      disabled={paginaActual === 1}
+                      className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colores font-medium ${paginaActual === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      Anterior
+                    </button>
+                    {(() => {
+                      let pages: (number | string)[] = [];
+                      if (totalPaginas <= 5) {
+                        // Mostrar todas las páginas si son 5 o menos
+                        pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
+                      } else {
+                        // Siempre mostrar la primera página
+                        pages.push(1);
+                        // Determinar el rango central
+                        let rangeStart = Math.max(2, paginaActual - 2);
+                        let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
+                        // Ajustar si estamos cerca de los extremos
+                        if (paginaActual <= 3) {
+                          rangeStart = 2;
+                          rangeEnd = 5;
+                        } else if (paginaActual >= totalPaginas - 2) {
+                          rangeStart = totalPaginas - 4;
+                          rangeEnd = totalPaginas - 1;
+                        }
+                        // Puntos suspensivos si hay salto entre 1 y el rango
+                        if (rangeStart > 2) pages.push('...');
+                        // Páginas centrales
+                        for (let i = rangeStart; i <= rangeEnd; i++) {
+                          pages.push(i);
+                        }
+                        // Puntos suspensivos si hay salto entre el rango y la última
+                        if (rangeEnd < totalPaginas - 1) pages.push('...');
+                        // Siempre mostrar la última página
+                        pages.push(totalPaginas);
+                      }
+                      return pages.map((num, idx) =>
+                        typeof num === 'number' ? (
+                          <button
+                            key={num}
+                            onClick={() => setPaginaActual(num)}
+                            className={`px-3 py-1 border font-medium rounded-md transition-colores ${
+                              paginaActual === num
+                                ? 'bg-blue-600 text-white border-blue-600 shadow font-bold'
+                                : 'border-gray-300 bg-gray-100 text-gray-700 hover:bg-blue-100'
+                            }`}
+                          >
+                            {num}
+                          </button>
+                        ) : (
+                          <span key={`ellipsis-${num}-${idx}`} className="px-2 text-gray-400 select-none">...</span>
+                        )
+                      );
+                    })()}
+                    <button
+                      onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                      disabled={paginaActual === totalPaginas}
+                      className={`px-3 py-1 border border-gray-300 bg-gray-100 text-gray-700 rounded-md hover:bg-blue-100 transition-colores font-medium ${paginaActual === totalPaginas ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                  <div className="flex-1" />
+                </div>
               </div>
             )}
           </div>

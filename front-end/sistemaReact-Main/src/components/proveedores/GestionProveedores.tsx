@@ -340,69 +340,110 @@ const GestionProveedores: React.FC = () => {
           </table>
         </div>
       </div>
-      {/* Paginación igual a tallas/colores */}
+      {/* Paginación responsiva */}
       {totalPaginas > 1 && (
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between mt-6 px-4 py-3 bg-gray-50 border-t border-gray-200 sm:px-6 rounded-b-lg shadow-sm border-x border-b">
-            <div className="text-sm text-gray-600">
-              Mostrando {((paginaActual - 1) * proveedoresPorPagina) + 1}
-              -{Math.min(paginaActual * proveedoresPorPagina, proveedores.length)}
-              {' '}de {proveedores.length} proveedores
+          <div className="mt-6 bg-gray-50 border-t border-gray-200 rounded-b-lg shadow-sm border-x border-b">
+            {/* Versión móvil */}
+            <div className="block sm:hidden px-3 py-2">
+              <div className="flex items-center justify-between">
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                    paginaActual === 1 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  ← Anterior
+                </button>
+                
+                <div className="flex flex-col items-center">
+                  <span className="text-sm text-gray-700 font-medium">
+                    Página {paginaActual} de {totalPaginas}
+                  </span>
+                  <span className="text-xs text-gray-500">
+                    {proveedores.length} proveedores
+                  </span>
+                </div>
+                
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
+                    paginaActual === totalPaginas 
+                      ? 'text-gray-400 cursor-not-allowed' 
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Siguiente →
+                </button>
+              </div>
             </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                disabled={paginaActual === 1}
-                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-                aria-label="Anterior"
-              >
-                Anterior
-              </button>
-              {(() => {
-                let pages: (number | string)[] = [];
-                if (totalPaginas <= 5) {
-                  pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
-                } else {
-                  pages.push(1);
-                  let rangeStart = Math.max(2, paginaActual - 2);
-                  let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
-                  if (paginaActual <= 3) {
-                    rangeStart = 2;
-                    rangeEnd = 5;
-                  } else if (paginaActual >= totalPaginas - 2) {
-                    rangeStart = totalPaginas - 4;
-                    rangeEnd = totalPaginas - 1;
+
+            {/* Versión desktop */}
+            <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6">
+              <div className="text-sm text-gray-600">
+                Mostrando {((paginaActual - 1) * proveedoresPorPagina) + 1}
+                -{Math.min(paginaActual * proveedoresPorPagina, proveedores.length)}
+                {' '}de {proveedores.length} proveedores
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                  disabled={paginaActual === 1}
+                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                  aria-label="Anterior"
+                >
+                  Anterior
+                </button>
+                {(() => {
+                  let pages: (number | string)[] = [];
+                  if (totalPaginas <= 5) {
+                    pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
+                  } else {
+                    pages.push(1);
+                    let rangeStart = Math.max(2, paginaActual - 2);
+                    let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
+                    if (paginaActual <= 3) {
+                      rangeStart = 2;
+                      rangeEnd = 5;
+                    } else if (paginaActual >= totalPaginas - 2) {
+                      rangeStart = totalPaginas - 4;
+                      rangeEnd = totalPaginas - 1;
+                    }
+                    if (rangeStart > 2) pages.push('...');
+                    for (let i = rangeStart; i <= rangeEnd; i++) {
+                      pages.push(i);
+                    }
+                    if (rangeEnd < totalPaginas - 1) pages.push('...');
+                    pages.push(totalPaginas);
                   }
-                  if (rangeStart > 2) pages.push('...');
-                  for (let i = rangeStart; i <= rangeEnd; i++) {
-                    pages.push(i);
-                  }
-                  if (rangeEnd < totalPaginas - 1) pages.push('...');
-                  pages.push(totalPaginas);
-                }
-                return pages.map((num, idx) =>
-                  typeof num === 'number' ? (
-                    <button
-                      key={num}
-                      onClick={() => setPaginaActual(num)}
-                      className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
-                      aria-current={paginaActual === num ? 'page' : undefined}
-                    >
-                      {num}
-                    </button>
-                  ) : (
-                    <span key={`ellipsis-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
-                  )
-                );
-              })()}
-              <button
-                onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                disabled={paginaActual === totalPaginas}
-                className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-                aria-label="Siguiente"
-              >
-                Siguiente
-              </button>
+                  return pages.map((num, idx) =>
+                    typeof num === 'number' ? (
+                      <button
+                        key={num}
+                        onClick={() => setPaginaActual(num)}
+                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
+                        aria-current={paginaActual === num ? 'page' : undefined}
+                      >
+                        {num}
+                      </button>
+                    ) : (
+                      <span key={`ellipsis-${num}-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
+                    )
+                  );
+                })()}
+                <button
+                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                  disabled={paginaActual === totalPaginas}
+                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
+                  aria-label="Siguiente"
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
           </div>
         </div>
