@@ -321,7 +321,12 @@ const GestionProductos: React.FC = () => {
     <div className="p-6">
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
+        <div className="flex items-center gap-3">
+          <div className="bg-blue-100 p-3 rounded-lg">
+            <Package className="w-8 h-8 text-blue-600" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900">Gestión de Productos</h1>
+        </div>
         <button
           onClick={() => setShowFormulario(true)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
