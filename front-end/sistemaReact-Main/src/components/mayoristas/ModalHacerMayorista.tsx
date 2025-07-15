@@ -54,10 +54,68 @@ const modalStyles = `
     }
   }
   
+  @keyframes bounce {
+    0%, 20%, 53%, 80%, 100% {
+      transform: translate3d(0,0,0);
+    }
+    40%, 43% {
+      transform: translate3d(0, -8px, 0);
+    }
+    70% {
+      transform: translate3d(0, -4px, 0);
+    }
+    90% {
+      transform: translate3d(0, -2px, 0);
+    }
+  }
+  
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-4px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translateX(4px);
+    }
+  }
+  
+  @keyframes successPulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+    }
+    70% {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+  }
+  
   .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
   .animate-fadeOut { animation: fadeOut 0.3s ease-out; }
   .animate-scaleIn { animation: scaleIn 0.3s ease-out; }
   .animate-scaleOut { animation: scaleOut 0.3s ease-out; }
+  .animate-bounce { animation: bounce 0.6s ease-in-out; }
+  .animate-pulse-custom { animation: pulse 1s ease-in-out infinite; }
+  .animate-shake { animation: shake 0.5s ease-in-out; }
+  .animate-success-pulse { animation: successPulse 0.8s ease-out; }
 `;
 
 // Inyectar estilos si no existen
@@ -122,6 +180,11 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   
   // Estado para animación de cierre
   const [cerrandoModal, setCerrandoModal] = useState(false);
+  
+  // Estados para animaciones de botones
+  const [animacionBotonConvertir, setAnimacionBotonConvertir] = useState('');
+  const [animacionBotonCrear, setAnimacionBotonCrear] = useState('');
+  const [animacionBotonEliminar, setAnimacionBotonEliminar] = useState('');
 
   // Función para cerrar modal con animación
   const cerrarModalConAnimacion = () => {
@@ -220,6 +283,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const convertirAMayorista = async () => {
     if (!clienteSeleccionado?.idCliente) return;
 
+    // Animación de procesamiento
+    setAnimacionBotonConvertir('animate-pulse-custom');
     setConvirtiendoMayorista(true);
     setError(null);
     setExito(null);
@@ -231,6 +296,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       setMayoristaCreadoOConvertido(nuevoMayorista);
       setEsMayorista(true);
       setMostrarConfirmacionExito(true);
+      
+      // Animación de éxito
+      setAnimacionBotonConvertir('animate-success-pulse');
+      setTimeout(() => setAnimacionBotonConvertir(''), 800);
       
       console.log('✅ Cliente convertido - mostrando confirmación de éxito');
       
@@ -261,9 +330,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const eliminarMayorista = async () => {
     if (!clienteSeleccionado?.idCliente) return;
 
-    // Cerrar modal de confirmación
-    setMostrarModalConfirmacionEliminar(false);
-
+    // NO cerrar modal de confirmación aquí - mantenerlo abierto durante el proceso
     setEliminandoMayorista(true);
     setError(null);
     setExito(null);
@@ -284,6 +351,9 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         setExito(`¡Mayorista eliminado exitosamente! ${clienteSeleccionado.nombreCliente} ya no es mayorista.`);
         setEsMayorista(false);
         setCodigoMayoristaCliente(null); // Limpiar el código al eliminar
+        
+        // Cerrar modal de confirmación y mostrar resultado
+        setMostrarModalConfirmacionEliminar(false);
         setMostrarConfirmacionEliminacion(true);
         
         // NO ejecutar callback automáticamente para evitar cierre del modal
@@ -580,16 +650,22 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       
       <div className="flex justify-center">
         <button
-          onClick={() => {
+          onClick={(e) => {
             console.log('🎯 Usuario cerrando modal - ejecutando callback si existe');
+            // Agregar animación de éxito al botón
+            const button = e.currentTarget as HTMLButtonElement;
+            button.classList.add('animate-success-pulse');
+            setTimeout(() => button.classList.remove('animate-success-pulse'), 300);
+            
             // Ejecutar callback con el mayorista antes de cerrar
             if (onSuccess && mayoristaCreadoOConvertido) {
               console.log('📞 Ejecutando callback onSuccess con:', mayoristaCreadoOConvertido);
               onSuccess(mayoristaCreadoOConvertido);
             }
-            cerrarModalConAnimacion();
+            
+            setTimeout(() => cerrarModalConAnimacion(), 200); // Pequeño delay para ver la animación
           }}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center"
+          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center shadow-lg hover:shadow-xl"
         >
           <CheckCircle className="w-4 h-4 mr-2" />
           Cerrar
@@ -618,14 +694,20 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       </div>
       <div className="flex justify-center">
         <button
-          onClick={() => {
+          onClick={(e) => {
+            // Agregar animación al botón
+            const button = e.currentTarget as HTMLButtonElement;
+            button.classList.add('animate-success-pulse');
+            setTimeout(() => button.classList.remove('animate-success-pulse'), 300);
+            
             // Ejecutar callback con un objeto vacío para indicar eliminación
             if (onSuccess) {
               onSuccess({} as MayoristaDTO);
             }
-            cerrarModalConAnimacion();
+            
+            setTimeout(() => cerrarModalConAnimacion(), 200); // Pequeño delay para ver la animación
           }}
-          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center"
+          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center shadow-lg hover:shadow-xl"
         >
           <CheckCircle className="w-4 h-4 mr-2" />
           Cerrar
@@ -661,7 +743,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       <div className="flex justify-center space-x-4">
         <button
           onClick={() => setMostrarModalConfirmacionEliminar(false)}
-          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200"
+          disabled={eliminandoMayorista}
+          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Cancelar
         </button>

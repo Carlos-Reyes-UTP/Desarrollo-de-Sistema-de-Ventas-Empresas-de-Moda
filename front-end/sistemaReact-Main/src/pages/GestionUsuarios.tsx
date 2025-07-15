@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Users,
+  User,
   Search,
   Edit,
   UserPlus,
@@ -16,8 +17,10 @@ import {
   ArrowUpDown,
   Eye,
   EyeOff,
-  LogOut,
-  Save
+  Save,
+  Shield,
+  Info,
+  Lock
 } from 'lucide-react';
 import { ServicioUsuarios } from '../services/UsuarioServices';
 import { useAuth } from '../context/AuthContext';
@@ -1079,272 +1082,380 @@ const GestionUsuarios = () => {
         
         {/* Modal de Usuario */}
         {mostrarModal && (
-          <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-            <div className={`bg-white rounded-xl shadow-2xl w-full max-w-md ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
-              {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-indigo-50 rounded-lg">
-                    {modoEdicion ? (
-                      <Edit className="w-5 h-5 text-indigo-600" />
-                    ) : (
-                      <UserPlus className="w-5 h-5 text-indigo-600" />
-                    )}
+          <div className={`fixed inset-0 bg-gray-900/75 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+            <div className={`bg-white rounded-2xl shadow-3xl w-full max-w-lg border border-gray-200 ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+              {/* Header moderno con gradiente */}
+              <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
+                <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
+                      {modoEdicion ? (
+                        <Edit className="w-6 h-6 text-white" />
+                      ) : (
+                        <UserPlus className="w-6 h-6 text-white" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">
+                        {modoEdicion ? 'Editar Usuario' : 'Crear Nuevo Usuario'}
+                      </h2>
+                      <p className="text-indigo-100 text-sm">
+                        {modoEdicion ? 'Modifica la información del usuario' : 'Complete la información para crear el usuario'}
+                      </p>
+                    </div>
                   </div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    {modoEdicion ? 'Editar Usuario' : 'Crear Usuario'}
-                  </h2>
+                  <button
+                    onClick={() => cerrarModalConAnimacion()}
+                    className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => cerrarModalConAnimacion()}
-                  className="text-gray-400 hover:text-gray-500 transition-colors"
-                >
-                  <X size={20} />
-                </button>
               </div>
 
-              <form onSubmit={guardarUsuario} className="p-6 space-y-6">
-                {/* Campo Usuario */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nombre de Usuario
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      name="usuario"
-                      value={formUsuario.usuario}
-                      onChange={manejarCambioForm}
-                      ref={usuarioInputRef}
-                      className={`w-full px-4 py-2.5 rounded-lg border
-                      ${verificandoUsuario ? 'border-yellow-300' : ''}
-                      ${!verificandoUsuario && usuarioDisponible === false ? 'border-red-500 pr-10' : ''}
-                      ${!verificandoUsuario && usuarioDisponible === true ? 'border-green-500 pr-10' : ''}
-                      ${!verificandoUsuario && usuarioDisponible === null ? 'border-gray-200' : ''}
-                      focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors`}
-                      placeholder="Ingrese el nombre de usuario"
-                      required
-                      minLength={1}
-                      onBlur={(e) => verificarDisponibilidadUsuario(e.target.value)}
-                    />
-                    {verificandoUsuario && (
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <Loader2 className="h-5 w-5 text-yellow-500 animate-spin" />
+              <form onSubmit={guardarUsuario} className="p-8 space-y-6">
+                {/* Mostrar error global si existe */}
+                {error && (
+                  <div className="p-4 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-400 rounded-lg shadow-sm">
+                    <div className="flex items-center">
+                      <div className="flex-shrink-0">
+                        <AlertCircle className="w-5 h-5 text-red-500" />
                       </div>
-                    )}
-                    {!verificandoUsuario && usuarioDisponible === false && (
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <X className="h-5 w-5 text-red-500" />
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-red-800">{error}</p>
                       </div>
-                    )}
-                    {!verificandoUsuario && usuarioDisponible === true && formUsuario.usuario && (
-                      <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                        <CheckCircle className="h-5 w-5 text-green-500" />
-                      </div>
-                    )}
-                  </div>
-                  {!verificandoUsuario && usuarioDisponible === false && (
-                    <p className="mt-1 text-sm text-red-600">
-                      Este nombre de usuario ya está en uso. Por favor, elija otro.
-                    </p>
-                  )}
-                  {!verificandoUsuario && usuarioDisponible === true && formUsuario.usuario && (
-                    <p className="mt-1 text-sm text-green-600">
-                      Nombre de usuario disponible.
-                    </p>
-                  )}
-                </div>
-
-                {/* Campo Roles */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Roles
-                  </label>
-                  <select
-                    name="roles"
-                    multiple
-                    size={3}
-                    value={formUsuario.roles}
-                    onChange={manejarCambioForm}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                    required
-                  >
-                    <option value="ROLE_ADMIN">Administrador</option>
-                    <option value="ROLE_CAJERO">Cajero</option>
-                    <option value="ROLE_ALMACENERO">Almacenero</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Mantén presionado Ctrl (o Cmd en Mac) para seleccionar múltiples roles
-                  </p>
-                </div>
-
-                {/* Campo Activo */}
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="activo"
-                    name="activo"
-                    checked={formUsuario.activo}
-                    onChange={manejarCambioForm}
-                    className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500"
-                    disabled={
-                      modoEdicion &&
-                      esUltimoAdministradorActivo(usuarioEditando as Usuario) &&
-                      usuarioEditando?.activo
-                    }
-                  />
-                  <label htmlFor="activo" className="ml-2 block text-sm text-gray-700">
-                    Usuario activo
-                  </label>
-                </div>
-
-                {/* Opción para cambiar contraseña (solo en modo edición) */}
-                {modoEdicion && (
-                  <div className="flex items-center">
-                    <input
-                      type="checkbox"
-                      id="cambiarPassword"
-                      checked={cambiarPassword}
-                      onChange={(e) => {
-                        const checked = e.target.checked;
-                        setCambiarPassword(checked);
-                        // Si se desmarca, limpiar los campos de contraseña
-                        if (!checked) {
-                          setFormUsuario(prev => ({
-                            ...prev,
-                            password: '',
-                            confirmPassword: ''
-                          }));
-                        }
-                        // Si se marca y es el usuario actual, mostrar modal de verificación
-                        if (checked && esUsuarioActual(usuarioEditando as Usuario)) {
-                          setMostrarModalPassword(true);
-                          setCambiarPassword(false); // Se activará solo después de la verificación
-                        }
-                      }}
-                      className="h-4 w-4 text-indigo-600 rounded focus:ring-indigo-500"
-                    />
-                    <label htmlFor="cambiarPassword" className="ml-2 block text-sm text-gray-700">
-                      Cambiar contraseña
-                    </label>
+                    </div>
                   </div>
                 )}
 
-                {/* Campos de Contraseña */}
-                {(!modoEdicion || cambiarPassword) && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Contraseña
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={mostrarPassword ? 'text' : 'password'}
-                          name="password"
-                          value={formUsuario.password}
-                          onChange={manejarCambioForm}
-                          className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                          placeholder="Ingrese una contraseña segura"
-                          required
-                          minLength={8}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setMostrarPassword(prev => !prev)}
-                          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-                          tabIndex={-1}
-                        >
-                          {mostrarPassword ? (
-                            <EyeOff className="h-5 w-5" />
-                          ) : (
-                            <Eye className="h-5 w-5" />
-                          )}
-                        </button>
-                      </div>
-                      {formUsuario.password && (
-                        <div className="mt-2 text-sm text-gray-600">
-                          <p className="font-medium mb-1">La contraseña debe contener:</p>
-                          <ul className="space-y-1">
-                            <li className={`flex items-center ${formUsuario.password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
-                              <span className="mr-2">{formUsuario.password.length >= 8 ? '✓' : '○'}</span>
-                              Al menos 8 caracteres
-                            </li>
-                            <li className={`flex items-center ${/[a-z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                              <span className="mr-2">{/[a-z]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                              Una letra minúscula
-                            </li>
-                            <li className={`flex items-center ${/[A-Z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                              <span className="mr-2">{/[A-Z]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                              Una letra mayúscula
-                            </li>
-                            <li className={`flex items-center ${/\d/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                              <span className="mr-2">{/\d/.test(formUsuario.password) ? '✓' : '○'}</span>
-                              Un número
-                            </li>
-                            <li className={`flex items-center ${/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
-                              <span className="mr-2">{/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? '✓' : '○'}</span>
-                              Un carácter especial
-                            </li>
-                          </ul>
+                {/* Grid de campos */}
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Campo Usuario con diseño mejorado */}
+                  <div className="space-y-2">
+                    <label htmlFor="usuario" className="block text-sm font-semibold text-gray-700">
+                      <span className="flex items-center">
+                        <User className="w-4 h-4 mr-2 text-indigo-500" />
+                        Nombre de Usuario
+                        <span className="text-red-500 ml-1">*</span>
+                      </span>
+                    </label>
+                    <div className="relative group">
+                      <input
+                        type="text"
+                        id="usuario"
+                        name="usuario"
+                        value={formUsuario.usuario}
+                        onChange={manejarCambioForm}
+                        ref={usuarioInputRef}
+                        className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 focus:bg-white transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/20
+                        ${verificandoUsuario ? 'border-yellow-300 bg-yellow-50' : ''}
+                        ${!verificandoUsuario && usuarioDisponible === false ? 'border-red-400 bg-red-50' : ''}
+                        ${!verificandoUsuario && usuarioDisponible === true ? 'border-green-400 bg-green-50' : ''}
+                        ${!verificandoUsuario && usuarioDisponible === null ? 'border-gray-300 hover:border-indigo-400' : ''}`}
+                        placeholder="Ingrese el nombre de usuario..."
+                        required
+                        minLength={1}
+                        onBlur={(e) => verificarDisponibilidadUsuario(e.target.value)}
+                      />
+                      {verificandoUsuario && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                          <Loader2 className="h-5 w-5 text-yellow-500 animate-spin" />
+                        </div>
+                      )}
+                      {!verificandoUsuario && usuarioDisponible === false && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                          <X className="h-5 w-5 text-red-500" />
+                        </div>
+                      )}
+                      {!verificandoUsuario && usuarioDisponible === true && formUsuario.usuario && (
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+                          <CheckCircle className="h-5 w-5 text-green-500" />
                         </div>
                       )}
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Confirmar Contraseña
+                    {!verificandoUsuario && usuarioDisponible === false && (
+                      <p className="text-sm text-red-600 font-medium flex items-center">
+                        <X className="w-4 h-4 mr-1" />
+                        Este nombre de usuario ya está en uso. Por favor, elija otro.
+                      </p>
+                    )}
+                    {!verificandoUsuario && usuarioDisponible === true && formUsuario.usuario && (
+                      <p className="text-sm text-green-600 font-medium flex items-center">
+                        <CheckCircle className="w-4 h-4 mr-1" />
+                        Nombre de usuario disponible.
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Opción para cambiar contraseña (solo en modo edición) */}
+                  {modoEdicion && (
+                    <div className="space-y-3">
+                      <label className="block text-sm font-semibold text-gray-700">
+                        <span className="flex items-center">
+                          <Lock className="w-4 h-4 mr-2 text-indigo-500" />
+                          Configuración de Contraseña
+                        </span>
                       </label>
+                      <div className="flex items-center p-4 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-indigo-300 transition-all duration-200">
+                        <input
+                          type="checkbox"
+                          id="cambiarPassword"
+                          checked={cambiarPassword}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setCambiarPassword(checked);
+                            if (!checked) {
+                              setFormUsuario(prev => ({
+                                ...prev,
+                                password: '',
+                                confirmPassword: ''
+                              }));
+                            }
+                            if (checked && esUsuarioActual(usuarioEditando as Usuario)) {
+                              setMostrarModalPassword(true);
+                              setCambiarPassword(false);
+                            }
+                          }}
+                          className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-2 border-gray-300 rounded transition-all duration-200"
+                        />
+                        <label htmlFor="cambiarPassword" className="ml-3 text-sm font-medium text-gray-700">
+                          Cambiar contraseña del usuario
+                        </label>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Campos de Contraseña con diseño mejorado */}
+                  {(!modoEdicion || cambiarPassword) && (
+                    <>
+                      <div className="space-y-2">
+                        <label htmlFor="password" className="block text-sm font-semibold text-gray-700">
+                          <span className="flex items-center">
+                            <Lock className="w-4 h-4 mr-2 text-indigo-500" />
+                            Contraseña
+                            <span className="text-red-500 ml-1">*</span>
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={mostrarPassword ? 'text' : 'password'}
+                            id="password"
+                            name="password"
+                            value={formUsuario.password}
+                            onChange={manejarCambioForm}
+                            className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 pr-12"
+                            placeholder="Ingrese una contraseña segura..."
+                            required
+                            minLength={8}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMostrarPassword(prev => !prev)}
+                            className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors duration-200"
+                            tabIndex={-1}
+                          >
+                            {mostrarPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                        {formUsuario.password && (
+                          <div className="mt-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-200">
+                            <p className="text-sm font-semibold text-gray-700 mb-2">Requisitos de contraseña:</p>
+                            <div className="grid grid-cols-1 gap-1.5 text-xs">
+                              <div className={`flex items-center transition-colors ${formUsuario.password.length >= 8 ? 'text-green-600' : 'text-gray-500'}`}>
+                                <span className="mr-2 font-mono">{formUsuario.password.length >= 8 ? '✓' : '○'}</span>
+                                Al menos 8 caracteres
+                              </div>
+                              <div className={`flex items-center transition-colors ${/[a-z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                                <span className="mr-2 font-mono">{/[a-z]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                                Una letra minúscula
+                              </div>
+                              <div className={`flex items-center transition-colors ${/[A-Z]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                                <span className="mr-2 font-mono">{/[A-Z]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                                Una letra mayúscula
+                              </div>
+                              <div className={`flex items-center transition-colors ${/\d/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                                <span className="mr-2 font-mono">{/\d/.test(formUsuario.password) ? '✓' : '○'}</span>
+                                Un número
+                              </div>
+                              <div className={`flex items-center transition-colors ${/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? 'text-green-600' : 'text-gray-500'}`}>
+                                <span className="mr-2 font-mono">{/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>?]/.test(formUsuario.password) ? '✓' : '○'}</span>
+                                Un carácter especial
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <label htmlFor="confirmPassword" className="block text-sm font-semibold text-gray-700">
+                          <span className="flex items-center">
+                            <Lock className="w-4 h-4 mr-2 text-indigo-500" />
+                            Confirmar Contraseña
+                            <span className="text-red-500 ml-1">*</span>
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={mostrarConfirmPassword ? 'text' : 'password'}
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            value={formUsuario.confirmPassword}
+                            onChange={manejarCambioForm}
+                            className={`w-full px-4 py-3 border-2 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 pr-12
+                            ${
+                              formUsuario.password && formUsuario.confirmPassword
+                                ? formUsuario.password === formUsuario.confirmPassword
+                                  ? 'border-green-400 hover:border-green-500'
+                                  : 'border-red-400 hover:border-red-500'
+                                : 'border-gray-300 hover:border-indigo-400 focus:border-indigo-500'
+                            }`}
+                            placeholder="Confirme la contraseña..."
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMostrarConfirmPassword(prev => !prev)}
+                            className="absolute inset-y-0 right-0 flex items-center px-4 text-gray-400 hover:text-indigo-600 focus:outline-none transition-colors duration-200"
+                            tabIndex={-1}
+                          >
+                            {mostrarConfirmPassword ? (
+                              <EyeOff className="h-5 w-5" />
+                            ) : (
+                              <Eye className="h-5 w-5" />
+                            )}
+                          </button>
+                        </div>
+                        {formUsuario.password && formUsuario.confirmPassword && (
+                          <p className={`text-sm font-medium flex items-center mt-2 transition-colors ${
+                            formUsuario.password === formUsuario.confirmPassword
+                              ? 'text-green-600'
+                              : 'text-red-600'
+                          }`}>
+                            {formUsuario.password === formUsuario.confirmPassword ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Las contraseñas coinciden
+                              </>
+                            ) : (
+                              <>
+                                <X className="w-4 h-4 mr-1" />
+                                Las contraseñas no coinciden
+                              </>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Campo Estado con switch mejorado */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      <span className="flex items-center">
+                        <UserCheck className="w-4 h-4 mr-2 text-indigo-500" />
+                        Estado del Usuario
+                      </span>
+                    </label>
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border-2 border-gray-200 hover:border-indigo-300 transition-all duration-200">
+                      <span className="text-sm font-medium text-gray-700">
+                        Usuario {formUsuario.activo ? 'activo' : 'inactivo'} en el sistema
+                      </span>
                       <div className="relative">
                         <input
-                          type={mostrarConfirmPassword ? 'text' : 'password'}
-                          name="confirmPassword"
-                          value={formUsuario.confirmPassword}
+                          type="checkbox"
+                          id="activo"
+                          name="activo"
+                          checked={formUsuario.activo}
                           onChange={manejarCambioForm}
-                          className={`w-full px-4 py-2.5 pr-10 rounded-lg border
-                          ${
-                            formUsuario.password && formUsuario.confirmPassword
-                              ? formUsuario.password === formUsuario.confirmPassword
-                                ? 'border-green-500'
-                                : 'border-red-500'
-                              : 'border-gray-200'
-                          } 
-                          focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors`}
-                          placeholder="Confirme la contraseña"
-                          required
+                          disabled={
+                            modoEdicion &&
+                            esUltimoAdministradorActivo(usuarioEditando as Usuario) &&
+                            usuarioEditando?.activo
+                          }
+                          className="sr-only"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setMostrarConfirmPassword(prev => !prev)}
-                          className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-                          tabIndex={-1}
+                        <label 
+                          htmlFor="activo" 
+                          className={`flex items-center cursor-pointer ${
+                            modoEdicion &&
+                            esUltimoAdministradorActivo(usuarioEditando as Usuario) &&
+                            usuarioEditando?.activo ? 'cursor-not-allowed opacity-50' : ''
+                          }`}
                         >
-                          {mostrarConfirmPassword ? (
-                            <EyeOff className="h-5 w-5" />
-                          ) : (
-                            <Eye className="h-5 w-5" />
-                          )}
-                        </button>
+                          <div className={`relative w-14 h-7 transition-colors duration-200 ease-in-out rounded-full ${
+                            formUsuario.activo ? 'bg-indigo-600' : 'bg-gray-300'
+                          }`}>
+                            <div className={`absolute top-0.5 left-0.5 bg-white w-6 h-6 rounded-full transition-transform duration-200 ease-in-out transform ${
+                              formUsuario.activo ? 'translate-x-7' : 'translate-x-0'
+                            }`}></div>
+                          </div>
+                          <span className={`ml-3 text-sm font-medium ${
+                            formUsuario.activo ? 'text-indigo-600' : 'text-gray-500'
+                          }`}>
+                            {formUsuario.activo ? 'Activo' : 'Inactivo'}
+                          </span>
+                        </label>
                       </div>
-                      {formUsuario.password && formUsuario.confirmPassword && (
-                        <p className={`mt-1 text-sm ${
-                          formUsuario.password === formUsuario.confirmPassword
-                            ? 'text-green-600'
-                            : 'text-red-600'
-                        }`}>
-                          {formUsuario.password === formUsuario.confirmPassword
-                            ? 'Las contraseñas coinciden'
-                            : 'Las contraseñas no coinciden'}
-                        </p>
-                      )}
                     </div>
-                  </>
-                )}
+                  </div>
 
-                <div className="flex justify-end space-x-3 pt-4 border-t border-gray-100">
+                  {/* Campo Roles con diseño mejorado */}
+                  <div className="space-y-3">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      <span className="flex items-center">
+                        <Shield className="w-4 h-4 mr-2 text-indigo-500" />
+                        Roles del Sistema
+                        <span className="text-red-500 ml-1">*</span>
+                      </span>
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {[
+                        { value: 'ROLE_ADMIN', label: 'ADMIN', color: 'bg-yellow-500 hover:bg-yellow-600 border-yellow-500' },
+                        { value: 'ROLE_CAJERO', label: 'CAJERO', color: 'bg-green-500 hover:bg-green-600 border-green-500' },
+                        { value: 'ROLE_ALMACENERO', label: 'ALMACENERO', color: 'bg-blue-500 hover:bg-blue-600 border-blue-500' }
+                      ].map((rol) => (
+                        <button
+                          key={rol.value}
+                          type="button"
+                          onClick={() => {
+                            setFormUsuario(prev => ({
+                              ...prev,
+                              roles: [rol.value as RolNombre]
+                            }));
+                          }}
+                          className={`relative px-4 py-3 text-sm font-semibold rounded-xl border-2 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-offset-2 ${
+                            formUsuario.roles.includes(rol.value as RolNombre)
+                              ? `${rol.color} text-white shadow-lg transform scale-105 focus:ring-opacity-50`
+                              : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200 hover:border-gray-400 focus:ring-gray-500/20'
+                          }`}
+                        >
+                          {formUsuario.roles.includes(rol.value as RolNombre) && (
+                            <div className="absolute -top-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                            </div>
+                          )}
+                          {rol.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 italic flex items-center">
+                      <Info className="w-3 h-3 mr-1" />
+                      Selecciona un rol para el usuario
+                    </p>
+                  </div>
+                </div>
+
+                {/* Botones del formulario con diseño mejorado */}
+                <div className="flex justify-end space-x-4 pt-8 border-t-2 border-gray-100">
                   <button
                     type="button"
                     onClick={() => cerrarModalConAnimacion()}
-                    className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200"
                   >
                     Cancelar
                   </button>
@@ -1355,106 +1466,13 @@ const GestionUsuarios = () => {
                       usuarioDisponible === false ||
                       verificandoUsuario
                     }
-                    className="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-transparent rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-600 disabled:hover:to-purple-600 inline-flex items-center"
                   >
-                    <Save className="w-4 h-4" />
-                    {modoEdicion ? 'Actualizar' : 'Guardar'}
+                    <Save className="w-4 h-4 mr-2" />
+                    {modoEdicion ? 'Actualizar Usuario' : 'Crear Usuario'}
                   </button>
                 </div>
               </form>
-            </div>
-          </div>
-        )}
-        
-        {/* Modal de Verificación de Contraseña Actual */}
-        {mostrarModalPassword && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 ease-out">
-              <div className="flex items-center justify-between p-6 border-b border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  Verificar Contraseña Actual
-                </h2>
-                <button
-                  onClick={() => setMostrarModalPassword(false)}
-                  className="text-gray-400 hover:text-gray-500 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="p-6 space-y-4">
-                <p className="text-gray-600 text-sm">
-                  Para cambiar su contraseña, primero debe ingresar su contraseña actual por seguridad.
-                </p>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Contraseña Actual
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={mostrarPasswordActual ? 'text' : 'password'}
-                      value={passwordActual}
-                      onChange={(e) => setPasswordActual(e.target.value)}
-                      className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                      placeholder="Ingrese su contraseña actual"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setMostrarPasswordActual(prev => !prev)}
-                      className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 hover:text-gray-700 focus:outline-none"
-                      tabIndex={-1}
-                    >
-                      {mostrarPasswordActual ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                  {errorPasswordActual && (
-                    <p className="mt-1 text-sm text-red-600">
-                      {errorPasswordActual}
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex justify-end p-6 border-t border-gray-100 gap-3">
-                <button
-                  onClick={() => setMostrarModalPassword(false)}
-                  className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={verificarContrasenaActual}
-                  disabled={!passwordActual}
-                  className="px-4 py-2.5 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Verificar
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        {/* Notificación de cierre de sesión */}
-        {mostrarNotificacionCierre && (
-          <div className="fixed bottom-4 right-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 shadow-lg rounded-lg max-w-sm animate-slide-in-bottom">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <LogOut className="h-5 w-5 text-yellow-400" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-yellow-800">
-                  Se ha modificado su cuenta de usuario
-                </p>
-                <p className="mt-2 text-sm text-yellow-700">
-                  Se cerrará su sesión en {contadorCierre} segundos para aplicar los cambios.
-                </p>
-              </div>
             </div>
           </div>
         )}
