@@ -15,8 +15,14 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 
 @Data
 @Entity
@@ -227,5 +233,56 @@ public class Producto {
 
     public void setVariantes(List<ProductoVariante> variantes) {
         this.variantes = variantes;
+    }
+
+    // Métodos de validación para precios por volumen
+    @PrePersist
+    @PreUpdate
+    private void validarPreciosPorVolumen() {
+        if (precioUnitario == null || precioCuarto == null || 
+            precioMediaDocena == null || precioDocena == null) {
+            throw new IllegalArgumentException("Todos los precios por volumen son obligatorios");
+        }
+
+        // Calcular precios unitarios para cada volumen
+        BigDecimal precioUnitarioIndividual = precioUnitario;
+        BigDecimal precioUnitarioCuarto = precioCuarto.divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
+        BigDecimal precioUnitarioMediaDocena = precioMediaDocena.divide(new BigDecimal("6"), 2, RoundingMode.HALF_UP);
+        BigDecimal precioUnitarioDocenaCompleta = precioDocena.divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+
+        // Validar que los precios unitarios disminuyan con el volumen
+        if (precioUnitarioIndividual.compareTo(precioUnitarioCuarto) < 0) {
+            throw new IllegalArgumentException(
+                "El precio unitario del cuarto (S/." + precioUnitarioCuarto + 
+                ") no puede ser mayor al precio individual (S/." + precioUnitarioIndividual + ")"
+            );
+        }
+
+        if (precioUnitarioCuarto.compareTo(precioUnitarioMediaDocena) < 0) {
+            throw new IllegalArgumentException(
+                "El precio unitario de la media docena (S/." + precioUnitarioMediaDocena + 
+                ") no puede ser mayor al precio unitario del cuarto (S/." + precioUnitarioCuarto + ")"
+            );
+        }
+
+        if (precioUnitarioMediaDocena.compareTo(precioUnitarioDocenaCompleta) < 0) {
+            throw new IllegalArgumentException(
+                "El precio unitario de la docena (S/." + precioUnitarioDocenaCompleta + 
+                ") no puede ser mayor al precio unitario de la media docena (S/." + precioUnitarioMediaDocena + ")"
+            );
+        }
+    }
+
+    // Método auxiliar para calcular precios unitarios
+    public BigDecimal getPrecioUnitarioPorVolumen(int cantidad) {
+        if (cantidad == 1) {
+            return precioUnitario;
+        } else if (cantidad <= 3) {
+            return precioCuarto.divide(new BigDecimal("3"), 2, RoundingMode.HALF_UP);
+        } else if (cantidad <= 6) {
+            return precioMediaDocena.divide(new BigDecimal("6"), 2, RoundingMode.HALF_UP);
+        } else {
+            return precioDocena.divide(new BigDecimal("12"), 2, RoundingMode.HALF_UP);
+        }
     }
 }

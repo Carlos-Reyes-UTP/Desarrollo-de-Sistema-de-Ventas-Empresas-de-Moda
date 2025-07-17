@@ -658,19 +658,27 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         setFormData(prev => ({ ...prev, [name]: 0 }));
         return;
       }
-      // Validación de jerarquía de precios
+      // Validación de jerarquía de precios por unidad
       let precios = {
-        precioUnitario: name === 'precioUnitario' ? nuevoValor : parseFloat(formData.precioUnitario) || 0,
-        precioCuarto: name === 'precioCuarto' ? nuevoValor : parseFloat(formData.precioCuarto) || 0,
-        precioMediaDocena: name === 'precioMediaDocena' ? nuevoValor : parseFloat(formData.precioMediaDocena) || 0,
-        precioDocena: name === 'precioDocena' ? nuevoValor : parseFloat(formData.precioDocena) || 0,
+        precioUnitario: name === 'precioUnitario' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioUnitario) || 0,
+        precioCuarto: name === 'precioCuarto' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioCuarto) || 0,
+        precioMediaDocena: name === 'precioMediaDocena' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioMediaDocena) || 0,
+        precioDocena: name === 'precioDocena' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioDocena) || 0,
       };
+      
+      // Calcular precio por unidad para cada volumen
+      const precioUnitarioIndividual = precios.precioUnitario;
+      const precioUnitarioCuarto = precios.precioCuarto > 0 ? precios.precioCuarto / 3 : 0;
+      const precioUnitarioMediaDocena = precios.precioMediaDocena > 0 ? precios.precioMediaDocena / 6 : 0;
+      const precioUnitarioDocena = precios.precioDocena > 0 ? precios.precioDocena / 12 : 0;
+      
+      // Validar que el precio por unidad sea decreciente: Individual ≥ Cuarto/3 ≥ MediaDocena/6 ≥ Docena/12
       if (
-        (precios.precioCuarto && precios.precioCuarto > precios.precioUnitario) ||
-        (precios.precioMediaDocena && precios.precioMediaDocena > precios.precioCuarto) ||
-        (precios.precioDocena && precios.precioDocena > precios.precioMediaDocena)
+        (precios.precioCuarto > 0 && precioUnitarioCuarto > precioUnitarioIndividual) ||
+        (precios.precioMediaDocena > 0 && precioUnitarioMediaDocena > precioUnitarioCuarto) ||
+        (precios.precioDocena > 0 && precioUnitarioDocena > precioUnitarioMediaDocena)
       ) {
-        setErrorPrecio('El orden de los precios debe ser: Unitario ≥ Cuarto ≥ Media Docena ≥ Docena.');
+        setErrorPrecio('El precio por unidad debe ser decreciente: Individual ≥ Cuarto/3 ≥ MediaDocena/6 ≥ Docena/12');
         return;
       }
       setErrorPrecio(null);
@@ -1565,6 +1573,16 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         />
                       </div>
                     </div>
+                    
+                    {/* Mensaje de error para validación de precios */}
+                    {errorPrecio && (
+                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div className="flex items-center">
+                          <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+                          <p className="text-sm text-red-700">{errorPrecio}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
