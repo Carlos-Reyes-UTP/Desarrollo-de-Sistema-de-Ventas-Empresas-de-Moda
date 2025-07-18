@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Users } from 'lucide-react';
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
-import { useProductoService } from '../../hooks/useProductoService';
 import { useAuthReady } from '../../hooks/useAuthReady';
 import { useAuth } from '../../context/AuthContext';
 import { ClienteService } from '../../services/ClienteServices';
@@ -19,7 +18,6 @@ const VentasPanel = () => {
   const { usuario } = useAuth();
   // Get role-aware product variante service methods
   const { getAllVariantes, disminuirCantidadVariante } = useProductoVarianteService(true);
-  const { disminuirCantidadProducto } = useProductoService();
   
   // --------------------------------------------------------------------------------------------
   // A. ESTADO DEL COMPONENTE
@@ -738,17 +736,6 @@ const VentasPanel = () => {
             console.log(`✅ Stock de variante actualizado:`, varianteActualizada);
           } catch (error) {
             console.error(`❌ Error al actualizar stock de variante ${item.idProductoVariante}:`, error);
-          }
-        }
-        
-        // También disminuir el stock del producto general
-        if (item.idProducto) {
-          try {
-            console.log(`⬇️ Disminuyendo stock de producto ${item.idProducto} en ${item.cantidad} unidades`);
-            const productoActualizado = await disminuirCantidadProducto(item.idProducto, item.cantidad);
-            console.log(`✅ Stock de producto actualizado:`, productoActualizado);
-          } catch (error) {
-            console.error(`❌ Error al actualizar stock de producto ${item.idProducto}:`, error);
           }
         }
       }
