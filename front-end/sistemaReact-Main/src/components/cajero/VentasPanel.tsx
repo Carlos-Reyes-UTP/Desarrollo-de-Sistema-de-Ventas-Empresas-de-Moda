@@ -47,9 +47,6 @@ const VentasPanel = () => {
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null);
   const [mensajeInfoVista, setMensajeInfoVista] = useState<string | null>(null);
   
-  // Estados para responsive y layout
-  const [marginLeft, setMarginLeft] = useState(window.innerWidth >= 768 ? '200px' : '0');
-
   const [mostrarModalQR, setMostrarModalQR] = useState(false);
   const [qrDataModal, setQrDataModal] = useState({ url: '', tipo: '' });
   const [mostrarModalBoleta, setMostrarModalBoleta] = useState(false);
@@ -106,16 +103,6 @@ const VentasPanel = () => {
     cargarTodasLasVariantes();
   }, [isReady, isAuthenticated, getAllVariantes]);
   
-  // useEffect para manejar cambios de tamaño de ventana y actualizar margen
-  useEffect(() => {
-    const handleResize = () => {
-      setMarginLeft(window.innerWidth >= 768 ? '200px' : '0');
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   useEffect(() => {
     if (!cargandoProductosIniciales && !cargandoBusquedaAccion) { 
       if (busqueda.trim() === '') {
@@ -1180,9 +1167,10 @@ const clienteValidoParaVenta = useMemo(() => {
 }, [clienteSeleccionado, documentoCliente, tipoDocumento, cliente]);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6" style={{ marginLeft }}>
-      {/* Cabecera del Panel de Ventas */}
-      <div className="max-w-7xl mx-auto mb-6">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Cabecera del Panel de Ventas */}
+        <div className="mb-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-3 pl-4">
@@ -1338,9 +1326,8 @@ const clienteValidoParaVenta = useMemo(() => {
       )}
       
       {/* LAYOUT PRINCIPAL DE LA PÁGINA */}
-      <div className="max-w-7xl mx-auto">
-        {/* Sección de Información del Cliente */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+      {/* Sección de Información del Cliente */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Users className="h-5 w-5 text-blue-600" />
@@ -1740,8 +1727,8 @@ const clienteValidoParaVenta = useMemo(() => {
             {/* PAGINACIÓN DE PRODUCTOS - Responsiva */}
             {totalPaginas > 1 && (
               <div className="absolute left-0 right-0 bottom-0 bg-white border-t border-gray-200 rounded-b-xl shadow-sm z-10">
-                {/* Versión móvil */}
-                <div className="block sm:hidden px-3 py-2">
+                {/* Versión móvil y tablet hasta 1279px */}
+                <div className="block xl:hidden px-3 py-2">
                   <div className="flex items-center justify-between">
                     <button
                       onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
@@ -1775,8 +1762,8 @@ const clienteValidoParaVenta = useMemo(() => {
                   </div>
                 </div>
 
-                {/* Versión desktop */}
-                <div className="hidden sm:flex items-center justify-between px-4 py-3" style={{ minHeight: 64 }}>
+                {/* Versión desktop para 1280px y arriba */}
+                <div className="hidden xl:flex items-center justify-between px-4 py-3" style={{ minHeight: 64 }}>
                   <div className="flex-1" />
                   <div className="flex items-center space-x-2">
                     <button
