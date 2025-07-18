@@ -58,15 +58,19 @@ const ResumenGeneral: React.FC = () => {
             ticketPromedio
           });
 
+          // Calcular métricas de crecimiento mes actual vs anterior
+          const metricasCrecimiento = await ReporteService.calcularCrecimiento.obtenerMetricasCrecimiento();
+          console.log('📈 Métricas de crecimiento obtenidas:', metricasCrecimiento);
+
           const data: ResumenVentasLocal = {
             totalVentas: totalVentas, // Total en dinero
             totalOrdenes: cantidadVentas, // Cantidad real de ventas de la tabla ventas
             clientesActivos: 0, // Se calculará después desde ClienteServices
             ticketPromedio: ticketPromedio, // Promedio real: total ingresos / cantidad ventas
-            crecimientoVentas: 0,
-            crecimientoOrdenes: 0,
-            crecimientoClientes: 0,
-            crecimientoTicket: 0,
+            crecimientoVentas: metricasCrecimiento.crecimiento.ingresos,
+            crecimientoOrdenes: metricasCrecimiento.crecimiento.ventas,
+            crecimientoClientes: 0, // Por ahora no calculamos crecimiento de clientes
+            crecimientoTicket: metricasCrecimiento.crecimiento.ticket,
             ventasPorPeriodo: [],
             ventasPorCategoria: [],
             topProductos: []
@@ -111,15 +115,19 @@ const ResumenGeneral: React.FC = () => {
               ticketPromedio
             });
 
+            // Calcular métricas de crecimiento mes actual vs anterior
+            const metricasCrecimiento = await ReporteService.calcularCrecimiento.obtenerMetricasCrecimiento();
+            console.log('📈 Métricas de crecimiento obtenidas (fallback):', metricasCrecimiento);
+
             const data: ResumenVentasLocal = {
               totalVentas,
               totalOrdenes, // Cantidad de ventas registradas
               clientesActivos: 0, // Se calculará después
               ticketPromedio,
-              crecimientoVentas: 0, // Sin datos históricos
-              crecimientoOrdenes: 0, // Sin datos históricos
-              crecimientoClientes: 0, // Sin datos históricos
-              crecimientoTicket: 0, // Sin datos históricos
+              crecimientoVentas: metricasCrecimiento.crecimiento.ingresos,
+              crecimientoOrdenes: metricasCrecimiento.crecimiento.ventas,
+              crecimientoClientes: 0, // Por ahora no calculamos crecimiento de clientes
+              crecimientoTicket: metricasCrecimiento.crecimiento.ticket,
               ventasPorPeriodo: [],
               ventasPorCategoria: [],
               topProductos: []
@@ -207,10 +215,41 @@ const ResumenGeneral: React.FC = () => {
         ['Ticket Promedio:', `S/${resumen.ticketPromedio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, '', ''],
         ['', '', '', ''],
         ['CRECIMIENTO VS PERÍODO ANTERIOR', '', '', ''],
-        ['Ingresos:', resumen.crecimientoVentas !== 0 ? `${resumen.crecimientoVentas.toFixed(1)}%` : 'Sin datos históricos', '', ''],
-        ['Ventas:', resumen.crecimientoOrdenes !== 0 ? `${resumen.crecimientoOrdenes.toFixed(1)}%` : 'Sin datos históricos', '', ''],
-        ['Clientes:', resumen.crecimientoClientes !== 0 ? `${resumen.crecimientoClientes.toFixed(1)}%` : 'Sin datos históricos', '', ''],
-        ['Ticket Promedio:', resumen.crecimientoTicket !== 0 ? `${resumen.crecimientoTicket.toFixed(1)}%` : 'Sin datos históricos', '', '']
+        ['Ingresos:', 
+          resumen.crecimientoVentas !== 0 ? 
+            `${resumen.crecimientoVentas > 0 ? '+' : ''}${resumen.crecimientoVentas.toFixed(1)}%` : 
+            'Sin datos históricos', 
+          resumen.crecimientoVentas > 0 ? '↑' : resumen.crecimientoVentas < 0 ? '↓' : '-', 
+          ''
+        ],
+        ['Ventas:', 
+          resumen.crecimientoOrdenes !== 0 ? 
+            `${resumen.crecimientoOrdenes > 0 ? '+' : ''}${resumen.crecimientoOrdenes.toFixed(1)}%` : 
+            'Sin datos históricos', 
+          resumen.crecimientoOrdenes > 0 ? '↑' : resumen.crecimientoOrdenes < 0 ? '↓' : '-', 
+          ''
+        ],
+        ['Ticket Promedio:', 
+          resumen.crecimientoTicket !== 0 ? 
+            `${resumen.crecimientoTicket > 0 ? '+' : ''}${resumen.crecimientoTicket.toFixed(1)}%` : 
+            'Sin datos históricos', 
+          resumen.crecimientoTicket > 0 ? '↑' : resumen.crecimientoTicket < 0 ? '↓' : '-', 
+          ''
+        ],
+        ['', '', '', ''],
+        ['INTERPRETACIÓN:', '', '', ''],
+        ['Mes actual vs mes anterior', '', '', ''],
+        ['Tendencia general:', 
+          (() => {
+            const promedioCrec = (resumen.crecimientoVentas + resumen.crecimientoOrdenes + resumen.crecimientoTicket) / 3;
+            if (promedioCrec > 10) return 'Crecimiento fuerte';
+            if (promedioCrec > 0) return 'Crecimiento moderado';
+            if (promedioCrec > -10) return 'Estable con ligera baja';
+            return 'Requiere atención';
+          })(), 
+          '', 
+          ''
+        ]
       ];
 
       const wsResumen = XLSX.utils.aoa_to_sheet(resumenData);
@@ -326,7 +365,7 @@ const ResumenGeneral: React.FC = () => {
     },
     {
       nombre: 'Ticket Promedio',
-      valor: `S/ ${resumen.ticketPromedio.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`,
+      valor: `S/ ${resumen.ticketPromedio.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
       icono: ChartBarIcon,
       crecimiento: resumen.crecimientoTicket,
       color: 'bg-orange-100 text-orange-800'
@@ -360,7 +399,9 @@ const ResumenGeneral: React.FC = () => {
                       <p className="text-sm font-medium text-gray-600">{metrica.nombre}</p>
                       <p className="text-3xl font-bold text-gray-900">{metrica.valor}</p>
                       <div className="flex items-center mt-2">
-                        {metrica.crecimiento !== 0 ? (
+                        {metrica.nombre === 'Clientes Registrados' ? (
+                          <span className="text-xs text-gray-500">Total registrados</span>
+                        ) : metrica.crecimiento !== 0 ? (
                           <>
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${metrica.color}`}>
                               {metrica.crecimiento > 0 ? '+' : ''}{metrica.crecimiento.toFixed(1)}%

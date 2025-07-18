@@ -277,5 +277,141 @@ export const ReporteService = {
       console.error('Error al obtener variantes por color:', error);
       throw new Error(error.response?.data?.message || 'Error al cargar las variantes por color');
     }
+  },
+
+  /**
+   * 📊 Calcula el crecimiento comparando dos períodos de ventas
+   */
+  calcularCrecimiento: {
+    /**
+     * Obtiene las fechas para comparar mes actual vs mes anterior
+     */
+    obtenerRangosMensuales: () => {
+      const hoy = new Date();
+      
+      // Mes actual: desde el día 1 hasta hoy
+      const inicioMesActual = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      const finMesActual = new Date(hoy);
+      
+      // Mes anterior: desde el día 1 hasta el último día del mes anterior
+      const inicioMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+      const finMesAnterior = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+      
+      return {
+        mesActual: {
+          fechaInicio: inicioMesActual.toISOString().split('T')[0],
+          fechaFin: finMesActual.toISOString().split('T')[0]
+        },
+        mesAnterior: {
+          fechaInicio: inicioMesAnterior.toISOString().split('T')[0],
+          fechaFin: finMesAnterior.toISOString().split('T')[0]
+        }
+      };
+    },
+
+    /**
+     * Calcula el porcentaje de crecimiento entre dos valores
+     */
+    calcularPorcentaje: (valorActual: number, valorAnterior: number): number => {
+      if (valorAnterior === 0) {
+        return valorActual > 0 ? 100 : 0;
+      }
+      return ((valorActual - valorAnterior) / valorAnterior) * 100;
+    },
+
+    /**
+     * Obtiene métricas de crecimiento comparando mes actual vs anterior
+     */
+    obtenerMetricasCrecimiento: async () => {
+      try {
+        const rangos = ReporteService.calcularCrecimiento.obtenerRangosMensuales();
+        console.log('📅 Rangos de fechas para crecimiento:', rangos);
+
+        // Importar VentaService para obtener todas las ventas
+        const { VentaService } = await import('./VentaServices');
+        
+        // Obtener todas las ventas y filtrarlas por fechas
+        const todasLasVentas = await VentaService.obtenerTodasVentas();
+        
+        if (!Array.isArray(todasLasVentas)) {
+          throw new Error('No se pudieron obtener las ventas');
+        }
+
+        // Filtrar ventas del mes actual
+        const ventasMesActual = todasLasVentas.filter(venta => {
+          if (!venta.fechaVenta) return false;
+          const fechaVenta = new Date(venta.fechaVenta).toISOString().split('T')[0];
+          return fechaVenta >= rangos.mesActual.fechaInicio && fechaVenta <= rangos.mesActual.fechaFin;
+        });
+        
+        // Filtrar ventas del mes anterior
+        const ventasMesAnterior = todasLasVentas.filter(venta => {
+          if (!venta.fechaVenta) return false;
+          const fechaVenta = new Date(venta.fechaVenta).toISOString().split('T')[0];
+          return fechaVenta >= rangos.mesAnterior.fechaInicio && fechaVenta <= rangos.mesAnterior.fechaFin;
+        });
+
+        console.log('📊 Ventas mes actual:', ventasMesActual);
+        console.log('📊 Ventas mes anterior:', ventasMesAnterior);
+
+        // Calcular métricas del mes actual
+        const metricsActual = {
+          totalIngresos: ventasMesActual.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
+          totalVentas: ventasMesActual.length
+        };
+
+        // Calcular métricas del mes anterior
+        const metricsAnterior = {
+          totalIngresos: ventasMesAnterior.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
+          totalVentas: ventasMesAnterior.length
+        };
+
+        // Calcular ticket promedio
+        const ticketActual = metricsActual.totalVentas > 0 
+          ? metricsActual.totalIngresos / metricsActual.totalVentas 
+          : 0;
+        const ticketAnterior = metricsAnterior.totalVentas > 0 
+          ? metricsAnterior.totalIngresos / metricsAnterior.totalVentas 
+          : 0;
+
+        // Calcular porcentajes de crecimiento
+        const crecimientoIngresos = ReporteService.calcularCrecimiento.calcularPorcentaje(
+          metricsActual.totalIngresos, metricsAnterior.totalIngresos
+        );
+        const crecimientoVentas = ReporteService.calcularCrecimiento.calcularPorcentaje(
+          metricsActual.totalVentas, metricsAnterior.totalVentas
+        );
+        const crecimientoTicket = ReporteService.calcularCrecimiento.calcularPorcentaje(
+          ticketActual, ticketAnterior
+        );
+
+        console.log('📈 Métricas de crecimiento calculadas:', {
+          metricsActual,
+          metricsAnterior,
+          crecimientoIngresos,
+          crecimientoVentas,
+          crecimientoTicket
+        });
+
+        return {
+          mesActual: metricsActual,
+          mesAnterior: metricsAnterior,
+          crecimiento: {
+            ingresos: crecimientoIngresos,
+            ventas: crecimientoVentas,
+            ticket: crecimientoTicket
+          },
+          rangos
+        };
+      } catch (error: any) {
+        console.error('Error al calcular métricas de crecimiento:', error);
+        return {
+          mesActual: { totalIngresos: 0, totalVentas: 0 },
+          mesAnterior: { totalIngresos: 0, totalVentas: 0 },
+          crecimiento: { ingresos: 0, ventas: 0, ticket: 0 },
+          rangos: ReporteService.calcularCrecimiento.obtenerRangosMensuales()
+        };
+      }
+    }
   }
 };
