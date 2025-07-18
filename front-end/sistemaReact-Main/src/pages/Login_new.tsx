@@ -39,9 +39,11 @@ const PaginaLogin = () => {
       if (exito) {
         console.log('Inicio de sesión exitoso, redirigiendo...');
         navegar('/');
-      } else if (!authError) {
+      } else {
         // Si iniciarSesion devuelve false pero no hay error en authError
-        setError('Credenciales incorrectas. Por favor, intente nuevamente.');
+        if (!authError) {
+          setError('Credenciales incorrectas. Por favor, intente nuevamente.');
+        }
       }
     } catch (err: any) {
       console.error('Error en el manejo de inicio de sesión:', err);
@@ -174,7 +176,7 @@ const PaginaLogin = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="black" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
@@ -196,7 +198,7 @@ const PaginaLogin = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                  <svg className="h-5 w-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
                 </div>
@@ -212,6 +214,20 @@ const PaginaLogin = () => {
               </div>
             </div>
 
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="recordarme"
+                  checked={recordarme}
+                  onChange={(e) => setRecordarme(e.target.checked)}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded transition-colors"
+                />
+                <label htmlFor="recordarme" className="ml-2 block text-sm text-gray-700 font-medium">
+                  Recordarme
+                </label>
+              </div>
+            </div>
 
             <div>
               <button

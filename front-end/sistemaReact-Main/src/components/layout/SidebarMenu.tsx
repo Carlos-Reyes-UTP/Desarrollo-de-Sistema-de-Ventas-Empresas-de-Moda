@@ -169,7 +169,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
                 </svg>
               </div>
               <Typography variant="h6" className="font-bold text-white text-sm">
-                VENTASPRO
+                DK-SYSTEM
               </Typography>
             </div>
           </div>
@@ -225,7 +225,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
               </div>
               <div>
                 <Typography variant="h6" className="font-bold text-white">
-                  VENTASPRO
+                  DK-SYSTEM
                 </Typography>
                 <Typography variant="small" className="text-gray-400 font-medium">
                   Sistema de Gestión
