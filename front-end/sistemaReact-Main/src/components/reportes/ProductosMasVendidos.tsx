@@ -950,13 +950,13 @@ const ProductosMasVendidos: React.FC = () => {
       {/* Barra de búsqueda y vista */}
       <div className="flex flex-col sm:flex-row gap-4 relative" style={{ zIndex: 1 }}>
         <div className="relative flex-1">
-          <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+          <MagnifyingGlassIcon className="h-6 w-6 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 z-10 pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar productos..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm relative z-1"
+            className="w-full pl-12 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm z-0"
           />
         </div>
         

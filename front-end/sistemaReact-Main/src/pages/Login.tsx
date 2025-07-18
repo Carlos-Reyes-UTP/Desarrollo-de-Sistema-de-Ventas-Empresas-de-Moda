@@ -174,14 +174,14 @@ const PaginaLogin = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="black" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
                 <input
                   type="text"
                   id="usuario"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200 placeholder-gray-400"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/70 transition-all duration-200 placeholder-gray-400"
                   placeholder="Ingrese su nombre de usuario"
                   value={usuario}
                   onChange={(e) => setUsuario(e.target.value)}
@@ -203,7 +203,7 @@ const PaginaLogin = () => {
                 <input
                   type="password"
                   id="clave"
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/70 backdrop-blur-sm transition-all duration-200 placeholder-gray-400"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/70  transition-all duration-200 placeholder-gray-400"
                   placeholder="Ingrese su contraseña"
                   value={clave}
                   onChange={(e) => setClave(e.target.value)}
