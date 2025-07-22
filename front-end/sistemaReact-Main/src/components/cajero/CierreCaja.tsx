@@ -56,33 +56,36 @@ const CierreCaja = () => {
         // Establecer fecha de cierre actual
         setFechaCierre(obtenerFechaHoraActual());
         
-        // Obtener ventas del día usando el mismo enfoque del dashboard
-        const fechaActual = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
-        console.log('Cargando ventas del día para cierre:', fechaActual);
-        
-        let ventasDelDia: any[] = [];
-        
+        // Obtener ventas del día usando el formato del backend 'YYYY-MM-DD HH:mm:ss.000000'
+        const fechaActual = new Date();
+        const yyyy = fechaActual.getFullYear();
+        const mm = String(fechaActual.getMonth() + 1).padStart(2, '0');
+        const dd = String(fechaActual.getDate()).padStart(2, '0');
+        const fechaFiltro = `${yyyy}-${mm}-${dd}`; // Solo la parte de la fecha
+        console.log('Cargando ventas del día para cierre:', fechaFiltro);
+
+        let ventasDelDia: import('../../interfaces/Venta').Venta[] = [];
         try {
-          const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaActual);
+          // Traer todas las ventas del día según el backend
+          const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaFiltro);
           ventasDelDia = Array.isArray(ventasResponse) ? ventasResponse : [];
-          console.log(`Ventas del día cargadas: ${ventasDelDia.length}`);
-        } catch (ventasError) {
-          console.log('Error al cargar ventas por fecha, intentando cargar todas las ventas:', ventasError);
-          try {
+          // Si la respuesta está vacía, intentar filtrar manualmente por la fecha
+          if (ventasDelDia.length === 0) {
             const todasLasVentas = await VentaService.obtenerTodasVentas();
-            const todasVentasArray = Array.isArray(todasLasVentas) ? todasLasVentas : [];
-            
-            // Filtrar solo las ventas del día actual
-            const fechaHoy = new Date();
-            ventasDelDia = todasVentasArray.filter(venta => {
-              const fechaVenta = new Date(venta.fechaVenta);
-              return fechaVenta.toDateString() === fechaHoy.toDateString();
+            ventasDelDia = todasLasVentas.filter(venta => {
+              // venta.fechaVenta: '2025-07-16 20:03:56.000000'
+              if (!venta.fechaVenta) return false;
+              // Extraer la parte de la fecha
+              const fechaVentaStr = venta.fechaVenta.split(' ')[0];
+              return fechaVentaStr === fechaFiltro;
             });
-            console.log(`Ventas del día filtradas: ${ventasDelDia.length}`);
-          } catch (todasVentasError) {
-            console.error('Error al cargar todas las ventas:', todasVentasError);
-            ventasDelDia = [];
+            console.log(`Ventas del día filtradas manualmente: ${ventasDelDia.length}`);
+          } else {
+            console.log(`Ventas del día cargadas: ${ventasDelDia.length}`);
           }
+        } catch (error) {
+          console.error('Error al cargar ventas por fecha:', error);
+          ventasDelDia = [];
         }
         
         // Calcular totales usando la misma lógica del dashboard
@@ -95,23 +98,24 @@ const CierreCaja = () => {
         let yapeVentasCalc = 0;
         
         ventasDelDia.forEach(venta => {
-          if (venta.metodoPago?.nombre) {
-            const metodo = venta.metodoPago.nombre.toLowerCase();
-            const monto = venta.totalVentas ?? 0;
-            
-            if (metodo.includes('efectivo') || metodo.includes('cash')) {
-              efectivoVentasCalc += monto;
-            } else if (metodo.includes('tarjeta') || metodo.includes('visa') || metodo.includes('mastercard') || metodo.includes('card')) {
-              tarjetaVentasCalc += monto;
-            } else if (metodo.includes('yape') || metodo.includes('plin') || metodo.includes('digital')) {
-              yapeVentasCalc += monto;
-            } else {
-              // Si no se puede clasificar, asumimos efectivo por defecto
-              efectivoVentasCalc += monto;
-            }
+          // Soportar método de pago como string o como objeto
+          let metodoPagoStr = '';
+          if (typeof venta.metodoPago === 'string') {
+            metodoPagoStr = venta.metodoPago;
+          } else if (venta.metodoPago?.nombre) {
+            metodoPagoStr = venta.metodoPago.nombre;
+          }
+          metodoPagoStr = metodoPagoStr.toUpperCase().replace(/\s+/g, '');
+          const monto = venta.totalVentas ?? 0;
+          if (metodoPagoStr.includes('EFECTIVO') || metodoPagoStr.includes('CASH')) {
+            efectivoVentasCalc += monto;
+          } else if (metodoPagoStr.includes('TARJETA') || metodoPagoStr.includes('VISA') || metodoPagoStr.includes('MASTERCARD') || metodoPagoStr.includes('CARD')) {
+            tarjetaVentasCalc += monto;
+          } else if (metodoPagoStr.includes('YAPE') || metodoPagoStr.includes('PLIN') || metodoPagoStr.includes('DIGITAL')) {
+            yapeVentasCalc += monto;
           } else {
-            // Si no hay método de pago, asumimos efectivo por defecto
-            efectivoVentasCalc += (venta.totalVentas ?? 0);
+            // Si no se puede clasificar, asumimos efectivo por defecto
+            efectivoVentasCalc += monto;
           }
         });
         

@@ -5,6 +5,7 @@ import { ProveedorService } from '../../services/ProveedorServices';
 
 const GestionProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
+  const [proveedoresOriginal, setProveedoresOriginal] = useState<Proveedor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFormulario, setShowFormulario] = useState(false);
@@ -33,6 +34,7 @@ const GestionProveedores: React.FC = () => {
       setLoading(true);
       const data = await ProveedorService.obtenerTodosProveedores();
       setProveedores(data);
+      setProveedoresOriginal(data);
     } catch (err) {
       setError('Error al cargar proveedores');
       console.error(err);
@@ -55,26 +57,8 @@ const GestionProveedores: React.FC = () => {
   };
 
   const handleBuscar = async () => {
-    if (!searchTerm.trim()) {
-      cargarProveedores();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      // Filtrar localmente ya que no hay endpoint de búsqueda específico
-      const todosProveedores = await ProveedorService.obtenerTodosProveedores();
-      const resultados = todosProveedores.filter(proveedor =>
-        proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        proveedor.ruc.includes(searchTerm)
-      );
-      setProveedores(resultados);
-    } catch (err) {
-      setError('Error al buscar proveedores');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    // Ya no se usa, la búsqueda es en tiempo real
+    return;
   };
 
   const verificarRUC = async () => {
@@ -227,7 +211,16 @@ const GestionProveedores: React.FC = () => {
   // Resetear página al buscar o filtrar
   useEffect(() => {
     setPaginaActual(1);
-  }, [searchTerm, loading]);
+    if (!searchTerm.trim()) {
+      setProveedores(proveedoresOriginal);
+    } else {
+      const resultados = proveedoresOriginal.filter(proveedor =>
+        proveedor.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        proveedor.ruc.includes(searchTerm)
+      );
+      setProveedores(resultados);
+    }
+  }, [searchTerm, proveedoresOriginal]);
 
   // Proveedores a mostrar en la página actual
   const proveedoresPaginados = proveedores.slice(
