@@ -81,6 +81,10 @@ public class DetalleVenta {
         return precioUnitario.multiply(BigDecimal.valueOf(cantidad));
     }
     public void setSubtotal(BigDecimal subtotal) {
-        this.precioUnitario = subtotal.divide(BigDecimal.valueOf(cantidad));
+        if (cantidad == 0) {
+            this.precioUnitario = BigDecimal.ZERO;
+            return;
+        }
+        this.precioUnitario = subtotal.divide(BigDecimal.valueOf(cantidad), 2, java.math.RoundingMode.HALF_UP);
     }
 }

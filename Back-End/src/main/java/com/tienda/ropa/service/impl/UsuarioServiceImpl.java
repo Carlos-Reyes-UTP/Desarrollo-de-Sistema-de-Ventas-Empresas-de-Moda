@@ -36,8 +36,7 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
                 if (!usuarioEntity.isActivo()) {
                     throw new RuntimeException("El usuario está deshabilitado");
                 }
-                return usuarioRepository.findByUsuario(usuario)
-                        .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+                return usuarioEntity;
             }
         };
     }
@@ -47,7 +46,6 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
             UsuarioDTO dto = new UsuarioDTO();
             dto.setId(usuario.getId());
             dto.setUsuario(usuario.getUsuario());
-            dto.setClave(usuario.getPassword());
             dto.setActivo(usuario.isActivo());
 
             return dto;
@@ -56,9 +54,6 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
     
     public UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO) {
         Usuario usuario = usuarioRepository.findById(id).orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        
-        System.out.println("Actualizando usuario con ID: " + id);
-        System.out.println("Roles recibidos: " + usuarioDTO.getRoles());
         
         // Validar si es el último administrador y se intenta cambiar sus roles
         if (usuarioDTO.getRoles() != null) {
@@ -83,11 +78,9 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
         
         // Actualizar roles si se proporcionan
         if (usuarioDTO.getRoles() != null && !usuarioDTO.getRoles().isEmpty()) {
-            System.out.println("Actualizando roles...");
             usuario.getRoles().clear(); // Limpiar roles existentes
             
             for (String rolNombre : usuarioDTO.getRoles()) {
-                System.out.println("Procesando rol: " + rolNombre);
                 // Convertir string a enum Role (remover prefijo ROLE_ si existe)
                 String nombreRolSinPrefijo = rolNombre.replace("ROLE_", "");
                 Role roleEnum;
@@ -102,12 +95,10 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
                         .orElseThrow(() -> new RuntimeException("Rol no encontrado: " + roleEnum));
                 
                 usuario.getRoles().add(rol);
-                System.out.println("Rol agregado: " + rol.getNombreRol());
             }
         }
         
         usuarioRepository.save(usuario);
-        System.out.println("Usuario guardado con roles: " + usuario.getRoles().size());
 
         // Devolver el DTO actualizado con roles
         return convertirADTOConRoles(usuario);
@@ -138,7 +129,7 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
             usuarioRepository.save(usuario.get());
             return true;
         }
-        return true;
+        return false;
     }
 
     @Override
@@ -160,7 +151,6 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
         UsuarioDTO dto = new UsuarioDTO();
         dto.setId(usuario.getId());
         dto.setUsuario(usuario.getUsuario());
-        dto.setClave(usuario.getPassword());
         dto.setActivo(usuario.isActivo());
 
         // Agregar los roles

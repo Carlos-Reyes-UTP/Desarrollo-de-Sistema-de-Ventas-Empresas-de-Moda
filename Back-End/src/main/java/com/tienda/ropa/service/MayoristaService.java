@@ -129,6 +129,8 @@ public class MayoristaService {
 
         // Actualizar datos del cliente asociado
         Cliente cliente = mayorista.getCliente();
+        String nombreAnterior = cliente.getNombreCliente();
+        
         if (mayoristaDTO.getNombreCliente() != null) {
             cliente.setNombreCliente(mayoristaDTO.getNombreCliente());
         }
@@ -144,7 +146,7 @@ public class MayoristaService {
 
         // Si se cambió el nombre del cliente, regenerar el código mayorista
         if (mayoristaDTO.getNombreCliente() != null && 
-            !mayoristaDTO.getNombreCliente().equals(cliente.getNombreCliente())) {
+            !mayoristaDTO.getNombreCliente().equals(nombreAnterior)) {
             mayorista.setCodigoMayorista(generarCodigoMayorista(mayoristaDTO.getNombreCliente()));
             mayoristaRepository.save(mayorista);
         }

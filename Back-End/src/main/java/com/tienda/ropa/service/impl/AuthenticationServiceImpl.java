@@ -8,7 +8,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -46,14 +45,12 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         Usuario user = Usuario.builder()
                 .usuario(username)
-                .password(new BCryptPasswordEncoder().encode(password))
+                .password(passwordEncoder.encode(password))
                 .roles(roles)
                 .activo(true)
                 .build();
 
-        Usuario userCreated = usuarioRepository.save(user);
-        Authentication authentication = new UsernamePasswordAuthenticationToken(userCreated,password, userCreated.getAuthorities());
-        return userCreated;
+        return usuarioRepository.save(user);
     }
 
     @Override
@@ -93,17 +90,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .activo(signUpRequest.activo() != null ? signUpRequest.activo() : true) // Usar el valor del request o true por defecto
                 .build();
 
-        Usuario userCreated = usuarioRepository.save(user);
-
-        // Crear autenticación para el usuario recién creado
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-            userCreated,
-            password,
-            userCreated.getAuthorities()
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        return userCreated;
+        return usuarioRepository.save(user);
     }
 
     @Override

@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,7 +22,6 @@ import com.tienda.ropa.service.ProductoVarianteService;
 
 @RestController
 @RequestMapping("/api/cajero/productos")
-@CrossOrigin(origins = "*")
 public class CajeroProductoController {
 
     @Autowired
@@ -35,10 +33,7 @@ public class CajeroProductoController {
     // Obtener todas las variantes de productos (método principal para ventas)
     @GetMapping("/variantes")
     public ResponseEntity<List<Map<String, Object>>> obtenerTodasLasVariantes() {
-        System.out.println("DEBUG: Endpoint /api/cajero/productos/variantes fue llamado");
-        
         List<Object[]> resultados = productoVarianteService.obtenerTodasLasVariantesParaCajero();
-        System.out.println("DEBUG: Se encontraron " + resultados.size() + " variantes");
         
         List<Map<String, Object>> variantes = resultados.stream().map(resultado -> {
             Map<String, Object> variante = new HashMap<>();

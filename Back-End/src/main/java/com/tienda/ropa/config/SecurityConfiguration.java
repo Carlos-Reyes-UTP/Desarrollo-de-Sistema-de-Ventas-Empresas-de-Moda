@@ -21,7 +21,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 
 @Configuration
@@ -72,13 +71,6 @@ public class SecurityConfiguration {
                 // 5. Proveedor de Autenticación: Usa nuestro servicio de usuario y el
                 // codificador de contraseñas.
                 .authenticationProvider(authenticationProvider())
-
-                // DEBUG: Filtro para logging de requests
-                .addFilterBefore((request, response, chain) -> {
-                    System.out.println("=== FILTRO DEBUG ===");
-                    System.out.println("URI: " + ((HttpServletRequest) request).getRequestURI());
-                    chain.doFilter(request, response);
-                }, UsernamePasswordAuthenticationFilter.class)
 
                 // 6. Filtro JWT: Añade nuestro filtro personalizado para que se ejecute antes
                 // de la autenticación por defecto.
