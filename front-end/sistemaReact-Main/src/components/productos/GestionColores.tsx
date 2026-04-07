@@ -1,383 +1,408 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Save, X, Palette } from 'lucide-react';
+import {
+    Plus,
+    Search,
+    Edit,
+    Trash2,
+    X,
+    RefreshCw,
+    Loader2,
+    AlertCircle,
+    CheckCircle
+} from 'lucide-react';
 import type { Color } from '../../interfaces/Color';
 import { ColorService } from '../../services/ColorService';
 
-// Pequeño componente para mostrar la píldora de color, reutilizable y limpio.
 const ColorPill: React.FC<{ hexCode?: string }> = ({ hexCode }) => (
-  <div
-    className="w-6 h-6 rounded-full border-2 border-gray-200 shadow-sm"
-    style={{ backgroundColor: hexCode || '#FFFFFF' }}
-  />
+    <div
+        className="w-10 h-10 rounded-xl border border-gray-100 shadow-sm"
+        style={{ backgroundColor: hexCode || '#FFFFFF' }}
+    />
 );
 
 const GestionColores: React.FC = () => {
-  const [colores, setColores] = useState<Color[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [error, setError] = useState<string | null>(null);
+    const [colores, setColores] = useState<Color[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [mensajeAccion, setMensajeAccion] = useState<{ texto: string; tipo: 'success' | 'error'; visible: boolean }>({
+        texto: '',
+        tipo: 'success',
+        visible: false
+    });
 
-  // --- Estados para la edición en línea ---
-  // Guarda el ID del color que se está editando, o 'new' para un nuevo color.
-  const [editingId, setEditingId] = useState<number | 'new' | null>(null);
-  // Guarda los datos del formulario de la fila que se está editando.
-  const [formData, setFormData] = useState<{ nombre: string; codigoHex: string }>({
-    nombre: '',
-    codigoHex: '#000000',
-  });
+    // Estados para el modal
+    const [mostrarModal, setMostrarModal] = useState(false);
+    const [cerrandoModal, setCerrandoModal] = useState(false);
+    const [modoEdicion, setModoEdicion] = useState(false);
+    const [idEditando, setIdEditando] = useState<number | null>(null);
+    const [formData, setFormData] = useState({
+        nombre: '',
+        codigoHex: '#000000'
+    });
 
-  const coloresFiltrados = colores.filter(color =>
-    color.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    color.codigoHex?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+    const [idAEliminar, setIdAEliminar] = useState<number | null>(null);
 
-  // Paginación de colores
-  const [paginaActual, setPaginaActual] = useState(1);
-  const coloresPorPagina = 10;
-  const totalPaginas = Math.ceil(coloresFiltrados.length / coloresPorPagina);
+    const coloresFiltrados = colores.filter(color =>
+        color.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        color.codigoHex?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
-  useEffect(() => {
-    cargarColores();
-  }, []);
+    // Paginación
+    const [paginaActual, setPaginaActual] = useState(1);
+    const coloresPorPagina = 10;
+    const totalPaginas = Math.ceil(coloresFiltrados.length / coloresPorPagina);
 
-  useEffect(() => {
-    setPaginaActual(1);
-  }, [searchTerm, loading]);
-
-  const cargarColores = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await ColorService.getAllColores();
-      setColores(data);
-    } catch (err: any) {
-      setError('Error al cargar colores: ' + (err.message || 'Error desconocido'));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  // Inicia la creación de un nuevo color en una nueva fila.
-  const handleNuevo = () => {
-    if (editingId) return; // Evitar añadir más de uno a la vez
-    setEditingId('new');
-    setFormData({ nombre: '', codigoHex: '#ffffff' });
-  };
-
-  // Pone una fila existente en modo de edición.
-  const handleEditar = (color: Color) => {
-    if (editingId) return; // Evitar editar más de uno a la vez
-    setEditingId(color.idColor!);
-    setFormData({ nombre: color.nombre, codigoHex: color.codigoHex || '#ffffff' });
-  };
-
-  // Cancela la edición o la creación.
-  const handleCancelar = () => {
-    setEditingId(null);
-    setError(null);
-  };
-
-  // Lógica para guardar (ya sea creando o actualizando).
-  const handleGuardar = async () => {
-    if (!formData.nombre.trim()) {
-      setError('El nombre del color no puede estar vacío.');
-      return;
-    }
-
-    try {
-      if (editingId === 'new') {
-        await ColorService.createColor(formData);
-      } else {
-        await ColorService.updateColor(editingId!, { ...formData, idColor: editingId! });
-      }
-
-      handleCancelar(); // Salir del modo edición
-      cargarColores(); // Recargar la lista
-    } catch (err: any) {
-      setError('Error al guardar el color: ' + (err.response?.data?.message || err.message));
-    }
-  };
-
-  // Lógica para eliminar un color.
-  const handleEliminar = async (id: number) => {
-    // Usar un modal personalizado en el futuro sería ideal.
-    if (window.confirm('¿Estás seguro de eliminar este color? Esta acción no se puede deshacer.')) {
-      try {
-        await ColorService.deleteColor(id);
+    useEffect(() => {
         cargarColores();
-      } catch (err: any) {
-        console.error('Error al eliminar el color:', err);
-        setError('Error al eliminar el color. Asegúrate de que no esté en uso por algún producto.');
-      }
-    }
-  };
+    }, []);
 
-  const coloresPaginados = coloresFiltrados.slice(
-    (paginaActual - 1) * coloresPorPagina,
-    paginaActual * coloresPorPagina
-  );
+    useEffect(() => {
+        setPaginaActual(1);
+    }, [searchTerm, loading]);
 
-  return (
-    <div className="p-4 sm:p-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-          <div className="pl-4 flex items-center gap-3">
-            <div className="bg-indigo-100 p-3 rounded-lg">
-              <Palette className="w-8 h-8 text-indigo-600" />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">Gestión de Colores</h1>
-              <p className="text-sm text-gray-600 mt-1">Añade, edita y gestiona los colores disponibles para tus productos.</p>
-            </div>
-          </div>
-          <button
-            onClick={handleNuevo}
-            disabled={editingId !== null}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-          >
-            <Plus className="w-5 h-5" />
-            Nuevo Color
-          </button>
-        </div>
+    const cargarColores = async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const data = await ColorService.getAllColores();
+            setColores(data);
+        } catch (err: any) {
+            setError('No se pudieron sincronizar los colores: ' + (err.message || 'Error de red'));
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        {error && (
-          <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded mb-6" role="alert">
-            <p className="font-bold">Error</p>
-            <p>{error}</p>
-          </div>
-        )}
+    const mostrarMensaje = (texto: string, tipo: 'success' | 'error') => {
+        setMensajeAccion({ texto, tipo, visible: true });
+        setTimeout(() => setMensajeAccion(prev => ({ ...prev, visible: false })), 5000);
+    };
 
-        {/* Contenedor principal con sombra */}
-        <div className="bg-white rounded-lg shadow-md border border-gray-200">
-          {/* Barra de búsqueda */}
-          <div className="p-4 border-b border-gray-200">
-            <div className="relative">
-              <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="Buscar por nombre o código hexadecimal..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
+    const cerrarModalConAnimacion = () => {
+        setCerrandoModal(true);
+        setTimeout(() => {
+            setMostrarModal(false);
+            setCerrandoModal(false);
+            setFormData({ nombre: '', codigoHex: '#000000' });
+            setModoEdicion(false);
+            setIdEditando(null);
+            setError(null);
+        }, 300);
+    };
 
-          {/* Tabla de colores */}
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Color</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código Hex</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {/* Fila para crear un nuevo color */}
-                {editingId === 'new' && (
-                  <tr className="bg-blue-50">
-                    <td className="px-6 py-4">
-                      <input
-                        type="color"
-                        name="codigoHex"
-                        value={formData.codigoHex}
-                        onChange={handleInputChange}
-                        className="w-10 h-10 p-1 border border-gray-300 rounded-md cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        name="nombre"
-                        value={formData.nombre}
-                        onChange={handleInputChange}
-                        placeholder="Nombre del color"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                        autoFocus
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <input
-                        type="text"
-                        name="codigoHex"
-                        value={formData.codigoHex}
-                        onChange={handleInputChange}
-                        placeholder="#FFFFFF"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
-                      />
-                    </td>
-                    <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                      <button onClick={handleGuardar} className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-100" title="Guardar"><Save className="w-5 h-5" /></button>
-                      <button onClick={handleCancelar} className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" title="Cancelar"><X className="w-5 h-5" /></button>
-                    </td>
-                  </tr>
-                )}
+    const handleNuevo = () => {
+        setModoEdicion(false);
+        setFormData({ nombre: '', codigoHex: '#000000' });
+        setMostrarModal(true);
+    };
 
-                {/* Filas de colores existentes */}
-                {coloresPaginados.map((color) => (
-                  <tr key={color.idColor}>
-                    {editingId === color.idColor ? (
-                      // ---- VISTA DE EDICIÓN ----
-                      <>
-                        <td className="px-6 py-4"><input type="color" name="codigoHex" value={formData.codigoHex} onChange={handleInputChange} className="w-10 h-10 p-1 border border-gray-300 rounded-md cursor-pointer" /></td>
-                        <td className="px-6 py-4"><input type="text" name="nombre" value={formData.nombre} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg" autoFocus /></td>
-                        <td className="px-6 py-4"><input type="text" name="codigoHex" value={formData.codigoHex} onChange={handleInputChange} className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono" /></td>
-                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                          <button onClick={handleGuardar} className="text-green-600 hover:text-green-800 p-2 rounded-full hover:bg-green-100" title="Guardar"><Save className="w-5 h-5" /></button>
-                          <button onClick={handleCancelar} className="text-gray-500 hover:text-gray-700 p-2 rounded-full hover:bg-gray-100" title="Cancelar"><X className="w-5 h-5" /></button>
-                        </td>
-                      </>
-                    ) : (
-                      // ---- VISTA NORMAL ----
-                      <>
-                        <td className="px-6 py-4"><ColorPill hexCode={color.codigoHex} /></td>
-                        <td className="px-6 py-4 font-medium text-gray-900">{color.nombre}</td>
-                        <td className="px-6 py-4 text-gray-500 font-mono">{color.codigoHex}</td>
-                        <td className="px-6 py-4 text-right flex items-center justify-end gap-2">
-                          <button onClick={() => handleEditar(color)} disabled={editingId !== null} className="text-blue-600 hover:text-blue-800 p-2 rounded-full hover:bg-blue-100 disabled:text-gray-300 disabled:cursor-not-allowed" title="Editar"><Edit className="w-5 h-5" /></button>
-                          <button onClick={() => color.idColor && handleEliminar(color.idColor)} disabled={editingId !== null} className="text-red-600 hover:text-red-800 p-2 rounded-full hover:bg-red-100 disabled:text-gray-300 disabled:cursor-not-allowed" title="Eliminar"><Trash2 className="w-5 h-5" /></button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+    const handleEditar = (color: Color) => {
+        setModoEdicion(true);
+        setIdEditando(color.idColor!);
+        setFormData({ nombre: color.nombre, codigoHex: color.codigoHex || '#000000' });
+        setMostrarModal(true);
+    };
 
-          {/* Mensaje si no hay colores */}
-          {loading && (
-            <div className="text-center p-12 text-gray-500">Cargando colores...</div>
-          )}
-          {!loading && coloresFiltrados.length === 0 && (
-            <div className="text-center p-12">
-              <Palette className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron colores</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                {searchTerm ? 'Intenta con otra búsqueda o limpia el filtro.' : '¡Comienza añadiendo tu primer color!'}
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
-      {/* Controles de paginación responsiva */}
-      {totalPaginas > 1 && (
-        <div className="max-w-7xl mx-auto">
-          <div className="mt-6 bg-gray-50 border-t border-gray-200 rounded-b-lg shadow-sm border-x border-b">
-            {/* Versión móvil */}
-            <div className="block sm:hidden px-3 py-2">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                  disabled={paginaActual === 1}
-                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
-                    paginaActual === 1 
-                      ? 'text-gray-400 cursor-not-allowed' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  ← Anterior
-                </button>
-                
-                <div className="flex flex-col items-center">
-                  <span className="text-sm text-gray-700 font-medium">
-                    Página {paginaActual} de {totalPaginas}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {coloresFiltrados.length} colores
-                  </span>
+    const handleGuardar = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!formData.nombre.trim()) {
+            setError('El nombre del color es obligatorio.');
+            return;
+        }
+
+        try {
+            if (modoEdicion && idEditando) {
+                await ColorService.updateColor(idEditando, { ...formData, idColor: idEditando });
+                mostrarMensaje('Color actualizado con éxito', 'success');
+            } else {
+                await ColorService.createColor(formData);
+                mostrarMensaje('Color registrado con éxito', 'success');
+            }
+            cerrarModalConAnimacion();
+            cargarColores();
+        } catch (err: any) {
+            setError(err.message || 'Error al procesar la solicitud');
+        }
+    };
+
+    const handleEliminar = (id: number) => {
+        setIdAEliminar(id);
+        setConfirmModalOpen(true);
+    };
+
+    const confirmarEliminar = async () => {
+        if (idAEliminar === null) return;
+        try {
+            await ColorService.deleteColor(idAEliminar);
+            mostrarMensaje('Registro eliminado correctamente', 'success');
+            cargarColores();
+        } catch (err: any) {
+            mostrarMensaje('Error: El color podría estar en uso.', 'error');
+        } finally {
+            setConfirmModalOpen(false);
+            setIdAEliminar(null);
+        }
+    };
+
+    const cancelarEliminar = () => {
+        setConfirmModalOpen(false);
+        setIdAEliminar(null);
+    };
+
+    const coloresPaginados = coloresFiltrados.slice(
+        (paginaActual - 1) * coloresPorPagina,
+        paginaActual * coloresPorPagina
+    );
+
+    return (
+        <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <div>
+                    <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
+                        Gestión de colores
+                    </h1>
+                    <p className="text-gray-500 text-sm max-w-md font-medium">
+                        Administración de la paleta cromática oficial para inventario y catálogos.
+                    </p>
                 </div>
-                
+
                 <button
-                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                  disabled={paginaActual === totalPaginas}
-                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
-                    paginaActual === totalPaginas 
-                      ? 'text-gray-400 cursor-not-allowed' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                    onClick={handleNuevo}
+                    className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider"
                 >
-                  Siguiente →
+                    <Plus className="w-4 h-4" />
+                    Nuevo Color
                 </button>
-              </div>
             </div>
 
-            {/* Versión desktop */}
-            <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6">
-              <div className="text-sm text-gray-600">
-                Mostrando {((paginaActual - 1) * coloresPorPagina) + 1}
-                -{Math.min(paginaActual * coloresPorPagina, coloresFiltrados.length)}
-                {' '}de {coloresFiltrados.length} colores
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                  disabled={paginaActual === 1}
-                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-                  aria-label="Anterior"
-                >
-                  Anterior
-                </button>
-                {(() => {
-                  let pages: (number | string)[] = [];
-                  if (totalPaginas <= 5) {
-                    pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
-                  } else {
-                    pages.push(1);
-                    let rangeStart = Math.max(2, paginaActual - 2);
-                    let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
-                    if (paginaActual <= 3) {
-                      rangeStart = 2;
-                      rangeEnd = 5;
-                    } else if (paginaActual >= totalPaginas - 2) {
-                      rangeStart = totalPaginas - 4;
-                      rangeEnd = totalPaginas - 1;
-                    }
-                    if (rangeStart > 2) pages.push('...');
-                    for (let i = rangeStart; i <= rangeEnd; i++) {
-                      pages.push(i);
-                    }
-                    if (rangeEnd < totalPaginas - 1) pages.push('...');
-                    pages.push(totalPaginas);
-                  }
-                  return pages.map((num, idx) =>
-                    typeof num === 'number' ? (
-                      <button
-                        key={num}
-                        onClick={() => setPaginaActual(num)}
-                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
-                        aria-current={paginaActual === num ? 'page' : undefined}
-                      >
-                        {num}
-                      </button>
-                    ) : (
-                      <span key={`ellipsis-${num}-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
-                    )
-                  );
-                })()}
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                  disabled={paginaActual === totalPaginas}
-                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-                  aria-label="Siguiente"
-                >
-                  Siguiente
-                </button>
-              </div>
+            {/* Action Messages */}
+            {mensajeAccion.visible && (
+                <div className={`mb-8 p-5 rounded-[1.5rem] border flex items-center justify-between shadow-sm animate-fadeIn ${
+                    mensajeAccion.tipo === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        {mensajeAccion.tipo === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                        <span className="text-[10px] font-bold uppercase tracking-widest">{mensajeAccion.texto}</span>
+                    </div>
+                    <button onClick={() => setMensajeAccion(prev => ({ ...prev, visible: false }))}>
+                        <X className="w-4 h-4" />
+                    </button>
+                </div>
+            )}
+
+            {/* Filters Bar */}
+            <div className="bg-white rounded-[2rem] p-8 mb-8 shadow-sm border border-gray-100">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-end">
+                    <div className="md:col-span-8 lg:col-span-10">
+                        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">Búsqueda de Cromática</label>
+                        <div className="relative">
+                            <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                            <input
+                                type="text"
+                                placeholder="Nombre o código hexadecimal..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium border-none"
+                            />
+                        </div>
+                    </div>
+                    <div className="md:col-span-4 lg:col-span-2">
+                        <button
+                            onClick={cargarColores}
+                            className="w-full h-[46px] bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                        >
+                            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                            Recargar
+                        </button>
+                    </div>
+                </div>
             </div>
-          </div>
+
+            {/* Table */}
+            <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                <table className="w-full border-collapse">
+                    <thead>
+                        <tr className="bg-white border-b border-gray-50">
+                            <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Identidad</th>
+                            <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Especificación Hex</th>
+                            <th className="px-8 py-6 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                        {loading && colores.length === 0 ? (
+                            <tr>
+                                <td colSpan={3} className="px-8 py-20 text-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                        <Loader2 className="w-8 h-8 animate-spin text-black" />
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sincronizando paleta...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        ) : coloresFiltrados.length === 0 ? (
+                            <tr>
+                                <td colSpan={3} className="px-8 py-20 text-center text-gray-400 italic">
+                                    No se encontraron registros que coincidan con la búsqueda.
+                                </td>
+                            </tr>
+                        ) : (
+                            coloresPaginados.map((color) => (
+                                <tr key={color.idColor} className="hover:bg-[#fafafa] transition-colors group">
+                                    <td className="px-8 py-6">
+                                        <div className="flex items-center gap-4 text-left">
+                                            <ColorPill hexCode={color.codigoHex} />
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-black">{color.nombre}</span>
+                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">IDC-{color.idColor}</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td className="px-8 py-6">
+                                        <span className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-gray-500 uppercase tracking-wider font-mono">
+                                            {color.codigoHex}
+                                        </span>
+                                    </td>
+                                    <td className="px-8 py-6 text-right">
+                                        <div className="flex justify-end gap-2 text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleEditar(color)} className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all border border-transparent shadow-sm">
+                                                <Edit className="w-4 h-4" />
+                                            </button>
+                                            <button onClick={() => color.idColor && handleEliminar(color.idColor)} className="p-2.5 hover:bg-red-500 hover:text-white rounded-xl transition-all border border-transparent shadow-sm">
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))
+                        )}
+                    </tbody>
+                </table>
+            </div>
+
+            {/* Pagination */}
+            <div className="mt-10 flex flex-col md:flex-row justify-between items-center gap-6 px-8">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Total: {coloresFiltrados.length} Variantes</span>
+                {totalPaginas > 1 && (
+                    <div className="flex gap-2 p-1 bg-white rounded-2xl shadow-sm border border-gray-100">
+                        {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(n => (
+                            <button
+                                key={n}
+                                onClick={() => setPaginaActual(n)}
+                                className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${paginaActual === n ? 'bg-black text-white shadow-xl' : 'text-gray-400 hover:bg-gray-50'}`}
+                            >
+                                {n}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Modal */}
+            {mostrarModal && (
+                <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+                    <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+                        <div className="p-10 text-left">
+                            <div className="mb-6 w-12 h-1 bg-black"></div>
+                            <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
+                                {modoEdicion ? 'Actualizar Color' : 'Nueva Variante'}
+                            </h2>
+                            <p className="text-gray-500 text-sm mb-10 font-medium">Defina los parámetros técnicos de la variante cromática.</p>
+
+                            <form onSubmit={handleGuardar} className="space-y-8">
+                                {error && (
+                                    <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-3">
+                                        <AlertCircle className="w-4 h-4" /> {error}
+                                    </div>
+                                )}
+
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Denominación del Color</label>
+                                    <input
+                                        type="text"
+                                        value={formData.nombre}
+                                        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                                        className="w-full px-5 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all border-none"
+                                        placeholder="Ej: Negro Industrial, Azul Cobalto..."
+                                        required
+                                    />
+                                </div>
+
+                                <div className="space-y-4">
+                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Muestra Hexadecimal</label>
+                                    <div className="flex gap-4">
+                                        <input
+                                            type="color"
+                                            value={formData.codigoHex}
+                                            onChange={(e) => setFormData({ ...formData, codigoHex: e.target.value })}
+                                            className="w-16 h-16 rounded-xl border-none p-0 cursor-pointer overflow-hidden bg-transparent shadow-md"
+                                        />
+                                        <input
+                                            type="text"
+                                            value={formData.codigoHex}
+                                            onChange={(e) => setFormData({ ...formData, codigoHex: e.target.value })}
+                                            className="flex-1 px-5 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all border-none font-mono"
+                                            placeholder="#000000"
+                                            required
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-4 pt-6 border-t border-gray-50">
+                                    <button type="button" onClick={cerrarModalConAnimacion} className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100">Cancelar</button>
+                                    <button type="submit" className="flex-1 py-4 bg-black text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-gray-800">Sincronizar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <ConfirmModal
+                open={confirmModalOpen}
+                message="¿Estás seguro de que deseas eliminar este color? Esta acción no se puede deshacer."
+                onConfirm={confirmarEliminar}
+                onCancel={cancelarEliminar}
+            />
         </div>
-      )}
-    </div>
-  );
+    );
+};
+
+const ConfirmModal: React.FC<{
+    open: boolean;
+    message: string;
+    onConfirm: () => void;
+    onCancel: () => void;
+}> = ({ open, message, onConfirm, onCancel }) => {
+    if (!open) return null;
+    return (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[110] backdrop-blur-sm animate-fadeIn">
+            <div className="bg-white rounded-[2rem] shadow-2xl p-10 w-full max-w-md relative animate-scaleIn">
+                <div className="mb-6 w-12 h-1 bg-red-500"></div>
+                <h2 className="text-2xl font-bold tracking-tight text-black mb-4 uppercase">
+                    Confirmar Eliminación
+                </h2>
+                <p className="text-gray-500 text-sm mb-10 leading-relaxed font-medium">
+                    {message}
+                </p>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={onCancel} 
+                        className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        onClick={onConfirm} 
+                        className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]"
+                    >
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 };
 
 export default GestionColores;

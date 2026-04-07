@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { Search, X, AlertCircle, Printer, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Search, X, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Users, AlertCircle } from 'lucide-react';
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
 import { useAuthReady } from '../../hooks/useAuthReady';
 import { useAuth } from '../../context/AuthContext';
@@ -12,6 +12,12 @@ import type { ProductoVariante } from '../../interfaces/ProductoVariante';
 import type { Cliente } from '../../interfaces/Cliente';
 import type { VentaInput } from '../../interfaces/Venta';
 import type { DetalleVentaInput } from '../../interfaces/DetalleVenta';
+import { NotificationToast } from './ventas-panel/NotificationToast';
+import { QrPaymentModal } from './ventas-panel/QrPaymentModal';
+import { VentaCompletadaModal } from './ventas-panel/VentaCompletadaModal';
+import { getErrorMessage } from './ventas-panel/errorUtils';
+import { imprimirBoletaVenta } from './ventas-panel/printBoleta';
+import type { DatosVentaBoleta, PrecioCalculado } from './ventas-panel/types';
 
 const VentasPanel = () => {
   const { isReady, isAuthenticated } = useAuthReady();
@@ -41,16 +47,16 @@ const VentasPanel = () => {
   const [cargandoProductosIniciales, setCargandoProductosIniciales] = useState(true);
   const [cargandoBusquedaAccion, setCargandoBusquedaAccion] = useState(false);
   const [cargandoProcesoVenta, setCargandoProcesoVenta] = useState(false);
-  const [cargandoAgregarProducto, setCargandoAgregarProducto] = useState(false);
+  const [, setCargandoAgregarProducto] = useState(false);
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null);
   const [mensajeInfoVista, setMensajeInfoVista] = useState<string | null>(null);
   
   const [mostrarModalQR, setMostrarModalQR] = useState(false);
   const [qrDataModal, setQrDataModal] = useState({ url: '', tipo: '' });
   const [mostrarModalBoleta, setMostrarModalBoleta] = useState(false);
-  const [datosVentaParaBoleta, setDatosVentaParaBoleta] = useState<any>(null);
+  const [datosVentaParaBoleta, setDatosVentaParaBoleta] = useState<DatosVentaBoleta | null>(null);
   
-  // --- Paginación de productos ---
+  // --- PaginaciÃ³n de productos ---
   const [paginaActual, setPaginaActual] = useState(1);
   const productosPorPagina = 9;
   const totalPaginas = useMemo(() => Math.ceil(variantesFiltradas.length / productosPorPagina), [variantesFiltradas.length]);
@@ -80,19 +86,21 @@ const VentasPanel = () => {
         setErrorGlobal(null);
         setMensajeInfoVista("Cargando variantes de productos...");
         
-        // Usar el hook personalizado que maneja roles automáticamente
+        // Usar el hook personalizado que maneja roles automÃ¡ticamente
         const data = await getAllVariantes();
         setVariantesCargadas(data);
         setVariantesFiltradas(data);
         
         if (data.length === 0) { 
-          setMensajeInfoVista("No hay variantes de productos disponibles o el servicio no está conectado.");
+          setMensajeInfoVista("No hay variantes de productos disponibles o el servicio no estÃ¡ conectado.");
         } else {
           setMensajeInfoVista(null);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error('Error en cargarTodasLasVariantes:', err);
-        setErrorGlobal(err.message ?? 'No se pudieron cargar las variantes de productos.');
+        setErrorGlobal(
+          getErrorMessage(err, 'No se pudieron cargar las variantes de productos.')
+        );
         setMensajeInfoVista(null);
       } finally {
         setCargandoProductosIniciales(false);
@@ -116,7 +124,7 @@ const VentasPanel = () => {
             v.producto.nombre.toLowerCase().includes(terminoLower)
           );
         } else if (tipoBusqueda === 'codigo') {
-          // Buscar por código de barras de variante o código de identificación del producto
+          // Buscar por cÃ³digo de barras de variante o cÃ³digo de identificaciÃ³n del producto
           filtrados = variantesCargadas.filter(v => 
             (v.codigoBarrasVariante && v.codigoBarrasVariante.toLowerCase().includes(terminoLower)) ||
             (v.producto.codigoIdentificacion && v.producto.codigoIdentificacion.toLowerCase().includes(terminoLower))
@@ -126,7 +134,7 @@ const VentasPanel = () => {
         setVariantesFiltradas(filtrados);
         
         if (filtrados.length === 0 && busqueda.trim() !== '') { 
-            const tipoBusquedaTexto = tipoBusqueda === 'nombre' ? 'nombre' : 'código';
+            const tipoBusquedaTexto = tipoBusqueda === 'nombre' ? 'nombre' : 'cÃ³digo';
             setMensajeInfoVista(`No hay coincidencias locales para "${busqueda}" en ${tipoBusquedaTexto}. Prueba "Buscar DB".`);
         } else if (filtrados.length > 0 || busqueda.trim() === '') { 
             setMensajeInfoVista(null);
@@ -138,14 +146,14 @@ const VentasPanel = () => {
   // Efecto para recalcular precios del carrito cuando cambia el estado de mayorista
   useEffect(() => {
     if (productosSeleccionadosVenta.length > 0) {
-      console.log('🔄 Recalculando precios del carrito - Cliente mayorista:', esMayorista);
+      console.log('ðŸ”„ Recalculando precios del carrito - Cliente mayorista:', esMayorista);
       
       setProductosSeleccionadosVenta(prev => prev.map(item => {
         // Obtener la variante con precios completos
         const varianteCompleta = variantesConPreciosCompletos.get(item.idProductoVariante);
         
         if (varianteCompleta) {
-          // Calcular nuevo precio según el estado de mayorista
+          // Calcular nuevo precio segÃºn el estado de mayorista
           const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteCompleta, item.cantidad);
           
           return {
@@ -161,23 +169,26 @@ const VentasPanel = () => {
   }, [esMayorista]); // Se ejecuta cuando cambia el estado de mayorista
 
   // --------------------------------------------------------------------------------------------
-  // C. MANEJADORES DE LÓGICA DE PRODUCTOS Y VENTA
+  // C. MANEJADORES DE LÃ“GICA DE PRODUCTOS Y VENTA
   // --------------------------------------------------------------------------------------------
   
-  // Función para calcular el precio según la cantidad
-  const calcularPrecioSegunCantidad = (variante: any, cantidad: number) => {
+  // FunciÃ³n para calcular el precio segÃºn la cantidad
+  const calcularPrecioSegunCantidad = (
+    variante: ProductoVariante | undefined,
+    cantidad: number
+  ): PrecioCalculado => {
     if (!variante?.producto) {
       return { precio: 0, precioOriginal: 0, tipoDescuento: null };
     }
     
-    // Los precios están en la entidad Producto, no en ProductoVariante
+    // Los precios estÃ¡n en la entidad Producto, no en ProductoVariante
     const producto = variante.producto;
     const precioUnitario = producto.precioUnitario ?? 0;
     const precioCuarto = producto.precioCuarto;
     const precioMediaDocena = producto.precioMediaDocena;
     const precioDocena = producto.precioDocena;
     
-    // ⭐ LÓGICA ESPECIAL PARA MAYORISTAS
+    // â­ LÃ“GICA ESPECIAL PARA MAYORISTAS
     // Si el cliente es mayorista, siempre usar precio de docena si existe
     if (esMayorista && precioDocena != null && precioDocena > 0) {
       return {
@@ -187,8 +198,8 @@ const VentasPanel = () => {
       };
     }
     
-    // LÓGICA NORMAL PARA CLIENTES REGULARES
-    // Si es 12 o más unidades y existe precio por docena
+    // LÃ“GICA NORMAL PARA CLIENTES REGULARES
+    // Si es 12 o mÃ¡s unidades y existe precio por docena
     if (cantidad >= 12 && precioDocena != null && precioDocena > 0) {
       return {
         precio: precioDocena,
@@ -197,7 +208,7 @@ const VentasPanel = () => {
       };
     }
     
-    // Si es 6 o más unidades y existe precio por media docena
+    // Si es 6 o mÃ¡s unidades y existe precio por media docena
     if (cantidad >= 6 && precioMediaDocena != null && precioMediaDocena > 0) {
       return {
         precio: precioMediaDocena,
@@ -206,7 +217,7 @@ const VentasPanel = () => {
       };
     }
     
-    // Si es 3 o más unidades y existe precio por cuarto
+    // Si es 3 o mÃ¡s unidades y existe precio por cuarto
     if (cantidad >= 3 && precioCuarto != null && precioCuarto > 0) {
       return {
         precio: precioCuarto,
@@ -223,7 +234,7 @@ const VentasPanel = () => {
     };
   };
   
-  // Función para obtener el texto del tipo de descuento
+  // FunciÃ³n para obtener el texto del tipo de descuento
   const obtenerTextoDescuento = (tipoDescuento: string | null, cantidad: number) => {
     switch (tipoDescuento) {
       case 'mayorista':
@@ -251,10 +262,10 @@ const VentasPanel = () => {
       setMensajeInfoVista(`Buscando "${terminoBusqueda}" en DB...`);
       
       // En este caso, ya tenemos todas las variantes cargadas previamente
-      // así que simplemente volvemos a filtrar con un criterio más estricto
+      // asÃ­ que simplemente volvemos a filtrar con un criterio mÃ¡s estricto
       const terminoLower = terminoBusqueda.toLowerCase();
       
-      // Filtrar variantes que coincidan exactamente con el término de búsqueda
+      // Filtrar variantes que coincidan exactamente con el tÃ©rmino de bÃºsqueda
       const variantesExactas = variantesCargadas.filter(
         v => 
           v.codigoBarrasVariante === terminoBusqueda ||
@@ -288,9 +299,9 @@ const VentasPanel = () => {
           setMensajeInfoVista(null);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en handleBuscarEnServicio:', err);
-      setErrorGlobal(err.message ?? 'Error al buscar en la base de datos.');
+      setErrorGlobal(getErrorMessage(err, 'Error al buscar en la base de datos.'));
       setMensajeInfoVista(null);
     } finally {
       setCargandoBusquedaAccion(false);
@@ -301,12 +312,12 @@ const VentasPanel = () => {
     try {
       setCargandoBusquedaAccion(true);
       setErrorGlobal(null);
-      setMensajeInfoVista(`Procesando código "${codigoScaneado}"...`);
+      setMensajeInfoVista(`Procesando cÃ³digo "${codigoScaneado}"...`);
       
-      // Buscar la variante que coincida exactamente con el código de barras
+      // Buscar la variante que coincida exactamente con el cÃ³digo de barras
       const codigoLimpio = codigoScaneado.trim();
       
-      // Buscar por código de barras de variante o por código de identificación de producto
+      // Buscar por cÃ³digo de barras de variante o por cÃ³digo de identificaciÃ³n de producto
       const varianteEncontrada = variantesCargadas.find(v => 
         v.codigoBarrasVariante === codigoLimpio || 
         (v.producto && v.producto.codigoIdentificacion === codigoLimpio)
@@ -318,39 +329,41 @@ const VentasPanel = () => {
         
         const nombreProducto = varianteEncontrada.producto?.nombre || 'Producto';
         const nombreColor = varianteEncontrada.color?.nombre || 'Sin color';
-        const nombreTalla = varianteEncontrada.talla?.nombreTalla || 'Talla única';
+        const nombreTalla = varianteEncontrada.talla?.nombreTalla || 'Talla Ãºnica';
         
         setMensajeInfoVista(`${nombreProducto} - ${nombreColor} - ${nombreTalla} agregado.`);
         setTimeout(() => setMensajeInfoVista(null), 2000);
       } else {
-        setErrorGlobal(`No se encontró variante con código "${codigoScaneado}".`);
+        setErrorGlobal(`No se encontrÃ³ variante con cÃ³digo "${codigoScaneado}".`);
         setMensajeInfoVista(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error en handleBuscarPorCodigoExacto:', err);
-      setErrorGlobal(err.message ?? `Error al procesar código "${codigoScaneado}".`);
+      setErrorGlobal(
+        getErrorMessage(err, `Error al procesar cÃ³digo "${codigoScaneado}".`)
+      );
       setMensajeInfoVista(null);
     } finally {
       setCargandoBusquedaAccion(false);
     }  };
   
-  // Función para verificar si un cliente es mayorista
+  // FunciÃ³n para verificar si un cliente es mayorista
   const verificarEsMayorista = async (numeroDocumento: string) => {
     setVerificandoMayorista(true);
     try {
-      console.log('🔍 Verificando si el cliente es mayorista:', numeroDocumento);
-      console.log('👤 Rol del usuario actual:', usuario?.roles?.[0]?.nombreRol);
+      console.log('ðŸ” Verificando si el cliente es mayorista:', numeroDocumento);
+      console.log('ðŸ‘¤ Rol del usuario actual:', usuario?.roles?.[0]?.nombreRol);
       
       const userRole = usuario?.roles?.[0]?.nombreRol;
       const resultado = await MayoristaService.esMayorista(numeroDocumento, userRole);
       setEsMayorista(resultado);
       
       if (resultado) {
-        console.log('👑 Cliente es MAYORISTA - Aplicando precios de docena');
-        setMensajeInfoVista('✨ Cliente mayorista detectado - Precios especiales aplicados');
+        console.log('ðŸ‘‘ Cliente es MAYORISTA - Aplicando precios de docena');
+        setMensajeInfoVista('âœ¨ Cliente mayorista detectado - Precios especiales aplicados');
         setTimeout(() => setMensajeInfoVista(null), 4000);
       } else {
-        console.log('👤 Cliente regular - Precios normales');
+        console.log('ðŸ‘¤ Cliente regular - Precios normales');
       }
     } catch (error) {
       console.warn('Error al verificar mayorista:', error);
@@ -362,29 +375,29 @@ const VentasPanel = () => {
   
   const handleBuscarCliente = async () => {
     if (!documentoCliente.trim()) {
-      setErrorGlobal("Ingrese un número de documento para buscar al cliente.");
+      setErrorGlobal("Ingrese un nÃºmero de documento para buscar al cliente.");
       return;
     }
 
     const numeroDocumento = documentoCliente.trim();
     
-    // Validaciones según el tipo de documento
+    // Validaciones segÃºn el tipo de documento
     if (tipoDocumento === 'DNI') {
       if (numeroDocumento.length !== 8) {
-        setErrorGlobal("El DNI debe tener exactamente 8 dígitos.");
+        setErrorGlobal("El DNI debe tener exactamente 8 dÃ­gitos.");
         return;
       }
       if (!/^\d+$/.test(numeroDocumento)) {
-        setErrorGlobal("El DNI debe contener solo números.");
+        setErrorGlobal("El DNI debe contener solo nÃºmeros.");
         return;
       }
     } else if (tipoDocumento === 'RUC') {
       if (numeroDocumento.length !== 11) {
-        setErrorGlobal("El RUC debe tener exactamente 11 dígitos.");
+        setErrorGlobal("El RUC debe tener exactamente 11 dÃ­gitos.");
         return;
       }
       if (!/^\d+$/.test(numeroDocumento)) {
-        setErrorGlobal("El RUC debe contener solo números.");
+        setErrorGlobal("El RUC debe contener solo nÃºmeros.");
         return;
       }
     }
@@ -411,12 +424,12 @@ const VentasPanel = () => {
         
         setTimeout(() => setMensajeInfoVista(null), 3000);
       } else {
-        setErrorGlobal("Cliente no encontrado. ¿Desea registrarlo?");
+        setErrorGlobal("Cliente no encontrado. Â¿Desea registrarlo?");
         setClienteSeleccionado(null);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al buscar cliente:', err);
-      setErrorGlobal(err.message || "Error al buscar el cliente.");
+      setErrorGlobal(getErrorMessage(err, "Error al buscar el cliente."));
       setClienteSeleccionado(null);
     } finally {
       setCargandoBusquedaAccion(false);
@@ -428,24 +441,24 @@ const VentasPanel = () => {
     setCargandoAgregarProducto(true);
     
     try {
-      // Verificar que hay un cliente válido (buscado o manual) antes de agregar productos
+      // Verificar que hay un cliente vÃ¡lido (buscado o manual) antes de agregar productos
       if (!clienteValidoParaVenta) {
-        setErrorGlobal('⚠️ Debe seleccionar o ingresar un cliente válido antes de agregar productos al carrito.');
+        setErrorGlobal('âš ï¸ Debe seleccionar o ingresar un cliente vÃ¡lido antes de agregar productos al carrito.');
         return;
       }
 
-      // Asegurarnos que la variante tiene cantidad y no está agotada
+      // Asegurarnos que la variante tiene cantidad y no estÃ¡ agotada
       const cantidad = variante.cantidad || 0;
       if (cantidad <= 0) {
-        const nombreProducto = (variante as any).nombre || variante.producto?.nombre || 'Sin nombre';
-        setErrorGlobal(`La variante ${nombreProducto} está agotada.`);
+        const nombreProducto = variante.producto?.nombre || 'Sin nombre';
+        setErrorGlobal(`La variante ${nombreProducto} estÃ¡ agotada.`);
         return;
       }
 
-      // Asegurarse de que tenemos un ID de variante válido
+      // Asegurarse de que tenemos un ID de variante vÃ¡lido
       const idVariante = variante.idProductoVariante ?? variante.idVariante;
       if (!idVariante) {
-        setErrorGlobal('Esta variante no tiene un identificador válido y no puede ser agregada a la venta.');
+        setErrorGlobal('Esta variante no tiene un identificador vÃ¡lido y no puede ser agregada a la venta.');
         return;
       }
 
@@ -467,7 +480,7 @@ const VentasPanel = () => {
           // Guardar la variante con precios completos en el estado
           setVariantesConPreciosCompletos(prev => new Map(prev.set(idVariante, varianteConPreciosCompletos)));
           
-          console.log('✅ Producto completo obtenido con precios de volumen:', {
+          console.log('âœ… Producto completo obtenido con precios de volumen:', {
             producto: productoCompleto.nombre,
             precioUnitario: productoCompleto.precioUnitario,
             precioCuarto: productoCompleto.precioCuarto,
@@ -480,17 +493,17 @@ const VentasPanel = () => {
         // Continuamos con los datos que ya tenemos
       }
       
-      // Verificar nuevamente si ya existe en el carrito (por si cambió durante la carga del producto)
+      // Verificar nuevamente si ya existe en el carrito (por si cambiÃ³ durante la carga del producto)
       setProductosSeleccionadosVenta(prev => {
         const varianteExistente = prev.find(item => item.idProductoVariante === idVariante);
         
         if (varianteExistente) {
           if (varianteExistente.cantidad >= cantidad) {
-            setErrorGlobal(`No hay más stock de ${varianteConPreciosCompletos.producto?.nombre || 'Producto'} - ${varianteConPreciosCompletos.color?.nombre || 'Sin color'} - ${varianteConPreciosCompletos.talla?.nombreTalla || 'Talla única'}. Stock: ${cantidad}. En carrito: ${varianteExistente.cantidad}.`);
+            setErrorGlobal(`No hay mÃ¡s stock de ${varianteConPreciosCompletos.producto?.nombre || 'Producto'} - ${varianteConPreciosCompletos.color?.nombre || 'Sin color'} - ${varianteConPreciosCompletos.talla?.nombreTalla || 'Talla Ãºnica'}. Stock: ${cantidad}. En carrito: ${varianteExistente.cantidad}.`);
             return prev; // No cambiar el estado
           }
           
-          // Calcular nuevo precio según la nueva cantidad
+          // Calcular nuevo precio segÃºn la nueva cantidad
           const nuevaCantidad = varianteExistente.cantidad + 1;
           const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, nuevaCantidad);
           
@@ -511,9 +524,9 @@ const VentasPanel = () => {
           return [...prev, {
             idProductoVariante: idVariante,
             idProducto: varianteConPreciosCompletos.producto?.idProducto ?? 0,
-            codigo: varianteConPreciosCompletos.codigoBarrasVariante ?? varianteConPreciosCompletos.producto?.codigoBarras ?? varianteConPreciosCompletos.producto?.codigoIdentificacion ?? 'Sin código',
+            codigo: varianteConPreciosCompletos.codigoBarrasVariante ?? varianteConPreciosCompletos.producto?.codigoBarras ?? varianteConPreciosCompletos.producto?.codigoIdentificacion ?? 'Sin cÃ³digo',
             descripcion: varianteConPreciosCompletos.producto?.nombre ?? 'Producto sin nombre',
-            talla: varianteConPreciosCompletos.talla?.nombreTalla ?? 'Única',
+            talla: varianteConPreciosCompletos.talla?.nombreTalla ?? 'Ãšnica',
             color: varianteConPreciosCompletos.color?.nombre ?? 'Sin color',
             tipoPublico: varianteConPreciosCompletos.producto?.tipoPublico ?? 'No especificado',
             cantidad: 1,
@@ -534,7 +547,7 @@ const VentasPanel = () => {
 
   const handleEliminarProductoDeVenta = (idProductoVariante: number) => {
     setProductosSeleccionadosVenta(prev => prev.filter(item => item.idProductoVariante !== idProductoVariante));
-    // También limpiar la variante con precios completos
+    // TambiÃ©n limpiar la variante con precios completos
     setVariantesConPreciosCompletos(prev => {
       const nuevaMap = new Map(prev);
       nuevaMap.delete(idProductoVariante);
@@ -546,7 +559,7 @@ const VentasPanel = () => {
     const varianteOriginal = variantesCargadas.find(v => v.idProductoVariante === idProductoVariante);
       
     if (!varianteOriginal) {
-      setErrorGlobal("Error crítico: Variante no encontrada para actualizar stock.");
+      setErrorGlobal("Error crÃ­tico: Variante no encontrada para actualizar stock.");
       return;
     }
     
@@ -556,7 +569,7 @@ const VentasPanel = () => {
     }
     
     if (nuevaCantidad > varianteOriginal.cantidad) {
-      setErrorGlobal(`Stock máximo para ${varianteOriginal.producto.nombre} - ${varianteOriginal.color.nombre} - ${varianteOriginal.talla.nombreTalla} es ${varianteOriginal.cantidad}.`);
+      setErrorGlobal(`Stock mÃ¡ximo para ${varianteOriginal.producto.nombre} - ${varianteOriginal.color.nombre} - ${varianteOriginal.talla.nombreTalla} es ${varianteOriginal.cantidad}.`);
       return; 
     }
     
@@ -584,7 +597,7 @@ const VentasPanel = () => {
       // Continuamos con los datos que ya tenemos
     }
     
-    // Calcular nuevo precio según la nueva cantidad
+    // Calcular nuevo precio segÃºn la nueva cantidad
     const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, nuevaCantidad);
     
     setProductosSeleccionadosVenta(prev => prev.map(item => 
@@ -600,17 +613,17 @@ const VentasPanel = () => {
   };
 
   const totalConIgvIncluido = productosSeleccionadosVenta.reduce((acc, item) => {
-    // Para el cálculo del total, usamos el precio ya calculado y guardado en el item
-    // que ya incluye los descuentos por volumen aplicados cuando se agregó al carrito
+    // Para el cÃ¡lculo del total, usamos el precio ya calculado y guardado en el item
+    // que ya incluye los descuentos por volumen aplicados cuando se agregÃ³ al carrito
     return acc + item.total;
   }, 0);
   // Los precios ya incluyen IGV, por lo que extraemos el IGV del total
   const subtotalVenta = totalConIgvIncluido / 1.18; // Monto sin IGV
-  const igvVenta = totalConIgvIncluido - subtotalVenta; // IGV extraído (18% del subtotal)
+  const igvVenta = totalConIgvIncluido - subtotalVenta; // IGV extraÃ­do (18% del subtotal)
   const totalGeneralVenta = totalConIgvIncluido; // Total original (ya incluye IGV)
 
   // --------------------------------------------------------------------------------------------
-  // D. MANEJADORES DE LÓGICA DE PAGO Y FINALIZACIÓN
+  // D. MANEJADORES DE LÃ“GICA DE PAGO Y FINALIZACIÃ“N
   // --------------------------------------------------------------------------------------------
   const handleProcesarVentaFinal = async () => {
     setErrorGlobal(null);
@@ -621,7 +634,7 @@ const VentasPanel = () => {
     }
     
     if (!metodoPago) { 
-      setErrorGlobal('Seleccione un método de pago.'); 
+      setErrorGlobal('Seleccione un mÃ©todo de pago.'); 
       return; 
     }
     
@@ -652,7 +665,7 @@ const VentasPanel = () => {
       const usuarioActual = await VentaService.obtenerUsuarioActual();
       console.log('Usuario actual obtenido:', usuarioActual);
       
-      // Primero verificamos si el cliente ya está registrado
+      // Primero verificamos si el cliente ya estÃ¡ registrado
       let clienteId = clienteSeleccionado?.idCliente;
       
       // Si no hay cliente seleccionado pero tenemos nombre, intentamos crear uno nuevo
@@ -662,12 +675,12 @@ const VentasPanel = () => {
           let documentoValido = true;
           let valorDocumento = numeroDocumento;
           
-          // Validación del documento según tipo
+          // ValidaciÃ³n del documento segÃºn tipo
           if (tipoDocumento === 'DNI') {
             if (numeroDocumento && (numeroDocumento.length !== 8 || !/^\d+$/.test(numeroDocumento))) {
               documentoValido = false;
               valorDocumento = '00000000'; // DNI por defecto
-              console.warn('Se usará un DNI por defecto porque el valor ingresado no es válido');
+              console.warn('Se usarÃ¡ un DNI por defecto porque el valor ingresado no es vÃ¡lido');
             } else if (!numeroDocumento) {
               valorDocumento = '00000000'; // DNI por defecto
             }
@@ -675,13 +688,13 @@ const VentasPanel = () => {
             if (numeroDocumento && (numeroDocumento.length !== 11 || !/^\d+$/.test(numeroDocumento))) {
               documentoValido = false;
               valorDocumento = '00000000000'; // RUC por defecto
-              console.warn('Se usará un RUC por defecto porque el valor ingresado no es válido');
+              console.warn('Se usarÃ¡ un RUC por defecto porque el valor ingresado no es vÃ¡lido');
             } else if (!numeroDocumento) {
               valorDocumento = '00000000000'; // RUC por defecto
             }
           }
           
-          // Crear cliente nuevo con datos básicos
+          // Crear cliente nuevo con datos bÃ¡sicos
           const nuevoCliente = await ClienteService.crearCliente({
             nombreCliente: cliente,
             tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
@@ -691,23 +704,23 @@ const VentasPanel = () => {
           clienteId = nuevoCliente.idCliente;
           
           if (!documentoValido) {
-            console.warn('Se creó el cliente con un documento por defecto debido a formato inválido');
+            console.warn('Se creÃ³ el cliente con un documento por defecto debido a formato invÃ¡lido');
           }
         } catch (err) {
           console.error('Error al crear cliente nuevo:', err);
-          // Seguimos adelante con clienteId en null, el backend deberá manejar este caso
+          // Seguimos adelante con clienteId en null, el backend deberÃ¡ manejar este caso
         }
       }
       
-      // Preparamos los detalles de la venta según la interfaz DetalleVentaInput actualizada
+      // Preparamos los detalles de la venta segÃºn la interfaz DetalleVentaInput actualizada
       const detallesVenta: DetalleVentaInput[] = productosSeleccionadosVenta.map(item => ({
         productoVariante: { idProductoVariante: item.idProductoVariante },
         cantidad: item.cantidad,
         precioUnitario: item.precio
       }));
       
-      // Creamos el objeto de venta según la interfaz VentaInput actualizada
-      // El usuario se obtiene automáticamente del contexto de seguridad en el backend
+      // Creamos el objeto de venta segÃºn la interfaz VentaInput actualizada
+      // El usuario se obtiene automÃ¡ticamente del contexto de seguridad en el backend
       const ventaParaEnviar: VentaInput = {
         cliente: { idCliente: clienteId || 1 }, // Usamos el ID obtenido o uno por defecto
         metodoPago: { idMetodoPago: obtenerIdMetodoPago(metodoPago) },
@@ -717,25 +730,25 @@ const VentasPanel = () => {
       };
       
       console.log('Enviando datos de venta final al backend:', ventaParaEnviar);
-      console.log('Usuario actual que realizará la venta:', usuarioActual);
+      console.log('Usuario actual que realizarÃ¡ la venta:', usuarioActual);
       
       // Registrar la venta usando el servicio
       const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
       console.log('Venta registrada exitosamente:', ventaRegistrada);
       
-      // Actualizar el stock de las variantes usando el nuevo método
-      console.log('🔄 Iniciando actualización de stock para productos vendidos:', productosSeleccionadosVenta);
+      // Actualizar el stock de las variantes usando el nuevo mÃ©todo
+      console.log('ðŸ”„ Iniciando actualizaciÃ³n de stock para productos vendidos:', productosSeleccionadosVenta);
       
       for (const item of productosSeleccionadosVenta) {
-        console.log(`📦 Procesando item: ID variante ${item.idProductoVariante}, cantidad ${item.cantidad}`);
+        console.log(`ðŸ“¦ Procesando item: ID variante ${item.idProductoVariante}, cantidad ${item.cantidad}`);
         
         if (item.idProductoVariante) {
           try {
-            console.log(`⬇️ Disminuyendo stock de variante ${item.idProductoVariante} en ${item.cantidad} unidades`);
+            console.log(`â¬‡ï¸ Disminuyendo stock de variante ${item.idProductoVariante} en ${item.cantidad} unidades`);
             const varianteActualizada = await disminuirCantidadVariante(item.idProductoVariante, item.cantidad);
-            console.log(`✅ Stock de variante actualizado:`, varianteActualizada);
+            console.log(`âœ… Stock de variante actualizado:`, varianteActualizada);
           } catch (error) {
-            console.error(`❌ Error al actualizar stock de variante ${item.idProductoVariante}:`, error);
+            console.error(`âŒ Error al actualizar stock de variante ${item.idProductoVariante}:`, error);
           }
         }
       }
@@ -748,13 +761,13 @@ const VentasPanel = () => {
       setVariantesCargadas(variantesActualizadas);
       setVariantesFiltradas(variantesActualizadas);
       
-      // Preparamos datos para la boleta con información de descuentos
+      // Preparamos datos para la boleta con informaciÃ³n de descuentos
       const datosBoletaVista = {
         cliente,
         metodoPago,
-        usuarioVendedor: usuarioActual.usuario, // Incluimos el usuario que realizó la venta
+        usuarioVendedor: usuarioActual.usuario, // Incluimos el usuario que realizÃ³ la venta
         productos: productosSeleccionadosVenta.map(item => {
-          // Obtener información de descuentos para cada producto
+          // Obtener informaciÃ³n de descuentos para cada producto
           const varianteConPrecios = variantesConPreciosCompletos.get(item.idProductoVariante);
           const preciosInfo = varianteConPrecios ? calcularPrecioSegunCantidad(varianteConPrecios, item.cantidad) : null;
           
@@ -784,9 +797,11 @@ const VentasPanel = () => {
       // Limpiamos el formulario
       resetearFormulario();
       
-    } catch (err: any) {
-      console.error('Error al ejecutar finalización de venta:', err);
-      setErrorGlobal(err.message || 'Error crítico al registrar la venta. Contacte a soporte.');
+    } catch (err: unknown) {
+      console.error('Error al ejecutar finalizaciÃ³n de venta:', err);
+      setErrorGlobal(
+        getErrorMessage(err, 'Error crÃ­tico al registrar la venta. Contacte a soporte.')
+      );
     } finally {
       setCargandoProcesoVenta(false);
     }
@@ -804,7 +819,7 @@ const VentasPanel = () => {
     setVariantesConPreciosCompletos(new Map());
   };
 
-  // Función para limpiar solo el cliente y carrito (mantener búsqueda de productos)
+  // FunciÃ³n para limpiar solo el cliente y carrito (mantener bÃºsqueda de productos)
   const limpiarCliente = () => {
     setCliente('');
     setDocumentoCliente('');
@@ -818,7 +833,7 @@ const VentasPanel = () => {
     setTimeout(() => setMensajeInfoVista(null), 3000);
   };
   
-  // Función auxiliar para obtener el ID de método de pago basado en el string
+  // FunciÃ³n auxiliar para obtener el ID de mÃ©todo de pago basado en el string
   const obtenerIdMetodoPago = (metodo: string): number => {
     switch (metodo) {
       case 'efectivo': return 1;
@@ -828,286 +843,15 @@ const VentasPanel = () => {
       default: return 1; // Efectivo por defecto
     }
   };
-  const handleImprimirBoleta = () => { 
+  const handleImprimirBoleta = () => {
     if (!datosVentaParaBoleta) return;
-    const { cliente, productos: productosBoleta, totalGeneral, fechaHora, metodoPago: mp } = datosVentaParaBoleta;
-    const fechaFormateada = new Date(fechaHora).toLocaleString('es-PE', { 
-      day: '2-digit', 
-      month: '2-digit', 
-      year: 'numeric',
-      hour: '2-digit', 
-      minute: '2-digit'
-    });
-    
-    let itemsHtml = productosBoleta.map((p: any, index: number) => {
-      // Determinar si hay descuento aplicado de manera simple
-      const hayDescuento = p.tipoDescuento && p.precioOriginal > p.precioUnitarioAplicado;
-      
-      return `
-      <div class="item">
-        <div class="item-header">
-          <span class="item-name">${p.descripcion}</span>
-          <span class="item-total">S/${p.totalParcial.toFixed(2)}</span>
-        </div>
-        <div class="item-details">
-          <span class="item-quantity">Cant: ${p.cantidad}</span>
-          <span class="item-price">@ S/${p.precioUnitarioAplicado.toFixed(2)}</span>
-          ${hayDescuento ? '<span class="discount-applied">*Descuento aplicado</span>' : ''}
-        </div>
-        ${index < productosBoleta.length - 1 ? '<div class="item-separator"></div>' : ''}
-      </div>
-    `;
-    }).join('');
 
-    // Recalcular valores para asegurar consistencia en la boleta
-    const subtotalCalculado = totalGeneral / 1.18; // Subtotal sin IGV
-    const igvCalculado = totalGeneral - subtotalCalculado; // IGV del total
-
-    const boletaHtml = `
-      <html>
-        <head>
-          <title>Boleta de Venta - ${cliente}</title>
-          <meta charset="UTF-8">
-          <style>
-            body { 
-              font-family: 'Arial', sans-serif; 
-              margin: 0; 
-              padding: 20px; 
-              font-size: 12px; 
-              line-height: 1.4;
-              color: #000;
-              background: #fff;
-            }
-            .receipt { 
-              background: white;
-              max-width: 300px; 
-              margin: 0 auto;
-              padding: 20px;
-              border: 1px solid #000;
-            }
-            .header {
-              text-align: center;
-              border-bottom: 2px solid #000;
-              padding-bottom: 16px;
-              margin-bottom: 16px;
-            }
-            .company-name {
-              font-size: 16px;
-              font-weight: bold;
-              color: #000;
-              margin-bottom: 4px;
-            }
-            .receipt-title {
-              font-size: 12px;
-              color: #000;
-              text-transform: uppercase;
-              letter-spacing: 1px;
-            }
-            .info-section {
-              margin-bottom: 16px;
-            }
-            .info-row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 4px;
-              font-size: 10px;
-            }
-            .info-label {
-              color: #000;
-              font-weight: normal;
-            }
-            .info-value {
-              color: #000;
-              font-weight: bold;
-            }
-            .products-section {
-              margin-bottom: 16px;
-            }
-            .section-title {
-              font-size: 11px;
-              font-weight: bold;
-              color: #000;
-              margin-bottom: 10px;
-              text-transform: uppercase;
-              border-bottom: 1px solid #000;
-              padding-bottom: 2px;
-            }
-            .item {
-              margin-bottom: 10px;
-              padding-bottom: 8px;
-            }
-            .item-header {
-              display: flex;
-              justify-content: space-between;
-              align-items: flex-start;
-              margin-bottom: 4px;
-            }
-            .item-name {
-              font-weight: bold;
-              color: #000;
-              font-size: 10px;
-              flex: 1;
-              margin-right: 8px;
-              line-height: 1.2;
-            }
-            .item-total {
-              font-weight: bold;
-              color: #000;
-              font-size: 11px;
-              white-space: nowrap;
-            }
-            .item-details {
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-              font-size: 9px;
-              color: #333;
-            }
-            .item-quantity {
-              font-weight: normal;
-            }
-            .item-price {
-              font-weight: normal;
-            }
-            .discount-applied {
-              font-size: 8px;
-              color: #666;
-              font-style: italic;
-            }
-            .item-separator {
-              height: 1px;
-              background: #ccc;
-              margin: 6px 0;
-            }
-            .totals-section {
-              border-top: 2px solid #000;
-              padding-top: 12px;
-              margin-bottom: 16px;
-            }
-            .total-row {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 4px;
-              font-size: 10px;
-            }
-            .total-label {
-              color: #000;
-              font-weight: normal;
-            }
-            .total-value {
-              font-weight: bold;
-              color: #000;
-            }
-            .final-total {
-              border-top: 1px dashed #000;
-              padding-top: 6px;
-              margin-top: 6px;
-            }
-            .final-total .total-label {
-              font-size: 12px;
-              font-weight: bold;
-              color: #000;
-            }
-            .final-total .total-value {
-              font-size: 14px;
-              font-weight: bold;
-              color: #000;
-            }
-            .footer {
-              text-align: center;
-              color: #333;
-              font-size: 9px;
-              border-top: 1px solid #ccc;
-              padding-top: 12px;
-              line-height: 1.4;
-            }
-            .thank-you {
-              font-weight: bold;
-              color: #000;
-              margin-bottom: 6px;
-            }
-            @media print {
-              body { 
-                background: white;
-                padding: 0;
-              }
-              .receipt {
-                border: none;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="receipt">
-            <div class="header">
-              <div class="company-name">SISTEMA DE VENTAS</div>
-              <div class="receipt-title">Boleta de Venta</div>
-            </div>
-            
-            <div class="info-section">
-              <div class="info-row">
-                <span class="info-label">Fecha y Hora:</span>
-                <span class="info-value">${fechaFormateada}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Cliente:</span>
-                <span class="info-value">${cliente ?? 'Público General'}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Método de Pago:</span>
-                <span class="info-value">${mp.charAt(0).toUpperCase() + mp.slice(1)}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Atendido por:</span>
-                <span class="info-value">${datosVentaParaBoleta.usuarioVendedor}</span>
-              </div>
-            </div>
-            
-            <div class="products-section">
-              <div class="section-title">Productos</div>
-              ${itemsHtml}
-            </div>
-            
-            <div class="totals-section">
-              <div class="total-row">
-                <span class="total-label">Subtotal (sin IGV):</span>
-                <span class="total-value">S/${subtotalCalculado.toFixed(2)}</span>
-              </div>
-              <div class="total-row">
-                <span class="total-label">IGV (18%):</span>
-                <span class="total-value">S/${igvCalculado.toFixed(2)}</span>
-              </div>
-              <div class="total-row final-total">
-                <span class="total-label">TOTAL A PAGAR:</span>
-                <span class="total-value">S/${totalGeneral.toFixed(2)}</span>
-              </div>
-            </div>
-            
-            <div class="footer">
-              <div class="thank-you">¡Gracias por su compra!</div>
-              <div>Conserve este comprobante</div>
-              <div>para cualquier reclamo o garantía</div>
-            </div>
-          </div>
-          
-          <script>
-            setTimeout(() => { 
-              window.print(); 
-            }, 500);
-          </script>
-        </body>
-      </html>`;
-    
-    const boletaWindow = window.open('', '_blank', 'width=400,height=600,scrollbars=yes,resizable=yes,left=' + (screen.width/2 - 200) + ',top=' + (screen.height/2 - 300));
-    if (boletaWindow) {
-      boletaWindow.document.write(boletaHtml);
-      boletaWindow.document.close();
-    }
+    imprimirBoletaVenta(datosVentaParaBoleta);
     setMostrarModalBoleta(false);
   };
 
   // --------------------------------------------------------------------------------------------
-  // E. DEFINICIÓN DE MÉTODOS DE PAGO (Para la UI)
+  // E. DEFINICIÃ“N DE MÃ‰TODOS DE PAGO (Para la UI)
   // --------------------------------------------------------------------------------------------
   const paymentMethods = [
     { 
@@ -1143,7 +887,7 @@ const VentasPanel = () => {
   // --------------------------------------------------------------------------------------------
   // F. RENDERIZADO DEL COMPONENTE (JSX)
   // --------------------------------------------------------------------------------------------
-  // Variable para habilitar selección de productos por búsqueda o ingreso manual
+  // Variable para habilitar selecciÃ³n de productos por bÃºsqueda o ingreso manual
 const clienteValidoParaVenta = useMemo(() => {
   if (clienteSeleccionado) return true;
   const docValido =
@@ -1173,153 +917,52 @@ const clienteValidoParaVenta = useMemo(() => {
         </div>
       </div>
 
-      {/* Notificación Global de Errores */}
-      {errorGlobal && (
-        <div className="fixed top-4 right-4 z-[100] mb-4 p-4 bg-red-50 bg-opacity-95 backdrop-blur-sm border border-red-200 text-red-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
-          <div className="flex items-start">
-            <div className="p-1 bg-red-100 rounded-lg mr-3 flex-shrink-0">
-              <AlertCircle className="h-4 w-4 text-red-600" />
-            </div>
-            <div className="flex-grow">
-              <h4 className="font-medium text-red-900 mb-1">Error</h4>
-              <span className="text-red-700">{errorGlobal}</span>
-            </div>
-            <button onClick={() => setErrorGlobal(null)} className="ml-2 text-red-400 hover:text-red-600 flex-shrink-0 p-1 rounded-lg hover:bg-red-100 transition-colors">
-              <X size={16} />
-            </button>
-          </div>
-        </div>
-      )}
-      
-      {/* Notificación Global de Información */}
-      {mensajeInfoVista && ( 
-         <div className="fixed top-20 right-4 z-[100] mb-4 p-4 bg-blue-50 bg-opacity-95 backdrop-blur-sm border border-blue-200 text-blue-800 text-sm shadow-xl rounded-xl w-auto max-w-md animate-fadeIn">
-          <div className="flex items-start">
-            <div className="p-1 bg-blue-100 rounded-lg mr-3 flex-shrink-0">
-              <AlertCircle className="h-4 w-4 text-blue-600" />
-            </div>
-            <div className="flex-grow">
-              <h4 className="font-medium text-blue-900 mb-1">Información</h4>
-              <span className="text-blue-700">{mensajeInfoVista}</span>
-            </div>
-            <button onClick={() => setMensajeInfoVista(null)} className="ml-2 text-blue-400 hover:text-blue-600 flex-shrink-0 p-1 rounded-lg hover:bg-blue-100 transition-colores">
-              <X size={16} />
-            </button>
-          </div>
-        </div>
+      {/* NotificaciÃ³n Global de Errores */}
+            {errorGlobal && (
+        <NotificationToast
+          title="Error"
+          message={errorGlobal}
+          variant="error"
+          topClassName="top-4"
+          onClose={() => setErrorGlobal(null)}
+        />
       )}
 
-      {/* MODALES MEJORADOS */}
-      {mostrarModalQR && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-          <div className="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-sm w-full animate-scaleIn">
-            <div className="mb-6">
-              <div className="mx-auto w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <Smartphone className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Pagar con {qrDataModal.tipo}</h3>
-              <p className="text-gray-600">Escanea el código QR para pagar</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">S/{totalGeneralVenta.toFixed(2)}</p>
-            </div>
-            
-            <div className="bg-white p-4 rounded-xl border-2 border-gray-100 mb-6">
-              <img 
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrDataModal.url)}`} 
-                alt="QR Code"
-                className="w-full h-auto rounded-lg"
-              />
-            </div>
-            
-            <p className="text-sm text-gray-500 mb-6">
-              Abre la aplicación {qrDataModal.tipo} y escanea el código
-            </p>
-            
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setMostrarModalQR(false)} 
-                className="flex-1 py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colores font-medium"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={ejecutarFinalizacionVenta} 
-                disabled={cargandoProcesoVenta}
-                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl hover:bg-green-700 disabled:bg-gray-400 transition-colores font-medium flex items-center justify-center gap-2"
-              >
-                {cargandoProcesoVenta ? (
-                  <Loader2 className="animate-spin w-5 h-5"/>
-                ) : (
-                  <>
-                    <CheckCircle className="w-5 h-5"/>
-                    Confirmar
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
+      {mensajeInfoVista && (
+        <NotificationToast
+          title="Información"
+          message={mensajeInfoVista}
+          variant="info"
+          topClassName="top-20"
+          onClose={() => setMensajeInfoVista(null)}
+        />
       )}
 
-      {mostrarModalBoleta && datosVentaParaBoleta && (
-         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full animate-scaleIn">
-                <div className="text-center">
-                    <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                      <CheckCircle className="w-8 h-8 text-green-600" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">¡Venta Completada!</h3>
-                    
-                    <div className="bg-gray-50 rounded-xl p-4 mb-6">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Cliente:</span>
-                          <span className="font-medium text-gray-900">{datosVentaParaBoleta.cliente}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Método de pago:</span>
-                          <span className="font-medium text-gray-900 capitalize">{datosVentaParaBoleta.metodoPago}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Vendedor:</span>
-                          <span className="font-medium text-gray-900">{datosVentaParaBoleta.usuarioVendedor}</span>
-                        </div>
-                        <div className="border-t border-gray-200 pt-2 mt-3">
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold text-gray-900">Total Pagado:</span>
-                            <span className="text-2xl font-bold text-green-600">S/{datosVentaParaBoleta.totalGeneral.toFixed(2)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                </div>
-                
-                <div className="flex flex-col gap-3">
-                    <button 
-                      onClick={handleImprimirBoleta} 
-                      className="w-full py-3 px-4 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colores font-medium flex items-center justify-center gap-2"
-                    >
-                        <Printer className="w-5 h-5"/>
-                        Imprimir Boleta
-                    </button>
-                    <button 
-                      onClick={() => setMostrarModalBoleta(false)} 
-                      className="w-full py-3 px-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition-colores font-medium"
-                    >
-                        Cerrar
-                    </button>
-                </div>
-            </div>
-        </div>
-      )}
-      
+      <QrPaymentModal
+        open={mostrarModalQR}
+        tipo={qrDataModal.tipo}
+        qrUrl={qrDataModal.url}
+        total={totalGeneralVenta}
+        loading={cargandoProcesoVenta}
+        onCancel={() => setMostrarModalQR(false)}
+        onConfirm={ejecutarFinalizacionVenta}
+      />
+
+      <VentaCompletadaModal
+        open={mostrarModalBoleta}
+        datos={datosVentaParaBoleta}
+        onPrint={handleImprimirBoleta}
+        onClose={() => setMostrarModalBoleta(false)}
+      />
+
       {/* LAYOUT PRINCIPAL DE LA PÁGINA */}
-      {/* Sección de Información del Cliente */}
+      {/* SecciÃ³n de InformaciÃ³n del Cliente */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Users className="h-5 w-5 text-blue-600" />
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">Información del Cliente</h2>
+            <h2 className="text-lg font-semibold text-gray-900">InformaciÃ³n del Cliente</h2>
           </div>
           
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1364,7 +1007,7 @@ const clienteValidoParaVenta = useMemo(() => {
                       }
                     }
                   }}
-                  placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI (8 dígitos)" : "Ingrese RUC (11 dígitos)"} 
+                  placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI (8 dÃ­gitos)" : "Ingrese RUC (11 dÃ­gitos)"} 
                   maxLength={tipoDocumento === 'DNI' ? 8 : 11}
                 />
                 <button 
@@ -1389,8 +1032,8 @@ const clienteValidoParaVenta = useMemo(() => {
                 (tipoDocumento === 'RUC' && documentoCliente.length !== 11) ? (
                   <p className="mt-2 text-xs text-red-600 bg-red-50 p-2 rounded-lg border border-red-200">
                     <span className="font-medium">Formato incorrecto:</span> {tipoDocumento === 'DNI' 
-                      ? `El DNI debe tener exactamente 8 dígitos (Actual: ${documentoCliente.length})` 
-                      : `El RUC debe tener exactamente 11 dígitos (Actual: ${documentoCliente.length})`}
+                      ? `El DNI debe tener exactamente 8 dÃ­gitos (Actual: ${documentoCliente.length})` 
+                      : `El RUC debe tener exactamente 11 dÃ­gitos (Actual: ${documentoCliente.length})`}
                   </p>
                 ) : null
               )}
@@ -1456,7 +1099,7 @@ const clienteValidoParaVenta = useMemo(() => {
                     </div>
                   )}
                   
-                  {/* Botón para limpiar cliente */}
+                  {/* BotÃ³n para limpiar cliente */}
                   <button
                     onClick={limpiarCliente}
                     className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition-colores duration-200"
@@ -1472,7 +1115,7 @@ const clienteValidoParaVenta = useMemo(() => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Panel de Búsqueda de Productos */}
+          {/* Panel de BÃºsqueda de Productos */}
           <div className="lg:col-span-7 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col relative" style={{ minHeight: 600 }}>
             <div className="p-6 border-b border-gray-100">
               <div className="flex items-center gap-3">
@@ -1483,7 +1126,7 @@ const clienteValidoParaVenta = useMemo(() => {
               </div>
             </div>
             <div className="p-6 flex-1 flex flex-col pb-20">
-              {/* Selector de tipo de búsqueda */}
+              {/* Selector de tipo de bÃºsqueda */}
               <div className="mb-4">
                 <label htmlFor="tipoBusqueda" className="block text-sm font-medium text-gray-700 mb-3">
                   Buscar por:
@@ -1497,7 +1140,7 @@ const clienteValidoParaVenta = useMemo(() => {
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    📝 Nombre del producto
+                    ðŸ“ Nombre del producto
                   </button>
                   <button
                     onClick={() => setTipoBusqueda('codigo')}
@@ -1507,12 +1150,12 @@ const clienteValidoParaVenta = useMemo(() => {
                         : 'border-gray-200 text-gray-600 hover:border-gray-300'
                     }`}
                   >
-                    🔍 Código de barras
+                    ðŸ” CÃ³digo de barras
                   </button>
                 </div>
               </div>
               
-              {/* Barra de búsqueda mejorada */}
+              {/* Barra de bÃºsqueda mejorada */}
               <div className="relative mb-6">
                 <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                   <Search size={20} className="text-gray-400" />
@@ -1520,7 +1163,7 @@ const clienteValidoParaVenta = useMemo(() => {
                 <input 
                   type="text" 
                   className="w-full pl-12 pr-28 py-4 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colores text-gray-900 placeholder-gray-500"
-                  placeholder={tipoBusqueda === 'nombre' ? "Buscar por nombre del producto..." : "Escanear o escribir código de barras..."} 
+                  placeholder={tipoBusqueda === 'nombre' ? "Buscar por nombre del producto..." : "Escanear o escribir cÃ³digo de barras..."} 
                   value={busqueda}
                   onChange={(e) => setBusqueda(e.target.value)}
                   onKeyPress={(e) => {
@@ -1546,7 +1189,7 @@ const clienteValidoParaVenta = useMemo(() => {
                         setVariantesFiltradas(variantesCargadas);
                         setMensajeInfoVista(null);
                       }}
-                      title="Limpiar búsqueda"
+                      title="Limpiar bÃºsqueda"
                     >
                       <X size={16} />
                     </button>
@@ -1582,7 +1225,7 @@ const clienteValidoParaVenta = useMemo(() => {
                 </div>
               )}
               
-              {/* Lista de productos con diseño mejorado */}
+              {/* Lista de productos con diseÃ±o mejorado */}
               <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 min-h-[400px] max-h-[520px] overflow-y-auto">
                 {cargandoProductosIniciales ? (
                   <div className="flex flex-col justify-center items-center h-64 text-gray-500">
@@ -1633,7 +1276,7 @@ const clienteValidoParaVenta = useMemo(() => {
                                   ? 'bg-blue-100 text-blue-700' 
                                   : 'bg-gray-200 text-gray-500'
                               }`}>
-                                Talla {v.talla?.nombreTalla ?? 'Única'}
+                                Talla {v.talla?.nombreTalla ?? 'Ãšnica'}
                               </span>
                               <span className={`px-2 py-1 rounded-full ${
                                 clienteValidoParaVenta 
@@ -1650,7 +1293,7 @@ const clienteValidoParaVenta = useMemo(() => {
                           <p className={`text-xs font-mono ${
                             clienteValidoParaVenta ? 'text-gray-500' : 'text-gray-400'
                           }`}>
-                            {v.codigoBarrasVariante ?? v.producto?.codigoIdentificacion ?? 'Sin código'}
+                            {v.codigoBarrasVariante ?? v.producto?.codigoIdentificacion ?? 'Sin cÃ³digo'}
                           </p>
                           
                           <div className="flex justify-between items-center">
@@ -1695,7 +1338,7 @@ const clienteValidoParaVenta = useMemo(() => {
                     </div>
                     <h3 className="font-medium text-gray-900 mb-2">No se encontraron productos</h3>
                     <p className="text-sm text-gray-500 mb-4">
-                      {mensajeInfoVista || "No hay productos que coincidan con tu búsqueda"}
+                      {mensajeInfoVista || "No hay productos que coincidan con tu bÃºsqueda"}
                     </p>
                     <button 
                       onClick={() => {
@@ -1711,10 +1354,10 @@ const clienteValidoParaVenta = useMemo(() => {
                 )}
               </div>
             </div>
-            {/* PAGINACIÓN DE PRODUCTOS - Responsiva */}
+            {/* PAGINACIÃ“N DE PRODUCTOS - Responsiva */}
             {totalPaginas > 1 && (
               <div className="absolute left-0 right-0 bottom-0 bg-white border-t border-gray-200 rounded-b-xl shadow-sm z-10">
-                {/* Versión móvil y tablet hasta 1279px */}
+                {/* VersiÃ³n mÃ³vil y tablet hasta 1279px */}
                 <div className="block xl:hidden px-3 py-2">
                   <div className="flex items-center justify-between">
                     <button
@@ -1726,7 +1369,7 @@ const clienteValidoParaVenta = useMemo(() => {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      ← Anterior
+                      â† Anterior
                     </button>
                     
                     <div className="flex items-center space-x-1">
@@ -1744,12 +1387,12 @@ const clienteValidoParaVenta = useMemo(() => {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      Siguiente →
+                      Siguiente â†’
                     </button>
                   </div>
                 </div>
 
-                {/* Versión desktop para 1280px y arriba */}
+                {/* VersiÃ³n desktop para 1280px y arriba */}
                 <div className="hidden xl:flex items-center justify-between px-4 py-3" style={{ minHeight: 64 }}>
                   <div className="flex-1" />
                   <div className="flex items-center space-x-2">
@@ -1763,10 +1406,10 @@ const clienteValidoParaVenta = useMemo(() => {
                     {(() => {
                       let pages: (number | string)[] = [];
                       if (totalPaginas <= 5) {
-                        // Mostrar todas las páginas si son 5 o menos
+                        // Mostrar todas las pÃ¡ginas si son 5 o menos
                         pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
                       } else {
-                        // Siempre mostrar la primera página
+                        // Siempre mostrar la primera pÃ¡gina
                         pages.push(1);
                         // Determinar el rango central
                         let rangeStart = Math.max(2, paginaActual - 2);
@@ -1781,13 +1424,13 @@ const clienteValidoParaVenta = useMemo(() => {
                         }
                         // Puntos suspensivos si hay salto entre 1 y el rango
                         if (rangeStart > 2) pages.push('...');
-                        // Páginas centrales
+                        // PÃ¡ginas centrales
                         for (let i = rangeStart; i <= rangeEnd; i++) {
                           pages.push(i);
                         }
-                        // Puntos suspensivos si hay salto entre el rango y la última
+                        // Puntos suspensivos si hay salto entre el rango y la Ãºltima
                         if (rangeEnd < totalPaginas - 1) pages.push('...');
-                        // Siempre mostrar la última página
+                        // Siempre mostrar la Ãºltima pÃ¡gina
                         pages.push(totalPaginas);
                       }
                       return pages.map((num, idx) =>
@@ -1932,9 +1575,9 @@ const clienteValidoParaVenta = useMemo(() => {
                       <div className="bg-gray-100 rounded-full p-4 mb-4">
                         <DollarSign className="h-8 w-8 text-gray-400" />
                       </div>
-                      <h3 className="font-medium text-gray-900 mb-2">Carrito vacío</h3>
+                      <h3 className="font-medium text-gray-900 mb-2">Carrito vacÃ­o</h3>
                       <p className="text-sm text-gray-500">
-                        Agrega productos desde el panel de búsqueda
+                        Agrega productos desde el panel de bÃºsqueda
                       </p>
                     </div>
                   )}
@@ -1961,9 +1604,9 @@ const clienteValidoParaVenta = useMemo(() => {
                     </div>
                   </div>
                   
-                  {/* Métodos de pago */}
+                  {/* MÃ©todos de pago */}
                   <div className="mb-6">
-                    <h3 className="font-semibold text-gray-900 mb-3">Método de Pago</h3>
+                    <h3 className="font-semibold text-gray-900 mb-3">MÃ©todo de Pago</h3>
                     <div className="grid grid-cols-2 gap-3">
                       {paymentMethods.map(method => (
                         <button key={method.id}
@@ -1983,7 +1626,7 @@ const clienteValidoParaVenta = useMemo(() => {
                     </div>
                   </div>
                   
-                  {/* Botón de finalizar venta */}
+                  {/* BotÃ³n de finalizar venta */}
                   <button 
                     onClick={handleProcesarVentaFinal}
                     disabled={cargandoProcesoVenta || !metodoPago || !cliente.trim() || productosSeleccionadosVenta.length === 0}
@@ -2002,15 +1645,15 @@ const clienteValidoParaVenta = useMemo(() => {
                     )}
                   </button>
                   
-                  {/* Información adicional */}
+                  {/* InformaciÃ³n adicional */}
                   {(!metodoPago || !cliente.trim() || productosSeleccionadosVenta.length === 0) && (
                     <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                       <p className="text-sm text-yellow-800">
-                        {!cliente.trim() && "• Ingrese el nombre del cliente"}
+                        {!cliente.trim() && "â€¢ Ingrese el nombre del cliente"}
                         {!metodoPago && !cliente.trim() && <br />}
-                        {!metodoPago && "• Seleccione un método de pago"}
+                        {!metodoPago && "â€¢ Seleccione un mÃ©todo de pago"}
                         {productosSeleccionadosVenta.length === 0 && (!metodoPago || !cliente.trim()) && <br />}
-                        {productosSeleccionadosVenta.length === 0 && "• Agregue productos al carrito"}
+                        {productosSeleccionadosVenta.length === 0 && "â€¢ Agregue productos al carrito"}
                       </p>
                     </div>
                   )}
@@ -2025,3 +1668,5 @@ const clienteValidoParaVenta = useMemo(() => {
 };
 
 export default VentasPanel;
+
+

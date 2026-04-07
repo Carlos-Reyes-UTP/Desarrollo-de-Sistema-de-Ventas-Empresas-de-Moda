@@ -25,6 +25,11 @@ import { ProductoVarianteService } from '../../services/ProductoVarianteService'
 import type { ProductoMasVendido, TallaProducto, VariantesPorColor } from '../../interfaces/ReporteVentas';
 import { CategoriaService } from '../../services/CategoriaServices';
 import type { Categoria } from '../../interfaces/Categoria';
+import {
+  CustomPieLabel,
+  CustomTooltip,
+  CustomTooltipVariantes,
+} from './productos-mas-vendidos/chartRenderers';
 
 // Estilos CSS para animaciones
 const animationStyles = `
@@ -95,74 +100,19 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet);
 }
 
-// Componente para tooltip personalizado de gráficos
-const CustomTooltip = ({ active, payload }: any) => {
-  if (active && payload?.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
-        <h4 className="font-semibold text-gray-900 mb-2">{data.nombreProducto}</h4>
-        <div className="space-y-1 text-sm">
-          <p><span className="font-medium">Categoría Principal:</span> {data.categoriaPadre || 'No especificada'}</p>
-          <p><span className="font-medium">Sub Categoría:</span> {data.categoria || 'No especificada'}</p>
-          <p><span className="font-medium">Segunda Sub Categoría:</span> {data.subCategoria2 || 'No especificada'}</p>
-          <p><span className="font-medium">Cantidad Vendida:</span> {data.cantidadVendida}</p>
-        </div>
-      </div>
-    );
-  }
-  return null;
+type VistaGraficoReporte = 'barras' | 'linea' | 'tabla';
+type FiltrosReporte = {
+  idCategoriaPadre?: string;
+  fechaInicio?: string;
+  fechaFin?: string;
 };
-
-// Componente para tooltip personalizado de variantes por color
-const CustomTooltipVariantes = ({ active, payload }: any) => {
-  if (active && payload?.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-lg">
-        <h4 className="font-semibold text-gray-900 mb-2">{data.nombreColor}</h4>
-        <div className="space-y-1 text-sm">
-          <p><span className="font-medium">Cantidad Vendida:</span> {data.cantidadVendida}</p>
-          <p><span className="font-medium">Stock Actual:</span> {data.cantidadStock}</p>
-          <p><span className="font-medium">Ingresos:</span> S/ {parseFloat(data.ingresosTotales).toLocaleString()}</p>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
-// Componente para etiquetas personalizadas del gráfico de torta
-const CustomPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, nombreColor, cantidadVendida, percent }: any) => {
-  // No mostrar etiqueta si no hay ventas
-  if (!cantidadVendida || cantidadVendida === 0) return null;
-  
-  const RADIAN = Math.PI / 180;
-  // Colocar el texto fuera del círculo
-  const radius = outerRadius + 30;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="#000000" 
-      textAnchor={x > cx ? 'start' : 'end'} 
-      dominantBaseline="central"
-      fontSize="14"
-      fontWeight="600"
-    >
-      {`${nombreColor}: ${(percent * 100).toFixed(1)}%`}
-    </text>
-  );
-};
+const VISTAS_GRAFICO: VistaGraficoReporte[] = ['barras', 'linea', 'tabla'];
 
 const ProductosMasVendidos: React.FC = () => {
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [vistaGrafico, setVistaGrafico] = useState<'barras' | 'linea' | 'tabla'>('barras');
+  const [vistaGrafico, setVistaGrafico] = useState<VistaGraficoReporte>('barras');
   const [busqueda, setBusqueda] = useState('');
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriaPadre, setCategoriaPadre] = useState<string>('');
@@ -236,7 +186,7 @@ const ProductosMasVendidos: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        let filtrosReporte: any = {};
+        let filtrosReporte: FiltrosReporte = {};
         
         if (filtrosAplicados.categoriaPadre) {
           filtrosReporte.idCategoriaPadre = filtrosAplicados.categoriaPadre;
@@ -253,8 +203,8 @@ const ProductosMasVendidos: React.FC = () => {
         console.log('Filtros enviados al backend:', filtrosReporte);
         const data = await ReporteService.getProductosMasVendidos(filtrosReporte);
         setProductos(data);
-      } catch (err: any) {
-        setError(err.message || 'Error al cargar los productos más vendidos');
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Error al cargar los productos más vendidos');
         console.error('Error:', err);
         setProductos([]);
       } finally {
@@ -961,7 +911,7 @@ const ProductosMasVendidos: React.FC = () => {
         </div>
         
         <div className="flex bg-gray-100 rounded-lg p-1">
-          {['barras', 'linea', 'tabla'].map((vista) => {
+          {VISTAS_GRAFICO.map((vista) => {
             let textoVista = 'Tabla';
             if (vista === 'barras') textoVista = 'Barras';
             else if (vista === 'linea') textoVista = 'Línea';
@@ -969,7 +919,7 @@ const ProductosMasVendidos: React.FC = () => {
             return (
               <button
                 key={vista}
-                onClick={() => setVistaGrafico(vista as any)}
+                onClick={() => setVistaGrafico(vista)}
                 className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                   vistaGrafico === vista
                     ? 'bg-white text-blue-600 shadow-sm'
@@ -1293,7 +1243,7 @@ const ProductosMasVendidos: React.FC = () => {
                               cx="50%"
                               cy="50%"
                               labelLine={false}
-                              label={<CustomPieLabel />}
+                              label={CustomPieLabel}
                               outerRadius={80}
                               fill="#8884d8"
                               dataKey="cantidadVendida"

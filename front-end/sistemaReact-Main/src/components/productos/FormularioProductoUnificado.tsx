@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, Minus, Search, AlertCircle } from 'lucide-react';
+import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, AlertCircle } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -11,6 +11,7 @@ import { ColorService } from '../../services/ColorService';
 import { TallaService } from '../../services/TallaService';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
+import { getErrorMessage, getStatusCode } from './formulario-producto-unificado/errorUtils';
 
 interface VarianteFormData {
   id?: number;
@@ -28,8 +29,9 @@ interface FormularioProductoUnificadoProps {
   onProductoGuardado: (productoGuardado?: Producto) => void;
 }
 
-// Definimos las pestañas disponibles
+// Definimos las pestaÃ±as disponibles
 type TabType = 'informacion' | 'variantes' | 'precios' | 'codigosBarras';
+type ValueChangeEvent = { target: { value: string } };
 
 const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = ({
   producto,
@@ -37,16 +39,16 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   proveedores,
   onClose,
   onProductoGuardado
-}) => {  // Estado básico del formulario
+}) => {  // Estado bÃ¡sico del formulario
   const [formData, setFormData] = useState({
     codigoIdentificacion: '',
     codigoBarras: '',
     nombre: '',
     sexo: '',
-    tipoPublico: '', // NUEVO CAMPO: niño o adulto
+    tipoPublico: '', // NUEVO CAMPO: niÃ±o o adulto
     categoriaId: '',
     subcategoriaId: '',
-    subCategoria2Id: '', // NUEVO CAMPO: segunda subcategoría
+    subCategoria2Id: '', // NUEVO CAMPO: segunda subcategorÃ­a
     marca: '',
     proveedorId: '',
     precioUnitario: '',
@@ -72,7 +74,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   });
   const [showFormularioVariante, setShowFormularioVariante] = useState(false);
   
-  // Estados para formulario optimizado (múltiples colores por talla)
+  // Estados para formulario optimizado (mÃºltiples colores por talla)
   const [modoFormulario, setModoFormulario] = useState<'simple' | 'optimizado'>('optimizado');
   const [formularioOptimizado, setFormularioOptimizado] = useState({
     tallaSeleccionada: 0,
@@ -82,10 +84,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   const [codigoBarrasPreview, setCodigoBarrasPreview] = useState<string | null>(null);
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<number | null>(null);
   
-  // Estado para animación del modal
+  // Estado para animaciÃ³n del modal
   const [isModalVisible, setIsModalVisible] = useState(false);
   
-  // Estados para búsqueda en campos de selección
+  // Estados para bÃºsqueda en campos de selecciÃ³n
   const [searchCategoria, setSearchCategoria] = useState('');
   const [searchSubcategoria, setSearchSubcategoria] = useState('');
   const [searchSubcategoria2, setSearchSubcategoria2] = useState('');
@@ -95,7 +97,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   const [isSubcategoria2Focused, setIsSubcategoria2Focused] = useState(false);
   const [isProveedorFocused, setIsProveedorFocused] = useState(false);
   
-  // Categoría, subcategoría y proveedor seleccionados (por nombre)
+  // CategorÃ­a, subcategorÃ­a y proveedor seleccionados (por nombre)
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] = useState('');
   const [subcategoria2Seleccionada, setSubcategoria2Seleccionada] = useState('');
@@ -107,41 +109,41 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     cargarColoresYTallas();
   }, []);
   
-  // Función para cerrar con animación
+  // FunciÃ³n para cerrar con animaciÃ³n
   const handleClose = () => {
     setIsModalVisible(false);
-    setTimeout(onClose, 300); // Esperar a que la animación termine
+    setTimeout(onClose, 300); // Esperar a que la animaciÃ³n termine
   };
   useEffect(() => {
     if (producto) {
-      // Determinar la configuración de categorías del producto
+      // Determinar la configuraciÃ³n de categorÃ­as del producto
       const tieneCategoriaPadre = producto.categoriaPadre != null;
       const tieneCategoria = producto.categoria != null;
       
-      // Caso 1: Producto con categoria y categoriaPadre diferentes (subcategoría)
-      // Caso 2: Producto con categoria y categoriaPadre iguales (categoría principal sin hijos)
-      // Caso 3: Producto solo con categoriaPadre (categoría principal)
+      // Caso 1: Producto con categoria y categoriaPadre diferentes (subcategorÃ­a)
+      // Caso 2: Producto con categoria y categoriaPadre iguales (categorÃ­a principal sin hijos)
+      // Caso 3: Producto solo con categoriaPadre (categorÃ­a principal)
       
       let categoriaIdFormulario = '';
       let subcategoriaIdFormulario = '';
       
       if (tieneCategoriaPadre && tieneCategoria) {
-        // Verificar si son iguales (categoría principal sin hijos) o diferentes (subcategoría)
+        // Verificar si son iguales (categorÃ­a principal sin hijos) o diferentes (subcategorÃ­a)
         if (producto.categoria?.idCategoria === producto.categoriaPadre?.idCategoria) {
-          // Categoría principal sin hijos
+          // CategorÃ­a principal sin hijos
           categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
           subcategoriaIdFormulario = '';
         } else {
-          // Tiene subcategoría
+          // Tiene subcategorÃ­a
           categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
           subcategoriaIdFormulario = producto.categoria?.idCategoria?.toString() || '';
         }
       } else if (tieneCategoriaPadre) {
-        // Solo tiene categoría padre
+        // Solo tiene categorÃ­a padre
         categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
         subcategoriaIdFormulario = '';
       } else if (tieneCategoria) {
-        // Solo tiene categoría (caso legacy)
+        // Solo tiene categorÃ­a (caso legacy)
         categoriaIdFormulario = producto.categoria?.idCategoria?.toString() || '';
         subcategoriaIdFormulario = '';
       }
@@ -163,13 +165,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         precioDocena: producto.precioDocena?.toString() || ''
       });
       
-      // Inicializar categorías seleccionadas con sus nombres
+      // Inicializar categorÃ­as seleccionadas con sus nombres
       if (producto.categoriaPadre) {
-        // Seleccionar categoría principal
+        // Seleccionar categorÃ­a principal
         if (categoriaIdFormulario) {
           setCategoriaSeleccionada(producto.categoriaPadre.nombre);
           
-          // Cargar subcategorías de nivel 2
+          // Cargar subcategorÃ­as de nivel 2
           const categoriaSeleccionadaObj = categorias.find(c => c.idCategoria?.toString() === categoriaIdFormulario);
           if (categoriaSeleccionadaObj?.subCategorias) {
             setSubcategorias(categoriaSeleccionadaObj.subCategorias);
@@ -177,13 +179,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         }
       }
       
-      // Inicializar subcategoría seleccionada (nivel 2)
+      // Inicializar subcategorÃ­a seleccionada (nivel 2)
       if (producto.categoria && tieneCategoria && producto.categoriaPadre && 
           producto.categoria.idCategoria !== producto.categoriaPadre.idCategoria) {
         if (subcategoriaIdFormulario) {
           setSubcategoriaSeleccionada(producto.categoria.nombre);
           
-          // Cargar subcategorías de nivel 3
+          // Cargar subcategorÃ­as de nivel 3
           const subcategoriaSeleccionadaObj = producto.categoriaPadre.subCategorias?.find(
             sc => sc.idCategoria?.toString() === subcategoriaIdFormulario
           );
@@ -193,7 +195,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         }
       }
       
-      // Inicializar subcategoría nivel 3
+      // Inicializar subcategorÃ­a nivel 3
       if (producto.subCategoria2) {
         setSubcategoria2Seleccionada(producto.subCategoria2.nombre);
       }
@@ -217,25 +219,29 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       ]);
       setColoresDisponibles(coloresData);
       setTallasDisponibles(tallasData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al cargar colores y tallas:', err);
+      const status = getStatusCode(err);
       
-      // Manejo específico para errores de autenticación/autorización
-      if (err.response?.status === 401) {
-        setError('Error de autorización: Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (err.response?.status === 403) {
-        setError('Error de permisos: No tienes autorización para acceder a esta información.');
+      // Manejo especÃ­fico para errores de autenticaciÃ³n/autorizaciÃ³n
+      if (status === 401) {
+        setError('Error de autorizaciÃ³n: Tu sesiÃ³n ha expirado. Por favor, inicia sesiÃ³n nuevamente.');
+      } else if (status === 403) {
+        setError('Error de permisos: No tienes autorizaciÃ³n para acceder a esta informaciÃ³n.');
       } else {
-        setError('Error al cargar colores y tallas disponibles: ' + (err.message || 'Error de comunicación con el servidor'));
+        setError(
+          'Error al cargar colores y tallas disponibles: ' +
+            getErrorMessage(err, 'Error de comunicaciÃ³n con el servidor')
+        );
       }
     } finally {
       setLoading(false);
     }
   };
 
-  // Funciones para filtrar datos en búsquedas
+  // Funciones para filtrar datos en bÃºsquedas
   const categoriasPrincipalesFiltradas = categorias
-    .filter(categoria => !categoria.categoriaPadre) // Solo categorías principales
+    .filter(categoria => !categoria.categoriaPadre) // Solo categorÃ­as principales
     .filter(categoria => 
       searchCategoria === '' || 
       categoria.nombre.toLowerCase().includes(searchCategoria.toLowerCase())
@@ -261,10 +267,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     
     try {
       setLoading(true);
-      console.log(`🔄 Cargando variantes existentes para producto ID: ${producto.idProducto}`);
+      console.log(`ðŸ”„ Cargando variantes existentes para producto ID: ${producto.idProducto}`);
       
       const variantesExistentes = await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto);
-      console.log(`📦 Variantes obtenidas del backend: ${variantesExistentes.length}`);
+      console.log(`ðŸ“¦ Variantes obtenidas del backend: ${variantesExistentes.length}`);
       
       // Verificar que no haya duplicados por ID
       const variantesUnicas = Array.from(
@@ -272,7 +278,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       );
       
       if (variantesUnicas.length !== variantesExistentes.length) {
-        console.warn(`⚠️  Se removieron ${variantesExistentes.length - variantesUnicas.length} variantes duplicadas`);
+        console.warn(`âš ï¸  Se removieron ${variantesExistentes.length - variantesUnicas.length} variantes duplicadas`);
       }      // Mapear variantes del backend al formato del formulario
       const variantesFormData: VarianteFormData[] = variantesUnicas.map(v => {
         // Priorizar idProductoVariante (que es el ID real en BD) sobre idVariante
@@ -286,22 +292,26 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           codigoIdentificacion: v.codigoBarrasVariante || ''
         };
         
-        console.log(`   ✅ Variante mapeada: ID=${variante.id}, Talla=${v.talla.nombreTalla}, Color=${v.color.nombre}, Cantidad=${variante.cantidad}`);
+        console.log(`   âœ… Variante mapeada: ID=${variante.id}, Talla=${v.talla.nombreTalla}, Color=${v.color.nombre}, Cantidad=${variante.cantidad}`);
         return variante;
       });
       
-      console.log(`✅ ${variantesFormData.length} variantes cargadas en el estado del formulario`);
+      console.log(`âœ… ${variantesFormData.length} variantes cargadas en el estado del formulario`);
       setVariantes(variantesFormData);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error al cargar variantes existentes:', err);
+      const status = getStatusCode(err);
       
-      // Manejo específico para errores de autenticación/autorización
-      if (err.response?.status === 401) {
-        setError('Error de autorización: Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (err.response?.status === 403) {
-        setError('Error de permisos: No tienes autorización para acceder a esta información.');
+      // Manejo especÃ­fico para errores de autenticaciÃ³n/autorizaciÃ³n
+      if (status === 401) {
+        setError('Error de autorizaciÃ³n: Tu sesiÃ³n ha expirado. Por favor, inicia sesiÃ³n nuevamente.');
+      } else if (status === 403) {
+        setError('Error de permisos: No tienes autorizaciÃ³n para acceder a esta informaciÃ³n.');
       } else {
-        setError('Error al cargar variantes: ' + (err.message || 'Error de comunicación con el servidor'));
+        setError(
+          'Error al cargar variantes: ' +
+            getErrorMessage(err, 'Error de comunicaciÃ³n con el servidor')
+        );
       }
     } finally {
       setLoading(false);
@@ -323,7 +333,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     );
 
     if (existeVariante) {
-      setError('Ya existe una variante con esta combinación de talla y color');
+      setError('Ya existe una variante con esta combinaciÃ³n de talla y color');
       return;
     }
 
@@ -335,7 +345,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       return;
     }
 
-    // Generar código de identificación si está vacío
+    // Generar cÃ³digo de identificaciÃ³n si estÃ¡ vacÃ­o
     let codigoIdentificacion = nuevaVariante.codigoIdentificacion;
     if (!codigoIdentificacion) {
       const codigoBase = formData.codigoIdentificacion || 'PROD';
@@ -378,88 +388,88 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     setError(null);
 
     try {
-      console.log('🚀 Iniciando proceso de guardado de producto');
-      console.log('📊 Estado actual de variantes:', {
+      console.log('ðŸš€ Iniciando proceso de guardado de producto');
+      console.log('ðŸ“Š Estado actual de variantes:', {
         cantidad: variantes.length,
         variantes: variantes.map(v => ({ id: v.id, tallaId: v.tallaId, colorId: v.colorId, cantidad: v.cantidad }))
       });
 
-      // Validaciones básicas
+      // Validaciones bÃ¡sicas
       if (!formData.nombre.trim()) {
         throw new Error('El nombre del producto es requerido');
       }
 
       if (!formData.codigoIdentificacion.trim()) {
-        throw new Error('El código de identificación es requerido');
-      }      // Encontrar objetos de categorías y proveedor
+        throw new Error('El cÃ³digo de identificaciÃ³n es requerido');
+      }      // Encontrar objetos de categorÃ­as y proveedor
       let categoriaSeleccionada: Categoria | undefined = undefined;
       let categoriaPadreSeleccionada: Categoria | undefined = undefined;
 
       if (formData.subcategoriaId) {
-        // Caso 1: Si hay una subcategoría seleccionada
+        // Caso 1: Si hay una subcategorÃ­a seleccionada
         categoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)!;
         categoriaPadreSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
         
-        console.log('📂 Usando subcategoría como categoría principal:', categoriaSeleccionada?.nombre);
-        console.log('📁 Categoría padre seleccionada:', categoriaPadreSeleccionada?.nombre);
+        console.log('ðŸ“‚ Usando subcategorÃ­a como categorÃ­a principal:', categoriaSeleccionada?.nombre);
+        console.log('ðŸ“ CategorÃ­a padre seleccionada:', categoriaPadreSeleccionada?.nombre);
       } else {
-        // Caso 2: Si solo hay categoría principal seleccionada
+        // Caso 2: Si solo hay categorÃ­a principal seleccionada
         const categoriaPrincipal = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId)!;
         
         if (!categoriaPrincipal) {
-          throw new Error('Debe seleccionar una categoría válida');
+          throw new Error('Debe seleccionar una categorÃ­a vÃ¡lida');
         }
         
-        // Verificar si la categoría principal tiene subcategorías
+        // Verificar si la categorÃ­a principal tiene subcategorÃ­as
         if (categoriaPrincipal.subCategorias && categoriaPrincipal.subCategorias.length > 0) {
-          // Si tiene subcategorías, entonces es una categoría padre y necesita una subcategoría
-          throw new Error('Debe seleccionar una subcategoría para esta categoría principal');
+          // Si tiene subcategorÃ­as, entonces es una categorÃ­a padre y necesita una subcategorÃ­a
+          throw new Error('Debe seleccionar una subcategorÃ­a para esta categorÃ­a principal');
         } else {
-          // Si no tiene subcategorías, se configura SOLO como categoría padre
-          // categoria queda como undefined (null) y categoriaPadre toma la categoría principal
+          // Si no tiene subcategorÃ­as, se configura SOLO como categorÃ­a padre
+          // categoria queda como undefined (null) y categoriaPadre toma la categorÃ­a principal
           categoriaSeleccionada = undefined;
           categoriaPadreSeleccionada = categoriaPrincipal;
           
-          console.log('📁 Categoría principal sin hijos - configurando SOLO como categoriaPadre:', categoriaPrincipal?.nombre);
+          console.log('ðŸ“ CategorÃ­a principal sin hijos - configurando SOLO como categoriaPadre:', categoriaPrincipal?.nombre);
         }
       }
 
-      // Validar tipo público
+      // Validar tipo pÃºblico
       if (!formData.tipoPublico) {
-        throw new Error('Debe seleccionar el tipo de público (niño o adulto)');
+        throw new Error('Debe seleccionar el tipo de pÃºblico (niÃ±o o adulto)');
       }
 
-      // Validar segunda subcategoría - ahora es obligatoria solo si hay subCategorias2 disponibles
+      // Validar segunda subcategorÃ­a - ahora es obligatoria solo si hay subCategorias2 disponibles
       if (subCategorias2.length > 0 && !formData.subCategoria2Id) {
-        throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
+        throw new Error('Debe seleccionar la segunda subcategorÃ­a (Nivel 3)');
       }
 
       const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
 
       if (!proveedor) {
-        throw new Error('Debe seleccionar un proveedor válido');
+        throw new Error('Debe seleccionar un proveedor vÃ¡lido');
       }
 
-      // Obtener la segunda subcategoría desde el array correcto
+      // Obtener la segunda subcategorÃ­a desde el array correcto
       let subCategoria2: Categoria | undefined = undefined;
       if (formData.subCategoria2Id) {
         // Buscar primero en subCategorias2 (nivel 3), luego en categorias completas como fallback
         subCategoria2 = subCategorias2.find(c => c.idCategoria?.toString() === formData.subCategoria2Id) ||
                        categorias.find(c => c.idCategoria?.toString() === formData.subCategoria2Id);
         if (!subCategoria2) {
-          throw new Error('Segunda subcategoría no válida');
+          throw new Error('Segunda subcategorÃ­a no vÃ¡lida');
         }
       }
 
-      // Si no hay subCategoria2 seleccionada pero es requerida, usar una categoría por defecto o lanzar error
+      // Si no hay subCategoria2 seleccionada pero es requerida, usar una categorÃ­a por defecto o lanzar error
       if (!subCategoria2 && subCategorias2.length > 0) {
-        throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
+        throw new Error('Debe seleccionar la segunda subcategorÃ­a (Nivel 3)');
       }
 
-      // Crear una categoría temporal si no hay segunda subcategoría pero se requiere para la interface
+      // Crear una categorÃ­a temporal si no hay segunda subcategorÃ­a pero se requiere para la interface
       const subCategoria2Final = subCategoria2 || {
         idCategoria: 0,
-        nombre: "Sin categoría nivel 3",
+        nombre: "Sin categorÃ­a nivel 3",
         categoriaPadre: undefined,
         subCategorias: undefined,
         esCategoriaPrincipal: false,
@@ -488,7 +498,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       let productoGuardado: Producto;
 
       // Crear o actualizar producto
-      console.log(`${producto?.idProducto ? '✏️  Actualizando' : '➕ Creando'} producto...`);
+      console.log(`${producto?.idProducto ? 'âœï¸  Actualizando' : 'âž• Creando'} producto...`);
       if (producto?.idProducto) {
         productoGuardado = await ProductoService.updateProducto(producto.idProducto, {
           ...productoData,
@@ -497,50 +507,53 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       } else {
         productoGuardado = await ProductoService.createProducto(productoData);
       }
-      console.log(`✅ Producto ${producto?.idProducto ? 'actualizado' : 'creado'} con ID: ${productoGuardado.idProducto}`);      // ===== PROCESAMIENTO MEJORADO DE VARIANTES =====
+      console.log(`âœ… Producto ${producto?.idProducto ? 'actualizado' : 'creado'} con ID: ${productoGuardado.idProducto}`);      // ===== PROCESAMIENTO MEJORADO DE VARIANTES =====
       if (productoGuardado.idProducto && variantes.length > 0) {
-        console.log('🔧 Iniciando sincronización de variantes...');
+        console.log('ðŸ”§ Iniciando sincronizaciÃ³n de variantes...');
 
         // 1. Obtener el estado actual REAL de la base de datos
         const variantesEnBD = producto?.idProducto
           ? await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto)
           : [];
-        console.log(`📦 Encontradas ${variantesEnBD.length} variantes existentes en la base de datos.`);
+        console.log(`ðŸ“¦ Encontradas ${variantesEnBD.length} variantes existentes en la base de datos.`);
 
         const variantesEnFormulario = variantes; // Las variantes del estado de React
-        console.log(`� Se procesarán ${variantesEnFormulario.length} variantes desde el formulario.`);
+        console.log(`ï¿½ Se procesarÃ¡n ${variantesEnFormulario.length} variantes desde el formulario.`);
 
-        // Convertir a mapas para una búsqueda eficiente (O(1) en lugar de O(n))
+        // Convertir a mapas para una bÃºsqueda eficiente (O(1) en lugar de O(n))
         const mapaVariantesBD = new Map(variantesEnBD.map(v => [v.idProductoVariante, v]));
         const mapaVariantesFormulario = new Map(variantesEnFormulario.filter(v => v.id).map(v => [v.id, v]));
 
         // 2. IDENTIFICAR OPERACIONES
         
-        // -> Variantes a ELIMINAR: Están en la BD pero no en el formulario
+        // -> Variantes a ELIMINAR: EstÃ¡n en la BD pero no en el formulario
         const variantesAEliminar = variantesEnBD.filter(
           vDB => !mapaVariantesFormulario.has(vDB.idProductoVariante!)
         );
 
-        // -> Variantes a ACTUALIZAR: Están en ambos, formulario y BD
+        // -> Variantes a ACTUALIZAR: EstÃ¡n en ambos, formulario y BD
         const variantesAActualizar = variantesEnFormulario.filter(
           vForm => vForm.id && mapaVariantesBD.has(vForm.id)
         );
 
-        // -> Variantes a CREAR: Están en el formulario pero no tienen ID (son nuevas)
+        // -> Variantes a CREAR: EstÃ¡n en el formulario pero no tienen ID (son nuevas)
         const variantesACrear = variantesEnFormulario.filter(vForm => !vForm.id);
 
-        console.log(`➕ ${variantesACrear.length} para crear, ✏️ ${variantesAActualizar.length} para actualizar, 🗑️ ${variantesAEliminar.length} para eliminar.`);
+        console.log(`âž• ${variantesACrear.length} para crear, âœï¸ ${variantesAActualizar.length} para actualizar, ðŸ—‘ï¸ ${variantesAEliminar.length} para eliminar.`);
 
         // 3. EJECUTAR OPERACIONES EN ORDEN (Eliminar, Actualizar, Crear)
         
         // -> Eliminar primero
         for (const variante of variantesAEliminar) {
-          console.log(`  🗑️ Eliminando variante ID: ${variante.idProductoVariante}`);
+          console.log(`  ðŸ—‘ï¸ Eliminando variante ID: ${variante.idProductoVariante}`);
           try {
             await ProductoVarianteService.eliminarVariante(variante.idProductoVariante!);
-            console.log(`  ✅ Variante ID=${variante.idProductoVariante} eliminada correctamente`);
-          } catch (error: any) {
-            console.error(`❌ Error al eliminar variante ID ${variante.idProductoVariante}:`, error.message);
+            console.log(`  âœ… Variante ID=${variante.idProductoVariante} eliminada correctamente`);
+          } catch (error: unknown) {
+            console.error(
+              `âŒ Error al eliminar variante ID ${variante.idProductoVariante}:`,
+              getErrorMessage(error, 'Error desconocido')
+            );
             throw new Error(`Fallo al eliminar la variante ${variante.talla.nombreTalla} - ${variante.color.nombre}.`);
           }
         }
@@ -551,15 +564,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           
           // Solo llamar a la API si hay cambios reales
           if (existente && (existente.cantidad !== variante.cantidad || existente.codigoBarrasVariante !== variante.codigoIdentificacion)) {
-            console.log(`  ✏️ Actualizando variante ID: ${variante.id}`);
-            console.log(`    📊 Cantidad: ${existente.cantidad} → ${variante.cantidad}`);
-            console.log(`    🏷️ Código: '${existente.codigoBarrasVariante}' → '${variante.codigoIdentificacion}'`);
+            console.log(`  âœï¸ Actualizando variante ID: ${variante.id}`);
+            console.log(`    ðŸ“Š Cantidad: ${existente.cantidad} â†’ ${variante.cantidad}`);
+            console.log(`    ðŸ·ï¸ CÃ³digo: '${existente.codigoBarrasVariante}' â†’ '${variante.codigoIdentificacion}'`);
             
             const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
             const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
 
             if (!talla || !color) {
-              console.warn(`⚠️ Saltando actualización - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+              console.warn(`âš ï¸ Saltando actualizaciÃ³n - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
               continue;
             }
 
@@ -576,13 +589,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 ...varianteData,
                 idProductoVariante: variante.id
               });
-              console.log(`  ✅ Variante ID=${variante.id} actualizada correctamente`);
-            } catch (error: any) {
-              console.error(`❌ Error al actualizar variante ID ${variante.id}:`, error.message);
-              throw new Error(`Error al actualizar variante ${talla.nombreTalla}-${color.nombre}: ${error.message}`);
+              console.log(`  âœ… Variante ID=${variante.id} actualizada correctamente`);
+            } catch (error: unknown) {
+              const errorMessage = getErrorMessage(error, 'Error desconocido');
+              console.error(`âŒ Error al actualizar variante ID ${variante.id}:`, errorMessage);
+              throw new Error(`Error al actualizar variante ${talla.nombreTalla}-${color.nombre}: ${errorMessage}`);
             }
           } else {
-            console.log(`  ⏩ Saltando variante ID: ${variante.id} (sin cambios)`);
+            console.log(`  â© Saltando variante ID: ${variante.id} (sin cambios)`);
           }
         }
 
@@ -592,11 +606,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
 
           if (!talla || !color) {
-            console.warn(`⚠️ Saltando creación - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+            console.warn(`âš ï¸ Saltando creaciÃ³n - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
             continue;
           }
 
-          console.log(`  ➕ Creando nueva variante (Talla: ${talla.nombreTalla}, Color: ${color.nombre}, Cantidad: ${variante.cantidad})`);
+          console.log(`  âž• Creando nueva variante (Talla: ${talla.nombreTalla}, Color: ${color.nombre}, Cantidad: ${variante.cantidad})`);
           
           const varianteData: Omit<ProductoVariante, 'idVariante'> = {
             producto: productoGuardado,
@@ -608,48 +622,50 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
           try {
             const nuevaVariante = await ProductoVarianteService.crearVariante(varianteData);
-            console.log(`  ✅ Nueva variante creada con ID=${nuevaVariante.idProductoVariante}`);
-          } catch (error: any) {
-            console.error(`❌ Error al crear nueva variante:`, error.message);
-            throw new Error(`Error al crear variante ${talla.nombreTalla}-${color.nombre}: ${error.message}`);
+            console.log(`  âœ… Nueva variante creada con ID=${nuevaVariante.idProductoVariante}`);
+          } catch (error: unknown) {
+            const errorMessage = getErrorMessage(error, 'Error desconocido');
+            console.error(`âŒ Error al crear nueva variante:`, errorMessage);
+            throw new Error(`Error al crear variante ${talla.nombreTalla}-${color.nombre}: ${errorMessage}`);
           }
         }
 
-        console.log('\n✅ ¡Sincronización de variantes completada exitosamente!');
+        console.log('\nâœ… Â¡SincronizaciÃ³n de variantes completada exitosamente!');
       } else if (variantes.length === 0) {
-        console.log('ℹ️ No hay variantes para procesar');
+        console.log('â„¹ï¸ No hay variantes para procesar');
       }
 
       // Obtener las variantes actualizadas del producto para devolver un producto completo con sus variantes
       if (productoGuardado.idProducto) {
         const variantesActualizadas = await ProductoVarianteService.obtenerVariantesPorProducto(productoGuardado.idProducto);
-        console.log(`🔄 Obtenidas ${variantesActualizadas.length} variantes actualizadas para el producto`);
-        // Añadir la cantidad total actualizada al producto
+        console.log(`ðŸ”„ Obtenidas ${variantesActualizadas.length} variantes actualizadas para el producto`);
+        // AÃ±adir la cantidad total actualizada al producto
         const cantidadTotalActualizada = variantesActualizadas.reduce((total, v) => total + v.cantidad, 0);
         productoGuardado = {
           ...productoGuardado,
           cantidad: cantidadTotalActualizada
         };
-      }      console.log('🎉 Proceso de guardado completado exitosamente');
+      }      console.log('ðŸŽ‰ Proceso de guardado completado exitosamente');
       onProductoGuardado(productoGuardado);
       handleClose();
-    } catch (err: any) {
-      console.error('❌ Error al guardar producto:', err);
+    } catch (err: unknown) {
+      console.error('âŒ Error al guardar producto:', err);
+      const status = getStatusCode(err);
       
-      // Manejo específico para errores de autenticación/autorización
-      if (err.response?.status === 401) {
-        setError('Error de autorización: Tu sesión ha expirado o no tienes permisos para realizar esta acción. Por favor, inicia sesión nuevamente.');
-      } else if (err.response?.status === 403) {
-        setError('Error de permisos: No tienes autorización para realizar esta acción.');
+      // Manejo especÃ­fico para errores de autenticaciÃ³n/autorizaciÃ³n
+      if (status === 401) {
+        setError('Error de autorizaciÃ³n: Tu sesiÃ³n ha expirado o no tienes permisos para realizar esta acciÃ³n. Por favor, inicia sesiÃ³n nuevamente.');
+      } else if (status === 403) {
+        setError('Error de permisos: No tienes autorizaciÃ³n para realizar esta acciÃ³n.');
       } else {
-        setError(err.message || 'Error al guardar el producto');
+        setError(getErrorMessage(err, 'Error al guardar el producto'));
       }
     } finally {
       setLoading(false);
     }
   };  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    // Validación para campos de precio
+    // ValidaciÃ³n para campos de precio
     if (["precioUnitario", "precioCuarto", "precioMediaDocena", "precioDocena"].includes(name)) {
       const nuevoValor = value === '' ? '' : Math.max(0, parseFloat(value));
       // Si el usuario intenta poner un valor negativo, lo forzamos a 0
@@ -658,7 +674,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         setFormData(prev => ({ ...prev, [name]: 0 }));
         return;
       }
-      // Validación de jerarquía de precios por unidad
+      // ValidaciÃ³n de jerarquÃ­a de precios por unidad
       let precios = {
         precioUnitario: name === 'precioUnitario' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioUnitario) || 0,
         precioCuarto: name === 'precioCuarto' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioCuarto) || 0,
@@ -672,13 +688,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       const precioUnitarioMediaDocena = precios.precioMediaDocena > 0 ? precios.precioMediaDocena / 6 : 0;
       const precioUnitarioDocena = precios.precioDocena > 0 ? precios.precioDocena / 12 : 0;
       
-      // Validar que el precio por unidad sea decreciente: Individual ≥ Cuarto/3 ≥ MediaDocena/6 ≥ Docena/12
+      // Validar que el precio por unidad sea decreciente: Individual â‰¥ Cuarto/3 â‰¥ MediaDocena/6 â‰¥ Docena/12
       if (
         (precios.precioCuarto > 0 && precioUnitarioCuarto > precioUnitarioIndividual) ||
         (precios.precioMediaDocena > 0 && precioUnitarioMediaDocena > precioUnitarioCuarto) ||
         (precios.precioDocena > 0 && precioUnitarioDocena > precioUnitarioMediaDocena)
       ) {
-        setErrorPrecio('El precio por unidad debe ser decreciente: Individual ≥ Cuarto/3 ≥ MediaDocena/6 ≥ Docena/12');
+        setErrorPrecio('El precio por unidad debe ser decreciente: Individual â‰¥ Cuarto/3 â‰¥ MediaDocena/6 â‰¥ Docena/12');
         return;
       }
       setErrorPrecio(null);
@@ -689,7 +705,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   };
 
   const generarCodigoBarrasAutomatico = () => {
-    // Generar un código de barras basado en el timestamp actual y el código de identificación
+    // Generar un cÃ³digo de barras basado en el timestamp actual y el cÃ³digo de identificaciÃ³n
     const timestamp = Date.now();
     const codigoBase = formData.codigoIdentificacion || 'PROD';
     const codigoGenerado = `${codigoBase}-${timestamp}`;
@@ -702,13 +718,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
   const generarCodigoBarrasVariante = async (varianteId: number | undefined) => {
     if (!varianteId) {
-      setError('No se puede generar código de barras: la variante no tiene ID asignado. Guarda el producto primero.');
+      setError('No se puede generar cÃ³digo de barras: la variante no tiene ID asignado. Guarda el producto primero.');
       return;
     }
       try {
       setLoading(true);
       setError(null);
-      console.log(`🏷️ Generando código de barras para variante ID: ${varianteId}`);
+      console.log(`ðŸ·ï¸ Generando cÃ³digo de barras para variante ID: ${varianteId}`);
       
       const blob = await CodigoBarrasService.generarImagenVariante(varianteId);
       
@@ -717,11 +733,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       setCodigoBarrasPreview(url);
       setVarianteSeleccionada(varianteId);
       
-      // Cambiar a la pestaña de códigos de barras
+      // Cambiar a la pestaÃ±a de cÃ³digos de barras
       setTabActiva('codigosBarras');
-    } catch (err: any) {
-      console.error('Error al generar código de barras de variante:', err);
-      setError('Error al generar código de barras: ' + (err.message || 'Error desconocido'));
+    } catch (err: unknown) {
+      console.error('Error al generar cÃ³digo de barras de variante:', err);
+      setError('Error al generar cÃ³digo de barras: ' + getErrorMessage(err, 'Error desconocido'));
     } finally {
       setLoading(false);
     }
@@ -736,21 +752,21 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     link.click();
     document.body.removeChild(link);
     
-    // Mostrar mensaje de éxito
-    alert('Código de barras de variante descargado correctamente');
+    // Mostrar mensaje de Ã©xito
+    alert('CÃ³digo de barras de variante descargado correctamente');
   };
   
-  // Función para manejar cambio de categoría principal (Nivel 1)
-  const handleCategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  // FunciÃ³n para manejar cambio de categorÃ­a principal (Nivel 1)
+  const handleCategoriaChange = (e: ValueChangeEvent) => {
     const categoriaId = e.target.value;
     setFormData(prev => ({ 
       ...prev, 
       categoriaId,
-      subcategoriaId: '', // Limpiar subcategoría cuando cambia la principal
-      subCategoria2Id: ''  // Limpiar segunda subcategoría también
+      subcategoriaId: '', // Limpiar subcategorÃ­a cuando cambia la principal
+      subCategoria2Id: ''  // Limpiar segunda subcategorÃ­a tambiÃ©n
     }));
 
-    // Cargar subcategorías (Nivel 2) de la categoría seleccionada
+    // Cargar subcategorÃ­as (Nivel 2) de la categorÃ­a seleccionada
     if (categoriaId) {
       const categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === categoriaId);
       if (categoriaSeleccionada?.subCategorias) {
@@ -762,20 +778,20 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       setSubcategorias([]);
     }
     
-    // Limpiar también las subcategorías de nivel 3
+    // Limpiar tambiÃ©n las subcategorÃ­as de nivel 3
     setSubCategorias2([]);
   };
 
-  // Función para manejar cambio de subcategoría (Nivel 2)
-  const handleSubcategoriaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  // FunciÃ³n para manejar cambio de subcategorÃ­a (Nivel 2)
+  const handleSubcategoriaChange = (e: ValueChangeEvent) => {
     const subcategoriaId = e.target.value;
     setFormData(prev => ({ 
       ...prev, 
       subcategoriaId,
-      subCategoria2Id: '' // Limpiar segunda subcategoría cuando cambia la subcategoría
+      subCategoria2Id: '' // Limpiar segunda subcategorÃ­a cuando cambia la subcategorÃ­a
     }));
 
-    // Cargar subcategorías de nivel 3 de la subcategoría seleccionada
+    // Cargar subcategorÃ­as de nivel 3 de la subcategorÃ­a seleccionada
     if (subcategoriaId) {
       const subcategoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === subcategoriaId);
       if (subcategoriaSeleccionada?.subCategorias) {
@@ -788,7 +804,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };
 
-  // Función optimizada para agregar múltiples variantes de una talla
+  // FunciÃ³n optimizada para agregar mÃºltiples variantes de una talla
   const agregarVariantesOptimizado = () => {
     if (formularioOptimizado.tallaSeleccionada === 0) {
       setError('Debe seleccionar una talla');
@@ -807,7 +823,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       .map(([colorId, cantidad]) => ({ colorId: parseInt(colorId), cantidad }));
 
     if (coloresConCantidad.length === 0) {
-      setError('Debe especificar al menos una cantidad mayor a 0 para algún color');
+      setError('Debe especificar al menos una cantidad mayor a 0 para algÃºn color');
       return;
     }
 
@@ -832,7 +848,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         continue;
       }
 
-      // Generar código de identificación automático
+      // Generar cÃ³digo de identificaciÃ³n automÃ¡tico
       const codigoBase = formData.codigoIdentificacion || 'PROD';
       const codigoIdentificacion = `${codigoBase}-${talla.nombreTalla}-${color.nombre}`;
 
@@ -861,7 +877,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };
 
-  // Función para actualizar cantidad de un color en el formulario optimizado
+  // FunciÃ³n para actualizar cantidad de un color en el formulario optimizado
   const actualizarCantidadColor = (colorId: number, cantidad: number) => {
     setFormularioOptimizado(prev => ({
       ...prev,
@@ -872,77 +888,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }));
   };
 
-  // Función para cambiar talla en formulario optimizado
+  // FunciÃ³n para cambiar talla en formulario optimizado
   const cambiarTallaOptimizada = (tallaId: number) => {
     setFormularioOptimizado({
       tallaSeleccionada: tallaId,
       cantidadesPorColor: {} // Limpiar cantidades al cambiar talla
     });
   };
-  
-  /* 
-   * Las siguientes funciones son helpers que pueden ser utilizadas para seleccionar directamente
-   * categorías, subcategorías, y proveedores sin pasar por el flujo normal de búsqueda.
-   * Actualmente se utilizan en la inicialización del formulario durante la edición de productos,
-   * pero también pueden ser útiles para pruebas o funcionalidades futuras.
-   */
-  
-  // Función para manejar selección directa de una categoría (útil para edición)
-  const handleSelectCategoria = (categoriaId: string, nombre: string) => {
-    setCategoriaSeleccionada(nombre);
-    setFormData(prev => ({ ...prev, categoriaId }));
-    setSearchCategoria('');
-    
-    // Cargar subcategorías (Nivel 2) de la categoría seleccionada
-    if (categoriaId) {
-      const categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === categoriaId);
-      if (categoriaSeleccionada?.subCategorias) {
-        setSubcategorias(categoriaSeleccionada.subCategorias);
-      } else {
-        setSubcategorias([]);
-      }
-    } else {
-      setSubcategorias([]);
-    }
-    
-    // Limpiar también las subcategorías de nivel 3
-    setSubCategorias2([]);
-  };
-
-  // Función para manejar selección directa de una subcategoría (útil para edición)
-  const handleSelectSubcategoria = (subcategoriaId: string, nombre: string) => {
-    setSubcategoriaSeleccionada(nombre);
-    setFormData(prev => ({ ...prev, subcategoriaId }));
-    setSearchSubcategoria('');
-    
-    // Cargar subcategorías de nivel 3 de la subcategoría seleccionada
-    if (subcategoriaId) {
-      const subcategoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === subcategoriaId);
-      if (subcategoriaSeleccionada?.subCategorias) {
-        setSubCategorias2(subcategoriaSeleccionada.subCategorias);
-      } else {
-        setSubCategorias2([]);
-      }
-    } else {
-      setSubCategorias2([]);
-    }
-  };
-
-  // Función para manejar selección directa de una subcategoría nivel 2 (útil para edición)
-  const handleSelectSubcategoria2 = (subcategoria2Id: string, nombre: string) => {
-    setSubcategoria2Seleccionada(nombre);
-    setFormData(prev => ({ ...prev, subCategoria2Id: subcategoria2Id }));
-    setSearchSubcategoria2('');
-  };
-
-  // Función para manejar selección directa de un proveedor (útil para edición)
-  const handleSelectProveedor = (proveedorId: string, nombre: string) => {
-    setProveedorSeleccionado(nombre);
-    setFormData(prev => ({ ...prev, proveedorId }));
-    setSearchProveedor('');
-  };
-  
-  return (
+return (
     <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
       <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto border border-gray-200 relative transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
         {/* Header */}
@@ -962,7 +915,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   {producto ? 'Editar Producto' : 'Crear Nuevo Producto'}
                 </h2>
                 <p className="text-indigo-100 text-sm">
-                  {producto ? 'Modifica la información del producto' : 'Complete la información para crear el producto'}
+                  {producto ? 'Modifica la informaciÃ³n del producto' : 'Complete la informaciÃ³n para crear el producto'}
                 </p>
               </div>
             </div>
@@ -991,7 +944,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* Navegación por pestañas */}
+            {/* NavegaciÃ³n por pestaÃ±as */}
             <div className="flex border-b border-gray-200">
               <button
                 type="button"
@@ -1003,7 +956,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 }`}
               >
                 <Package2 className="w-4 h-4" />
-                Información Básica
+                InformaciÃ³n BÃ¡sica
               </button>
               
               <button
@@ -1042,17 +995,17 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 }`}
               >
                 <Barcode className="w-4 h-4" />
-                Códigos de Barras
+                CÃ³digos de Barras
               </button>
             </div>
 
-            {/* Pestaña: Información básica */}
+            {/* PestaÃ±a: InformaciÃ³n bÃ¡sica */}
             {tabActiva === 'informacion' && (
               <div className="bg-gray-50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Información Básica</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">InformaciÃ³n BÃ¡sica</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                  <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Código de Identificación *
+                      CÃ³digo de IdentificaciÃ³n *
                     </label>
                     <input
                       type="text"
@@ -1060,14 +1013,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       value={formData.codigoIdentificacion}
                       onChange={handleInputChange}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
-                      placeholder="Ingrese el código de identificación..."
+                      placeholder="Ingrese el cÃ³digo de identificaciÃ³n..."
                       required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Código de Barras
+                      CÃ³digo de Barras
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -1075,21 +1028,21 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         name="codigoBarras"
                         value={formData.codigoBarras}
                         onChange={handleInputChange}
-                        placeholder="Código de barras (opcional)"
+                        placeholder="CÃ³digo de barras (opcional)"
                         className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 font-mono text-sm"
                       />
                       <button
                         type="button"
                         onClick={() => generarCodigoBarrasAutomatico()}
                         className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
-                        title="Generar código de barras automático"
+                        title="Generar cÃ³digo de barras automÃ¡tico"
                       >
                         <Barcode size={16} />
                         Auto
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Se genera automáticamente si se deja vacío
+                      Se genera automÃ¡ticamente si se deja vacÃ­o
                     </p>
                   </div>
 
@@ -1127,7 +1080,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Tipo de Público <span className="text-red-500">*</span>
+                      Tipo de PÃºblico <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="tipoPublico"
@@ -1136,8 +1089,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
                       required
                     >
-                      <option value="">Seleccionar tipo de público</option>
-                      <option value="NIÑO">Niño</option>
+                      <option value="">Seleccionar tipo de pÃºblico</option>
+                      <option value="NIÃ‘O">NiÃ±o</option>
                       <option value="ADULTO">Adulto</option>
                     </select>
                   </div>
@@ -1158,12 +1111,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Categoría Principal (Nivel 1) *
+                      CategorÃ­a Principal (Nivel 1) *
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder={categoriaSeleccionada ? "Categoría seleccionada" : "🗂️ Buscar Categoría Principal"}
+                        placeholder={categoriaSeleccionada ? "CategorÃ­a seleccionada" : "ðŸ—‚ï¸ Buscar CategorÃ­a Principal"}
                         value={searchCategoria}
                         onChange={(e) => setSearchCategoria(e.target.value)}
                         onFocus={() => setIsCategoriaFocused(true)}
@@ -1176,7 +1129,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             setCategoriaSeleccionada(categoria.nombre);
                             setFormData(prev => ({ ...prev, categoriaId: categoria.idCategoria?.toString() || '' }));
                             setSearchCategoria('');
-                            handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } } as any);
+                            handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } });
                           }
                         }}
                         className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
@@ -1190,7 +1143,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         </div>
                       )}
                       
-                      {/* Lista desplegable de categorías filtradas */}
+                      {/* Lista desplegable de categorÃ­as filtradas */}
                       {(isCategoriaFocused || searchCategoria) && !categoriaSeleccionada && categoriasPrincipalesFiltradas.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                           {categoriasPrincipalesFiltradas.map(categoria => (
@@ -1201,7 +1154,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 setFormData(prev => ({ ...prev, categoriaId: categoria.idCategoria?.toString() || '' }));
                                 setSearchCategoria('');
                                 setIsCategoriaFocused(false);
-                                handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } } as any);
+                                handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } });
                               }}
                               className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                               type="button"
@@ -1215,23 +1168,23 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       {/* Mensaje cuando no hay resultados */}
                       {searchCategoria && categoriasPrincipalesFiltradas.length === 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
-                          No se encontraron categorías principales
+                          No se encontraron categorÃ­as principales
                         </div>
                       )}
                       
-                      {/* Mostrar categoría seleccionada */}
+                      {/* Mostrar categorÃ­a seleccionada */}
                       {categoriaSeleccionada && !searchCategoria && (
                         <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                          <span className="text-indigo-800 font-medium">📁 {categoriaSeleccionada}</span>
+                          <span className="text-indigo-800 font-medium">ðŸ“ {categoriaSeleccionada}</span>
                           <button
                             onClick={() => {
                               setCategoriaSeleccionada('');
                               setFormData(prev => ({ ...prev, categoriaId: '' }));
                               setSearchCategoria('');
-                              handleCategoriaChange({ target: { value: '' } } as any);
+                              handleCategoriaChange({ target: { value: '' } });
                             }}
                             className="text-indigo-600 hover:text-indigo-800"
-                            title="Limpiar selección"
+                            title="Limpiar selecciÃ³n"
                             type="button"
                           >
                             <X className="w-4 h-4" />
@@ -1244,12 +1197,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   {subcategorias.length > 0 && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Subcategoría (Nivel 2) *
+                        SubcategorÃ­a (Nivel 2) *
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder={subcategoriaSeleccionada ? "Subcategoría seleccionada" : "📂 Buscar Subcategoría"}
+                          placeholder={subcategoriaSeleccionada ? "SubcategorÃ­a seleccionada" : "ðŸ“‚ Buscar SubcategorÃ­a"}
                           value={searchSubcategoria}
                           onChange={(e) => setSearchSubcategoria(e.target.value)}
                           onFocus={() => setIsSubcategoriaFocused(true)}
@@ -1262,7 +1215,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               setSubcategoriaSeleccionada(subcategoria.nombre);
                               setFormData(prev => ({ ...prev, subcategoriaId: subcategoria.idCategoria?.toString() || '' }));
                               setSearchSubcategoria('');
-                              handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } } as any);
+                              handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } });
                             }
                           }}
                           className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
@@ -1277,7 +1230,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           </div>
                         )}
                         
-                        {/* Lista desplegable de subcategorías filtradas */}
+                        {/* Lista desplegable de subcategorÃ­as filtradas */}
                         {(isSubcategoriaFocused || searchSubcategoria) && !subcategoriaSeleccionada && subcategoriasFiltradas.length > 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                             {subcategoriasFiltradas.map(subcategoria => (
@@ -1288,7 +1241,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                   setFormData(prev => ({ ...prev, subcategoriaId: subcategoria.idCategoria?.toString() || '' }));
                                   setSearchSubcategoria('');
                                   setIsSubcategoriaFocused(false);
-                                  handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } } as any);
+                                  handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } });
                                 }}
                                 className="w-full text-left px-3 py-2 hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                                 type="button"
@@ -1299,19 +1252,19 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           </div>
                         )}
                         
-                        {/* Mostrar subcategoría seleccionada */}
+                        {/* Mostrar subcategorÃ­a seleccionada */}
                         {subcategoriaSeleccionada && !searchSubcategoria && (
                           <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                            <span className="text-indigo-800 font-medium">📂 {subcategoriaSeleccionada}</span>
+                            <span className="text-indigo-800 font-medium">ðŸ“‚ {subcategoriaSeleccionada}</span>
                             <button
                               onClick={() => {
                                 setSubcategoriaSeleccionada('');
                                 setFormData(prev => ({ ...prev, subcategoriaId: '' }));
                                 setSearchSubcategoria('');
-                                handleSubcategoriaChange({ target: { value: '' } } as any);
+                                handleSubcategoriaChange({ target: { value: '' } });
                               }}
                               className="text-indigo-600 hover:text-indigo-800"
-                              title="Limpiar selección"
+                              title="Limpiar selecciÃ³n"
                               type="button"
                             >
                               <X className="w-4 h-4" />
@@ -1322,7 +1275,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         {/* Mensaje cuando no hay resultados */}
                         {searchSubcategoria && subcategoriasFiltradas.length === 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
-                            No se encontraron subcategorías
+                            No se encontraron subcategorÃ­as
                           </div>
                         )}
                       </div>
@@ -1332,12 +1285,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   {subCategorias2.length > 0 && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Segunda Subcategoría (Nivel 3) <span className="text-red-500">*</span>
+                        Segunda SubcategorÃ­a (Nivel 3) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder={subcategoria2Seleccionada ? "2da subcategoría seleccionada" : "📁 Buscar Segunda Subcategoría"}
+                          placeholder={subcategoria2Seleccionada ? "2da subcategorÃ­a seleccionada" : "ðŸ“ Buscar Segunda SubcategorÃ­a"}
                           value={searchSubcategoria2}
                           onChange={(e) => setSearchSubcategoria2(e.target.value)}
                           onFocus={() => setIsSubcategoria2Focused(true)}
@@ -1364,7 +1317,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           </div>
                         )}
                         
-                        {/* Lista desplegable de segundas subcategorías filtradas */}
+                        {/* Lista desplegable de segundas subcategorÃ­as filtradas */}
                         {(isSubcategoria2Focused || searchSubcategoria2) && !subcategoria2Seleccionada && subcategorias2Filtradas.length > 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                             {subcategorias2Filtradas.map(subcategoria2 => (
@@ -1385,10 +1338,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           </div>
                         )}
                         
-                        {/* Mostrar segunda subcategoría seleccionada */}
+                        {/* Mostrar segunda subcategorÃ­a seleccionada */}
                         {subcategoria2Seleccionada && !searchSubcategoria2 && (
                           <div className="absolute inset-0 px-4 py-3 bg-orange-50 border border-orange-300 rounded-lg flex items-center justify-between">
-                            <span className="text-orange-800 font-medium">📁 {subcategoria2Seleccionada}</span>
+                            <span className="text-orange-800 font-medium">ðŸ“ {subcategoria2Seleccionada}</span>
                             <button
                               onClick={() => {
                                 setSubcategoria2Seleccionada('');
@@ -1396,7 +1349,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 setSearchSubcategoria2('');
                               }}
                               className="text-orange-600 hover:text-orange-800"
-                              title="Limpiar selección"
+                              title="Limpiar selecciÃ³n"
                               type="button"
                             >
                               <X className="w-4 h-4" />
@@ -1407,19 +1360,19 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         {/* Mensaje cuando no hay resultados */}
                         {searchSubcategoria2 && subcategorias2Filtradas.length === 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
-                            No se encontraron segundas subcategorías
+                            No se encontraron segundas subcategorÃ­as
                           </div>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Mensaje informativo cuando no hay subcategorías de nivel 3 */}
+                  {/* Mensaje informativo cuando no hay subcategorÃ­as de nivel 3 */}
                   {subcategorias.length > 0 && subCategorias2.length === 0 && formData.subcategoriaId && (
                     <div className="md:col-span-2">
                       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                         <p className="text-xs text-gray-600">
-                          ℹ️ La subcategoría seleccionada no tiene categorías de nivel 3 disponibles.
+                          â„¹ï¸ La subcategorÃ­a seleccionada no tiene categorÃ­as de nivel 3 disponibles.
                         </p>
                       </div>
                     </div>
@@ -1432,7 +1385,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder={proveedorSeleccionado ? "Proveedor seleccionado" : "🏢 Buscar Proveedor"}
+                        placeholder={proveedorSeleccionado ? "Proveedor seleccionado" : "ðŸ¢ Buscar Proveedor"}
                         value={searchProveedor}
                         onChange={(e) => setSearchProveedor(e.target.value)}
                         onFocus={() => setIsProveedorFocused(true)}
@@ -1483,7 +1436,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       {/* Mostrar proveedor seleccionado */}
                       {proveedorSeleccionado && !searchProveedor && (
                         <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                          <span className="text-indigo-800 font-medium">🏢 {proveedorSeleccionado}</span>
+                          <span className="text-indigo-800 font-medium">ðŸ¢ {proveedorSeleccionado}</span>
                           <button
                             onClick={() => {
                               setProveedorSeleccionado('');
@@ -1491,7 +1444,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               setSearchProveedor('');
                             }}
                             className="text-indigo-600 hover:text-indigo-800"
-                            title="Limpiar selección"
+                            title="Limpiar selecciÃ³n"
                             type="button"
                           >
                             <X className="w-4 h-4" />
@@ -1574,7 +1527,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       </div>
                     </div>
                     
-                    {/* Mensaje de error para validación de precios */}
+                    {/* Mensaje de error para validaciÃ³n de precios */}
                     {errorPrecio && (
                       <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <div className="flex items-center">
@@ -1586,7 +1539,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
                 </div>
               </div>
-            )}            {/* Pestaña: Variantes */}
+            )}            {/* PestaÃ±a: Variantes */}
             {tabActiva === 'variantes' && (
               <div className="bg-indigo-50 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
@@ -1671,17 +1624,17 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           />
                         </div>                        <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            Código (opcional)
+                            CÃ³digo (opcional)
                           </label>
                           <input
                             type="text"
                             value={nuevaVariante.codigoIdentificacion}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, codigoIdentificacion: e.target.value }))}
                             className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
-                            placeholder="Se genera automáticamente"
+                            placeholder="Se genera automÃ¡ticamente"
                           />
                           <p className="mt-1 text-xs text-gray-500 italic">
-                            La etiqueta incluirá automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
+                            La etiqueta incluirÃ¡ automÃ¡ticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
                           </p>
                         </div>
                       </div>
@@ -1697,12 +1650,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       </div>
                     </>
                   ) : (
-                    // Formulario optimizado (múltiples colores por talla)
+                    // Formulario optimizado (mÃºltiples colores por talla)
                     <>                      <h4 className="text-md font-semibold mb-3 text-gray-800">Agregar Variantes por Talla (Modo Optimizado)</h4>
                       <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-blue-700 mb-1">💡 <strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
+                        <p className="text-sm text-blue-700 mb-1">ðŸ’¡ <strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
                         <p className="text-xs text-blue-600 italic">
-                          Las etiquetas incluirán automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
+                          Las etiquetas incluirÃ¡n automÃ¡ticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
                         </p>
                       </div>
                       
@@ -1787,12 +1740,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           <th className="text-left py-3 px-4 font-semibold text-green-800">Talla</th>
                           <th className="text-left py-3 px-4 font-semibold text-green-800">Color</th>
                           <th className="text-center py-3 px-4 font-semibold text-green-800">Cantidad</th>
-                          <th className="text-left py-3 px-4 font-semibold text-green-800">Código</th>
+                          <th className="text-left py-3 px-4 font-semibold text-green-800">CÃ³digo</th>
                           <th className="text-center py-3 px-4 font-semibold text-green-800">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {/* FIX: Se usa una clave única y estable en lugar del índice. */}
+                        {/* FIX: Se usa una clave Ãºnica y estable en lugar del Ã­ndice. */}
                         {variantes.map((variante, index) => (
                           <tr key={variante.id || `new-${variante.tallaId}-${variante.colorId}`} className="border-t border-green-100 hover:bg-green-50 transition-colors">
                             <td className="py-3 px-4">
@@ -1828,14 +1781,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                     onClick={() => generarCodigoBarrasVariante(variante.id)}
                                     className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50"
                                     disabled={loading}
-                                    title="Ver código de barras"
+                                    title="Ver cÃ³digo de barras"
                                   >
                                     <Barcode className="w-4 h-4" />
                                   </button>
                                 ) : (
                                   <span 
                                     className="text-xs text-gray-400 italic px-2 py-1" 
-                                    title="Guarda el producto para generar el código"
+                                    title="Guarda el producto para generar el cÃ³digo"
                                   >
                                     Pendiente
                                   </span>
@@ -1887,7 +1840,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 
                 {variantes.length === 0 ? (
                   <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-blue-700 mb-3">No hay variantes agregadas todavía</p>
+                    <p className="text-blue-700 mb-3">No hay variantes agregadas todavÃ­a</p>
                     <button
                       type="button"
                       onClick={() => setShowFormularioVariante(true)}
@@ -1901,18 +1854,18 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               </div>
             )}
 
-            {/* Pestaña: Precios */}
+            {/* PestaÃ±a: Precios */}
             {tabActiva === 'precios' && (
               <div className="bg-white rounded-xl border border-amber-200 shadow-sm">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold mb-4 text-amber-800 flex items-center gap-2">
                     <Tag className="w-5 h-5" />
-                    Configuración de Precios
+                    ConfiguraciÃ³n de Precios
                   </h3>
                   
                   <div className="mb-4 p-4 bg-amber-50 rounded-lg border border-amber-100">
                     <p className="text-sm text-amber-700">
-                      Configure los diferentes precios según la cantidad. El precio unitario es obligatorio, los demás son opcionales.
+                      Configure los diferentes precios segÃºn la cantidad. El precio unitario es obligatorio, los demÃ¡s son opcionales.
                     </p>
                   </div>
                   
@@ -2038,18 +1991,18 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               </div>
             )}
 
-            {/* Pestaña: Códigos de Barras */}
+            {/* PestaÃ±a: CÃ³digos de Barras */}
             {tabActiva === 'codigosBarras' && (              <div className="bg-white rounded-xl border border-indigo-200 shadow-sm">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold mb-4 text-indigo-800 flex items-center gap-2">
                     <Barcode className="w-5 h-5" />
-                    Códigos de Barras
+                    CÃ³digos de Barras
                   </h3>
                     {/* Mensaje informativo actualizado */}
                   <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-medium text-blue-800 mb-2">🏷️ Sobre las etiquetas de código de barras</h4>                    <div className="text-sm text-blue-700 space-y-1">
-                      <p><strong>Etiquetas de Variantes:</strong> Cada etiqueta incluye automáticamente toda la información necesaria</p>
-                      <p className="text-xs italic">Formato: "Nombre del Producto [Código] - T/Talla - Color"</p>
+                    <h4 className="font-medium text-blue-800 mb-2">ðŸ·ï¸ Sobre las etiquetas de cÃ³digo de barras</h4>                    <div className="text-sm text-blue-700 space-y-1">
+                      <p><strong>Etiquetas de Variantes:</strong> Cada etiqueta incluye automÃ¡ticamente toda la informaciÃ³n necesaria</p>
+                      <p className="text-xs italic">Formato: "Nombre del Producto [CÃ³digo] - T/Talla - Color"</p>
                       <p className="text-xs italic">Ejemplo: "Boxer Americano [BA001] - T/M - Azul"</p>
                     </div>
                   </div>
@@ -2057,7 +2010,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     <div>
                       <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-200 h-full"><h4 className="font-medium text-indigo-800 mb-3">
                           {varianteSeleccionada 
-                            ? 'Etiqueta con Información Completa'
+                            ? 'Etiqueta con InformaciÃ³n Completa'
                             : 'Etiquetas de Variantes (con nombre del producto)'}
                         </h4>
                         
@@ -2071,7 +2024,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                   return (
                                     <div key={v.id} className="bg-gray-50 p-3 rounded-lg">                                      <p className="font-medium text-gray-800">Esta etiqueta contiene:</p>
                                       <p className="text-green-700 font-semibold">"{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"</p>
-                                      <p className="text-xs text-gray-500 mt-1">Código: {v.codigoIdentificacion}</p>
+                                      <p className="text-xs text-gray-500 mt-1">CÃ³digo: {v.codigoIdentificacion}</p>
                                     </div>
                                   );
                                 }
@@ -2082,7 +2035,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             <div className="flex flex-col items-center justify-center bg-white p-4 rounded-lg border border-purple-200">
                               <img 
                                 src={codigoBarrasPreview} 
-                                alt="Código de barras de variante" 
+                                alt="CÃ³digo de barras de variante" 
                                 className="max-w-full h-auto max-h-48 mb-3"
                               />
                               <div className="flex gap-2">
@@ -2110,7 +2063,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           </div>
                         ) : (variantes.length > 0 ? (
                             <div className="space-y-3">                              <div className="text-sm text-gray-500 mb-3">
-                                <p className="font-medium">Cada etiqueta contendrá:</p>
+                                <p className="font-medium">Cada etiqueta contendrÃ¡:</p>
                                 <p className="text-xs italic">"{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"</p>
                               </div>
                               
@@ -2147,8 +2100,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               <p className="text-sm text-gray-500 mb-2">
                                 No hay variantes agregadas.
                               </p>                              <p className="text-xs text-gray-500 italic mb-4">
-                                Las etiquetas de variantes incluirán automáticamente:<br/>
-                                "Nombre del Producto [Código] - T/X - Color Y"
+                                Las etiquetas de variantes incluirÃ¡n automÃ¡ticamente:<br/>
+                                "Nombre del Producto [CÃ³digo] - T/X - Color Y"
                               </p>
                               <button
                                 type="button"
@@ -2171,7 +2124,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               </div>
             )}
 
-            {/* Botones de acción */}
+            {/* Botones de acciÃ³n */}
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white py-4 border-t border-gray-200">
               <div className="flex gap-3">                <button
                   type="button"
@@ -2231,3 +2184,4 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 };
 
 export default FormularioProductoUnificado;
+

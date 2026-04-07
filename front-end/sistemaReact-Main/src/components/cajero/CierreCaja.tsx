@@ -5,6 +5,30 @@ import { VentaService } from '../../services/VentaServices';
 import { Printer, CheckCircle, Clock, User, Calculator } from 'lucide-react';
 import { obtenerDatosApertura, limpiarDatosApertura } from './AperturaCaja';
 
+interface DiferenciasCierreCaja {
+  diferenciasEfectivo: number;
+  diferenciasTarjeta: number;
+  diferenciasYape: number;
+  efectivoEsperado: number;
+  discrepanciaCaja: number;
+}
+
+interface DatosCierreCaja {
+  usuario: string;
+  fechaApertura: string;
+  fechaCierre: string;
+  montoInicial: number;
+  totalVentas: number;
+  efectivoVentas: number;
+  tarjetaVentas: number;
+  yapeVentas: number;
+  efectivoContado: number;
+  tarjetaContado: number;
+  yapeContado: number;
+  observaciones: string;
+  diferencias: DiferenciasCierreCaja;
+}
+
 const CierreCaja = () => {
   const { usuario } = useAuth();
   const navigate = useNavigate();
@@ -22,7 +46,7 @@ const CierreCaja = () => {
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [cierreExitoso, setCierreExitoso] = useState<boolean>(false);
-  const [datosCierre, setDatosCierre] = useState<any>(null);
+  const [datosCierre, setDatosCierre] = useState<DatosCierreCaja | null>(null);
 
   // Función para obtener fecha y hora actual en formato dd/mm/yyyy - hh:mm:ss
   const obtenerFechaHoraActual = () => {

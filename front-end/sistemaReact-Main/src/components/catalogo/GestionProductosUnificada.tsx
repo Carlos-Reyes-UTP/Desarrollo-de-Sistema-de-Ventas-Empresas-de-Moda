@@ -100,7 +100,8 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
   const [selectedProveedor, setSelectedProveedor] = useState<string>('');
 
   // Estados para modales (separados por z-index)
-  const [showFormularioProducto, setShowFormularioProducto] = useState(false);  const [showVariantes, setShowVariantes] = useState(false);
+  const [showFormularioProducto, setShowFormularioProducto] = useState(false);
+  const [showVariantes, setShowVariantes] = useState(false);
   const [showCodigosBarras, setShowCodigosBarras] = useState(false);
   const [showBarcodeModal, setShowBarcodeModal] = useState(false);
   const [productoSeleccionado, setProductoSeleccionado] = useState<Producto | null>(null);
@@ -135,7 +136,9 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
       console.log('Usuario no autenticado, redirigiendo a login...');
       window.location.href = '/login';
     }
-  }, [isReady, isAuthenticated]);const cargarDatos = async () => {
+  }, [isReady, isAuthenticated]);
+
+  const cargarDatos = async () => {
     try {
       setLoading(true);
       console.log('🔄 Cargando datos del componente padre...');
@@ -186,7 +189,9 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
     } finally {
       setLoading(false);
     }
-  };const handleBuscar = async () => {
+  };
+
+  const handleBuscar = async () => {
     if (!searchTerm.trim()) {
       cargarDatos();
       return;
@@ -252,7 +257,9 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
     }
     
     setProductoSeleccionado(null);
-  };const handleVariantesActualizadas = () => {
+  };
+
+  const handleVariantesActualizadas = () => {
     console.log('🔄 Notificación de variantes actualizadas recibida en componente padre');
     // Agregar un pequeño delay para evitar condiciones de carrera
     setTimeout(() => {
@@ -615,7 +622,9 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
             onProductoGuardado={handleProductoGuardado}
           />
         </div>
-      )}      {showVariantes && productoSeleccionado && (
+      )}
+
+      {showVariantes && productoSeleccionado && (
         <div style={{ zIndex: 2000 }}>
           <GestionVariantes
             producto={productoSeleccionado}
@@ -646,7 +655,9 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
             }}
           />
         </div>
-      )}      {showBarcodeModal && productoBarcode && (
+      )}
+
+      {showBarcodeModal && productoBarcode && (
         <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isBarcodeModalVisible ? 'opacity-100' : 'opacity-0'}`}>
           <div className={`bg-white rounded-xl shadow-2xl p-8 max-w-md w-full relative border border-gray-200 transform transition-all duration-300 ${isBarcodeModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
             <button

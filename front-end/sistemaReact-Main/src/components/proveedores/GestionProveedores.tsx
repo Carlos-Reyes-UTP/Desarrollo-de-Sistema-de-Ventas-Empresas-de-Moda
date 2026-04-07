@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Save, X, Building2, Users, Loader2 } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Save, X, Building2, Loader2, AlertCircle } from 'lucide-react';
 import type { Proveedor } from '../../interfaces/Proveedor';
 import { ProveedorService } from '../../services/ProveedorServices';
 
@@ -43,22 +43,15 @@ const GestionProveedores: React.FC = () => {
     }
   };
 
-  // Función para cerrar modal con animación
   const cerrarModalConAnimacion = () => {
     setCerrandoModal(true);
     setTimeout(() => {
       setShowFormulario(false);
       setCerrandoModal(false);
-      // Limpiar el formulario
       setFormData({ nombre: '', ruc: '' });
       setProveedorEditar(null);
       setError(null);
-    }, 300); // Duración de la animación
-  };
-
-  const handleBuscar = async () => {
-    // Ya no se usa, la búsqueda es en tiempo real
-    return;
+    }, 300);
   };
 
   const verificarRUC = async () => {
@@ -67,7 +60,6 @@ const GestionProveedores: React.FC = () => {
       return;
     }
     
-    // Validar formato RUC (11 dígitos)
     if (!/^\d{11}$/.test(formData.ruc)) {
       setError('El RUC debe tener 11 dígitos');
       return;
@@ -77,7 +69,6 @@ const GestionProveedores: React.FC = () => {
     setBuscandoProveedor(true);
     
     try {
-      // Verificar si el proveedor ya existe
       const proveedoresExistentes = await ProveedorService.obtenerTodosProveedores();
       const existente = proveedoresExistentes.find(p => p.ruc === formData.ruc);
       
@@ -87,10 +78,8 @@ const GestionProveedores: React.FC = () => {
         return;
       }
       
-      // Si no existe, buscar en la API externa
       try {
         const proveedorEncontrado = await ProveedorService.obtenerProveedorPorRUC(formData.ruc);
-        
         if (proveedorEncontrado) {
           setFormData({
             ...formData,
@@ -114,30 +103,23 @@ const GestionProveedores: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Validaciones
     if (!formData.nombre.trim()) {
       setError('El nombre es requerido');
       return;
     }
-    
     if (!formData.ruc.trim()) {
       setError('El RUC es requerido');
       return;
     }
-
-    // Validar formato RUC (11 dígitos)
     if (!/^\d{11}$/.test(formData.ruc)) {
       setError('El RUC debe tener 11 dígitos');
       return;
     }
 
     try {
-      // Si no estamos en modo edición, verificar que el RUC no esté ya registrado
       if (!proveedorEditar) {
         const proveedoresExistentes = await ProveedorService.obtenerTodosProveedores();
         const existente = proveedoresExistentes.find(p => p.ruc === formData.ruc);
-        
         if (existente) {
           setError(`El proveedor con RUC ${formData.ruc} ya existe como "${existente.nombre}"`);
           return;
@@ -185,7 +167,7 @@ const GestionProveedores: React.FC = () => {
     setProveedorEditar(proveedor);
     setFormData({
       nombre: proveedor.nombre,
-      ruc: proveedor.ruc // El RUC estará deshabilitado en modo edición
+      ruc: proveedor.ruc
     });
     setShowFormulario(true);
     setError(null);
@@ -204,11 +186,10 @@ const GestionProveedores: React.FC = () => {
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleBuscar();
+      // Búsqueda en tiempo real activa por el useEffect [searchTerm]
     }
   };
 
-  // Resetear página al buscar o filtrar
   useEffect(() => {
     setPaginaActual(1);
     if (!searchTerm.trim()) {
@@ -222,110 +203,153 @@ const GestionProveedores: React.FC = () => {
     }
   }, [searchTerm, proveedoresOriginal]);
 
-  // Proveedores a mostrar en la página actual
   const proveedoresPaginados = proveedores.slice(
     (paginaActual - 1) * proveedoresPorPagina,
     paginaActual * proveedoresPorPagina
   );
 
   return (
-    <div className="p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3 pl-4">
-          <div className="bg-indigo-100 p-3 rounded-lg">
-            <Building2 className="w-8 h-8 text-indigo-600" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Gestión de Proveedores</h1>
-            <p className="text-gray-600">Administra los proveedores de tu empresa</p>
-          </div>
+    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+        <div>
+          <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
+            Gestión de proveedores
+          </h1>
+          <p className="text-gray-500 text-sm max-w-md font-medium">
+            Administración centralizada de socios estratégicos y logística para DK-SYSTEM.
+          </p>
         </div>
-        <button
-          onClick={handleNuevo}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          Nuevo Proveedor
-        </button>
+        
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleNuevo}
+            className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo Proveedor
+          </button>
+        </div>
       </div>
 
-      {/* Contenedor principal con sombra y barra de búsqueda igual a tallas/colores */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-200">
-        {/* Barra de búsqueda */}
-        <div className="p-4 border-b border-gray-200">
-          <div className="relative">
-            <Search className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre o RUC..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              onKeyDown={handleKeyPress}
-              className="w-full pl-10 pr-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 
-                       focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 
-                       transition-all duration-200 hover:border-indigo-400"
-            />
+      {/* Primary Filters Bar */}
+      <div className="bg-white rounded-[2rem] p-8 mb-8 shadow-sm border border-gray-100">
+        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8 items-end">
+          
+          <div className="lg:col-span-3">
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+              Buscar Proveedor
+            </label>
+            <div className="relative">
+              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Nombre o RUC..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={handleKeyPress}
+                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium"
+              />
+            </div>
+          </div>
+
+          <div className="lg:col-span-1">
+            <div className="h-[46px] flex items-center justify-center bg-[#f8f8f8] rounded-xl px-4 text-gray-400">
+              <Building2 className="w-4 h-4" />
+              <span className="ml-2 text-xs font-bold uppercase tracking-widest">{proveedores.length} Total</span>
+            </div>
           </div>
         </div>
-        {/* Tabla de proveedores igual a tallas/colores */}
+      </div>
+
+      {/* Main Table Content */}
+      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">RUC</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-white border-b border-gray-50">
+                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                  Identidad del Socio
+                </th>
+                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                  RUC / Identificación
+                </th>
+                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                  Estado
+                </th>
+                <th className="px-8 py-6 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                  Acciones
+                </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="divide-y divide-gray-50">
               {loading && (
                 <tr>
-                  <td colSpan={3} className="text-center p-12 text-gray-500">Cargando proveedores...</td>
+                  <td colSpan={4} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cargando datos...</span>
+                    </div>
+                  </td>
                 </tr>
               )}
               {!loading && proveedores.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="text-center p-12">
-                    <Building2 className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">No se encontraron proveedores</h3>
-                    <p className="mt-1 text-sm text-gray-500">
-                      {searchTerm ? 'Intenta con otra búsqueda o limpia el filtro.' : '¡Comienza añadiendo tu primer proveedor!'}
-                    </p>
+                  <td colSpan={4} className="px-8 py-20 text-center">
+                    <div className="flex flex-col items-center gap-2 opacity-30">
+                      <Building2 className="w-12 h-12" />
+                      <span className="text-xs font-bold uppercase tracking-widest">Sin resultados</span>
+                    </div>
                   </td>
                 </tr>
               )}
               {proveedoresPaginados.map((proveedor) => (
-                <tr key={proveedor.idProveedor} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="bg-indigo-100 p-2 rounded-lg mr-3">
-                        <Building2 className="w-5 h-5 text-blue-600" />
+                <tr key={proveedor.idProveedor} className="hover:bg-[#fafafa] transition-colors group">
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-white shadow-lg">
+                        <Building2 className="w-5 h-5" />
                       </div>
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{proveedor.nombre}</div>
-                        <div className="text-sm text-gray-500">ID: {proveedor.idProveedor}</div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-black leading-tight mb-1">
+                          {proveedor.nombre}
+                        </span>
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                          Socio Logístico • ID {proveedor.idProveedor}
+                        </span>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 font-mono">{proveedor.ruc}</div>
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-2 text-gray-600">
+                       <span className="px-3 py-1 bg-gray-100 rounded-lg text-[10px] font-mono font-bold tracking-tighter">
+                        {proveedor.ruc}
+                      </span>
+                    </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end gap-2">
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-2">
+                       <div className="w-2 h-2 rounded-full bg-[#10b981]"></div>
+                      <span className="text-[10px] font-bold text-[#10b981] uppercase tracking-widest">
+                        ACTIVO
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex items-center justify-end gap-2 text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleEditar(proveedor)}
-                        className="text-blue-600 hover:text-blue-900 p-2 rounded-full hover:bg-blue-100 transition-colors"
-                        title="Editar proveedor"
+                        className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent"
+                        title="Editar"
                       >
-                        <Edit className="w-5 h-5" />
+                        <Edit className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleEliminar(proveedor.idProveedor!)}
-                        className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-100 transition-colors"
-                        title="Eliminar proveedor"
+                        className="p-2.5 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent text-red-400 hover:text-white"
+                        title="Eliminar"
                       >
-                        <Trash2 className="w-5 h-5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -335,240 +359,130 @@ const GestionProveedores: React.FC = () => {
           </table>
         </div>
       </div>
-      {/* Paginación responsiva */}
-      {totalPaginas > 1 && (
-        <div className="max-w-7xl mx-auto">
-          <div className="mt-6 bg-gray-50 border-t border-gray-200 rounded-b-lg shadow-sm border-x border-b">
-            {/* Versión móvil */}
-            <div className="block sm:hidden px-3 py-2">
-              <div className="flex items-center justify-between">
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                  disabled={paginaActual === 1}
-                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
-                    paginaActual === 1 
-                      ? 'text-gray-400 cursor-not-allowed' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  ← Anterior
-                </button>
-                
-                <div className="flex flex-col items-center">
-                  <span className="text-sm text-gray-700 font-medium">
-                    Página {paginaActual} de {totalPaginas}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    {proveedores.length} proveedores
-                  </span>
-                </div>
-                
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                  disabled={paginaActual === totalPaginas}
-                  className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
-                    paginaActual === totalPaginas 
-                      ? 'text-gray-400 cursor-not-allowed' 
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Siguiente →
-                </button>
-              </div>
-            </div>
 
-            {/* Versión desktop */}
-            <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6">
-              <div className="text-sm text-gray-600">
-                Mostrando {((paginaActual - 1) * proveedoresPorPagina) + 1}
-                -{Math.min(paginaActual * proveedoresPorPagina, proveedores.length)}
-                {' '}de {proveedores.length} proveedores
-              </div>
-              <div className="flex items-center space-x-2">
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
-                  disabled={paginaActual === 1}
-                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-                  aria-label="Anterior"
-                >
-                  Anterior
-                </button>
-                {(() => {
-                  let pages: (number | string)[] = [];
-                  if (totalPaginas <= 5) {
-                    pages = Array.from({ length: totalPaginas }, (_, i) => i + 1);
-                  } else {
-                    pages.push(1);
-                    let rangeStart = Math.max(2, paginaActual - 2);
-                    let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
-                    if (paginaActual <= 3) {
-                      rangeStart = 2;
-                      rangeEnd = 5;
-                    } else if (paginaActual >= totalPaginas - 2) {
-                      rangeStart = totalPaginas - 4;
-                      rangeEnd = totalPaginas - 1;
-                    }
-                    if (rangeStart > 2) pages.push('...');
-                    for (let i = rangeStart; i <= rangeEnd; i++) {
-                      pages.push(i);
-                    }
-                    if (rangeEnd < totalPaginas - 1) pages.push('...');
-                    pages.push(totalPaginas);
-                  }
-                  return pages.map((num, idx) =>
-                    typeof num === 'number' ? (
-                      <button
-                        key={num}
-                        onClick={() => setPaginaActual(num)}
-                        className={`flex items-center justify-center h-9 w-9 rounded-md border text-sm font-medium transition-colors ${paginaActual === num ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-blue-50'}`}
-                        aria-current={paginaActual === num ? 'page' : undefined}
-                      >
-                        {num}
-                      </button>
-                    ) : (
-                      <span key={`ellipsis-${num}-${idx}`} className="px-2 text-gray-400 select-none text-base">...</span>
-                    )
-                  );
-                })()}
-                <button
-                  onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
-                  disabled={paginaActual === totalPaginas}
-                  className={`flex items-center justify-center h-9 px-4 rounded-md border border-gray-300 text-gray-500 bg-white hover:bg-gray-100 transition-colors disabled:bg-gray-100 disabled:text-gray-300 disabled:cursor-not-allowed`}
-                  aria-label="Siguiente"
-                >
-                  Siguiente
-                </button>
-              </div>
-            </div>
+      <div className="px-8 py-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+          Mostrando <span className="text-black">{proveedoresPaginados.length}</span> de <span className="text-black">{proveedores.length}</span> proveedores
+        </p>
+        
+        <div className="flex items-center gap-1 bg-white p-1 rounded-[14px] shadow-sm border border-gray-100">
+          <button
+            onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
+            disabled={paginaActual === 1}
+            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Anterior
+          </button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+              <button
+                key={num}
+                onClick={() => setPaginaActual(num)}
+                className={`w-9 h-9 flex items-center justify-center rounded-[10px] text-xs font-bold transition-all ${
+                  paginaActual === num ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'
+                }`}
+              >
+                {num}
+              </button>
+            ))}
           </div>
-        </div>
-      )}
 
-      {/* Formulario Modal */}
+          <button
+            onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
+            disabled={paginaActual === totalPaginas}
+            className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+
       {showFormulario && (
-        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-md ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
-            <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
-              <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
-                    {proveedorEditar ? (
-                      <Edit className="w-6 h-6 text-white" />
-                    ) : (
-                      <Building2 className="w-6 h-6 text-white" />
+        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+          <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+            <div className="p-10">
+              <div className="mb-6 w-12 h-1 bg-black"></div>
+              <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
+                {proveedorEditar ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+              </h2>
+              <p className="text-gray-500 text-sm mb-10 font-medium">
+                Sincronización de datos con SUNAT y gestión de registros logísticos.
+              </p>
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {error && (
+                  <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4" />
+                    {error}
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                    RUC / Identificación Fiscal
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={formData.ruc}
+                      onChange={(e) => {
+                        if (e.target.value === '' || /^\d+$/.test(e.target.value)) {
+                          setFormData({ ...formData, ruc: e.target.value });
+                        }
+                      }}
+                      className="flex-1 px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all disabled:opacity-50"
+                      placeholder="11 Dígitos..."
+                      maxLength={11}
+                      disabled={!!proveedorEditar}
+                      required
+                    />
+                    {!proveedorEditar && (
+                      <button
+                        type="button"
+                        onClick={verificarRUC}
+                        disabled={buscandoProveedor || formData.ruc.length !== 11}
+                        className="px-6 py-4 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-30 transition-all shadow-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"
+                      >
+                        {buscandoProveedor ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                        Verificar
+                      </button>
                     )}
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white">
-                      {proveedorEditar ? 'Editar Proveedor' : 'Nuevo Proveedor'}
-                    </h2>
-                    <p className="text-indigo-100 text-sm">
-                      {proveedorEditar ? 'Modifica la información del proveedor' : 'Complete la información para crear el proveedor'}
-                    </p>
-                  </div>
                 </div>
-                <button
-                  onClick={handleCancelar}
-                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              {/* Mensaje de error dentro del modal */}
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
-                  {error}
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <label htmlFor="ruc-input" className="block text-sm font-medium text-gray-700">
-                  RUC <span className="text-red-500">*</span>
-                </label>
-                <div className="flex">
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                    Nombre o Razón Social
+                  </label>
                   <input
-                    id="ruc-input"
                     type="text"
-                    value={formData.ruc}
-                    onChange={(e) => {
-                      // Solo permitir dígitos
-                      if (e.target.value === '' || /^\d+$/.test(e.target.value)) {
-                        setFormData({ ...formData, ruc: e.target.value });
-                      }
-                    }}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-l-xl bg-gray-50 text-gray-900 
-                             focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 
-                             transition-all duration-200 hover:border-indigo-400 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                    placeholder="12345678901"
-                    maxLength={11}
-                    disabled={!!proveedorEditar} // Deshabilitar en modo edición
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    placeholder="Nombre completo..."
                     required
                   />
-                  {!proveedorEditar && (
-                    <button
-                      type="button"
-                      onClick={verificarRUC}
-                      disabled={buscandoProveedor || formData.ruc.length !== 11}
-                      className="px-4 py-3 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 
-                               rounded-r-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 
-                               hover:shadow-lg hover:shadow-indigo-500/25 flex items-center 
-                               disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed 
-                               focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
-                    >
-                      {buscandoProveedor ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-1" />
-                      ) : (
-                        <Search className="w-4 h-4 mr-1" />
-                      )}
-                      Verificar
-                    </button>
-                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Debe contener 11 dígitos</p>
-              </div>
 
-              <div className="space-y-2">
-                <label htmlFor="nombre-input" className="block text-sm font-medium text-gray-700">
-                  Nombre <span className="text-red-500">*</span>
-                </label>
-                <input
-                  id="nombre-input"
-                  type="text"
-                  value={formData.nombre}
-                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 text-gray-900 
-                           focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 
-                           transition-all duration-200 hover:border-indigo-400"
-                  placeholder="Nombre del proveedor"
-                  required
-                />
-              </div>
-
-              <div className="flex justify-end space-x-3 pt-6 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={handleCancelar}
-                  className="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-xl 
-                           hover:bg-gray-200 transition-all duration-200 hover:shadow-md"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-3 text-sm font-medium text-white bg-gradient-to-r from-indigo-600 to-purple-600 
-                           rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 
-                           hover:shadow-lg hover:shadow-indigo-500/25 flex items-center gap-2 
-                           focus:outline-none focus:ring-4 focus:ring-indigo-500/20"
-                >
-                  <Save className="w-4 h-4" />
-                  {proveedorEditar ? 'Actualizar' : 'Guardar'}
-                </button>
-              </div>
-            </form>
+                <div className="flex gap-3 pt-6">
+                  <button
+                    type="button"
+                    onClick={handleCancelar}
+                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
+                  >
+                    <Save className="w-4 h-4" />
+                    {proveedorEditar ? 'Actualizar' : 'Guardar'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

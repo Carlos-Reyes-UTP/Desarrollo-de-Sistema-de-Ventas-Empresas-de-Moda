@@ -136,6 +136,22 @@ interface ModalHacerMayoristaProps {
   clientePreseleccionado?: Cliente | null; // Cliente ya seleccionado desde fuera
 }
 
+const getStatusCode = (error: unknown): number | undefined => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'response' in error &&
+    typeof (error as { response?: unknown }).response === 'object' &&
+    (error as { response?: unknown }).response !== null &&
+    'status' in ((error as { response?: { status?: unknown } }).response ?? {})
+  ) {
+    const status = (error as { response?: { status?: unknown } }).response?.status;
+    return typeof status === 'number' ? status : undefined;
+  }
+
+  return undefined;
+};
+
 const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({ 
   isOpen, 
   onClose, 
@@ -182,9 +198,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const [cerrandoModal, setCerrandoModal] = useState(false);
   
   // Estados para animaciones de botones
-  const [animacionBotonConvertir, setAnimacionBotonConvertir] = useState('');
-  const [animacionBotonCrear, setAnimacionBotonCrear] = useState('');
-  const [animacionBotonEliminar, setAnimacionBotonEliminar] = useState('');
+  const [, setAnimacionBotonConvertir] = useState('');
 
   // Función para cerrar modal con animación
   const cerrarModalConAnimacion = () => {
@@ -308,9 +322,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
       // NO cerrar automáticamente - dejar que el usuario vea el código y cierre manualmente
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al convertir a mayorista:', error);
-      if (error.response?.status === 400) {
+      const status = getStatusCode(error);
+      if (status === 400) {
         setError('El cliente ya es mayorista o hay un error en los datos.');
       } else {
         setError('Error al convertir cliente a mayorista. Intente nuevamente.');
@@ -364,9 +379,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         setError('No se pudo eliminar el mayorista. Intente nuevamente.');
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al eliminar mayorista:', error);
-      if (error.response?.status === 404) {
+      const status = getStatusCode(error);
+      if (status === 404) {
         setError('No se encontró el mayorista para eliminar.');
       } else {
         setError('Error al eliminar mayorista. Intente nuevamente.');
@@ -430,11 +446,12 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
       // NO cerrar automáticamente - dejar que el usuario vea el código y cierre manualmente
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al crear nuevo mayorista:', error);
-      if (error.response?.status === 400) {
+      const status = getStatusCode(error);
+      if (status === 400) {
         setError('Error en los datos proporcionados. Verifique la información.');
-      } else if (error.response?.status === 409) {
+      } else if (status === 409) {
         setError('Ya existe un cliente con ese documento.');
       } else {
         setError('Error al crear el nuevo mayorista. Intente nuevamente.');
@@ -567,15 +584,16 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         setDatosEncontrados(false);
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error al buscar datos externos:', error);
+      const status = getStatusCode(error);
       
       // Manejo específico de errores según el código de respuesta
-      if (error.response?.status === 404) {
+      if (status === 404) {
         setError(`No se encontraron datos para el ${tipoDoc} ingresado. Puede ingresar el nombre manualmente.`);
-      } else if (error.response?.status === 400) {
+      } else if (status === 400) {
         setError(`El formato del ${tipoDoc} no es válido. Verifique el número ingresado.`);
-      } else if (error.response?.status >= 500) {
+      } else if (typeof status === 'number' && status >= 500) {
         setError('Error en el servidor de consultas externas. Puede ingresar el nombre manualmente.');
       } else {
         setError('Error al consultar las bases de datos externas. Puede ingresar el nombre manualmente.');

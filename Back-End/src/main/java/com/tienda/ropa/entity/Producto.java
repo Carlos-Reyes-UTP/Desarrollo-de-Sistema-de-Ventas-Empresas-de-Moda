@@ -55,9 +55,8 @@ public class Producto {
     @JoinColumn(name = "id_subcategoria", nullable = true)
     private Categoria categoria;
 
-    @NotNull
     @ManyToOne
-    @JoinColumn(name = "id_sub_categoria2", nullable = false)
+    @JoinColumn(name = "id_sub_categoria2", nullable = true)
     private Categoria subCategoria2;
 
     @ManyToOne
@@ -95,7 +94,8 @@ public class Producto {
 
     // Método para calcular la cantidad total de producto disponible
     public int getCantidadTotal() {
-        // Si el producto usa el sistema de variantes, suma las cantidades de todas las variantes
+        // Si el producto usa el sistema de variantes, suma las cantidades de todas las
+        // variantes
         if (variantes != null && !variantes.isEmpty()) {
             return variantes.stream()
                     .mapToInt(ProductoVariante::getCantidad)
@@ -120,7 +120,6 @@ public class Producto {
     public void setCodigoIdentificacion(String codigoIdentificacion) {
         this.codigoIdentificacion = codigoIdentificacion;
     }
-
 
     public String getNombre() {
         return nombre;
@@ -239,8 +238,8 @@ public class Producto {
     @PrePersist
     @PreUpdate
     private void validarPreciosPorVolumen() {
-        if (precioUnitario == null || precioCuarto == null || 
-            precioMediaDocena == null || precioDocena == null) {
+        if (precioUnitario == null || precioCuarto == null ||
+                precioMediaDocena == null || precioDocena == null) {
             throw new IllegalArgumentException("Todos los precios por volumen son obligatorios");
         }
 
@@ -253,23 +252,21 @@ public class Producto {
         // Validar que los precios unitarios disminuyan con el volumen
         if (precioUnitarioIndividual.compareTo(precioUnitarioCuarto) < 0) {
             throw new IllegalArgumentException(
-                "El precio unitario del cuarto (S/." + precioUnitarioCuarto + 
-                ") no puede ser mayor al precio individual (S/." + precioUnitarioIndividual + ")"
-            );
+                    "El precio unitario del cuarto (S/." + precioUnitarioCuarto +
+                            ") no puede ser mayor al precio individual (S/." + precioUnitarioIndividual + ")");
         }
 
         if (precioUnitarioCuarto.compareTo(precioUnitarioMediaDocena) < 0) {
             throw new IllegalArgumentException(
-                "El precio unitario de la media docena (S/." + precioUnitarioMediaDocena + 
-                ") no puede ser mayor al precio unitario del cuarto (S/." + precioUnitarioCuarto + ")"
-            );
+                    "El precio unitario de la media docena (S/." + precioUnitarioMediaDocena +
+                            ") no puede ser mayor al precio unitario del cuarto (S/." + precioUnitarioCuarto + ")");
         }
 
         if (precioUnitarioMediaDocena.compareTo(precioUnitarioDocenaCompleta) < 0) {
             throw new IllegalArgumentException(
-                "El precio unitario de la docena (S/." + precioUnitarioDocenaCompleta + 
-                ") no puede ser mayor al precio unitario de la media docena (S/." + precioUnitarioMediaDocena + ")"
-            );
+                    "El precio unitario de la docena (S/." + precioUnitarioDocenaCompleta +
+                            ") no puede ser mayor al precio unitario de la media docena (S/."
+                            + precioUnitarioMediaDocena + ")");
         }
     }
 

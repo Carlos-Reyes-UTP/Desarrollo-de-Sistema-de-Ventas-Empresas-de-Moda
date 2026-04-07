@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import type { Usuario } from '../../interfaces/Usuario';
 import {
-  IconButton,
   Typography,
   List,
   ListItem,
@@ -16,19 +15,24 @@ import {
   Card,
 } from "@material-tailwind/react";
 import {
-  PresentationChartBarIcon,
-  ShoppingBagIcon,
-  UserCircleIcon,
-  Cog6ToothIcon,
-  PowerIcon,
-  Squares2X2Icon,
-} from "@heroicons/react/24/solid";
-import {
-  ChevronRightIcon,
-  ChevronDownIcon,
-  Bars3Icon,
-  XMarkIcon,
-} from "@heroicons/react/24/outline";
+  LayoutDashboard,
+  Box,
+  Truck,
+  Layers,
+  ChevronRight,
+  ChevronDown,
+  Menu,
+  X,
+  User,
+  LogOut,
+  Users,
+  Palette,
+  Maximize2,
+  PieChart,
+  ShoppingBag,
+  PanelLeftClose,
+  ChevronLast
+} from "lucide-react";
 
 interface SidebarMenuProps {
   vistaActual: string;
@@ -55,7 +59,6 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
   };
   const closeDrawer = () => {
     setIsDrawerOpen(false);
-    // Pequeño delay para sincronizar con la animación de cierre del drawer
     setTimeout(() => {
       onDrawerStateChange?.(false);
     }, 100);
@@ -109,18 +112,15 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
     return null;
   };
 
-  // Detectar cambios en la ruta para actualizar la vista activa
   useEffect(() => {
     const path = location.pathname;
     const resultado = determinarVistaYSubmenu(path);
     
     if (resultado) {
       const { vista, accordion } = resultado;
-      
       if (vista !== vistaActual) {
         cambiarVista(vista);
       }
-      
       if (accordion > 0) {
         setOpenAccordion(accordion);
       }
@@ -145,490 +145,249 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
         navigate('/pages/CajeroSistemaVentas', { state: { view: vista } });
       }
     }
-    
-    // Cerrar drawer en dispositivos móviles
     closeDrawer();
   };
+
+  const getRoleLabel = () => {
+    if (tieneRol('ROLE_ADMIN')) return 'ADMINISTRADOR';
+    if (tieneRol('ROLE_ALMACENERO')) return 'GESTOR DE ALMACÉN';
+    if (tieneRol('ROLE_CAJERO')) return 'CAJERO';
+    return 'USUARIO';
+  };
+
+  // Componente interno para items
+  const NavItem = ({ icon: Icon, label, selected, onClick, activeColor = "bg-white" }) => (
+    <ListItem
+      selected={selected}
+      onClick={onClick}
+      className={`relative group rounded-xl py-3 px-4 transition-all duration-300 border border-transparent ${
+        selected 
+          ? `${activeColor} border-gray-100 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06)] scale-[1.02] text-black` 
+          : "hover:bg-gray-200/50 text-[#9ca3af] hover:text-gray-900"
+      }`}
+    >
+      <ListItemPrefix>
+        <Icon className={`h-[18px] w-[18px] transition-colors ${selected ? "text-black" : "text-[#9ca3af] group-hover:text-gray-900"}`} strokeWidth={2.5} />
+      </ListItemPrefix>
+      <span className={`text-[13.5px] font-bold tracking-tight ${selected ? "text-black" : ""}`}>{label}</span>
+    </ListItem>
+  );
 
   return (
     <>
       {/* Barra de navegación superior fija en móviles */}
       {!isDrawerOpen && (
-        <div className="fixed top-0 left-0 right-0 z-[60] bg-gray-900 border-b border-gray-700 shadow-lg md:hidden">
+        <div className="fixed top-0 left-0 right-0 z-[60] bg-white border-b border-gray-100 shadow-sm md:hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <button 
               onClick={openDrawer} 
-              className="w-10 h-10 bg-gray-800 hover:bg-gray-700 shadow-md hover:shadow-lg transition-all duration-200 border border-gray-600 hover:border-gray-500 rounded-lg flex items-center justify-center"
+              className="w-10 h-10 bg-gray-50 hover:bg-gray-100 shadow-sm transition-all duration-200 border border-gray-200 rounded-xl flex items-center justify-center"
             >
-              <Bars3Icon className="h-5 w-5 stroke-2 text-white" />
+              <Menu className="h-5 w-5 text-gray-800" />
             </button>
             <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-lg bg-black flex items-center justify-center">
-                <svg className="h-4 w-4 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
+                <span className="text-[10px] font-bold text-white">DK</span>
               </div>
-              <Typography variant="h6" className="font-bold text-white text-sm">
-                DK-SYSTEM
-              </Typography>
+              <h2 className="font-bold text-gray-900 text-sm tracking-widest">DK-SYSTEM</h2>
             </div>
           </div>
         </div>
       )}
 
-      {/* Botón hamburguesa para pantallas grandes - Solo visible cuando el drawer está cerrado */}
+      {/* Botón hamburguesa para pantallas grandes */}
       {!isDrawerOpen && (
-        <div className="fixed top-2 left-2 z-[60] hidden md:block">
+        <div className="fixed top-4 left-4 z-[60] hidden md:block">
           <button 
             onClick={openDrawer} 
-            className="w-12 h-12 bg-gray-800 hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-200 border border-gray-600 hover:border-gray-500 rounded-lg flex items-center justify-center"
+            className="w-12 h-12 bg-white hover:bg-gray-50 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 border border-gray-100 rounded-xl flex items-center justify-center group"
           >
-            <Bars3Icon className="h-6 w-6 stroke-2 text-white" />
+            <Menu className="h-6 w-6 text-gray-400 group-hover:text-black transition-colors" />
           </button>
         </div>
       )}
       
-      {/* Drawer con overlay solo en móviles para aplicar blur */}
       <Drawer 
         open={isDrawerOpen} 
         onClose={closeDrawer} 
-        className="z-[50] bg-gray-900 rounded-none"
+        className="z-[50] bg-[#fafafa] border-r border-gray-100 shadow-2xl"
         overlay={true}
         placement="left"
         size={320}
         overlayProps={{
-          className: "fixed inset-0 bg-black/50 backdrop-blur-sm md:!bg-transparent md:!backdrop-blur-none transition-all duration-150 ease-out"
+          className: "fixed inset-0 bg-black/10 backdrop-blur-[2px] md:!bg-transparent md:!backdrop-blur-none transition-all"
         }}
       >
-        {/* Botón de cerrar dentro del drawer */}
-        <div className="absolute top-4 right-4 z-[70] md:top-6 md:right-6">
-          <button 
-            onClick={closeDrawer}
-            className="w-10 h-10 bg-gray-800 hover:bg-gray-700 transition-all duration-200 text-gray-300 hover:text-white border border-gray-600 hover:border-gray-500 shadow-md hover:shadow-lg rounded-lg flex items-center justify-center cursor-pointer"
-          >
-            <XMarkIcon className="h-5 w-5 stroke-2" />
-          </button>
-        </div>
-
         <Card
           color="transparent"
           shadow={false}
-          className="h-full w-full p-0 bg-gray-900 rounded-none"
+          className="h-full w-full flex flex-col pt-4 overflow-hidden"
         >
-          {/* Header */}
-          <div className="p-6 border-b border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-black flex items-center justify-center">
-                <svg className="h-6 w-6 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
+          {/* Header con Perfil */}
+          <div className="px-6 py-4 mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 flex-shrink-0 rounded-lg bg-black flex items-center justify-center shadow-md">
+                <span className="text-sm font-bold text-white tracking-widest">DK</span>
               </div>
-              <div>
-                <Typography variant="h6" className="font-bold text-white">
-                  DK-SYSTEM
-                </Typography>
-                <Typography variant="small" className="text-gray-400 font-medium">
-                  Sistema de Gestión
-                </Typography>
-              </div>
-            </div>
-          </div>
-
-          {/* User Info */}
-          <div className="p-6 border-b border-gray-700">
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-blue-800 to-blue-950 flex items-center justify-center">
-                <UserCircleIcon className="h-7 w-7 text-white" />
-              </div>
-              <div className="flex-1">
-                <Typography variant="small" className="font-semibold text-white">
+              <div className="flex flex-col min-w-0">
+                <Typography className="text-[15px] font-bold text-black truncate leading-tight">
                   {usuario?.usuario ?? 'Usuario'}
                 </Typography>
-                <Typography variant="small" className="text-blue-300 font-medium">
-                  {tieneRol('ROLE_CAJERO') && 'Cajero'}
-                  {tieneRol('ROLE_ADMIN') && 'Administrador'}
-                  {tieneRol('ROLE_ALMACENERO') && 'Almacenero'}
+                <Typography className="text-[10px] font-bold text-[#9ca3af] tracking-widest uppercase mt-0.5">
+                  {getRoleLabel()}
                 </Typography>
               </div>
             </div>
+            <button 
+                onClick={closeDrawer}
+                className="p-1.5 hover:bg-gray-200 transition-colors rounded-lg group"
+            >
+                <PanelLeftClose className="h-5 w-5 text-gray-400 group-hover:text-black" strokeWidth={2.5} />
+            </button>
           </div>
 
-          {/* Contenedor con scroll para el menú */}
-          <div className="flex-1 overflow-y-auto px-4 py-2">
-            <List className="p-0 space-y-1">
-              {/* Dashboard para Admin */}
+          {/* Menú Scrolleable */}
+          <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
+            <List className="p-0 space-y-2">
+              
+              {/* Dashboards */}
               {tieneRol('ROLE_ADMIN') && (
-                <ListItem 
-                  selected={vistaActual === 'dashboard-admin'}
+                <NavItem 
+                  icon={LayoutDashboard} 
+                  label="Dashboard Admin" 
+                  selected={vistaActual === 'dashboard-admin'} 
                   onClick={() => handleMenuClick('dashboard-admin', () => navigate('/dashboard/admin'))}
-                  className={`rounded-lg transition-all duration-200 ${
-                    vistaActual === 'dashboard-admin' 
-                      ? 'bg-blue-900 text-white shadow-lg' 
-                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  <ListItemPrefix>
-                    <PresentationChartBarIcon className="h-5 w-5" />
-                  </ListItemPrefix>
-                  <span className="font-medium">Dashboard Admin</span>
-                </ListItem>
+                />
               )}
               
-              {/* Dashboard para Almacenero */}
               {tieneRol('ROLE_ALMACENERO') && (
-                <ListItem 
-                  selected={vistaActual === 'dashboard-almacenero'}
+                <NavItem 
+                  icon={LayoutDashboard} 
+                  label="Dashboard Almacén" 
+                  selected={vistaActual === 'dashboard-almacenero'} 
                   onClick={() => handleMenuClick('dashboard-almacenero', () => navigate('/dashboard/almacenero'))}
-                  className={`rounded-lg transition-all duration-200 ${
-                    vistaActual === 'dashboard-almacenero' 
-                      ? 'bg-blue-900 text-white shadow-lg' 
-                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  <ListItemPrefix>
-                    <Squares2X2Icon className="h-5 w-5" />
-                  </ListItemPrefix>
-                  <span className="font-medium">Dashboard Almacén</span>
-                </ListItem>
+                />
               )}
 
               {/* Sistema de Caja */}
               {(tieneRol('ROLE_CAJERO') || tieneRol('ROLE_ADMIN')) && (
-                <div className="mb-2">
-                  <Accordion
-                    open={openAccordion === 1}
-                    icon={
-                      <ChevronDownIcon
-                        strokeWidth={2.5}
-                        className={`h-4 w-4 transition-transform text-gray-400 ${
-                          openAccordion === 1 ? "rotate-180" : ""
-                        }`}
-                      />
-                    }
-                  >
-                    <ListItem className="p-0" selected={openAccordion === 1}>
-                      <AccordionHeader
-                        onClick={() => handleAccordionOpen(1)}
-                        className="border-b-0 p-3 hover:bg-gray-800 rounded-lg transition-all duration-200"
-                      >
-                        <ListItemPrefix>
-                          <ShoppingBagIcon className="h-5 w-5 text-green-400" />
-                        </ListItemPrefix>
-                        <Typography className="mr-auto font-medium text-gray-300">
-                          Sistema de Caja
-                        </Typography>
-                      </AccordionHeader>
-                    </ListItem>
-                    <AccordionBody className="py-1 pl-4">
-                      <List className="p-0 space-y-1">
-                        <ListItem 
-                          selected={vistaActual === 'apertura'}
-                          onClick={() => handleMenuClick('apertura')}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'apertura' 
-                              ? 'bg-green-600 text-white shadow-lg' 
-                              : 'hover:bg-green-500 text-gray-400 hover:text-white'
-                          }`}
+                 <div className="py-2">
+                    <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">Módulo Comercial</p>
+                    <Accordion
+                      open={openAccordion === 1}
+                      className="border-none"
+                    >
+                      <ListItem className="p-0" selected={openAccordion === 1}>
+                        <AccordionHeader
+                           onClick={() => handleAccordionOpen(1)}
+                           className="border-none p-0"
                         >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Apertura de Caja</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'ventas'}
-                          onClick={() => handleMenuClick('ventas')}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'ventas' 
-                              ? 'bg-green-600 text-white shadow-lg' 
-                              : 'hover:bg-green-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Ventas</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'cierre'}
-                          onClick={() => handleMenuClick('cierre')}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'cierre' 
-                              ? 'bg-green-600 text-white shadow-lg' 
-                              : 'hover:bg-green-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Cierre de Caja</span>
-                        </ListItem>
-                      </List>
-                    </AccordionBody>
-                  </Accordion>
-                </div>
+                           <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all ${openAccordion === 1 ? "bg-gray-100/50 text-black font-bold" : "text-[#9ca3af] hover:bg-gray-200/30 hover:text-black"}`}>
+                              <ShoppingBag className="h-[18px] w-[18px] mr-3" strokeWidth={2.5} />
+                              <span className="text-[13.5px] items-center flex-1 text-left tracking-tight">Sistema de Caja</span>
+                              <ChevronDown className={`h-3 w-3 transition-transform ${openAccordion === 1 ? "rotate-180" : ""}`} strokeWidth={3} />
+                           </div>
+                        </AccordionHeader>
+                      </ListItem>
+                      <AccordionBody className="py-2 pl-4 pr-1">
+                        <List className="p-0 space-y-1.5">
+                          <NavItem icon={ChevronRight} label="Apertura" selected={vistaActual === 'apertura'} onClick={() => handleMenuClick('apertura')} />
+                          <NavItem icon={ChevronRight} label="Ventas" selected={vistaActual === 'ventas'} onClick={() => handleMenuClick('ventas')} />
+                          <NavItem icon={ChevronRight} label="Cierre" selected={vistaActual === 'cierre'} onClick={() => handleMenuClick('cierre')} />
+                        </List>
+                      </AccordionBody>
+                    </Accordion>
+                 </div>
               )}
 
-              {/* Administración */}
-              {tieneRol('ROLE_ADMIN') && (
-                <div className="mb-2">
-                  <Accordion
-                    open={openAccordion === 2}
-                    icon={
-                      <ChevronDownIcon
-                        strokeWidth={2.5}
-                        className={`h-4 w-4 transition-transform text-gray-400 ${
-                          openAccordion === 2 ? "rotate-180" : ""
-                        }`}
-                      />
-                    }
-                  >
-                    <ListItem className="p-0" selected={openAccordion === 2}>
-                      <AccordionHeader
-                        onClick={() => handleAccordionOpen(2)}
-                        className="border-b-0 p-3 hover:bg-gray-800 rounded-lg transition-all duration-200"
-                      >
-                        <ListItemPrefix>
-                          <Cog6ToothIcon className="h-5 w-5 text-purple-400" />
-                        </ListItemPrefix>
-                        <Typography className="mr-auto font-medium text-gray-300">
-                          Administración
-                        </Typography>
-                      </AccordionHeader>
-                    </ListItem>
-                    <AccordionBody className="py-1 pl-4">
-                      <List className="p-0 space-y-1">
-                        <ListItem 
-                          selected={vistaActual === 'usuarios'}
-                          onClick={() => handleMenuClick('usuarios', () => navigate('/pages/GestionUsuarios'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'usuarios' 
-                              ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Usuarios</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'productos-admin'}
-                          onClick={() => handleMenuClick('productos-admin', () => navigate('/pages/productos'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'productos-admin' 
-                              ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Productos</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'colores-admin'}
-                          onClick={() => handleMenuClick('colores-admin', () => navigate('/pages/colores'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'colores-admin' 
-                              ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Colores</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'tallas-admin'}
-                          onClick={() => handleMenuClick('tallas-admin', () => navigate('/pages/tallas'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'tallas-admin' 
-                              ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Tallas</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'proveedores-admin'}
-                          onClick={() => handleMenuClick('proveedores-admin', () => navigate('/pages/proveedores'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'proveedores-admin' 
-                              ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Proveedores</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'categorias-admin'}
-                          onClick={() => handleMenuClick('categorias-admin', () => navigate('/pages/categorias'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'categorias-admin' 
-                              ? 'bg-purple-600 text-white shadow-lg' 
-                              : 'hover:bg-purple-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Categorías</span>
-                        </ListItem>
-                      </List>
-                    </AccordionBody>
-                  </Accordion>
-                </div>
-              )}
+              {/* Administración / Inventario */}
+              <div className="py-2">
+                <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">
+                  {tieneRol('ROLE_ADMIN') ? 'Configuración' : 'Gestión'}
+                </p>
 
-              {/* Inventario para Almacenero */}
-              {tieneRol('ROLE_ALMACENERO') && (
-                <div className="mb-2">
-                  <Accordion
-                    open={openAccordion === 3}
-                    icon={
-                      <ChevronDownIcon
-                        strokeWidth={2.5}
-                        className={`h-4 w-4 transition-transform text-gray-400 ${
-                          openAccordion === 3 ? "rotate-180" : ""
-                        }`}
-                      />
-                    }
-                  >
-                    <ListItem className="p-0" selected={openAccordion === 3}>
-                      <AccordionHeader
-                        onClick={() => handleAccordionOpen(3)}
-                        className="border-b-0 p-3 hover:bg-gray-800 rounded-lg transition-all duration-200"
-                      >
-                        <ListItemPrefix>
-                          <Squares2X2Icon className="h-5 w-5 text-orange-400" />
-                        </ListItemPrefix>
-                        <Typography className="mr-auto font-medium text-gray-300">
-                          Inventario
-                        </Typography>
+                {/* Usuarios (Solo Admin) */}
+                {tieneRol('ROLE_ADMIN') && (
+                    <NavItem 
+                      icon={Users} 
+                      label="Usuarios" 
+                      selected={vistaActual === 'usuarios'} 
+                      onClick={() => handleMenuClick('usuarios', () => navigate('/pages/GestionUsuarios'))}
+                    />
+                )}
+
+                {/* Inventario Acordeón */}
+                <Accordion open={openAccordion === 2 || openAccordion === 3} className="border-none mt-2">
+                    <ListItem className="p-0" selected={openAccordion === 2 || openAccordion === 3}>
+                      <AccordionHeader onClick={() => handleAccordionOpen(tieneRol('ROLE_ADMIN') ? 2 : 3)} className="border-none p-0">
+                        <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all ${openAccordion === 2 || openAccordion === 3 ? "bg-gray-100/50 text-black font-bold" : "text-[#9ca3af] hover:bg-gray-200/30 hover:text-black"}`}>
+                           <Box className="h-[18px] w-[18px] mr-3" strokeWidth={2.5} />
+                           <span className="text-[13.5px] items-center flex-1 text-left tracking-tight">Control Inventario</span>
+                           <ChevronDown className={`h-3 w-3 transition-transform ${openAccordion === 2 || openAccordion === 3 ? "rotate-180" : ""}`} strokeWidth={3} />
+                        </div>
                       </AccordionHeader>
                     </ListItem>
-                    <AccordionBody className="py-1 pl-4">
-                      <List className="p-0 space-y-1">
-                        <ListItem 
-                          selected={vistaActual === 'productos-inventario'}
-                          onClick={() => handleMenuClick('productos-inventario', () => navigate('/pages/productos'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'productos-inventario' 
-                              ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Productos</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'colores-inventario'}
-                          onClick={() => handleMenuClick('colores-inventario', () => navigate('/pages/colores'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'colores-inventario' 
-                              ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Colores</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'tallas-inventario'}
-                          onClick={() => handleMenuClick('tallas-inventario', () => navigate('/pages/tallas'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'tallas-inventario' 
-                              ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Tallas</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'proveedores'}
-                          onClick={() => handleMenuClick('proveedores', () => navigate('/pages/proveedores'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'proveedores' 
-                              ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Proveedores</span>
-                        </ListItem>
-                        <ListItem 
-                          selected={vistaActual === 'categorias'}
-                          onClick={() => handleMenuClick('categorias', () => navigate('/pages/categorias'))}
-                          className={`rounded-lg transition-all duration-200 ${
-                            vistaActual === 'categorias' 
-                              ? 'bg-orange-600 text-white shadow-lg' 
-                              : 'hover:bg-orange-500 text-gray-400 hover:text-white'
-                          }`}
-                        >
-                          <ListItemPrefix>
-                            <ChevronRightIcon strokeWidth={3} className="h-3 w-5" />
-                          </ListItemPrefix>
-                          <span className="font-medium">Categorías</span>
-                        </ListItem>
+                    <AccordionBody className="py-2 pl-4 pr-1">
+                      <List className="p-0 space-y-1.5">
+                        <NavItem icon={Box} label="Productos" selected={vistaActual.includes('productos')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'productos-admin' : 'productos-inventario', () => navigate('/pages/productos'))} />
+                        <NavItem icon={Palette} label="Colores" selected={vistaActual.includes('colores')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'colores-admin' : 'colores-inventario', () => navigate('/pages/colores'))} />
+                        <NavItem icon={Maximize2} label="Tallas" selected={vistaActual.includes('tallas')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'tallas-admin' : 'tallas-inventario', () => navigate('/pages/tallas'))} />
+                        <NavItem icon={Truck} label="Proveedores" selected={vistaActual.includes('proveedores')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'proveedores-admin' : 'proveedores', () => navigate('/pages/proveedores'))} />
+                        <NavItem icon={Layers} label="Categorías" selected={vistaActual.includes('categorias')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'categorias-admin' : 'categorias', () => navigate('/pages/categorias'))} />
                       </List>
                     </AccordionBody>
-                  </Accordion>
-                </div>
-              )}
+                </Accordion>
+              </div>
 
               {/* Reportes para Admin */}
               {tieneRol('ROLE_ADMIN') && (
-                <ListItem 
-                  selected={vistaActual === 'reportes-admin'}
-                  onClick={() => handleMenuClick('reportes-admin', () => navigate('/pages/reportes'))}
-                  className={`rounded-lg transition-all duration-200 ${
-                    vistaActual === 'reportes-admin' 
-                      ? 'bg-blue-900 text-white shadow-lg' 
-                      : 'hover:bg-blue-800 text-gray-300 hover:text-white'
-                  }`}
-                >
-                  <ListItemPrefix>
-                    <PresentationChartBarIcon className="h-5 w-5" />
-                  </ListItemPrefix>
-                  <span className="font-medium">Reportes</span>
-                </ListItem>
+                 <div className="py-2">
+                    <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">Análisis</p>
+                    <NavItem 
+                      icon={PieChart} 
+                      label="Reportes" 
+                      selected={vistaActual === 'reportes-admin'} 
+                      onClick={() => handleMenuClick('reportes-admin', () => navigate('/pages/reportes'))}
+                    />
+                 </div>
               )}
             </List>
           </div>
 
-          {/* Footer con Cerrar Sesión */}
-          <div className="border-t border-gray-700 p-4">
-            <ListItem 
-              onClick={handleLogout}
-              className="rounded-lg transition-all duration-200 hover:bg-red-600 text-red-400 hover:text-white"
-            >
-              <ListItemPrefix>
-                <PowerIcon className="h-5 w-5" />
-              </ListItemPrefix>
-              <span className="font-medium">Cerrar Sesión</span>
-            </ListItem>
+          {/* Footer Navigation */}
+          <div className="mt-auto px-4 py-6 border-t border-gray-100 flex flex-col space-y-1 bg-[#fcfcfc]">
+              <div className="pt-2">
+                <ListItem 
+                    onClick={handleLogout}
+                    className="group rounded-xl py-3 px-4 transition-all duration-200 text-red-400 hover:bg-red-50 hover:text-red-600"
+                >
+                    <ListItemPrefix>
+                        <LogOut className="h-[18px] w-[18px] transform group-hover:-translate-x-1 transition-transform" strokeWidth={2.5} />
+                    </ListItemPrefix>
+                    <span className="text-[13.5px] font-bold tracking-tight">Cerrar Sesión</span>
+                </ListItem>
+              </div>
           </div>
         </Card>
       </Drawer>
+      
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e5e7eb;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #d1d5db;
+        }
+      `}</style>
     </>
   );
 };
 
-export default SidebarMenu;
+export default SidebarMenu;

@@ -33,13 +33,17 @@ public class CodigoBarrasController {
 
     /**
      * Endpoint para generar la imagen de un código de barras para un Producto.
-     * Utiliza ResponseEntity y el atributo 'produces' para garantizar el tipo de contenido.
+     * Utiliza ResponseEntity y el atributo 'produces' para garantizar el tipo de
+     * contenido.
      *
      * @param id ID del Producto.
      * @return ResponseEntity con los bytes de la imagen o un error.
-     */    // ATRIBUTO 'produces' AÑADIDO para resolver el error HttpMediaTypeNotAcceptableException    @GetMapping(value = "/generar/{id}", produces = MediaType.IMAGE_PNG_VALUE)
+     */
+    @GetMapping(value = "/generar/{id}", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> generarCodigoBarrasProducto(@PathVariable Long id) {
         try {
+            System.out.println(">>> Intentando generar código para producto: " + id);
+
             // Log para depuración de autorización
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             logger.info("=== CÓDIGO DE BARRAS DEBUG ===");
@@ -51,40 +55,43 @@ public class CodigoBarrasController {
             logger.info("================================");
 
             byte[] imagenBytes = codigoBarrasService.generarCodigoBarrasProducto(id);
-            
+            System.out.println(">>> Imagen generada: " + imagenBytes.length + " bytes");
+
             // Configurar headers explícitamente para imagen PNG
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.IMAGE_PNG);
             headers.setContentLength(imagenBytes.length);
             headers.setCacheControl("no-cache");
-            
+
             return new ResponseEntity<>(imagenBytes, headers, HttpStatus.OK);
 
         } catch (Exception e) {
+            System.out.println(">>> ERROR: " + e.getMessage());
+            e.printStackTrace(); // Esto mostrará el stack trace completo
             logger.error("Error al generar código de barras para producto {}: {}", id, e.getMessage());
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-
-
     /**
      * Genera un código de barras para una variante específica de un producto
+     * 
      * @param idVariante ID de la variante del producto
-     * @param ancho Ancho de la imagen (opcional)
-     * @param alto Alto de la imagen (opcional)
+     * @param ancho      Ancho de la imagen (opcional)
+     * @param alto       Alto de la imagen (opcional)
      * @return Imagen PNG del código de barras
-     */    @GetMapping(value = "/generar-variante/{id}", produces = MediaType.IMAGE_PNG_VALUE)
+     */
+    @GetMapping(value = "/generar-variante/{id}", produces = MediaType.IMAGE_PNG_VALUE)
     public ResponseEntity<byte[]> generarCodigoBarrasVariante(@PathVariable Long id) {
         try {
             byte[] imagenBytes = codigoBarrasService.generarCodigoBarrasVariante(id);
-            
+
             // Configurar headers explícitamente para imagen PNG
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.IMAGE_PNG);
             headers.setContentLength(imagenBytes.length);
             headers.setCacheControl("no-cache");
-            
+
             return new ResponseEntity<>(imagenBytes, headers, HttpStatus.OK);
 
         } catch (Exception e) {
@@ -93,11 +100,10 @@ public class CodigoBarrasController {
         }
     }
 
-
-
     /**
      * Asigna un código de barras personalizado a un producto
-     * @param idProducto ID del producto
+     * 
+     * @param idProducto      ID del producto
      * @param codigoBarrasDTO DTO con el código y dimensiones
      * @return Información del producto actualizado
      */
@@ -117,7 +123,8 @@ public class CodigoBarrasController {
 
     /**
      * Asigna un código de barras personalizado a una variante de producto
-     * @param idVariante ID de la variante del producto
+     * 
+     * @param idVariante      ID de la variante del producto
      * @param codigoBarrasDTO DTO con el código y dimensiones
      * @return Información de la variante de producto actualizada
      */
@@ -137,6 +144,7 @@ public class CodigoBarrasController {
 
     /**
      * Lee un código de barras a partir de una imagen
+     * 
      * @param imagen Archivo de imagen con el código de barras
      * @return Código de barras decodificado
      */
@@ -156,6 +164,7 @@ public class CodigoBarrasController {
 
     /**
      * Busca un producto por su código de barras
+     * 
      * @param codigo Código de barras a buscar
      * @return Producto encontrado
      */
@@ -173,6 +182,7 @@ public class CodigoBarrasController {
 
     /**
      * Busca una variante de producto por su código de barras
+     * 
      * @param codigo Código de barras a buscar
      * @return Variante de producto encontrada
      */
@@ -190,6 +200,7 @@ public class CodigoBarrasController {
 
     /**
      * Verifica si un código de barras es válido
+     * 
      * @param codigo Código de barras a validar
      * @return Resultado de la validación
      */
