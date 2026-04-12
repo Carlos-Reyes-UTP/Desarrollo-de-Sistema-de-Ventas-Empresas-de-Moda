@@ -7,7 +7,7 @@ import type { Talla } from '../../interfaces/Talla';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 import { ColorService } from '../../services/ColorService';
 import { TallaService } from '../../services/TallaService';
-import { AlertModal, ConfirmModal } from '../common';
+import { AlertModal, ConfirmModal, ComboBox } from '../common';
 
 interface GestionVariantesProps {
   producto: Producto;
@@ -262,53 +262,51 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
 
               <form onSubmit={handleCrearVariante} className="space-y-6">
                 {/* Selector de Talla */}
-                <div className="space-y-2">
-                  <label htmlFor="tallaSelect" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
-                    <span className="flex items-center gap-2">
-                      <Ruler className="w-4 h-4" />
-                      Talla
-                      <span className="text-red-500">*</span>
-                    </span>
-                  </label>
-                  <select
-                    id="tallaSelect"
+                <div>
+                  <ComboBox
                     value={formVariante.tallaId}
-                    onChange={(e) => setFormVariante({ ...formVariante, tallaId: e.target.value })}
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
-                    required
-                  >
-                    <option value="">Seleccionar talla</option>
-                    {tallas.map(talla => (
-                      <option key={talla.idTalla} value={talla.idTalla?.toString()}>
-                        {talla.nombreTalla}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => setFormVariante({ ...formVariante, tallaId: value })}
+                    options={[
+                      { value: '', label: 'Seleccionar talla' },
+                      ...tallas.map(talla => ({
+                        value: talla.idTalla?.toString() || '',
+                        label: talla.nombreTalla
+                      }))
+                    ]}
+                    label={
+                      <span className="flex items-center gap-2">
+                        <Ruler className="w-4 h-4" />
+                        Talla
+                        <span className="text-red-500">*</span>
+                      </span>
+                    }
+                    icon={<Ruler className="w-4 h-4" />}
+                    placeholder="Seleccionar talla"
+                  />
                 </div>
 
                 {/* Selector de Color */}
-                <div className="space-y-2">
-                  <label htmlFor="colorSelect" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
-                    <span className="flex items-center gap-2">
-                      <Palette className="w-4 h-4" />
-                      Color
-                      <span className="text-red-500">*</span>
-                    </span>
-                  </label>
-                  <select
-                    id="colorSelect"
+                <div>
+                  <ComboBox
                     value={formVariante.colorId}
-                    onChange={(e) => setFormVariante({ ...formVariante, colorId: e.target.value })}
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
-                    required
-                  >
-                    <option value="">Seleccionar color</option>
-                    {colores.map(color => (
-                      <option key={color.idColor} value={color.idColor?.toString()}>
-                        {color.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(value) => setFormVariante({ ...formVariante, colorId: value })}
+                    options={[
+                      { value: '', label: 'Seleccionar color' },
+                      ...colores.map(color => ({
+                        value: color.idColor?.toString() || '',
+                        label: color.nombre
+                      }))
+                    ]}
+                    label={
+                      <span className="flex items-center gap-2">
+                        <Palette className="w-4 h-4" />
+                        Color
+                        <span className="text-red-500">*</span>
+                      </span>
+                    }
+                    icon={<Palette className="w-4 h-4" />}
+                    placeholder="Seleccionar color"
+                  />
                 </div>
 
                 {/* Cantidad */}
