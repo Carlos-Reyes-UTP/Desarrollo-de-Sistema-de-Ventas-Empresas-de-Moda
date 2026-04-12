@@ -5,6 +5,7 @@ import type { ProductoVariante } from '../../interfaces/ProductoVariante';
 import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../interfaces/CodigoBarras';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
+import { ConfirmModal } from '../common';
 
 interface GestionCodigosBarrasProps {
   producto?: Producto;
@@ -45,6 +46,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
   });
 
   const [scannerInput, setScannerInput] = useState('');
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; codigoId: number | null }>({ open: false, codigoId: null });
 
   useEffect(() => {
     if (producto) {
@@ -246,18 +248,28 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
     }
   };
 
-  const handleEliminarCodigo = async (codigoId: number) => {
-    if (!confirm('¿Estás seguro de eliminar este código de barras?')) return;
+  const solicitarEliminarCodigo = (codigoId: number) => {
+    setConfirmModal({ open: true, codigoId });
+  };
+
+  const confirmarEliminarCodigo = async () => {
+    if (confirmModal.codigoId == null) return;
 
     try {
-      await CodigoBarrasService.eliminarCodigo(codigoId);
-      setCodigosBarras(prev => prev.filter(c => c.id !== codigoId));
+      await CodigoBarrasService.eliminarCodigo(confirmModal.codigoId);
+      setCodigosBarras(prev => prev.filter(c => c.id !== confirmModal.codigoId));
       setExito('Código eliminado exitosamente');
       setTimeout(() => setExito(null), 3000);
     } catch (err: any) {
       console.error('Error al eliminar código:', err);
       setError('Error al eliminar código');
+    } finally {
+      setConfirmModal({ open: false, codigoId: null });
     }
+  };
+
+  const cancelarEliminarCodigo = () => {
+    setConfirmModal({ open: false, codigoId: null });
   };
 
   const handleBuscarPorCodigo = async () => {
@@ -427,7 +439,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         <button
-                          onClick={() => codigo.id && handleEliminarCodigo(codigo.id)}
+                          onClick={() => codigo.id && solicitarEliminarCodigo(codigo.id)}
                           className="text-red-600 hover:text-red-900 p-1 rounded"
                           title="Eliminar"
                         >
@@ -721,6 +733,17 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
           </div>
         </div>
       )}
+
+      {/* Confirm Modal for Delete */}
+      <ConfirmModal
+        open={confirmModal.open}
+        message="¿Estás seguro de eliminar este código de barras?"
+        onConfirm={confirmarEliminarCodigo}
+        onCancel={cancelarEliminarCodigo}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 };

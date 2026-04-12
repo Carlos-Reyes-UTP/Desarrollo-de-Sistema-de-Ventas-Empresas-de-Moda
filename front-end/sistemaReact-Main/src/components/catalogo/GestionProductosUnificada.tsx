@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Plus, Search, Package2, Palette, Ruler, BarChart3, Scan, Eye, X, Trash2 } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
@@ -80,12 +80,8 @@ const ConfirmModal: React.FC<{
 
 const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className = '' }) => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
-  
-  // Si aún está cargando la autenticación, mostrar pantalla de carga
-  if (authLoading) {
-    return <AuthLoadingScreen message="Validando sesión y cargando datos..." />;
-  }
-  
+
+  // ALL hooks MUST be called before any early return (React Hooks rules)
   // Estados principales
   const [vistaActiva, setVistaActiva] = useState<VistaActiva>('productos');
   const [productos, setProductos] = useState<Producto[]>([]);
@@ -114,7 +110,7 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
   // Estado para confirmación de eliminación
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
-  
+
   // Estado para animación del modal
   const [isBarcodeModalVisible, setIsBarcodeModalVisible] = useState(false);
 
@@ -132,11 +128,15 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
     if (isReady && isAuthenticated) {
       cargarDatos();
     } else if (isReady && !isAuthenticated) {
-      // Redirigir a login si no está autenticado
       console.log('Usuario no autenticado, redirigiendo a login...');
       window.location.href = '/login';
     }
   }, [isReady, isAuthenticated]);
+
+  // NOW safe to do early return (all hooks above have been called)
+  if (authLoading) {
+    return <AuthLoadingScreen message="Validando sesión y cargando datos..." />;
+  }
 
   const cargarDatos = async () => {
     try {
@@ -268,15 +268,14 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
     }, 100);
   };
 
-  const productosFiltrados = productos.filter(producto => {
-    // Obtener el nombre de la categoría desde categoria o categoriaPadre
+  const productosFiltrados = useMemo(() => productos.filter(producto => {
     const nombreCategoria = producto.categoria?.nombre ?? producto.categoriaPadre?.nombre ?? '';
-    const matchCategoria = !selectedCategoria || 
+    const matchCategoria = !selectedCategoria ||
       nombreCategoria.toLowerCase().includes(selectedCategoria.toLowerCase());
-    const matchProveedor = !selectedProveedor || 
+    const matchProveedor = !selectedProveedor ||
       producto.proveedor.nombre.toLowerCase().includes(selectedProveedor.toLowerCase());
     return matchCategoria && matchProveedor;
-  });
+  }), [productos, selectedCategoria, selectedProveedor]);
 
   const solicitarEliminarProducto = (idProducto: number) => {
     setProductoAEliminar(idProducto);
@@ -433,8 +432,8 @@ const GestionProductosUnificada: React.FC<ProductoUnificadoProps> = ({ className
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {productosFiltrados.map((producto) => (
-                  <tr key={producto.idProducto} className="hover:bg-gray-50 transition-colors duration-200">
+                {productosFiltrados.map((producto, index) => (
+                  <tr key={producto.idProducto ?? `producto-${producto.codigoIdentificacion || ''}-${index}`} className="hover:bg-gray-50 transition-colors duration-200">
                     <td className="px-3 py-3 lg:px-6 lg:py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {producto.codigoIdentificacion}
                     </td>

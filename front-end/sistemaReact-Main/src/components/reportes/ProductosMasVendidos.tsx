@@ -30,6 +30,7 @@ import {
   CustomTooltip,
   CustomTooltipVariantes,
 } from './productos-mas-vendidos/chartRenderers';
+import { AlertModal } from '../common';
 
 // Estilos CSS para animaciones
 const animationStyles = `
@@ -126,6 +127,7 @@ const ProductosMasVendidos: React.FC = () => {
   }>({});
   const [searchCategoria, setSearchCategoria] = useState<string>('');
   const [isCategoriaFocused, setIsCategoriaFocused] = useState(false);
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
   
   // Estados para el análisis detallado por producto
   const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoMasVendido | null>(null);
@@ -348,7 +350,7 @@ const ProductosMasVendidos: React.FC = () => {
 
   const exportarDatos = async () => {
     if (productosFiltrados.length === 0) {
-      alert('No hay datos para exportar');
+      setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
     }
 
@@ -574,7 +576,7 @@ const ProductosMasVendidos: React.FC = () => {
 
     } catch (error) {
       console.error('Error al exportar datos:', error);
-      alert('Error al generar el reporte. Inténtalo nuevamente.');
+      setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
   };
 
@@ -1323,6 +1325,14 @@ const ProductosMasVendidos: React.FC = () => {
       )}
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        open={alertModal.open}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+      />
     </div>
   );
 };

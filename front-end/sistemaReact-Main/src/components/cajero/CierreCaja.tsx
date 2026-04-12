@@ -97,10 +97,10 @@ const CierreCaja = () => {
           if (ventasDelDia.length === 0) {
             const todasLasVentas = await VentaService.obtenerTodasVentas();
             ventasDelDia = todasLasVentas.filter(venta => {
-              // venta.fechaVenta: '2025-07-16 20:03:56.000000'
+              // venta.fechaVenta can be '2025-07-16 20:03:56.000000' or ISO '2025-07-16T20:03:56.000000'
               if (!venta.fechaVenta) return false;
-              // Extraer la parte de la fecha
-              const fechaVentaStr = venta.fechaVenta.split(' ')[0];
+              // Extract date part safely (handles both space and 'T' separators)
+              const fechaVentaStr = venta.fechaVenta.split(/[ T]/)[0];
               return fechaVentaStr === fechaFiltro;
             });
             console.log(`Ventas del día filtradas manualmente: ${ventasDelDia.length}`);

@@ -6,7 +6,6 @@ import { useAuth } from '../../context/AuthContext';
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const location = useLocation();
   const { usuario, cerrarSesion, tieneRol } = useAuth();
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   
   // Determinar la vista inicial basada en la URL actual
   const determinarVistaInicial = () => {
@@ -81,12 +80,9 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
         cambiarVista={setVistaActual} 
         usuario={usuario}
         cerrarSesion={cerrarSesion}
-        onDrawerStateChange={setIsDrawerOpen}
       />
-      {/* Contenedor principal con margen superior en móviles y blur cuando el drawer está abierto */}
-      <div className={`flex-1 flex flex-col overflow-hidden pt-16 md:pt-0 bg-gray-50 transition-all duration-150 ease-out ${
-        isDrawerOpen ? 'md:blur-none blur-sm' : ''
-      }`}>
+      {/* Contenedor principal con margen superior en móviles */}
+      <div className="flex-1 flex flex-col overflow-hidden pt-16 md:pt-0 bg-gray-50">
         <main className="flex-1 overflow-y-auto">
           <div className="w-full h-full">
             {/* Contenedor con restricciones flexibles */}

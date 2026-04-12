@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Save, X, Building2, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Save, Building2, Loader2, AlertCircle } from 'lucide-react';
 import type { Proveedor } from '../../interfaces/Proveedor';
 import { ProveedorService } from '../../services/ProveedorServices';
+import { ConfirmModal } from '../common';
 
 const GestionProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -13,6 +14,7 @@ const GestionProveedores: React.FC = () => {
   const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [buscandoProveedor, setBuscandoProveedor] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; proveedorId: number | null }>({ open: false, proveedorId: null });
 
   // Formulario
   const [formData, setFormData] = useState({
@@ -147,12 +149,17 @@ const GestionProveedores: React.FC = () => {
     }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar este proveedor?')) return;
+  const solicitarEliminar = (id: number) => {
+    setConfirmModal({ open: true, proveedorId: id });
+  };
+
+  const confirmarEliminar = async () => {
+    if (confirmModal.proveedorId == null) return;
 
     try {
-      await ProveedorService.eliminarProveedor(id);
+      await ProveedorService.eliminarProveedor(confirmModal.proveedorId);
       cargarProveedores();
+      setConfirmModal({ open: false, proveedorId: null });
     } catch (err: any) {
       if (err.response?.status === 409) {
         setError('No se puede eliminar el proveedor porque tiene productos asociados');
@@ -160,7 +167,12 @@ const GestionProveedores: React.FC = () => {
         setError('Error al eliminar proveedor');
       }
       console.error(err);
+      setConfirmModal({ open: false, proveedorId: null });
     }
+  };
+
+  const cancelarEliminar = () => {
+    setConfirmModal({ open: false, proveedorId: null });
   };
 
   const handleEditar = (proveedor: Proveedor) => {
@@ -345,7 +357,7 @@ const GestionProveedores: React.FC = () => {
                         <Edit className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => handleEliminar(proveedor.idProveedor!)}
+                        onClick={() => solicitarEliminar(proveedor.idProveedor!)}
                         className="p-2.5 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent text-red-400 hover:text-white"
                         title="Eliminar"
                       >
@@ -486,6 +498,17 @@ const GestionProveedores: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal for Delete */}
+      <ConfirmModal
+        open={confirmModal.open}
+        message="¿Estás seguro de eliminar este proveedor?"
+        onConfirm={confirmarEliminar}
+        onCancel={cancelarEliminar}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 };

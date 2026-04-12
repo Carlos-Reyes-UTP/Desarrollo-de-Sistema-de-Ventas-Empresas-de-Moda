@@ -85,7 +85,6 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response) {
       const { status } = error.response;
-      const method = error.config.method?.toLowerCase();
 
       // Handle unauthorized - Comentado para evitar conflicto con AuthContext
       // if (status === 401) {
@@ -97,26 +96,15 @@ apiClient.interceptors.response.use(
       // Handle server unavailable (cuando el servidor está apagado)
       if (status >= 500 || error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {
         console.warn('Servidor no disponible. Los datos pueden estar desactualizados.');
-        
-        // Para métodos GET, devolver array vacío para evitar errores en la UI
-        if (method === 'get') {
-          return Promise.resolve({ data: [] });
-        }
       }
 
-      // Otros estados
-      if (status !== 401 && status !== 404 && status < 500) {
-        console.error(`Error ${status}:`, error.response.data?.message || error.response.data?.error || 'Error en la solicitud');
-      }
+      // Propagate the error so UI can show proper error messages
+      return Promise.reject(error instanceof Error ? error : new Error(error?.message || 'Error desconocido'));
     } else if (error.request) {
       // Error de red o servidor no accesible
       console.error('Error de red:', error.message);
-      
-      // Si es un método GET y hay error de red, devolver array vacío
-      if (error.config?.method?.toLowerCase() === 'get') {
-        console.warn('Error de red en GET request, devolviendo datos vacíos');
-        return Promise.resolve({ data: [] });
-      }
+      // Propagate network error so UI can handle it
+      return Promise.reject(new Error('No se pudo conectar con el servidor. Verifique su conexión de red.'));
     }
 
     return Promise.reject(error instanceof Error ? error : new Error(error?.message || 'Error desconocido'));

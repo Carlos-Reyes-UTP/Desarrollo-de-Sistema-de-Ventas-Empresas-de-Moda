@@ -23,13 +23,15 @@ interface VariantesTooltipData {
 }
 
 interface CustomPieLabelProps {
-  cx: number;
-  cy: number;
-  midAngle: number;
-  outerRadius: number;
-  nombreColor: string;
-  cantidadVendida: number;
-  percent: number;
+  cx?: number;
+  cy?: number;
+  midAngle?: number;
+  outerRadius?: number;
+  nombreColor?: string;
+  cantidadVendida?: number;
+  percent?: number;
+  // Recharts passes additional data properties via the payload
+  [key: string]: unknown;
 }
 
 export const CustomTooltip = ({ active, payload }: TooltipProps<ProductoTooltipData>) => {
@@ -92,16 +94,10 @@ export const CustomTooltipVariantes = ({
   );
 };
 
-export const CustomPieLabel = ({
-  cx,
-  cy,
-  midAngle,
-  outerRadius,
-  nombreColor,
-  cantidadVendida,
-  percent,
-}: CustomPieLabelProps) => {
-  if (!cantidadVendida) {
+export const CustomPieLabel = (props: CustomPieLabelProps) => {
+  const { cx, cy, midAngle, outerRadius, nombreColor, cantidadVendida, percent } = props;
+
+  if (!cantidadVendida || !cx || !cy || !midAngle || !outerRadius) {
     return null;
   }
 
@@ -120,7 +116,7 @@ export const CustomPieLabel = ({
       fontSize="14"
       fontWeight="600"
     >
-      {`${nombreColor}: ${(percent * 100).toFixed(1)}%`}
+      {`${nombreColor}: ${((percent ?? 0) * 100).toFixed(1)}%`}
     </text>
   );
 };

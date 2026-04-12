@@ -1,5 +1,6 @@
-// @ts-nocheck - Supresión temporal para compatibilidad Material Tailwind v2.1.10 con React 19
-import { useState, useEffect, useCallback } from 'react';
+// @ts-nocheck Material Tailwind v2.1.10 has incompatible React 19 types (placeholder, onPointerEnterCapture, etc.)
+// This is a known issue: https://github.com/creativetimofficial/material-tailwind/issues/573
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import type { Usuario } from '../../interfaces/Usuario';
@@ -22,27 +23,31 @@ import {
   ChevronRight,
   ChevronDown,
   Menu,
-  X,
-  User,
   LogOut,
   Users,
   Palette,
   Maximize2,
   PieChart,
   ShoppingBag,
-  PanelLeftClose,
-  ChevronLast
+  PanelLeftClose
 } from "lucide-react";
+
+interface NavItemProps {
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  label: string;
+  selected: boolean;
+  onClick: () => void;
+  activeColor?: string;
+}
 
 interface SidebarMenuProps {
   vistaActual: string;
   cambiarVista: (vista: string) => void;
   usuario: Usuario | null;
   cerrarSesion: () => void;
-  onDrawerStateChange?: (isOpen: boolean) => void;
 }
 
-const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawerStateChange }: SidebarMenuProps) => {
+const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: SidebarMenuProps) => {
   const [openAccordion, setOpenAccordion] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
@@ -55,13 +60,9 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
 
   const openDrawer = () => {
     setIsDrawerOpen(true);
-    onDrawerStateChange?.(true);
   };
   const closeDrawer = () => {
     setIsDrawerOpen(false);
-    setTimeout(() => {
-      onDrawerStateChange?.(false);
-    }, 100);
   };
 
   // Función helper para determinar la vista y submenús según la ruta
@@ -156,13 +157,13 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
   };
 
   // Componente interno para items
-  const NavItem = ({ icon: Icon, label, selected, onClick, activeColor = "bg-white" }) => (
+  const NavItem = ({ icon: Icon, label, selected, onClick, activeColor = "bg-white" }: NavItemProps) => (
     <ListItem
       selected={selected}
       onClick={onClick}
       className={`relative group rounded-xl py-3 px-4 transition-all duration-300 border border-transparent ${
-        selected 
-          ? `${activeColor} border-gray-100 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06)] scale-[1.02] text-black` 
+        selected
+          ? `${activeColor} border-gray-100 shadow-[0_4px_12px_-2px_rgba(0,0,0,0.06)] scale-[1.02] text-black`
           : "hover:bg-gray-200/50 text-[#9ca3af] hover:text-gray-900"
       }`}
     >
@@ -215,7 +216,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, onDrawe
         placement="left"
         size={320}
         overlayProps={{
-          className: "fixed inset-0 bg-black/10 backdrop-blur-[2px] md:!bg-transparent md:!backdrop-blur-none transition-all"
+          className: "fixed inset-0 bg-black/10 backdrop-blur-[2px] md:!bg-transparent md:!backdrop-blur-none"
         }}
       >
         <Card

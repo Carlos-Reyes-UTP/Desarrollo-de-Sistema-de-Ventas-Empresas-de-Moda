@@ -4,6 +4,7 @@ import { Download, Calendar, TrendingUp, DollarSign, FileText, Users, ChevronLef
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaServices';
 import type { Venta } from '../../interfaces/Venta';
+import { AlertModal } from '../common';
 
 interface ReporteData {
   fecha: string;
@@ -37,6 +38,7 @@ const ReporteDeVentas: React.FC = () => {
     ticketPromedio: 0,
     productosVendidos: 0
   });
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
 
   // Estados para paginación
   const [paginaActual, setPaginaActual] = useState(1);
@@ -255,7 +257,7 @@ const ReporteDeVentas: React.FC = () => {
 
   const exportarAExcel = async () => {
     if (ventas.length === 0) {
-      alert('No hay datos para exportar');
+      setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
     }
 
@@ -366,14 +368,14 @@ const ReporteDeVentas: React.FC = () => {
 
     } catch (error) {
       console.error('Error al exportar datos:', error);
-      
+
       // Remover indicador de carga si existe
       const existingToast = document.querySelector('.fixed.top-4.right-4.bg-blue-600');
       if (existingToast && document.body.contains(existingToast)) {
         document.body.removeChild(existingToast);
       }
-      
-      alert('Error al generar el reporte. Inténtalo nuevamente.');
+
+      setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
   };
 
@@ -825,6 +827,14 @@ const ReporteDeVentas: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        open={alertModal.open}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+      />
     </div>
   );
 };

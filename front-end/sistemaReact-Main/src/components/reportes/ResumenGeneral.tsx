@@ -8,6 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
+import { AlertModal } from '../common';
 
 // Interfaz local para el componente hasta que se alinee con el backend
 interface ResumenVentasLocal {
@@ -28,6 +29,7 @@ const ResumenGeneral: React.FC = () => {
   const [resumen, setResumen] = useState<ResumenVentasLocal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
 
   useEffect(() => {
     const cargarResumen = async () => {
@@ -187,7 +189,7 @@ const ResumenGeneral: React.FC = () => {
 
   const exportarAExcel = async () => {
     if (!resumen) {
-      alert('No hay datos para exportar');
+      setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
     }
 
@@ -299,14 +301,14 @@ const ResumenGeneral: React.FC = () => {
       console.log('✅ Archivo Excel exportado exitosamente:', fileName);
     } catch (error) {
       console.error('❌ Error al exportar a Excel:', error);
-      
+
       // Remover indicador de carga si existe
       const existingToast = document.querySelector('.fixed.top-4.right-4.bg-blue-600');
       if (existingToast && document.body.contains(existingToast)) {
         document.body.removeChild(existingToast);
       }
-      
-      alert('Error al exportar archivo Excel. Intenta nuevamente.');
+
+      setAlertModal({ open: true, message: 'Error al exportar archivo Excel. Intenta nuevamente.', variant: 'error' });
     }
   };
 
@@ -439,6 +441,14 @@ const ResumenGeneral: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        open={alertModal.open}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+      />
     </div>
   );
 };

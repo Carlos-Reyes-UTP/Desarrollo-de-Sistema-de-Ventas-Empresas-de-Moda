@@ -7,64 +7,13 @@ import type { Talla } from '../../interfaces/Talla';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 import { ColorService } from '../../services/ColorService';
 import { TallaService } from '../../services/TallaService';
+import { AlertModal, ConfirmModal } from '../common';
 
 interface GestionVariantesProps {
   producto: Producto;
   onClose: () => void;
   onVariantesActualizadas: () => void;
 }
-
-// Modal de confirmación reutilizable con diseño mejorado
-const ConfirmModal: React.FC<{
-  open: boolean;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}> = ({ open, message, onConfirm, onCancel }) => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    if (open) {
-      timeoutId = setTimeout(() => setIsVisible(true), 10);
-    } else {
-      setIsVisible(false);
-    }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
-  }, [open]);
-
-  if (!open) return null;
-
-  return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className={`bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm m-4 relative border border-gray-200 transform transition-all duration-300 ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-        <div className="text-center">
-          <div className="bg-red-100 p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-red-600" />
-          </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Confirmar eliminación</h3>
-          <p className="text-gray-600 mb-6">{message}</p>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={onCancel}
-              className="px-6 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors duration-200 w-full"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={onConfirm}
-              className="px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium transition-all duration-200 shadow-lg hover:shadow-red-500/50 w-full"
-            >
-              Eliminar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const GestionVariantes: React.FC<GestionVariantesProps> = ({
   producto,
@@ -87,6 +36,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   });
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [varianteAEliminar, setVarianteAEliminar] = useState<number | null>(null);
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -202,162 +152,129 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   const totalStock = variantes.reduce((sum, v) => sum + v.cantidad, 0);
 
   return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className={`bg-gray-50 rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden border border-gray-200 transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${isModalVisible ? 'animate-fadeIn' : 'animate-fadeOut'}`}>
+      <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${isModalVisible ? 'animate-scaleIn' : 'animate-scaleOut'}`}>
 
-        {/* Header con diseño mejorado */}
-        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
-          <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
-                <ShoppingBag className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Gestión de Variantes</h2>
-                <p className="text-indigo-100 text-sm">{producto.nombre}</p>
-              </div>
+        {/* Header */}
+        <div className="p-10 pb-6 border-b border-gray-100">
+          <div className="mb-6 w-12 h-1 bg-black"></div>
+          <div className="flex items-start justify-between">
+            <div>
+              <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
+                Gestión de Variantes
+              </h2>
+              <p className="text-gray-500 text-sm font-medium">
+                {producto.nombre} — {producto.codigoIdentificacion}
+              </p>
             </div>
-            <div className="flex items-center gap-4">
-              <span className="inline-flex items-center gap-2 text-xs bg-white/20 backdrop-blur-sm text-white px-3 py-1.5 rounded-full font-semibold border border-white/30">
-                <Package className="w-4 h-4" />
-                {producto.codigoIdentificacion}
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold uppercase tracking-wider">
+                <ShoppingBag className="w-4 h-4" />
+                Stock: {totalStock}
               </span>
-              {(() => {
-                let stockClass;
-                if (totalStock === 0) {
-                  stockClass = 'bg-red-500/20 text-red-100 border-red-400/30';
-                } else if (totalStock < 50) {
-                  stockClass = 'bg-orange-500/20 text-orange-100 border-orange-400/30';
-                } else {
-                  stockClass = 'bg-green-500/20 text-green-100 border-green-400/30';
-                }
-                return (
-                  <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-full font-bold backdrop-blur-sm border ${stockClass}`}>
-                    <ShoppingBag className="w-4 h-4" />
-                    Stock Total: {totalStock}
-                  </span>
-                );
-              })()}
-              <button onClick={handleClose} className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200">
+              <button 
+                onClick={handleClose} 
+                className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all duration-200"
+              >
                 <X className="w-6 h-6" />
               </button>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            {error && (
-              <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6" role="alert">
-                <p className="font-bold">Error</p>
-                <p>{error}</p>
+        <div className="flex-1 overflow-y-auto px-10 pb-10">
+          {error && (
+            <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 mb-6" role="alert">
+              <AlertTriangle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-4 mb-6">
+            <button
+              onClick={() => setShowNuevaVariante(true)}
+              className="bg-black hover:bg-gray-900 text-white px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg hover:shadow-xl"
+            >
+              <Plus className="w-4 h-4" />
+              Nueva Variante
+            </button>
+
+            <button
+              onClick={cargarDatos}
+              disabled={loading}
+              className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? 'Cargando...' : 'Actualizar'}
+            </button>
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-100">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-8 py-5 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Talla</th>
+                    <th className="px-8 py-5 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Color</th>
+                    <th className="px-8 py-5 text-center text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Cantidad</th>
+                    <th className="px-8 py-5 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-50">
+                  {variantes.map((variante) => (
+                    <VarianteRow
+                      key={variante.idVariante}
+                      variante={variante}
+                      onActualizarCantidad={handleActualizarCantidad}
+                      onEliminar={solicitarEliminarVariante}
+                      ocultarColumnaVariante={true}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {variantes.length === 0 && !loading && (
+              <div className="text-center p-20">
+                <div className="w-16 h-16 rounded-full bg-gray-100 mx-auto mb-4 flex items-center justify-center">
+                  <Package className="w-8 h-8 text-gray-400" />
+                </div>
+                <h3 className="text-lg font-bold text-black mb-2">Sin variantes registradas</h3>
+                <p className="text-gray-500 text-sm max-w-sm mx-auto">Agrega variantes para gestionar el inventario por talla y color.</p>
               </div>
             )}
-
-            <div className="flex flex-wrap gap-4 mb-6">
-              <button
-                onClick={() => setShowNuevaVariante(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg flex items-center gap-2 font-semibold transition-all duration-300 ease-in-out shadow-md hover:shadow-lg hover:shadow-blue-500/50 transform hover:-translate-y-0.5"
-              >
-                <Plus className="w-5 h-5" />
-                Nueva Variante
-              </button>
-
-              <button
-                onClick={cargarDatos}
-                disabled={loading}
-                className="bg-white hover:bg-gray-100 text-gray-700 px-5 py-2.5 rounded-lg flex items-center gap-2 font-semibold transition-colors duration-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
-                {loading ? 'Cargando...' : 'Actualizar'}
-              </button>
-            </div>
-
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-100/70">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Talla</th>
-                      <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Color</th>
-                      <th className="px-6 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Cantidad</th>
-                      <th className="px-6 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {variantes.map((variante) => (
-                      <VarianteRow
-                        key={variante.idVariante}
-                        variante={variante}
-                        onActualizarCantidad={handleActualizarCantidad}
-                        onEliminar={solicitarEliminarVariante}
-                        ocultarColumnaVariante={true}
-                      />
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              {variantes.length === 0 && !loading && (
-                <div className="text-center p-12">
-                  <div className="bg-gray-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                    <Package className="w-8 h-8 text-gray-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Este producto no tiene variantes</h3>
-                  <p className="text-gray-500 mb-6 max-w-sm mx-auto">Agrega variantes para gestionar el inventario por talla y color.</p>
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </div>
 
       {/* --- MODALES --- */}
-      {/* Modal Nueva Variante - Como modal independiente */}
+      {/* Modal Nueva Variante */}
       {showNuevaVariante && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60]">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md m-4 border border-gray-200 max-h-[90vh] flex flex-col">
-            <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
-              <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
-              <div className="relative flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
-                    <Plus className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Nueva Variante</h3>
-                    <p className="text-indigo-100 text-sm">Agregue una nueva variante del producto</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    setShowNuevaVariante(false);
-                    setFormVariante({ tallaId: '', colorId: '', cantidad: '', codigoIdentificacion: '' });
-                    setError(null);
-                  }}
-                  className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-fadeIn">
+          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden animate-scaleIn">
+            <div className="p-10">
+              <div className="mb-6 w-12 h-1 bg-black"></div>
+              <h3 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
+                Nueva Variante
+              </h3>
+              <p className="text-gray-500 text-sm mb-10 font-medium">
+                Agregue una nueva variante del producto
+              </p>
 
-            <div className="flex-1 overflow-y-auto">
-              <form onSubmit={handleCrearVariante} className="p-6 space-y-6">
+              <form onSubmit={handleCrearVariante} className="space-y-6">
                 {/* Selector de Talla */}
                 <div className="space-y-2">
-                  <label htmlFor="tallaSelect" className="block text-sm font-semibold text-gray-700">
-                    <span className="flex items-center">
-                      <Ruler className="w-4 h-4 mr-2 text-indigo-500" />
+                  <label htmlFor="tallaSelect" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                    <span className="flex items-center gap-2">
+                      <Ruler className="w-4 h-4" />
                       Talla
-                      <span className="text-red-500 ml-1">*</span>
+                      <span className="text-red-500">*</span>
                     </span>
                   </label>
                   <select
                     id="tallaSelect"
                     value={formVariante.tallaId}
                     onChange={(e) => setFormVariante({ ...formVariante, tallaId: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
                     required
                   >
                     <option value="">Seleccionar talla</option>
@@ -371,18 +288,18 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
 
                 {/* Selector de Color */}
                 <div className="space-y-2">
-                  <label htmlFor="colorSelect" className="block text-sm font-semibold text-gray-700">
-                    <span className="flex items-center">
-                      <Palette className="w-4 h-4 mr-2 text-indigo-500" />
+                  <label htmlFor="colorSelect" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                    <span className="flex items-center gap-2">
+                      <Palette className="w-4 h-4" />
                       Color
-                      <span className="text-red-500 ml-1">*</span>
+                      <span className="text-red-500">*</span>
                     </span>
                   </label>
                   <select
                     id="colorSelect"
                     value={formVariante.colorId}
                     onChange={(e) => setFormVariante({ ...formVariante, colorId: e.target.value })}
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
                     required
                   >
                     <option value="">Seleccionar color</option>
@@ -396,11 +313,11 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
 
                 {/* Cantidad */}
                 <div className="space-y-2">
-                  <label htmlFor="cantidadInput" className="block text-sm font-semibold text-gray-700">
-                    <span className="flex items-center">
-                      <Package className="w-4 h-4 mr-2 text-indigo-500" />
+                  <label htmlFor="cantidadInput" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                    <span className="flex items-center gap-2">
+                      <Package className="w-4 h-4" />
                       Cantidad Inicial
-                      <span className="text-red-500 ml-1">*</span>
+                      <span className="text-red-500">*</span>
                     </span>
                   </label>
                   <input
@@ -410,14 +327,14 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     onChange={(e) => setFormVariante({ ...formVariante, cantidad: e.target.value })}
                     placeholder="Ej: 10"
                     min="0"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
                     required
                   />
                 </div>
 
                 {/* Código de Identificación (opcional) */}
                 <div className="space-y-2">
-                  <label htmlFor="codigoIdentificacion" className="block text-sm font-semibold text-gray-700">
+                  <label htmlFor="codigoIdentificacion" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
                     Código de Barras (opcional)
                   </label>
                   <input
@@ -426,27 +343,27 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     value={formVariante.codigoIdentificacion}
                     onChange={(e) => setFormVariante({ ...formVariante, codigoIdentificacion: e.target.value })}
                     placeholder="Ej: PROD001-M-AZUL"
-                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
                   />
                 </div>
 
                 {/* Vista previa de la combinación */}
                 {formVariante.tallaId && formVariante.colorId && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-sm text-blue-800 font-medium">Vista previa:</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm font-semibold">
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Vista previa:</p>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-black">
                         {tallas.find(t => t.idTalla?.toString() === formVariante.tallaId)?.nombreTalla}
                       </span>
-                      <span className="text-gray-400">•</span>
-                      <div className="flex items-center gap-1">
+                      <span className="text-gray-300">•</span>
+                      <div className="flex items-center gap-2">
                         <div
-                          className="w-4 h-4 rounded-full border border-gray-300"
+                          className="w-5 h-5 rounded-lg border-2 border-gray-200"
                           style={{
                             backgroundColor: colores.find(c => c.idColor?.toString() === formVariante.colorId)?.codigoHex ?? '#FFFFFF'
                           }}
                         ></div>
-                        <span className="text-sm font-semibold">
+                        <span className="text-sm font-bold text-black">
                           {colores.find(c => c.idColor?.toString() === formVariante.colorId)?.nombre}
                         </span>
                       </div>
@@ -454,7 +371,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                   </div>
                 )}
 
-                <div className="flex justify-end space-x-4 pt-8 border-t-2 border-gray-100">
+                <div className="flex gap-3 pt-6">
                   <button
                     type="button"
                     onClick={() => {
@@ -462,15 +379,15 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                       setFormVariante({ tallaId: '', colorId: '', cantidad: '', codigoIdentificacion: '' });
                       setError(null);
                     }}
-                    className="px-6 py-3 text-sm font-semibold text-gray-700 bg-white border-2 border-gray-300 rounded-xl shadow-sm hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-500/20 transition-all duration-200"
+                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-transparent rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 inline-flex items-center"
+                    className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
                   >
-                    <Save className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4" />
                     Crear Variante
                   </button>
                 </div>
@@ -485,6 +402,16 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         message="¿Estás seguro de que deseas eliminar esta variante? El stock se perderá."
         onConfirm={confirmarEliminarVariante}
         onCancel={cancelarEliminarVariante}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
+      {/* Alert Modal for quantity validation */}
+      <AlertModal
+        open={alertModal.open}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
       />
     </div>
   );
@@ -508,7 +435,7 @@ const VarianteRow: React.FC<{
     if (!variante.idVariante || guardando) return;
     const cantidadNumerica = parseInt(nuevaCantidad);
     if (isNaN(cantidadNumerica) || cantidadNumerica < 0) {
-      alert('Por favor ingresa una cantidad válida.');
+      setAlertModal({ open: true, message: 'Por favor ingresa una cantidad válida.', variant: 'warning' });
       setNuevaCantidad(variante.cantidad.toString());
       return;
     }
@@ -542,16 +469,18 @@ const VarianteRow: React.FC<{
     <tr className="hover:bg-gray-50/70 transition-colors duration-200 group">
       {/* Solo mostrar la columna Variante si no está oculta (por compatibilidad futura) */}
       {!ocultarColumnaVariante && (
-        <td className="px-6 py-4 font-mono text-sm text-gray-700">{variante.codigoIdentificacion ?? 'N/A'}</td>
+        <td className="px-8 py-5 font-mono text-sm text-gray-700">{variante.codigoIdentificacion ?? 'N/A'}</td>
       )}
-      <td className="px-6 py-4 font-semibold text-gray-800">{variante.talla.nombreTalla}</td>
-      <td className="px-6 py-4">
+      <td className="px-8 py-5">
+        <span className="font-bold text-sm text-black">{variante.talla.nombreTalla}</span>
+      </td>
+      <td className="px-8 py-5">
         <div className="flex items-center gap-3">
-          <div className="w-6 h-6 rounded-full border border-gray-200" style={{ backgroundColor: variante.color.codigoHex ?? '#FFFFFF' }}></div>
-          <span className="font-medium text-gray-800">{variante.color.nombre}</span>
+          <div className="w-8 h-8 rounded-lg border-2 border-gray-200" style={{ backgroundColor: variante.color.codigoHex ?? '#FFFFFF' }}></div>
+          <span className="font-bold text-sm text-black">{variante.color.nombre}</span>
         </div>
       </td>
-      <td className="px-6 py-4 text-center">
+      <td className="px-8 py-5 text-center">
         {editandoCantidad ? (
           <div className="flex items-center justify-center gap-2">
             <input
@@ -561,7 +490,7 @@ const VarianteRow: React.FC<{
               onKeyDown={handleKeyDown}
               min="0"
               disabled={guardando}
-              className="w-24 px-3 py-2 border-2 border-indigo-300 rounded-xl bg-indigo-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 text-sm text-center transition-all duration-200"
+              className="w-24 px-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 text-center transition-all"
               autoFocus
             />
           </div>
@@ -588,16 +517,16 @@ const VarianteRow: React.FC<{
           })()
         )}
       </td>
-      <td className="px-6 py-4 text-right">
+      <td className="px-8 py-5 text-right">
         {editandoCantidad ? (
           <div className="flex items-center justify-end gap-2">
-            <button onClick={handleGuardarCantidad} disabled={guardando} className="p-2 rounded-full text-green-600 bg-green-100 hover:bg-green-200 disabled:opacity-50" title="Guardar"><Save className="w-5 h-5" /></button>
-            <button onClick={handleCancelarEdicion} disabled={guardando} className="p-2 rounded-full text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50" title="Cancelar"><X className="w-5 h-5" /></button>
+            <button onClick={handleGuardarCantidad} disabled={guardando} className="p-2.5 rounded-xl text-black bg-gray-100 hover:bg-black hover:text-white disabled:opacity-50 transition-all" title="Guardar"><Save className="w-4 h-4" /></button>
+            <button onClick={handleCancelarEdicion} disabled={guardando} className="p-2.5 rounded-xl text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-all" title="Cancelar"><X className="w-4 h-4" /></button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-2">
-            <button onClick={() => setEditandoCantidad(true)} className="p-2 rounded-full text-blue-600 bg-blue-100 hover:bg-blue-200 transition-colors" title="Editar Cantidad"><Edit className="w-5 h-5" /></button>
-            <button onClick={() => onEliminar(variante.idVariante!)} className="p-2 rounded-full text-red-600 bg-red-100 hover:bg-red-200 transition-colors" title="Eliminar Variante"><Trash2 className="w-5 h-5" /></button>
+            <button onClick={() => setEditandoCantidad(true)} className="p-2.5 rounded-xl text-gray-400 hover:bg-black hover:text-white transition-all" title="Editar Cantidad"><Edit className="w-4 h-4" /></button>
+            <button onClick={() => onEliminar(variante.idVariante!)} className="p-2.5 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Eliminar Variante"><Trash2 className="w-4 h-4" /></button>
           </div>
         )}
       </td>

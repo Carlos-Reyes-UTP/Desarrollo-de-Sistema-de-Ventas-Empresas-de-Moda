@@ -28,7 +28,7 @@ const PaginaLogin = () => {
     }
 
     if (!clave) {
-      setError('La contraseña debe tener al menos 8 caracteres');
+      setError('Por favor ingrese su contraseña');
       return;
     }
 

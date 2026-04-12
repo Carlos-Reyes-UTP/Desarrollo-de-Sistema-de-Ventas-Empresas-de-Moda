@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
@@ -44,7 +44,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  const interceptorRef = useRef<number | null>(null);
   const extraerRolesDelToken = (decodificado: TokenDecodificado): RolNombre[] => {
     let roles: RolNombre[] = [];
     
@@ -109,39 +108,20 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     initializeAuth();
-  }, []);  // Configurar interceptores una sola vez al montar el componente
+  }, []);  // Configurar interceptor de respuesta para manejar 401
   useEffect(() => {
-    if (interceptorRef.current !== null) {
-      axios.interceptors.request.eject(interceptorRef.current);
-      interceptorRef.current = null;
-    }
-    
-    interceptorRef.current = axios.interceptors.request.use(
-      (config) => {
-        // Obtener token directamente del localStorage para evitar dependencias
-        const currentToken = localStorage.getItem('token');
-        if (currentToken) {
-          config.headers.Authorization = `Bearer ${currentToken}`;
-        }
-        return config;
-      },
-      (error) => {
-        return Promise.reject(error);
-      }
-    );
-
     const responseInterceptor = axios.interceptors.response.use(
       response => response,
       error => {
         if (error.response?.status === 401) {
           // Usar callback para evitar dependencias circulares
           localStorage.removeItem('token');
-          
+
           // Actualizar estados usando callbacks
           setToken(null);
           setAuthToken(null);
           setUsuario(null);
-          
+
           if (window.location.pathname !== '/login') {
             // Redirigir después de un pequeño delay para evitar problemas de estado
             setTimeout(() => {
@@ -155,9 +135,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     // Cleanup al desmontar
     return () => {
-      if (interceptorRef.current !== null) {
-        axios.interceptors.request.eject(interceptorRef.current);
-      }
       axios.interceptors.response.eject(responseInterceptor);
     };
   }, []); // Sin dependencias para evitar bucle infinito

@@ -12,6 +12,7 @@ import { TallaService } from '../../services/TallaService';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 import { getErrorMessage, getStatusCode } from './formulario-producto-unificado/errorUtils';
+import { AlertModal } from '../common';
 
 interface VarianteFormData {
   id?: number;
@@ -29,7 +30,7 @@ interface FormularioProductoUnificadoProps {
   onProductoGuardado: (productoGuardado?: Producto) => void;
 }
 
-// Definimos las pestaÃ±as disponibles
+// Definimos las pestañas disponibles
 type TabType = 'informacion' | 'variantes' | 'precios' | 'codigosBarras';
 type ValueChangeEvent = { target: { value: string } };
 
@@ -39,16 +40,16 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   proveedores,
   onClose,
   onProductoGuardado
-}) => {  // Estado bÃ¡sico del formulario
+}) => {  // Estado básico del formulario
   const [formData, setFormData] = useState({
     codigoIdentificacion: '',
     codigoBarras: '',
     nombre: '',
     sexo: '',
-    tipoPublico: '', // NUEVO CAMPO: niÃ±o o adulto
+    tipoPublico: '', // NUEVO CAMPO: niño o adulto
     categoriaId: '',
     subcategoriaId: '',
-    subCategoria2Id: '', // NUEVO CAMPO: segunda subcategorÃ­a
+    subCategoria2Id: '', // NUEVO CAMPO: segunda subcategoría
     marca: '',
     proveedorId: '',
     precioUnitario: '',
@@ -74,7 +75,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   });
   const [showFormularioVariante, setShowFormularioVariante] = useState(false);
   
-  // Estados para formulario optimizado (mÃºltiples colores por talla)
+  // Estados para formulario optimizado (múltiples colores por talla)
   const [modoFormulario, setModoFormulario] = useState<'simple' | 'optimizado'>('optimizado');
   const [formularioOptimizado, setFormularioOptimizado] = useState({
     tallaSeleccionada: 0,
@@ -83,11 +84,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   const [tabActiva, setTabActiva] = useState<TabType>('informacion');
   const [codigoBarrasPreview, setCodigoBarrasPreview] = useState<string | null>(null);
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<number | null>(null);
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
   
-  // Estado para animaciÃ³n del modal
+  // Estado para animación del modal
   const [isModalVisible, setIsModalVisible] = useState(false);
   
-  // Estados para bÃºsqueda en campos de selecciÃ³n
+  // Estados para búsqueda en campos de selección
   const [searchCategoria, setSearchCategoria] = useState('');
   const [searchSubcategoria, setSearchSubcategoria] = useState('');
   const [searchSubcategoria2, setSearchSubcategoria2] = useState('');
@@ -97,7 +99,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   const [isSubcategoria2Focused, setIsSubcategoria2Focused] = useState(false);
   const [isProveedorFocused, setIsProveedorFocused] = useState(false);
   
-  // CategorÃ­a, subcategorÃ­a y proveedor seleccionados (por nombre)
+  // Categoría, subcategoría y proveedor seleccionados (por nombre)
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] = useState('');
   const [subcategoria2Seleccionada, setSubcategoria2Seleccionada] = useState('');
@@ -109,41 +111,41 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     cargarColoresYTallas();
   }, []);
   
-  // FunciÃ³n para cerrar con animaciÃ³n
+  // Función para cerrar con animación
   const handleClose = () => {
     setIsModalVisible(false);
-    setTimeout(onClose, 300); // Esperar a que la animaciÃ³n termine
+    setTimeout(onClose, 300); // Esperar a que la animación termine
   };
   useEffect(() => {
     if (producto) {
-      // Determinar la configuraciÃ³n de categorÃ­as del producto
+      // Determinar la configuración de categorías del producto
       const tieneCategoriaPadre = producto.categoriaPadre != null;
       const tieneCategoria = producto.categoria != null;
       
-      // Caso 1: Producto con categoria y categoriaPadre diferentes (subcategorÃ­a)
-      // Caso 2: Producto con categoria y categoriaPadre iguales (categorÃ­a principal sin hijos)
-      // Caso 3: Producto solo con categoriaPadre (categorÃ­a principal)
+      // Caso 1: Producto con categoria y categoriaPadre diferentes (subcategoría)
+      // Caso 2: Producto con categoria y categoriaPadre iguales (categoría principal sin hijos)
+      // Caso 3: Producto solo con categoriaPadre (categoría principal)
       
       let categoriaIdFormulario = '';
       let subcategoriaIdFormulario = '';
       
       if (tieneCategoriaPadre && tieneCategoria) {
-        // Verificar si son iguales (categorÃ­a principal sin hijos) o diferentes (subcategorÃ­a)
+        // Verificar si son iguales (categoría principal sin hijos) o diferentes (subcategoría)
         if (producto.categoria?.idCategoria === producto.categoriaPadre?.idCategoria) {
-          // CategorÃ­a principal sin hijos
+          // Categoría principal sin hijos
           categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
           subcategoriaIdFormulario = '';
         } else {
-          // Tiene subcategorÃ­a
+          // Tiene subcategoría
           categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
           subcategoriaIdFormulario = producto.categoria?.idCategoria?.toString() || '';
         }
       } else if (tieneCategoriaPadre) {
-        // Solo tiene categorÃ­a padre
+        // Solo tiene categoría padre
         categoriaIdFormulario = producto.categoriaPadre?.idCategoria?.toString() || '';
         subcategoriaIdFormulario = '';
       } else if (tieneCategoria) {
-        // Solo tiene categorÃ­a (caso legacy)
+        // Solo tiene categoría (caso legacy)
         categoriaIdFormulario = producto.categoria?.idCategoria?.toString() || '';
         subcategoriaIdFormulario = '';
       }
@@ -165,13 +167,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         precioDocena: producto.precioDocena?.toString() || ''
       });
       
-      // Inicializar categorÃ­as seleccionadas con sus nombres
+      // Inicializar categorías seleccionadas con sus nombres
       if (producto.categoriaPadre) {
-        // Seleccionar categorÃ­a principal
+        // Seleccionar categoría principal
         if (categoriaIdFormulario) {
           setCategoriaSeleccionada(producto.categoriaPadre.nombre);
           
-          // Cargar subcategorÃ­as de nivel 2
+          // Cargar subcategorías de nivel 2
           const categoriaSeleccionadaObj = categorias.find(c => c.idCategoria?.toString() === categoriaIdFormulario);
           if (categoriaSeleccionadaObj?.subCategorias) {
             setSubcategorias(categoriaSeleccionadaObj.subCategorias);
@@ -179,13 +181,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         }
       }
       
-      // Inicializar subcategorÃ­a seleccionada (nivel 2)
+      // Inicializar subcategoría seleccionada (nivel 2)
       if (producto.categoria && tieneCategoria && producto.categoriaPadre && 
           producto.categoria.idCategoria !== producto.categoriaPadre.idCategoria) {
         if (subcategoriaIdFormulario) {
           setSubcategoriaSeleccionada(producto.categoria.nombre);
           
-          // Cargar subcategorÃ­as de nivel 3
+          // Cargar subcategorías de nivel 3
           const subcategoriaSeleccionadaObj = producto.categoriaPadre.subCategorias?.find(
             sc => sc.idCategoria?.toString() === subcategoriaIdFormulario
           );
@@ -195,7 +197,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         }
       }
       
-      // Inicializar subcategorÃ­a nivel 3
+      // Inicializar subcategoría nivel 3
       if (producto.subCategoria2) {
         setSubcategoria2Seleccionada(producto.subCategoria2.nombre);
       }
@@ -223,15 +225,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       console.error('Error al cargar colores y tallas:', err);
       const status = getStatusCode(err);
       
-      // Manejo especÃ­fico para errores de autenticaciÃ³n/autorizaciÃ³n
+      // Manejo específico para errores de autenticación/autorización
       if (status === 401) {
-        setError('Error de autorizaciÃ³n: Tu sesiÃ³n ha expirado. Por favor, inicia sesiÃ³n nuevamente.');
+        setError('Error de autorización: Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
       } else if (status === 403) {
-        setError('Error de permisos: No tienes autorizaciÃ³n para acceder a esta informaciÃ³n.');
+        setError('Error de permisos: No tienes autorización para acceder a esta información.');
       } else {
         setError(
           'Error al cargar colores y tallas disponibles: ' +
-            getErrorMessage(err, 'Error de comunicaciÃ³n con el servidor')
+            getErrorMessage(err, 'Error de comunicación con el servidor')
         );
       }
     } finally {
@@ -239,9 +241,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };
 
-  // Funciones para filtrar datos en bÃºsquedas
+  // Funciones para filtrar datos en búsquedas
   const categoriasPrincipalesFiltradas = categorias
-    .filter(categoria => !categoria.categoriaPadre) // Solo categorÃ­as principales
+    .filter(categoria => !categoria.categoriaPadre) // Solo categorías principales
     .filter(categoria => 
       searchCategoria === '' || 
       categoria.nombre.toLowerCase().includes(searchCategoria.toLowerCase())
@@ -302,15 +304,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       console.error('Error al cargar variantes existentes:', err);
       const status = getStatusCode(err);
       
-      // Manejo especÃ­fico para errores de autenticaciÃ³n/autorizaciÃ³n
+      // Manejo específico para errores de autenticación/autorización
       if (status === 401) {
-        setError('Error de autorizaciÃ³n: Tu sesiÃ³n ha expirado. Por favor, inicia sesiÃ³n nuevamente.');
+        setError('Error de autorización: Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
       } else if (status === 403) {
-        setError('Error de permisos: No tienes autorizaciÃ³n para acceder a esta informaciÃ³n.');
+        setError('Error de permisos: No tienes autorización para acceder a esta información.');
       } else {
         setError(
           'Error al cargar variantes: ' +
-            getErrorMessage(err, 'Error de comunicaciÃ³n con el servidor')
+            getErrorMessage(err, 'Error de comunicación con el servidor')
         );
       }
     } finally {
@@ -333,7 +335,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     );
 
     if (existeVariante) {
-      setError('Ya existe una variante con esta combinaciÃ³n de talla y color');
+      setError('Ya existe una variante con esta combinación de talla y color');
       return;
     }
 
@@ -345,7 +347,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       return;
     }
 
-    // Generar cÃ³digo de identificaciÃ³n si estÃ¡ vacÃ­o
+    // Generar código de identificación si está vacío
     let codigoIdentificacion = nuevaVariante.codigoIdentificacion;
     if (!codigoIdentificacion) {
       const codigoBase = formData.codigoIdentificacion || 'PROD';
@@ -394,82 +396,82 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         variantes: variantes.map(v => ({ id: v.id, tallaId: v.tallaId, colorId: v.colorId, cantidad: v.cantidad }))
       });
 
-      // Validaciones bÃ¡sicas
+      // Validaciones básicas
       if (!formData.nombre.trim()) {
         throw new Error('El nombre del producto es requerido');
       }
 
       if (!formData.codigoIdentificacion.trim()) {
-        throw new Error('El cÃ³digo de identificaciÃ³n es requerido');
-      }      // Encontrar objetos de categorÃ­as y proveedor
+        throw new Error('El código de identificación es requerido');
+      }      // Encontrar objetos de categorías y proveedor
       let categoriaSeleccionada: Categoria | undefined = undefined;
       let categoriaPadreSeleccionada: Categoria | undefined = undefined;
 
       if (formData.subcategoriaId) {
-        // Caso 1: Si hay una subcategorÃ­a seleccionada
+        // Caso 1: Si hay una subcategoría seleccionada
         categoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)!;
         categoriaPadreSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
         
-        console.log('ðŸ“‚ Usando subcategorÃ­a como categorÃ­a principal:', categoriaSeleccionada?.nombre);
-        console.log('ðŸ“ CategorÃ­a padre seleccionada:', categoriaPadreSeleccionada?.nombre);
+        console.log('📁 Usando subcategoría como categoría principal:', categoriaSeleccionada?.nombre);
+        console.log('ðŸ“ Categoría padre seleccionada:', categoriaPadreSeleccionada?.nombre);
       } else {
-        // Caso 2: Si solo hay categorÃ­a principal seleccionada
+        // Caso 2: Si solo hay categoría principal seleccionada
         const categoriaPrincipal = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId)!;
         
         if (!categoriaPrincipal) {
-          throw new Error('Debe seleccionar una categorÃ­a vÃ¡lida');
+          throw new Error('Debe seleccionar una categoría válida');
         }
         
-        // Verificar si la categorÃ­a principal tiene subcategorÃ­as
+        // Verificar si la categoría principal tiene subcategorías
         if (categoriaPrincipal.subCategorias && categoriaPrincipal.subCategorias.length > 0) {
-          // Si tiene subcategorÃ­as, entonces es una categorÃ­a padre y necesita una subcategorÃ­a
-          throw new Error('Debe seleccionar una subcategorÃ­a para esta categorÃ­a principal');
+          // Si tiene subcategorías, entonces es una categoría padre y necesita una subcategoría
+          throw new Error('Debe seleccionar una subcategoría para esta categoría principal');
         } else {
-          // Si no tiene subcategorÃ­as, se configura SOLO como categorÃ­a padre
-          // categoria queda como undefined (null) y categoriaPadre toma la categorÃ­a principal
+          // Si no tiene subcategorías, se configura SOLO como categoría padre
+          // categoria queda como undefined (null) y categoriaPadre toma la categoría principal
           categoriaSeleccionada = undefined;
           categoriaPadreSeleccionada = categoriaPrincipal;
           
-          console.log('ðŸ“ CategorÃ­a principal sin hijos - configurando SOLO como categoriaPadre:', categoriaPrincipal?.nombre);
+          console.log('ðŸ“ Categoría principal sin hijos - configurando SOLO como categoriaPadre:', categoriaPrincipal?.nombre);
         }
       }
 
-      // Validar tipo pÃºblico
+      // Validar tipo público
       if (!formData.tipoPublico) {
-        throw new Error('Debe seleccionar el tipo de pÃºblico (niÃ±o o adulto)');
+        throw new Error('Debe seleccionar el tipo de público (niño o adulto)');
       }
 
-      // Validar segunda subcategorÃ­a - ahora es obligatoria solo si hay subCategorias2 disponibles
+      // Validar segunda subcategoría - ahora es obligatoria solo si hay subCategorias2 disponibles
       if (subCategorias2.length > 0 && !formData.subCategoria2Id) {
-        throw new Error('Debe seleccionar la segunda subcategorÃ­a (Nivel 3)');
+        throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
       }
 
       const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
 
       if (!proveedor) {
-        throw new Error('Debe seleccionar un proveedor vÃ¡lido');
+        throw new Error('Debe seleccionar un proveedor válido');
       }
 
-      // Obtener la segunda subcategorÃ­a desde el array correcto
+      // Obtener la segunda subcategoría desde el array correcto
       let subCategoria2: Categoria | undefined = undefined;
       if (formData.subCategoria2Id) {
         // Buscar primero en subCategorias2 (nivel 3), luego en categorias completas como fallback
         subCategoria2 = subCategorias2.find(c => c.idCategoria?.toString() === formData.subCategoria2Id) ||
                        categorias.find(c => c.idCategoria?.toString() === formData.subCategoria2Id);
         if (!subCategoria2) {
-          throw new Error('Segunda subcategorÃ­a no vÃ¡lida');
+          throw new Error('Segunda subcategoría no válida');
         }
       }
 
-      // Si no hay subCategoria2 seleccionada pero es requerida, usar una categorÃ­a por defecto o lanzar error
+      // Si no hay subCategoria2 seleccionada pero es requerida, usar una categoría por defecto o lanzar error
       if (!subCategoria2 && subCategorias2.length > 0) {
-        throw new Error('Debe seleccionar la segunda subcategorÃ­a (Nivel 3)');
+        throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
       }
 
-      // Crear una categorÃ­a temporal si no hay segunda subcategorÃ­a pero se requiere para la interface
+      // Crear una categoría temporal si no hay segunda subcategoría pero se requiere para la interface
       const subCategoria2Final = subCategoria2 || {
         idCategoria: 0,
-        nombre: "Sin categorÃ­a nivel 3",
+        nombre: "Sin categoría nivel 3",
         categoriaPadre: undefined,
         subCategorias: undefined,
         esCategoriaPrincipal: false,
@@ -509,7 +511,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       }
       console.log(`âœ… Producto ${producto?.idProducto ? 'actualizado' : 'creado'} con ID: ${productoGuardado.idProducto}`);      // ===== PROCESAMIENTO MEJORADO DE VARIANTES =====
       if (productoGuardado.idProducto && variantes.length > 0) {
-        console.log('ðŸ”§ Iniciando sincronizaciÃ³n de variantes...');
+        console.log('ðŸ”§ Iniciando sincronización de variantes...');
 
         // 1. Obtener el estado actual REAL de la base de datos
         const variantesEnBD = producto?.idProducto
@@ -518,25 +520,25 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         console.log(`ðŸ“¦ Encontradas ${variantesEnBD.length} variantes existentes en la base de datos.`);
 
         const variantesEnFormulario = variantes; // Las variantes del estado de React
-        console.log(`ï¿½ Se procesarÃ¡n ${variantesEnFormulario.length} variantes desde el formulario.`);
+        console.log(`ï¿½ Se procesarán ${variantesEnFormulario.length} variantes desde el formulario.`);
 
-        // Convertir a mapas para una bÃºsqueda eficiente (O(1) en lugar de O(n))
+        // Convertir a mapas para una búsqueda eficiente (O(1) en lugar de O(n))
         const mapaVariantesBD = new Map(variantesEnBD.map(v => [v.idProductoVariante, v]));
         const mapaVariantesFormulario = new Map(variantesEnFormulario.filter(v => v.id).map(v => [v.id, v]));
 
         // 2. IDENTIFICAR OPERACIONES
         
-        // -> Variantes a ELIMINAR: EstÃ¡n en la BD pero no en el formulario
+        // -> Variantes a ELIMINAR: Están en la BD pero no en el formulario
         const variantesAEliminar = variantesEnBD.filter(
           vDB => !mapaVariantesFormulario.has(vDB.idProductoVariante!)
         );
 
-        // -> Variantes a ACTUALIZAR: EstÃ¡n en ambos, formulario y BD
+        // -> Variantes a ACTUALIZAR: Están en ambos, formulario y BD
         const variantesAActualizar = variantesEnFormulario.filter(
           vForm => vForm.id && mapaVariantesBD.has(vForm.id)
         );
 
-        // -> Variantes a CREAR: EstÃ¡n en el formulario pero no tienen ID (son nuevas)
+        // -> Variantes a CREAR: Están en el formulario pero no tienen ID (son nuevas)
         const variantesACrear = variantesEnFormulario.filter(vForm => !vForm.id);
 
         console.log(`âž• ${variantesACrear.length} para crear, âœï¸ ${variantesAActualizar.length} para actualizar, ðŸ—‘ï¸ ${variantesAEliminar.length} para eliminar.`);
@@ -566,13 +568,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           if (existente && (existente.cantidad !== variante.cantidad || existente.codigoBarrasVariante !== variante.codigoIdentificacion)) {
             console.log(`  âœï¸ Actualizando variante ID: ${variante.id}`);
             console.log(`    ðŸ“Š Cantidad: ${existente.cantidad} â†’ ${variante.cantidad}`);
-            console.log(`    ðŸ·ï¸ CÃ³digo: '${existente.codigoBarrasVariante}' â†’ '${variante.codigoIdentificacion}'`);
+            console.log(`    ðŸ·ï¸ Código: '${existente.codigoBarrasVariante}' â†’ '${variante.codigoIdentificacion}'`);
             
             const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
             const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
 
             if (!talla || !color) {
-              console.warn(`âš ï¸ Saltando actualizaciÃ³n - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+              console.warn(`âš ï¸ Saltando actualización - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
               continue;
             }
 
@@ -606,7 +608,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
 
           if (!talla || !color) {
-            console.warn(`âš ï¸ Saltando creaciÃ³n - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+            console.warn(`âš ï¸ Saltando creación - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
             continue;
           }
 
@@ -630,7 +632,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           }
         }
 
-        console.log('\nâœ… Â¡SincronizaciÃ³n de variantes completada exitosamente!');
+        console.log('\nâœ… ¡Sincronización de variantes completada exitosamente!');
       } else if (variantes.length === 0) {
         console.log('â„¹ï¸ No hay variantes para procesar');
       }
@@ -639,7 +641,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       if (productoGuardado.idProducto) {
         const variantesActualizadas = await ProductoVarianteService.obtenerVariantesPorProducto(productoGuardado.idProducto);
         console.log(`ðŸ”„ Obtenidas ${variantesActualizadas.length} variantes actualizadas para el producto`);
-        // AÃ±adir la cantidad total actualizada al producto
+        // Añadir la cantidad total actualizada al producto
         const cantidadTotalActualizada = variantesActualizadas.reduce((total, v) => total + v.cantidad, 0);
         productoGuardado = {
           ...productoGuardado,
@@ -652,11 +654,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       console.error('âŒ Error al guardar producto:', err);
       const status = getStatusCode(err);
       
-      // Manejo especÃ­fico para errores de autenticaciÃ³n/autorizaciÃ³n
+      // Manejo específico para errores de autenticación/autorización
       if (status === 401) {
-        setError('Error de autorizaciÃ³n: Tu sesiÃ³n ha expirado o no tienes permisos para realizar esta acciÃ³n. Por favor, inicia sesiÃ³n nuevamente.');
+        setError('Error de autorización: Tu sesión ha expirado o no tienes permisos para realizar esta acción. Por favor, inicia sesión nuevamente.');
       } else if (status === 403) {
-        setError('Error de permisos: No tienes autorizaciÃ³n para realizar esta acciÃ³n.');
+        setError('Error de permisos: No tienes autorización para realizar esta acción.');
       } else {
         setError(getErrorMessage(err, 'Error al guardar el producto'));
       }
@@ -665,7 +667,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    // ValidaciÃ³n para campos de precio
+    // Validación para campos de precio
     if (["precioUnitario", "precioCuarto", "precioMediaDocena", "precioDocena"].includes(name)) {
       const nuevoValor = value === '' ? '' : Math.max(0, parseFloat(value));
       // Si el usuario intenta poner un valor negativo, lo forzamos a 0
@@ -674,7 +676,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         setFormData(prev => ({ ...prev, [name]: 0 }));
         return;
       }
-      // ValidaciÃ³n de jerarquÃ­a de precios por unidad
+      // Validación de jerarquía de precios por unidad
       let precios = {
         precioUnitario: name === 'precioUnitario' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioUnitario) || 0,
         precioCuarto: name === 'precioCuarto' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioCuarto) || 0,
@@ -705,7 +707,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   };
 
   const generarCodigoBarrasAutomatico = () => {
-    // Generar un cÃ³digo de barras basado en el timestamp actual y el cÃ³digo de identificaciÃ³n
+    // Generar un código de barras basado en el timestamp actual y el código de identificación
     const timestamp = Date.now();
     const codigoBase = formData.codigoIdentificacion || 'PROD';
     const codigoGenerado = `${codigoBase}-${timestamp}`;
@@ -718,13 +720,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
   const generarCodigoBarrasVariante = async (varianteId: number | undefined) => {
     if (!varianteId) {
-      setError('No se puede generar cÃ³digo de barras: la variante no tiene ID asignado. Guarda el producto primero.');
+      setError('No se puede generar código de barras: la variante no tiene ID asignado. Guarda el producto primero.');
       return;
     }
       try {
       setLoading(true);
       setError(null);
-      console.log(`ðŸ·ï¸ Generando cÃ³digo de barras para variante ID: ${varianteId}`);
+      console.log(`ðŸ·ï¸ Generando código de barras para variante ID: ${varianteId}`);
       
       const blob = await CodigoBarrasService.generarImagenVariante(varianteId);
       
@@ -733,11 +735,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       setCodigoBarrasPreview(url);
       setVarianteSeleccionada(varianteId);
       
-      // Cambiar a la pestaÃ±a de cÃ³digos de barras
+      // Cambiar a la pestaña de códigos de barras
       setTabActiva('codigosBarras');
     } catch (err: unknown) {
-      console.error('Error al generar cÃ³digo de barras de variante:', err);
-      setError('Error al generar cÃ³digo de barras: ' + getErrorMessage(err, 'Error desconocido'));
+      console.error('Error al generar código de barras de variante:', err);
+      setError('Error al generar código de barras: ' + getErrorMessage(err, 'Error desconocido'));
     } finally {
       setLoading(false);
     }
@@ -751,22 +753,22 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    // Mostrar mensaje de Ã©xito
-    alert('CÃ³digo de barras de variante descargado correctamente');
+
+    // Mostrar mensaje de éxito
+    setAlertModal({ open: true, message: 'Código de barras de variante descargado correctamente', variant: 'success' });
   };
   
-  // FunciÃ³n para manejar cambio de categorÃ­a principal (Nivel 1)
+  // Función para manejar cambio de categoría principal (Nivel 1)
   const handleCategoriaChange = (e: ValueChangeEvent) => {
     const categoriaId = e.target.value;
     setFormData(prev => ({ 
       ...prev, 
       categoriaId,
-      subcategoriaId: '', // Limpiar subcategorÃ­a cuando cambia la principal
-      subCategoria2Id: ''  // Limpiar segunda subcategorÃ­a tambiÃ©n
+      subcategoriaId: '', // Limpiar subcategoría cuando cambia la principal
+      subCategoria2Id: ''  // Limpiar segunda subcategoría también
     }));
 
-    // Cargar subcategorÃ­as (Nivel 2) de la categorÃ­a seleccionada
+    // Cargar subcategorías (Nivel 2) de la categoría seleccionada
     if (categoriaId) {
       const categoriaSeleccionada = categorias.find(c => c.idCategoria?.toString() === categoriaId);
       if (categoriaSeleccionada?.subCategorias) {
@@ -778,20 +780,20 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       setSubcategorias([]);
     }
     
-    // Limpiar tambiÃ©n las subcategorÃ­as de nivel 3
+    // Limpiar también las subcategorías de nivel 3
     setSubCategorias2([]);
   };
 
-  // FunciÃ³n para manejar cambio de subcategorÃ­a (Nivel 2)
+  // Función para manejar cambio de subcategoría (Nivel 2)
   const handleSubcategoriaChange = (e: ValueChangeEvent) => {
     const subcategoriaId = e.target.value;
     setFormData(prev => ({ 
       ...prev, 
       subcategoriaId,
-      subCategoria2Id: '' // Limpiar segunda subcategorÃ­a cuando cambia la subcategorÃ­a
+      subCategoria2Id: '' // Limpiar segunda subcategoría cuando cambia la subcategoría
     }));
 
-    // Cargar subcategorÃ­as de nivel 3 de la subcategorÃ­a seleccionada
+    // Cargar subcategorías de nivel 3 de la subcategoría seleccionada
     if (subcategoriaId) {
       const subcategoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === subcategoriaId);
       if (subcategoriaSeleccionada?.subCategorias) {
@@ -804,7 +806,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };
 
-  // FunciÃ³n optimizada para agregar mÃºltiples variantes de una talla
+  // Función optimizada para agregar múltiples variantes de una talla
   const agregarVariantesOptimizado = () => {
     if (formularioOptimizado.tallaSeleccionada === 0) {
       setError('Debe seleccionar una talla');
@@ -823,7 +825,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       .map(([colorId, cantidad]) => ({ colorId: parseInt(colorId), cantidad }));
 
     if (coloresConCantidad.length === 0) {
-      setError('Debe especificar al menos una cantidad mayor a 0 para algÃºn color');
+      setError('Debe especificar al menos una cantidad mayor a 0 para algún color');
       return;
     }
 
@@ -848,7 +850,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         continue;
       }
 
-      // Generar cÃ³digo de identificaciÃ³n automÃ¡tico
+      // Generar código de identificación automático
       const codigoBase = formData.codigoIdentificacion || 'PROD';
       const codigoIdentificacion = `${codigoBase}-${talla.nombreTalla}-${color.nombre}`;
 
@@ -877,7 +879,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };
 
-  // FunciÃ³n para actualizar cantidad de un color en el formulario optimizado
+  // Función para actualizar cantidad de un color en el formulario optimizado
   const actualizarCantidadColor = (colorId: number, cantidad: number) => {
     setFormularioOptimizado(prev => ({
       ...prev,
@@ -888,47 +890,44 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }));
   };
 
-  // FunciÃ³n para cambiar talla en formulario optimizado
+  // Función para cambiar talla en formulario optimizado
   const cambiarTallaOptimizada = (tallaId: number) => {
     setFormularioOptimizado({
       tallaSeleccionada: tallaId,
       cantidadesPorColor: {} // Limpiar cantidades al cambiar talla
     });
   };
-return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className={`bg-white rounded-2xl shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-y-auto border border-gray-200 relative transform transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+
+  return (
+    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden border border-gray-200 relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-indigo-600 to-purple-600 rounded-t-2xl p-6">
-          <div className="absolute inset-0 bg-black/10 rounded-t-2xl"></div>
-          <div className="relative flex items-center justify-between">
+        <div className="relative bg-white border-b border-gray-100 p-10 pb-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl border border-white/30">
-                {producto ? (
-                  <Package2 className="w-6 h-6 text-white" />
-                ) : (
-                  <Package2 className="w-6 h-6 text-white" />
-                )}
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
+                <Package2 className="w-6 h-6 text-black" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">
+                <div className="mb-2 w-10 h-1 bg-black"></div>
+                <h2 className="text-2xl font-bold tracking-tight text-black uppercase mb-1">
                   {producto ? 'Editar Producto' : 'Crear Nuevo Producto'}
                 </h2>
-                <p className="text-indigo-100 text-sm">
-                  {producto ? 'Modifica la informaciÃ³n del producto' : 'Complete la informaciÃ³n para crear el producto'}
+                <p className="text-gray-500 text-sm font-medium">
+                  {producto ? 'Modifica la información del producto' : 'Complete la información para crear el producto'}
                 </p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-lg transition-all duration-200"
+              className="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-black rounded-xl flex items-center justify-center transition-all"
             >
               <X size={20} />
             </button>
           </div>
         </div>
-
-        {/* Content */}
+        {/* Scrollable content */}
+        <div className="overflow-y-auto flex-1">
         <div className="px-8 py-6">
           {error && (
             <div className="mb-6 p-4 bg-gradient-to-r from-red-50 to-red-100 border-l-4 border-red-400 rounded-lg shadow-sm">
@@ -944,28 +943,28 @@ return (
           )}
 
           <form onSubmit={handleSubmit} className="space-y-8">
-            {/* NavegaciÃ³n por pestaÃ±as */}
-            <div className="flex border-b border-gray-200">
+            {/* Navegación por pestañas */}
+            <div className="flex border-b border-gray-100 mb-6 mx-8 mt-2 overflow-x-auto custom-scrollbar">
               <button
                 type="button"
                 onClick={() => setTabActiva('informacion')}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
                   tabActiva === 'informacion' 
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'text-black border-b-2 border-black bg-gray-50/50' 
+                  : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
                 }`}
               >
                 <Package2 className="w-4 h-4" />
-                InformaciÃ³n BÃ¡sica
+                Información Básica
               </button>
               
               <button
                 type="button"
                 onClick={() => setTabActiva('variantes')}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
                   tabActiva === 'variantes' 
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'text-black border-b-2 border-black bg-gray-50/50' 
+                  : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
                 }`}
               >
                 <Layers className="w-4 h-4" />
@@ -975,10 +974,10 @@ return (
               <button
                 type="button"
                 onClick={() => setTabActiva('precios')}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
                   tabActiva === 'precios' 
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'text-black border-b-2 border-black bg-gray-50/50' 
+                  : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
                 }`}
               >
                 <Tag className="w-4 h-4" />
@@ -988,39 +987,39 @@ return (
               <button
                 type="button"
                 onClick={() => setTabActiva('codigosBarras')}
-                className={`flex items-center gap-2 px-6 py-3 font-medium text-sm rounded-t-lg ${
+                className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
                   tabActiva === 'codigosBarras' 
-                  ? 'text-indigo-600 border-b-2 border-indigo-600 bg-indigo-50' 
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  ? 'text-black border-b-2 border-black bg-gray-50/50' 
+                  : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
                 }`}
               >
                 <Barcode className="w-4 h-4" />
-                CÃ³digos de Barras
+                Códigos de Barras
               </button>
             </div>
 
-            {/* PestaÃ±a: InformaciÃ³n bÃ¡sica */}
+            {/* Pestaña: Información básica */}
             {tabActiva === 'informacion' && (
               <div className="bg-gray-50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">InformaciÃ³n BÃ¡sica</h3>
+                <h3 className="text-lg font-semibold mb-4 text-gray-900">Información Básica</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                  <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      CÃ³digo de IdentificaciÃ³n *
+                      Código de Identificación *
                     </label>
                     <input
                       type="text"
                       name="codigoIdentificacion"
                       value={formData.codigoIdentificacion}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
-                      placeholder="Ingrese el cÃ³digo de identificaciÃ³n..."
+                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                      placeholder="Ingrese el código de identificación..."
                       required
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      CÃ³digo de Barras
+                      Código de Barras
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -1028,21 +1027,21 @@ return (
                         name="codigoBarras"
                         value={formData.codigoBarras}
                         onChange={handleInputChange}
-                        placeholder="CÃ³digo de barras (opcional)"
-                        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 font-mono text-sm"
+                        placeholder="Código de barras (opcional)"
+                        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-300/20 transition-all duration-200 hover:border-indigo-400 font-mono text-sm"
                       />
                       <button
                         type="button"
                         onClick={() => generarCodigoBarrasAutomatico()}
-                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
-                        title="Generar cÃ³digo de barras automÃ¡tico"
+                        className="px-4 py-2 bg-indigo-600 text-black rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
+                        title="Generar código de barras automático"
                       >
                         <Barcode size={16} />
                         Auto
                       </button>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      Se genera automÃ¡ticamente si se deja vacÃ­o
+                      Se genera automáticamente si se deja vacío
                     </p>
                   </div>
 
@@ -1055,7 +1054,7 @@ return (
                       name="nombre"
                       value={formData.nombre}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                       placeholder="Ingrese el nombre del producto..."
                       required
                     />
@@ -1069,7 +1068,7 @@ return (
                       name="sexo"
                       value={formData.sexo}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                     >
                       <option value="">Seleccionar sexo</option>
                       <option value="Hombre">Hombre</option>
@@ -1080,17 +1079,17 @@ return (
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Tipo de PÃºblico <span className="text-red-500">*</span>
+                      Tipo de Público <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="tipoPublico"
                       value={formData.tipoPublico}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                       required
                     >
-                      <option value="">Seleccionar tipo de pÃºblico</option>
-                      <option value="NIÃ‘O">NiÃ±o</option>
+                      <option value="">Seleccionar tipo de público</option>
+                      <option value="NIÑO">Niño</option>
                       <option value="ADULTO">Adulto</option>
                     </select>
                   </div>
@@ -1104,19 +1103,19 @@ return (
                       name="marca"
                       value={formData.marca}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                       placeholder="Ingrese la marca del producto..."
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      CategorÃ­a Principal (Nivel 1) *
+                      Categoría Principal (Nivel 1) *
                     </label>
                     <div className="relative">
                       <input
                         type="text"
-                        placeholder={categoriaSeleccionada ? "CategorÃ­a seleccionada" : "ðŸ—‚ï¸ Buscar CategorÃ­a Principal"}
+                        placeholder={categoriaSeleccionada ? "Categoría seleccionada" : "ðŸ—‚ï¸ Buscar Categoría Principal"}
                         value={searchCategoria}
                         onChange={(e) => setSearchCategoria(e.target.value)}
                         onFocus={() => setIsCategoriaFocused(true)}
@@ -1132,7 +1131,7 @@ return (
                             handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } });
                           }
                         }}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                        className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                         disabled={!!categoriaSeleccionada}
                         required
                       />
@@ -1143,7 +1142,7 @@ return (
                         </div>
                       )}
                       
-                      {/* Lista desplegable de categorÃ­as filtradas */}
+                      {/* Lista desplegable de categorías filtradas */}
                       {(isCategoriaFocused || searchCategoria) && !categoriaSeleccionada && categoriasPrincipalesFiltradas.length > 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                           {categoriasPrincipalesFiltradas.map(categoria => (
@@ -1168,14 +1167,14 @@ return (
                       {/* Mensaje cuando no hay resultados */}
                       {searchCategoria && categoriasPrincipalesFiltradas.length === 0 && (
                         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
-                          No se encontraron categorÃ­as principales
+                          No se encontraron categorías principales
                         </div>
                       )}
                       
-                      {/* Mostrar categorÃ­a seleccionada */}
+                      {/* Mostrar categoría seleccionada */}
                       {categoriaSeleccionada && !searchCategoria && (
                         <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                          <span className="text-indigo-800 font-medium">ðŸ“ {categoriaSeleccionada}</span>
+                          <span className="text-black font-medium">ðŸ“ {categoriaSeleccionada}</span>
                           <button
                             onClick={() => {
                               setCategoriaSeleccionada('');
@@ -1183,8 +1182,8 @@ return (
                               setSearchCategoria('');
                               handleCategoriaChange({ target: { value: '' } });
                             }}
-                            className="text-indigo-600 hover:text-indigo-800"
-                            title="Limpiar selecciÃ³n"
+                            className="text-indigo-600 hover:text-black"
+                            title="Limpiar selección"
                             type="button"
                           >
                             <X className="w-4 h-4" />
@@ -1197,12 +1196,12 @@ return (
                   {subcategorias.length > 0 && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        SubcategorÃ­a (Nivel 2) *
+                        Subcategoría (Nivel 2) *
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder={subcategoriaSeleccionada ? "SubcategorÃ­a seleccionada" : "ðŸ“‚ Buscar SubcategorÃ­a"}
+                          placeholder={subcategoriaSeleccionada ? "Subcategoría seleccionada" : "📁 Buscar Subcategoría"}
                           value={searchSubcategoria}
                           onChange={(e) => setSearchSubcategoria(e.target.value)}
                           onFocus={() => setIsSubcategoriaFocused(true)}
@@ -1218,7 +1217,7 @@ return (
                               handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } });
                             }
                           }}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                           disabled={!!subcategoriaSeleccionada}
                           required
                         />
@@ -1230,7 +1229,7 @@ return (
                           </div>
                         )}
                         
-                        {/* Lista desplegable de subcategorÃ­as filtradas */}
+                        {/* Lista desplegable de subcategorías filtradas */}
                         {(isSubcategoriaFocused || searchSubcategoria) && !subcategoriaSeleccionada && subcategoriasFiltradas.length > 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                             {subcategoriasFiltradas.map(subcategoria => (
@@ -1252,10 +1251,10 @@ return (
                           </div>
                         )}
                         
-                        {/* Mostrar subcategorÃ­a seleccionada */}
+                        {/* Mostrar subcategoría seleccionada */}
                         {subcategoriaSeleccionada && !searchSubcategoria && (
                           <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                            <span className="text-indigo-800 font-medium">ðŸ“‚ {subcategoriaSeleccionada}</span>
+                            <span className="text-black font-medium">📁 {subcategoriaSeleccionada}</span>
                             <button
                               onClick={() => {
                                 setSubcategoriaSeleccionada('');
@@ -1263,8 +1262,8 @@ return (
                                 setSearchSubcategoria('');
                                 handleSubcategoriaChange({ target: { value: '' } });
                               }}
-                              className="text-indigo-600 hover:text-indigo-800"
-                              title="Limpiar selecciÃ³n"
+                              className="text-indigo-600 hover:text-black"
+                              title="Limpiar selección"
                               type="button"
                             >
                               <X className="w-4 h-4" />
@@ -1275,7 +1274,7 @@ return (
                         {/* Mensaje cuando no hay resultados */}
                         {searchSubcategoria && subcategoriasFiltradas.length === 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
-                            No se encontraron subcategorÃ­as
+                            No se encontraron subcategorías
                           </div>
                         )}
                       </div>
@@ -1285,12 +1284,12 @@ return (
                   {subCategorias2.length > 0 && (
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Segunda SubcategorÃ­a (Nivel 3) <span className="text-red-500">*</span>
+                        Segunda Subcategoría (Nivel 3) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <input
                           type="text"
-                          placeholder={subcategoria2Seleccionada ? "2da subcategorÃ­a seleccionada" : "ðŸ“ Buscar Segunda SubcategorÃ­a"}
+                          placeholder={subcategoria2Seleccionada ? "2da subcategoría seleccionada" : "ðŸ“ Buscar Segunda Subcategoría"}
                           value={searchSubcategoria2}
                           onChange={(e) => setSearchSubcategoria2(e.target.value)}
                           onFocus={() => setIsSubcategoria2Focused(true)}
@@ -1305,7 +1304,7 @@ return (
                               setSearchSubcategoria2('');
                             }
                           }}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                           disabled={!!subcategoria2Seleccionada}
                           required
                         />
@@ -1317,7 +1316,7 @@ return (
                           </div>
                         )}
                         
-                        {/* Lista desplegable de segundas subcategorÃ­as filtradas */}
+                        {/* Lista desplegable de segundas subcategorías filtradas */}
                         {(isSubcategoria2Focused || searchSubcategoria2) && !subcategoria2Seleccionada && subcategorias2Filtradas.length > 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                             {subcategorias2Filtradas.map(subcategoria2 => (
@@ -1338,7 +1337,7 @@ return (
                           </div>
                         )}
                         
-                        {/* Mostrar segunda subcategorÃ­a seleccionada */}
+                        {/* Mostrar segunda subcategoría seleccionada */}
                         {subcategoria2Seleccionada && !searchSubcategoria2 && (
                           <div className="absolute inset-0 px-4 py-3 bg-orange-50 border border-orange-300 rounded-lg flex items-center justify-between">
                             <span className="text-orange-800 font-medium">ðŸ“ {subcategoria2Seleccionada}</span>
@@ -1349,7 +1348,7 @@ return (
                                 setSearchSubcategoria2('');
                               }}
                               className="text-orange-600 hover:text-orange-800"
-                              title="Limpiar selecciÃ³n"
+                              title="Limpiar selección"
                               type="button"
                             >
                               <X className="w-4 h-4" />
@@ -1360,19 +1359,19 @@ return (
                         {/* Mensaje cuando no hay resultados */}
                         {searchSubcategoria2 && subcategorias2Filtradas.length === 0 && (
                           <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
-                            No se encontraron segundas subcategorÃ­as
+                            No se encontraron segundas subcategorías
                           </div>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {/* Mensaje informativo cuando no hay subcategorÃ­as de nivel 3 */}
+                  {/* Mensaje informativo cuando no hay subcategorías de nivel 3 */}
                   {subcategorias.length > 0 && subCategorias2.length === 0 && formData.subcategoriaId && (
                     <div className="md:col-span-2">
                       <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                         <p className="text-xs text-gray-600">
-                          â„¹ï¸ La subcategorÃ­a seleccionada no tiene categorÃ­as de nivel 3 disponibles.
+                          â„¹ï¸ La subcategoría seleccionada no tiene categorías de nivel 3 disponibles.
                         </p>
                       </div>
                     </div>
@@ -1400,7 +1399,7 @@ return (
                             setSearchProveedor('');
                           }
                         }}
-                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                        className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                         disabled={!!proveedorSeleccionado}
                         required
                       />
@@ -1436,15 +1435,15 @@ return (
                       {/* Mostrar proveedor seleccionado */}
                       {proveedorSeleccionado && !searchProveedor && (
                         <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                          <span className="text-indigo-800 font-medium">ðŸ¢ {proveedorSeleccionado}</span>
+                          <span className="text-black font-medium">ðŸ¢ {proveedorSeleccionado}</span>
                           <button
                             onClick={() => {
                               setProveedorSeleccionado('');
                               setFormData(prev => ({ ...prev, proveedorId: '' }));
                               setSearchProveedor('');
                             }}
-                            className="text-indigo-600 hover:text-indigo-800"
-                            title="Limpiar selecciÃ³n"
+                            className="text-indigo-600 hover:text-black"
+                            title="Limpiar selección"
                             type="button"
                           >
                             <X className="w-4 h-4" />
@@ -1473,7 +1472,7 @@ return (
                           name="precioUnitario"
                           value={formData.precioUnitario}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                           placeholder="0.00"
                           required
                         />
@@ -1490,7 +1489,7 @@ return (
                           name="precioCuarto"
                           value={formData.precioCuarto}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                           placeholder="0.00"
                         />
                       </div>
@@ -1506,7 +1505,7 @@ return (
                           name="precioMediaDocena"
                           value={formData.precioMediaDocena}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                           placeholder="0.00"
                         />
                       </div>
@@ -1521,13 +1520,13 @@ return (
                           name="precioDocena"
                           value={formData.precioDocena}
                           onChange={handleInputChange}
-                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400"
+                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                           placeholder="0.00"
                         />
                       </div>
                     </div>
                     
-                    {/* Mensaje de error para validaciÃ³n de precios */}
+                    {/* Mensaje de error para validación de precios */}
                     {errorPrecio && (
                       <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                         <div className="flex items-center">
@@ -1539,9 +1538,9 @@ return (
                   </div>
                 </div>
               </div>
-            )}            {/* PestaÃ±a: Variantes */}
+            )}            {/* Pestaña: Variantes */}
             {tabActiva === 'variantes' && (
-              <div className="bg-indigo-50 rounded-xl p-6">
+              <div className="bg-gray-50 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-gray-900">
                     Variantes del Producto ({variantes.length})
@@ -1553,7 +1552,7 @@ return (
                       <select
                         value={modoFormulario}
                         onChange={(e) => setModoFormulario(e.target.value as 'simple' | 'optimizado')}
-                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-300 focus:border-gray-300"
                       >
                         <option value="optimizado">Optimizado (por talla)</option>
                         <option value="simple">Simple (individual)</option>
@@ -1562,7 +1561,7 @@ return (
                     <button
                       type="button"
                       onClick={() => setShowFormularioVariante(!showFormularioVariante)}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="bg-black hover:bg-gray-900 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                     >
                       {showFormularioVariante ? 'Cancelar' : 'Agregar Variante'}
                     </button>
@@ -1582,7 +1581,7 @@ return (
                           <select
                             value={nuevaVariante.tallaId}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, tallaId: parseInt(e.target.value) }))}
-                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
+                            className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
                           >
                             <option value={0}>Seleccionar talla</option>
                             {tallasDisponibles.map(talla => (
@@ -1600,7 +1599,7 @@ return (
                           <select
                             value={nuevaVariante.colorId}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, colorId: parseInt(e.target.value) }))}
-                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
+                            className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
                           >
                             <option value={0}>Seleccionar color</option>
                             {coloresDisponibles.map(color => (
@@ -1620,21 +1619,21 @@ return (
                             min="1"
                             value={nuevaVariante.cantidad}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
-                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
+                            className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
                           />
                         </div>                        <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
-                            CÃ³digo (opcional)
+                            Código (opcional)
                           </label>
                           <input
                             type="text"
                             value={nuevaVariante.codigoIdentificacion}
                             onChange={(e) => setNuevaVariante(prev => ({ ...prev, codigoIdentificacion: e.target.value }))}
-                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
-                            placeholder="Se genera automÃ¡ticamente"
+                            className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
+                            placeholder="Se genera automáticamente"
                           />
                           <p className="mt-1 text-xs text-gray-500 italic">
-                            La etiqueta incluirÃ¡ automÃ¡ticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
+                            La etiqueta incluirá automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
                           </p>
                         </div>
                       </div>
@@ -1643,19 +1642,19 @@ return (
                         <button
                           type="button"
                           onClick={agregarVariante}
-                          className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                         >
                           Agregar Variante
                         </button>
                       </div>
                     </>
                   ) : (
-                    // Formulario optimizado (mÃºltiples colores por talla)
+                    // Formulario optimizado (múltiples colores por talla)
                     <>                      <h4 className="text-md font-semibold mb-3 text-gray-800">Agregar Variantes por Talla (Modo Optimizado)</h4>
-                      <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-blue-700 mb-1">ðŸ’¡ <strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
+                      <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-sm text-gray-700 mb-1">💡 <strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
                         <p className="text-xs text-blue-600 italic">
-                          Las etiquetas incluirÃ¡n automÃ¡ticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
+                          Las etiquetas incluirán automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
                         </p>
                       </div>
                       
@@ -1668,7 +1667,7 @@ return (
                           <select
                             value={formularioOptimizado.tallaSeleccionada}
                             onChange={(e) => cambiarTallaOptimizada(parseInt(e.target.value))}
-                            className="w-full px-3 py-2 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 hover:border-indigo-400 text-sm"
+                            className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
                           >
                             <option value={0}>Seleccionar talla</option>
                             {tallasDisponibles.map(talla => (
@@ -1700,7 +1699,7 @@ return (
                                     min="0"
                                     value={formularioOptimizado.cantidadesPorColor[color.idColor!] || 0}
                                     onChange={(e) => actualizarCantidadColor(color.idColor!, parseInt(e.target.value) || 0)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-gray-300 focus:border-gray-300"
                                     placeholder="0"
                                   />
                                 </div>
@@ -1720,7 +1719,7 @@ return (
                           type="button"
                           onClick={agregarVariantesOptimizado}
                           disabled={formularioOptimizado.tallaSeleccionada === 0 || Object.values(formularioOptimizado.cantidadesPorColor).every(qty => qty === 0)}
-                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                         >
                           Agregar Variantes
                         </button>
@@ -1740,12 +1739,12 @@ return (
                           <th className="text-left py-3 px-4 font-semibold text-green-800">Talla</th>
                           <th className="text-left py-3 px-4 font-semibold text-green-800">Color</th>
                           <th className="text-center py-3 px-4 font-semibold text-green-800">Cantidad</th>
-                          <th className="text-left py-3 px-4 font-semibold text-green-800">CÃ³digo</th>
+                          <th className="text-left py-3 px-4 font-semibold text-green-800">Código</th>
                           <th className="text-center py-3 px-4 font-semibold text-green-800">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {/* FIX: Se usa una clave Ãºnica y estable en lugar del Ã­ndice. */}
+                        {/* FIX: Se usa una clave única y estable en lugar del índice. */}
                         {variantes.map((variante, index) => (
                           <tr key={variante.id || `new-${variante.tallaId}-${variante.colorId}`} className="border-t border-green-100 hover:bg-green-50 transition-colors">
                             <td className="py-3 px-4">
@@ -1768,7 +1767,7 @@ return (
                                 min="1"
                                 value={variante.cantidad}
                                 onChange={(e) => actualizarCantidadVariante(index, parseInt(e.target.value) || 1)}
-                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-gray-300 focus:border-gray-300"
                               />
                             </td>
                             <td className="py-3 px-4 text-xs text-gray-600 font-mono">
@@ -1779,16 +1778,16 @@ return (
                                   <button
                                     type="button"
                                     onClick={() => generarCodigoBarrasVariante(variante.id)}
-                                    className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50"
+                                    className="text-blue-600 hover:text-black p-1 rounded-full hover:bg-gray-50"
                                     disabled={loading}
-                                    title="Ver cÃ³digo de barras"
+                                    title="Ver código de barras"
                                   >
                                     <Barcode className="w-4 h-4" />
                                   </button>
                                 ) : (
                                   <span 
                                     className="text-xs text-gray-400 italic px-2 py-1" 
-                                    title="Guarda el producto para generar el cÃ³digo"
+                                    title="Guarda el producto para generar el código"
                                   >
                                     Pendiente
                                   </span>
@@ -1831,7 +1830,7 @@ return (
 
             {/* Resumen de variantes */}
             {variantes.length > 0 && (
-              <div className="bg-blue-50 rounded-xl p-6">
+              <div className="bg-gray-50 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4 text-gray-900">
                   Resumen de Variantes ({variantes.length})
                 </h3>
@@ -1839,12 +1838,12 @@ return (
                 </div>
                 
                 {variantes.length === 0 ? (
-                  <div className="text-center py-8 bg-blue-50 rounded-lg border border-blue-200">
-                    <p className="text-blue-700 mb-3">No hay variantes agregadas todavÃ­a</p>
+                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-gray-700 mb-3">No hay variantes agregadas todavía</p>
                     <button
                       type="button"
                       onClick={() => setShowFormularioVariante(true)}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
+                      className="bg-blue-600 hover:bg-blue-700 text-black px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
                     >
                       <Plus className="w-4 h-4" />
                       Agregar Variante
@@ -1854,18 +1853,18 @@ return (
               </div>
             )}
 
-            {/* PestaÃ±a: Precios */}
+            {/* Pestaña: Precios */}
             {tabActiva === 'precios' && (
               <div className="bg-white rounded-xl border border-amber-200 shadow-sm">
                 <div className="p-6">
                   <h3 className="text-lg font-semibold mb-4 text-amber-800 flex items-center gap-2">
                     <Tag className="w-5 h-5" />
-                    ConfiguraciÃ³n de Precios
+                    Configuración de Precios
                   </h3>
                   
                   <div className="mb-4 p-4 bg-amber-50 rounded-lg border border-amber-100">
                     <p className="text-sm text-amber-700">
-                      Configure los diferentes precios segÃºn la cantidad. El precio unitario es obligatorio, los demÃ¡s son opcionales.
+                      Configure los diferentes precios según la cantidad. El precio unitario es obligatorio, los demás son opcionales.
                     </p>
                   </div>
                   
@@ -1956,11 +1955,11 @@ return (
                     </div>
                   </div>
                   
-                  <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-100">
-                    <h4 className="font-medium text-blue-800 mb-2">Resumen de Descuentos</h4>
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-blue-100">
+                    <h4 className="font-medium text-black mb-2">Resumen de Descuentos</h4>
                     <div className="grid grid-cols-3 gap-4">
                       {formData.precioCuarto && formData.precioUnitario && (
-                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
                           <p className="text-xs text-gray-500">Descuento por 1/4 docena</p>
                           <p className="text-lg font-semibold text-blue-600">
                             {(((parseFloat(formData.precioUnitario) * 3) - parseFloat(formData.precioCuarto)) / (parseFloat(formData.precioUnitario) * 3) * 100).toFixed(1)}%
@@ -1969,7 +1968,7 @@ return (
                       )}
                       
                       {formData.precioMediaDocena && formData.precioUnitario && (
-                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
                           <p className="text-xs text-gray-500">Descuento por 1/2 docena</p>
                           <p className="text-lg font-semibold text-blue-600">
                             {(((parseFloat(formData.precioUnitario) * 6) - parseFloat(formData.precioMediaDocena)) / (parseFloat(formData.precioUnitario) * 6) * 100).toFixed(1)}%
@@ -1978,7 +1977,7 @@ return (
                       )}
                       
                       {formData.precioDocena && formData.precioUnitario && (
-                        <div className="bg-white p-3 rounded-lg border border-blue-200">
+                        <div className="bg-white p-3 rounded-lg border border-gray-200">
                           <p className="text-xs text-gray-500">Descuento por docena</p>
                           <p className="text-lg font-semibold text-blue-600">
                             {(((parseFloat(formData.precioUnitario) * 12) - parseFloat(formData.precioDocena)) / (parseFloat(formData.precioUnitario) * 12) * 100).toFixed(1)}%
@@ -1991,26 +1990,26 @@ return (
               </div>
             )}
 
-            {/* PestaÃ±a: CÃ³digos de Barras */}
-            {tabActiva === 'codigosBarras' && (              <div className="bg-white rounded-xl border border-indigo-200 shadow-sm">
+            {/* Pestaña: Códigos de Barras */}
+            {tabActiva === 'codigosBarras' && (              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-indigo-800 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold mb-4 text-black flex items-center gap-2">
                     <Barcode className="w-5 h-5" />
-                    CÃ³digos de Barras
+                    Códigos de Barras
                   </h3>
                     {/* Mensaje informativo actualizado */}
-                  <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                    <h4 className="font-medium text-blue-800 mb-2">ðŸ·ï¸ Sobre las etiquetas de cÃ³digo de barras</h4>                    <div className="text-sm text-blue-700 space-y-1">
-                      <p><strong>Etiquetas de Variantes:</strong> Cada etiqueta incluye automÃ¡ticamente toda la informaciÃ³n necesaria</p>
-                      <p className="text-xs italic">Formato: "Nombre del Producto [CÃ³digo] - T/Talla - Color"</p>
+                  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 className="font-medium text-black mb-2">ðŸ·ï¸ Sobre las etiquetas de código de barras</h4>                    <div className="text-sm text-gray-700 space-y-1">
+                      <p><strong>Etiquetas de Variantes:</strong> Cada etiqueta incluye automáticamente toda la información necesaria</p>
+                      <p className="text-xs italic">Formato: "Nombre del Producto [Código] - T/Talla - Color"</p>
                       <p className="text-xs italic">Ejemplo: "Boxer Americano [BA001] - T/M - Azul"</p>
                     </div>
                   </div>
                     <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <div className="bg-indigo-50 p-5 rounded-lg border border-indigo-200 h-full"><h4 className="font-medium text-indigo-800 mb-3">
+                      <div className="bg-indigo-50 p-5 rounded-lg border border-gray-200 h-full"><h4 className="font-medium text-black mb-3">
                           {varianteSeleccionada 
-                            ? 'Etiqueta con InformaciÃ³n Completa'
+                            ? 'Etiqueta con Información Completa'
                             : 'Etiquetas de Variantes (con nombre del producto)'}
                         </h4>
                         
@@ -2024,7 +2023,7 @@ return (
                                   return (
                                     <div key={v.id} className="bg-gray-50 p-3 rounded-lg">                                      <p className="font-medium text-gray-800">Esta etiqueta contiene:</p>
                                       <p className="text-green-700 font-semibold">"{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"</p>
-                                      <p className="text-xs text-gray-500 mt-1">CÃ³digo: {v.codigoIdentificacion}</p>
+                                      <p className="text-xs text-gray-500 mt-1">Código: {v.codigoIdentificacion}</p>
                                     </div>
                                   );
                                 }
@@ -2035,14 +2034,14 @@ return (
                             <div className="flex flex-col items-center justify-center bg-white p-4 rounded-lg border border-purple-200">
                               <img 
                                 src={codigoBarrasPreview} 
-                                alt="CÃ³digo de barras de variante" 
+                                alt="Código de barras de variante" 
                                 className="max-w-full h-auto max-h-48 mb-3"
                               />
                               <div className="flex gap-2">
                                 <button
                                   type="button"
                                   onClick={descargarCodigoBarrasVariante}
-                                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2"
+                                  className="bg-black hover:bg-gray-900 text-black px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2"
                                 >
                                   <Download className="w-4 h-4" />
                                   Descargar
@@ -2063,7 +2062,7 @@ return (
                           </div>
                         ) : (variantes.length > 0 ? (
                             <div className="space-y-3">                              <div className="text-sm text-gray-500 mb-3">
-                                <p className="font-medium">Cada etiqueta contendrÃ¡:</p>
+                                <p className="font-medium">Cada etiqueta contendrá:</p>
                                 <p className="text-xs italic">"{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"</p>
                               </div>
                               
@@ -2100,8 +2099,8 @@ return (
                               <p className="text-sm text-gray-500 mb-2">
                                 No hay variantes agregadas.
                               </p>                              <p className="text-xs text-gray-500 italic mb-4">
-                                Las etiquetas de variantes incluirÃ¡n automÃ¡ticamente:<br/>
-                                "Nombre del Producto [CÃ³digo] - T/X - Color Y"
+                                Las etiquetas de variantes incluirán automáticamente:<br/>
+                                "Nombre del Producto [Código] - T/X - Color Y"
                               </p>
                               <button
                                 type="button"
@@ -2109,7 +2108,7 @@ return (
                                   setTabActiva('variantes');
                                   setShowFormularioVariante(true);
                                 }}
-                                className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
+                                className="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
                               >
                                 <Plus className="w-4 h-4" />
                                 Agregar Variantes
@@ -2124,12 +2123,12 @@ return (
               </div>
             )}
 
-            {/* Botones de acciÃ³n */}
-            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white py-4 border-t border-gray-200">
+            {/* Botones de acción */}
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white px-8 py-6 border-t border-gray-100 rounded-b-[2rem]">
               <div className="flex gap-3">                <button
                   type="button"
                   onClick={handleClose}
-                  className="px-5 py-2.5 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 font-medium text-sm transition-colors"
+                  className="px-6 py-3.5 rounded-xl border border-transparent bg-gray-100 text-gray-900 hover:bg-gray-200 font-bold text-xs uppercase tracking-widest transition-all"
                 >
                   Cancelar
                 </button>
@@ -2139,7 +2138,7 @@ return (
                     <button
                       type="button"
                       onClick={() => setTabActiva('informacion')}
-                      className="px-5 py-2.5 rounded-lg border border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 font-medium text-sm transition-colors"
+                      className="px-5 py-3.5 rounded-xl border border-transparent bg-[#f8f8f8] text-gray-600 hover:text-black font-bold text-xs uppercase tracking-widest transition-all"
                     >
                       Anterior
                     </button>
@@ -2149,7 +2148,7 @@ return (
                     <button
                       type="button"
                       onClick={() => setTabActiva('variantes')}
-                      className="px-5 py-2.5 rounded-lg border border-green-300 bg-green-50 text-green-700 hover:bg-green-100 font-medium text-sm transition-colors"
+                      className="px-5 py-3.5 rounded-xl border border-transparent bg-[#f8f8f8] text-gray-600 hover:text-black font-bold text-xs uppercase tracking-widest transition-all"
                     >
                       Continuar a Variantes
                     </button>
@@ -2159,7 +2158,7 @@ return (
                     <button
                       type="button"
                       onClick={() => setTabActiva('precios')}
-                      className="px-5 py-2.5 rounded-xl border border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-medium text-sm transition-colors"
+                      className="px-5 py-3.5 rounded-xl border border-transparent bg-[#f8f8f8] text-gray-600 hover:text-black font-bold text-xs uppercase tracking-widest transition-all"
                     >
                       Continuar a Precios
                     </button>
@@ -2169,7 +2168,7 @@ return (
               
               <button
                 type="submit"
-                className="px-6 py-3 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 border-2 border-transparent rounded-xl shadow-lg hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-indigo-600 disabled:hover:to-purple-600 inline-flex items-center gap-2"
+                className="px-8 py-3.5 text-xs font-bold text-white bg-black hover:bg-gray-900 rounded-xl shadow-lg active:scale-[0.98] transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
                 disabled={loading}
               >
                 <Save className="w-5 h-5" />
@@ -2178,7 +2177,16 @@ return (
             </div>
           </form>
         </div>
+        </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        open={alertModal.open}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+      />
     </div>
   );
 };

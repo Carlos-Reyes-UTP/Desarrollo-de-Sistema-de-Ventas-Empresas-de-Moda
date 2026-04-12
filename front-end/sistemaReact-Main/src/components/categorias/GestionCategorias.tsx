@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
-  Save, 
-  X, 
-  Folder, 
-  FolderOpen, 
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  Save,
+  Folder,
+  FolderOpen,
   FolderPlus,
   ChevronRight,
   ChevronDown,
@@ -17,6 +16,7 @@ import {
 } from 'lucide-react';
 import type { CategoriaDTO } from '../../interfaces/CategoriaDTO';
 import { CategoriaService } from '../../services/CategoriaServices';
+import { ConfirmModal } from '../common';
 
 interface ArbolCategoriaProps {
   categoria: CategoriaDTO;
@@ -103,7 +103,7 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => onEliminar(categoria.id)}
+            onClick={() => solicitarEliminar(categoria.id)}
             className="p-2.5 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent text-red-400"
             title="Eliminar"
           >
@@ -148,6 +148,7 @@ const GestionCategorias: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [categoriasExpandidas, setCategoriasExpandidas] = useState<Set<number>>(new Set());
   const [cerrandoModal, setCerrandoModal] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ open: boolean; categoriaId: number | null }>({ open: false, categoriaId: null });
 
   const [formData, setFormData] = useState({
     nombre: ''
@@ -227,12 +228,17 @@ const GestionCategorias: React.FC = () => {
     }
   };
 
-  const handleEliminar = async (id: number) => {
-    if (!confirm('¿Estás seguro de eliminar esta categoría? Se eliminarán también todas sus subcategorías.')) return;
+  const solicitarEliminar = (id: number) => {
+    setConfirmModal({ open: true, categoriaId: id });
+  };
+
+  const confirmarEliminar = async () => {
+    if (confirmModal.categoriaId == null) return;
 
     try {
-      await CategoriaService.eliminarCategoria(id);
+      await CategoriaService.eliminarCategoria(confirmModal.categoriaId);
       cargarCategorias();
+      setConfirmModal({ open: false, categoriaId: null });
     } catch (err: any) {
       if (err.response?.status === 409) {
         setError('No se puede eliminar la categoría porque tiene productos asociados');
@@ -240,7 +246,12 @@ const GestionCategorias: React.FC = () => {
         setError('Error al eliminar categoría');
       }
       console.error(err);
+      setConfirmModal({ open: false, categoriaId: null });
     }
+  };
+
+  const cancelarEliminar = () => {
+    setConfirmModal({ open: false, categoriaId: null });
   };
 
   const handleEditar = (categoria: CategoriaDTO) => {
@@ -411,7 +422,7 @@ const GestionCategorias: React.FC = () => {
                 key={categoria.id}
                 categoria={categoria}
                 onEditar={handleEditar}
-                onEliminar={handleEliminar}
+                onEliminar={solicitarEliminar}
                 onCrearSubcategoria={handleNuevaSubcategoria}
                 categoriasExpandidas={categoriasExpandidas}
                 toggleExpansion={toggleExpansion}
@@ -481,6 +492,17 @@ const GestionCategorias: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Confirm Modal for Delete */}
+      <ConfirmModal
+        open={confirmModal.open}
+        message="¿Estás seguro de eliminar esta categoría? Se eliminarán también todas sus subcategorías."
+        onConfirm={confirmarEliminar}
+        onCancel={cancelarEliminar}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+      />
     </div>
   );
 };

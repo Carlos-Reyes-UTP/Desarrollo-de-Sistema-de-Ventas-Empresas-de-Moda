@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import {
@@ -26,6 +26,30 @@ import ModalHacerMayorista from '../components/mayoristas/ModalHacerMayorista';
 import type { Producto } from '../interfaces/Producto';
 import type { Venta } from '../interfaces/Venta';
 import type { Usuario } from '../interfaces/Usuario';
+
+// Memoized metric card component (extracted to prevent re-renders)
+const TarjetaMetrica = React.memo(({
+  titulo,
+  valor,
+  descripcion,
+  icono
+}: {
+  titulo: string;
+  valor: string;
+  descripcion: string;
+  icono: React.ReactNode;
+}) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
+    <div className="flex justify-between items-start mb-4">
+      <div className="text-gray-500">{titulo}</div>
+      <div className="p-2 bg-gray-100 rounded-lg">{icono}</div>
+    </div>
+    <div className="flex items-baseline">
+      <div className="text-2xl font-bold text-gray-900">{valor}</div>
+    </div>
+    <div className="text-sm text-gray-500 mt-1">{descripcion}</div>
+  </div>
+));
 
 const DashboardAdmin = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
@@ -407,30 +431,6 @@ const DashboardAdmin = () => {
     };
     return new Date().toLocaleDateString('es-ES', opciones);
   };
-
-  // Componente de tarjeta con métrica
-  const TarjetaMetrica = ({
-    titulo,
-    valor,
-    descripcion,
-    icono
-  }: {
-    titulo: string;
-    valor: string;
-    descripcion: string;
-    icono: React.ReactNode;
-  }) => (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-shadow">
-      <div className="flex justify-between items-start mb-4">
-        <div className="text-gray-500">{titulo}</div>
-        <div className="p-2 bg-gray-100 rounded-lg">{icono}</div>
-      </div>
-      <div className="flex items-baseline">
-        <div className="text-2xl font-bold text-gray-900">{valor}</div>
-      </div>
-      <div className="text-sm text-gray-500 mt-1">{descripcion}</div>
-    </div>
-  );
 
   // Función para formatear moneda
   const formatearMoneda = (valor: number) => {

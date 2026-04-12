@@ -21,7 +21,7 @@ export const useAuthReady = () => {
     //    - Hay un usuario autenticado (token válido)
     //    - No hay token en localStorage (usuario no autenticado)
     const tokenEnStorage = localStorage.getItem('token');
-    
+
     if (!cargando) {
       if (tokenEnStorage && usuario) {
         // Usuario autenticado con token válido
@@ -36,15 +36,19 @@ export const useAuthReady = () => {
       } else if (tokenEnStorage && !usuario) {
         // Hay token pero no usuario, el token podría ser inválido
         console.log('🔄 Esperando validación de token...');
-        setTimeout(() => {
-          // Si después de un tiempo aún no hay usuario, considerar que el token es inválido
-          if (!usuario) {
+        const timeoutId = setTimeout(() => {
+          // Check current localStorage state at callback time, not closure time
+          const stillHasToken = localStorage.getItem('token');
+          if (stillHasToken && !usuario) {
             console.log('❌ Token inválido, limpiando localStorage');
             localStorage.removeItem('token');
-            setIsReady(true);
-            setAuthChecked(true);
           }
-        }, 2000); // Esperar 2 segundos para validación de token
+          setIsReady(true);
+          setAuthChecked(true);
+        }, 2000);
+
+        // Cleanup timeout on unmount or re-run
+        return () => clearTimeout(timeoutId);
       }
     }
   }, [cargando, usuario]);

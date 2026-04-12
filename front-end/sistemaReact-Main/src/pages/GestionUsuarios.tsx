@@ -34,8 +34,8 @@ const GestionUsuarios = () => {
   const [busqueda, setBusqueda] = useState('');
   const [filtroRol, setFiltroRol] = useState<RolNombre | 'TODOS'>('TODOS');
   const [filtroActivo, setFiltroActivo] = useState<boolean | 'TODOS'>('TODOS');
-  const [ordenarPor, setOrdenarPor] = useState<string>('usuario');
-  const [ordenAscendente, setOrdenAscendente] = useState(true);
+  const ordenarPor: string = 'usuario';
+  const ordenAscendente = true;
   
   // Estados para el modal de usuario
   const [mostrarModal, setMostrarModal] = useState(false);
@@ -69,10 +69,6 @@ const GestionUsuarios = () => {
     visible: false
   });
 
-  // Estado para notificación de cierre de sesión
-  const [mostrarNotificacionCierre, setMostrarNotificacionCierre] = useState(false);
-  const [contadorCierre, setContadorCierre] = useState(5);
-  
   // Estado para verificar disponibilidad de nombre de usuario
   const [usuarioDisponible, setUsuarioDisponible] = useState<boolean | null>(null);
   const [verificandoUsuario, setVerificandoUsuario] = useState(false);
@@ -85,7 +81,6 @@ const GestionUsuarios = () => {
   // Estados para mostrar/ocultar contraseñas
   const [mostrarPassword, setMostrarPassword] = useState(false);
   const [mostrarConfirmPassword, setMostrarConfirmPassword] = useState(false);
-  const [mostrarPasswordActual, setMostrarPasswordActual] = useState(false);
   
   // Ref para el campo de nombre de usuario
   const usuarioInputRef = useRef<HTMLInputElement>(null);
@@ -132,19 +127,7 @@ const GestionUsuarios = () => {
     const cambianRoles = JSON.stringify(rolesOriginales) !== JSON.stringify(rolesNuevos);
 
     if (cambiaNombreUsuario || cambianRoles) {
-      setMostrarNotificacionCierre(true);
-      setContadorCierre(5);
-      
-      const intervalo = setInterval(() => {
-        setContadorCierre(prev => {
-          if (prev <= 1) {
-            clearInterval(intervalo);
-            cerrarSesion();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      cerrarSesion();
     }
   };
 
@@ -194,7 +177,6 @@ const GestionUsuarios = () => {
       setMostrarModalPassword(false);
       setPasswordActual('');
       setErrorPasswordActual(null);
-      setMostrarPasswordActual(false);
       setError(null);
     }, 300);
   };
@@ -402,11 +384,6 @@ const GestionUsuarios = () => {
     setTimeout(() => setMensajeAccion(prev => ({ ...prev, visible: false })), 5000);
   };
   
-  const ordenarPorColumna = (columna: string) => {
-    if (ordenarPor === columna) setOrdenAscendente(!ordenAscendente);
-    else { setOrdenarPor(columna); setOrdenAscendente(true); }
-  };
-
   const verificarDisponibilidadUsuario = async (nombreUsuario: string) => {
     if (modoEdicion && usuarioEditando?.usuario === nombreUsuario) {
       setUsuarioDisponible(true); return;
@@ -566,8 +543,8 @@ const GestionUsuarios = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {usuariosPagina.map((usuario) => (
-              <tr key={usuario.id || usuario.usuario} className="hover:bg-[#fafafa] transition-colors group">
+            {usuariosPagina.map((usuario, index) => (
+              <tr key={usuario.id ?? `user-${usuario.usuario}-${index}`} className="hover:bg-[#fafafa] transition-colors group">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4 text-left">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${usuario.activo ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>

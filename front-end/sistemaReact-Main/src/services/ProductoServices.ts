@@ -133,20 +133,19 @@ export const ProductoService = {
   },
 
   // Nuevos métodos para filtrar por categoría principal y subcategoría
-  getProductosByCategoriaPrincipal: async (categoriaPrincipal: string, userRole?: string): Promise<Producto[]> => {
+  getProductosByCategoriaPrincipal: async (categoriaPrincipal: string): Promise<Producto[]> => {
     const response = await apiClient.get<Producto[]>(RUTAS_PRODUCTOS.POR_CATEGORIA_PRINCIPAL(categoriaPrincipal));
     return response.data;
   },
 
-  getProductosBySubCategoria: async (subCategoria: string, userRole?: string): Promise<Producto[]> => {
+  getProductosBySubCategoria: async (subCategoria: string): Promise<Producto[]> => {
     const response = await apiClient.get<Producto[]>(RUTAS_PRODUCTOS.POR_SUBCATEGORIA(subCategoria));
     return response.data;
   },
 
   getProductosByFiltrosCategorias: async (
-    categoriaPrincipal?: string, 
-    subCategoria?: string, 
-    userRole?: string
+    categoriaPrincipal?: string,
+    subCategoria?: string
   ): Promise<Producto[]> => {
     const response = await apiClient.get<Producto[]>(
       RUTAS_PRODUCTOS.FILTRAR_CATEGORIAS(categoriaPrincipal, subCategoria)
@@ -160,7 +159,7 @@ export const ProductoService = {
   },
 
   // Método para disminuir la cantidad del producto general
-  disminuirCantidadProducto: async (id: number, cantidad: number, userRole?: string): Promise<Producto> => {
+  disminuirCantidadProducto: async (id: number, cantidad: number): Promise<Producto> => {
     try {
       const response = await apiClient.patch<Producto>(
         RUTAS_PRODUCTOS.CAJERO.DISMINUIR_PRODUCTO(id),

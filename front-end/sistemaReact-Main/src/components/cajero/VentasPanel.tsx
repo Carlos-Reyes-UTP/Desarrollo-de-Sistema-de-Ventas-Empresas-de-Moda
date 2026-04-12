@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { Search, X, CreditCard, Smartphone, DollarSign, CheckCircle, Loader2, Users, AlertCircle } from 'lucide-react';
 import { useProductoVarianteService } from '../../hooks/useProductoVarianteService';
 import { useAuthReady } from '../../hooks/useAuthReady';
@@ -29,6 +29,8 @@ const VentasPanel = () => {
   // A. ESTADO DEL COMPONENTE
   // --------------------------------------------------------------------------------------------
   const [busqueda, setBusqueda] = useState('');
+  const [busquedaDebounce, setBusquedaDebounce] = useState('');
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [tipoBusqueda, setTipoBusqueda] = useState<'nombre' | 'codigo'>('codigo');
   const [cliente, setCliente] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
@@ -38,7 +40,6 @@ const VentasPanel = () => {
   const [tipoDocumento, setTipoDocumento] = useState<'DNI' | 'RUC'>('DNI');
   
   const [variantesCargadas, setVariantesCargadas] = useState<ProductoVariante[]>([]);
-  const [variantesFiltradas, setVariantesFiltradas] = useState<ProductoVariante[]>([]);
   const [productosSeleccionadosVenta, setProductosSeleccionadosVenta] = useState<ProductoVenta[]>([]);
   const [variantesConPreciosCompletos, setVariantesConPreciosCompletos] = useState<Map<number, ProductoVariante>>(new Map());
   
@@ -59,6 +60,72 @@ const VentasPanel = () => {
   // --- PaginaciÃ³n de productos ---
   const [paginaActual, setPaginaActual] = useState(1);
   const productosPorPagina = 9;
+
+  // Load all variants on mount
+  useEffect(() => {
+    if (!isReady) return;
+    if (!isAuthenticated) {
+      window.location.href = '/login';
+      return;
+    }
+
+    const cargarTodasLasVariantes = async () => {
+      try {
+        setCargandoProductosIniciales(true);
+        setErrorGlobal(null);
+        setMensajeInfoVista("Cargando variantes de productos...");
+        const data = await getAllVariantes();
+        setVariantesCargadas(data);
+        if (data.length === 0) {
+          setMensajeInfoVista("No hay variantes de productos disponibles o el servicio no estÃ¡ conectado.");
+        } else {
+          setMensajeInfoVista(null);
+        }
+      } catch (err: unknown) {
+        console.error('Error en cargarTodasLasVariantes:', err);
+        setErrorGlobal(getErrorMessage(err, 'No se pudieron cargar las variantes de productos.'));
+        setMensajeInfoVista(null);
+      } finally {
+        setCargandoProductosIniciales(false);
+      }
+    };
+    cargarTodasLasVariantes();
+  }, [isReady, isAuthenticated, getAllVariantes]);
+
+  // Debounce search input
+  useEffect(() => {
+    // Debounce: wait 150ms after last keystroke before filtering
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      setBusquedaDebounce(busqueda);
+    }, 150);
+    return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current); };
+  }, [busqueda]);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => { if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current); };
+  }, []);
+
+  // Memoized filter computation (replaces useEffect-based filtering)
+  const variantesFiltradas = useMemo(() => {
+    if (!cargandoProductosIniciales && !cargandoBusquedaAccion && busquedaDebounce.trim() !== '') {
+      const terminoLower = busquedaDebounce.toLowerCase();
+      if (tipoBusqueda === 'nombre') {
+        return variantesCargadas.filter(v =>
+          v.producto.nombre.toLowerCase().includes(terminoLower)
+        );
+      } else {
+        return variantesCargadas.filter(v =>
+          (v.codigoBarrasVariante && v.codigoBarrasVariante.toLowerCase().includes(terminoLower)) ||
+          (v.producto.codigoIdentificacion && v.producto.codigoIdentificacion.toLowerCase().includes(terminoLower))
+        );
+      }
+    }
+    return variantesCargadas;
+  }, [busquedaDebounce, tipoBusqueda, variantesCargadas, cargandoProductosIniciales, cargandoBusquedaAccion]);
+
+  // Pagination (must come after variantesFiltradas)
   const totalPaginas = useMemo(() => Math.ceil(variantesFiltradas.length / productosPorPagina), [variantesFiltradas.length]);
   const variantesPaginadas = useMemo(() => {
     const inicio = (paginaActual - 1) * productosPorPagina;
@@ -67,81 +134,19 @@ const VentasPanel = () => {
   useEffect(() => {
     setPaginaActual(1);
   }, [variantesFiltradas]);
-  
-  // --------------------------------------------------------------------------------------------
-  // B. EFECTOS (useEffect)
-  // --------------------------------------------------------------------------------------------
-  
+
+  // Show/hide "no results" message based on filtered results
   useEffect(() => {
-    if (!isReady) return;
-    
-    if (!isAuthenticated) {
-      window.location.href = '/login';
-      return;
+    if (cargandoProductosIniciales || cargandoBusquedaAccion) return;
+    if (busquedaDebounce.trim() === '') {
+      setMensajeInfoVista(null);
+    } else if (variantesFiltradas.length === 0) {
+      const tipoBusquedaTexto = tipoBusqueda === 'nombre' ? 'nombre' : 'cÃ³digo';
+      setMensajeInfoVista(`No hay coincidencias locales para "${busquedaDebounce}" en ${tipoBusquedaTexto}. Prueba "Buscar DB".`);
+    } else {
+      setMensajeInfoVista(null);
     }
-    
-    const cargarTodasLasVariantes = async () => {
-      try {
-        setCargandoProductosIniciales(true);
-        setErrorGlobal(null);
-        setMensajeInfoVista("Cargando variantes de productos...");
-        
-        // Usar el hook personalizado que maneja roles automÃ¡ticamente
-        const data = await getAllVariantes();
-        setVariantesCargadas(data);
-        setVariantesFiltradas(data);
-        
-        if (data.length === 0) { 
-          setMensajeInfoVista("No hay variantes de productos disponibles o el servicio no estÃ¡ conectado.");
-        } else {
-          setMensajeInfoVista(null);
-        }
-      } catch (err: unknown) {
-        console.error('Error en cargarTodasLasVariantes:', err);
-        setErrorGlobal(
-          getErrorMessage(err, 'No se pudieron cargar las variantes de productos.')
-        );
-        setMensajeInfoVista(null);
-      } finally {
-        setCargandoProductosIniciales(false);
-      }
-    };
-    cargarTodasLasVariantes();
-  }, [isReady, isAuthenticated, getAllVariantes]);
-  
-  useEffect(() => {
-    if (!cargandoProductosIniciales && !cargandoBusquedaAccion) { 
-      if (busqueda.trim() === '') {
-        setVariantesFiltradas(variantesCargadas); 
-        setMensajeInfoVista(null);
-      } else {
-        const terminoLower = busqueda.toLowerCase();
-        let filtrados: ProductoVariante[] = [];
-        
-        if (tipoBusqueda === 'nombre') {
-          // Buscar por nombre del producto
-          filtrados = variantesCargadas.filter(v => 
-            v.producto.nombre.toLowerCase().includes(terminoLower)
-          );
-        } else if (tipoBusqueda === 'codigo') {
-          // Buscar por cÃ³digo de barras de variante o cÃ³digo de identificaciÃ³n del producto
-          filtrados = variantesCargadas.filter(v => 
-            (v.codigoBarrasVariante && v.codigoBarrasVariante.toLowerCase().includes(terminoLower)) ||
-            (v.producto.codigoIdentificacion && v.producto.codigoIdentificacion.toLowerCase().includes(terminoLower))
-          );
-        }
-        
-        setVariantesFiltradas(filtrados);
-        
-        if (filtrados.length === 0 && busqueda.trim() !== '') { 
-            const tipoBusquedaTexto = tipoBusqueda === 'nombre' ? 'nombre' : 'cÃ³digo';
-            setMensajeInfoVista(`No hay coincidencias locales para "${busqueda}" en ${tipoBusquedaTexto}. Prueba "Buscar DB".`);
-        } else if (filtrados.length > 0 || busqueda.trim() === '') { 
-            setMensajeInfoVista(null);
-        }
-      }
-    }
-  }, [busqueda, tipoBusqueda, variantesCargadas, cargandoProductosIniciales, cargandoBusquedaAccion]);
+  }, [variantesFiltradas.length, busquedaDebounce, tipoBusqueda, cargandoProductosIniciales, cargandoBusquedaAccion]);
 
   // Efecto para recalcular precios del carrito cuando cambia el estado de mayorista
   useEffect(() => {
@@ -252,7 +257,6 @@ const VentasPanel = () => {
   const handleBuscarEnServicio = async () => {
     const terminoBusqueda = busqueda.trim();
     if (terminoBusqueda === '') {
-      setVariantesFiltradas(variantesCargadas); 
       setMensajeInfoVista(null);
       return;
     }
@@ -260,14 +264,12 @@ const VentasPanel = () => {
       setCargandoBusquedaAccion(true);
       setErrorGlobal(null);
       setMensajeInfoVista(`Buscando "${terminoBusqueda}" en DB...`);
-      
-      // En este caso, ya tenemos todas las variantes cargadas previamente
-      // asÃ­ que simplemente volvemos a filtrar con un criterio mÃ¡s estricto
+
       const terminoLower = terminoBusqueda.toLowerCase();
-      
+
       // Filtrar variantes que coincidan exactamente con el tÃ©rmino de bÃºsqueda
       const variantesExactas = variantesCargadas.filter(
-        v => 
+        v =>
           v.codigoBarrasVariante === terminoBusqueda ||
           v.producto.codigoIdentificacion === terminoBusqueda ||
           v.producto.nombre.toLowerCase() === terminoLower ||
@@ -275,14 +277,13 @@ const VentasPanel = () => {
           v.talla.nombreTalla.toLowerCase() === terminoLower ||
           (v.producto.tipoPublico && v.producto.tipoPublico.toLowerCase() === terminoLower)
       );
-      
+
       if (variantesExactas.length > 0) {
-        setVariantesFiltradas(variantesExactas);
         setMensajeInfoVista(null);
       } else {
         // Si no hay coincidencias exactas, mostrar todas las coincidencias parciales
         const variantesParciales = variantesCargadas.filter(
-          v => 
+          v =>
             (v.codigoBarrasVariante && v.codigoBarrasVariante.includes(terminoBusqueda)) ||
             v.producto.codigoIdentificacion.includes(terminoBusqueda) ||
             v.producto.nombre.toLowerCase().includes(terminoLower) ||
@@ -290,9 +291,7 @@ const VentasPanel = () => {
             v.talla.nombreTalla.toLowerCase().includes(terminoLower) ||
             (v.producto.tipoPublico && v.producto.tipoPublico.toLowerCase().includes(terminoLower))
         );
-        
-        setVariantesFiltradas(variantesParciales);
-        
+
         if (variantesParciales.length === 0) {
           setMensajeInfoVista(`No se encontraron variantes para "${terminoBusqueda}" en la base de datos.`);
         } else {
@@ -759,7 +758,6 @@ const VentasPanel = () => {
         return vendido ? { ...v, cantidad: v.cantidad - vendido.cantidad } : v;
       });
       setVariantesCargadas(variantesActualizadas);
-      setVariantesFiltradas(variantesActualizadas);
       
       // Preparamos datos para la boleta con informaciÃ³n de descuentos
       const datosBoletaVista = {
@@ -1182,11 +1180,10 @@ const clienteValidoParaVenta = useMemo(() => {
                 
                 <div className="absolute inset-y-0 right-0 flex items-center pr-2">
                   {busqueda && (
-                    <button 
+                    <button
                       className="mr-2 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colores"
                       onClick={() => {
                         setBusqueda('');
-                        setVariantesFiltradas(variantesCargadas);
                         setMensajeInfoVista(null);
                       }}
                       title="Limpiar bÃºsqueda"
@@ -1340,10 +1337,9 @@ const clienteValidoParaVenta = useMemo(() => {
                     <p className="text-sm text-gray-500 mb-4">
                       {mensajeInfoVista || "No hay productos que coincidan con tu bÃºsqueda"}
                     </p>
-                    <button 
+                    <button
                       onClick={() => {
                         setBusqueda('');
-                        setVariantesFiltradas(variantesCargadas);
                         setMensajeInfoVista(null);
                       }}
                       className="text-sm text-blue-600 hover:text-blue-700 font-medium"

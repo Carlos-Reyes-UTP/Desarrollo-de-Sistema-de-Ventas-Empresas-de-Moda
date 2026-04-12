@@ -18,6 +18,7 @@ import {
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
 import type { ReporteCategoriaData, FiltrosReporte } from '../../interfaces/ReporteVentas';
+import { AlertModal } from '../common';
 
 // Tipos para el estado de navegación
 interface Breadcrumb {
@@ -32,6 +33,7 @@ const ReportePorCategoria: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filtros] = useState<FiltrosReporte>({});
   const [vistaGrafico, setVistaGrafico] = useState<'barras' | 'pie' | 'tabla'>('barras');
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
   
   // Estados para la navegación drill-down
   const [breadcrumbs, setBreadcrumbs] = useState<Breadcrumb[]>([
@@ -158,7 +160,7 @@ const ReportePorCategoria: React.FC = () => {
 
   const exportarDatos = async () => {
     if (reportes.length === 0) {
-      alert('No hay datos para exportar');
+      setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
     }
 
@@ -228,7 +230,7 @@ const ReportePorCategoria: React.FC = () => {
 
     } catch (error) {
       console.error('Error al exportar datos:', error);
-      alert('Error al generar el reporte. Inténtalo nuevamente.');
+      setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
   };
 
@@ -731,6 +733,14 @@ const ReportePorCategoria: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        open={alertModal.open}
+        message={alertModal.message}
+        variant={alertModal.variant}
+        onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+      />
     </div>
   );
 };
