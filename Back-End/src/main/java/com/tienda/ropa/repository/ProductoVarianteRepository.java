@@ -3,8 +3,11 @@ package com.tienda.ropa.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.tienda.ropa.entity.Color;
@@ -35,9 +38,44 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
            "FROM ProductoVariante pv " +
            "JOIN pv.producto p " +
            "LEFT JOIN p.categoria cat " +
-           "JOIN p.subCategoria2 cat2 " +
+           "LEFT JOIN p.subCategoria2 cat2 " +
            "JOIN pv.talla t " +
            "JOIN pv.color c " +
-           "ORDER BY p.nombre, t.nombreTalla, c.nombre")
+           "ORDER BY pv.idProductoVariante DESC")
     List<Object[]> findAllVariantesConInformacionCompleta();
+
+    // Paginación sin búsqueda (camino más rápido para carga inicial)
+    @Query("SELECT pv.idProductoVariante, pv.codigoBarrasVariante, pv.cantidad, " +
+           "p.idProducto, p.nombre, p.sexo, p.tipoPublico, p.codigoIdentificacion, p.precioUnitario, " +
+           "t.idTalla, t.nombreTalla, " +
+           "c.idColor, c.nombre, " +
+           "cat.nombre, cat2.nombre " +
+           "FROM ProductoVariante pv " +
+           "JOIN pv.producto p " +
+           "LEFT JOIN p.categoria cat " +
+           "LEFT JOIN p.subCategoria2 cat2 " +
+           "JOIN pv.talla t " +
+           "JOIN pv.color c " +
+           "ORDER BY pv.idProductoVariante DESC")
+    Page<Object[]> findVariantesPaginadasSinBusqueda(Pageable pageable);
+
+    // Paginación con búsqueda (prioriza coincidencias exactas por código)
+    @Query("SELECT pv.idProductoVariante, pv.codigoBarrasVariante, pv.cantidad, " +
+           "p.idProducto, p.nombre, p.sexo, p.tipoPublico, p.codigoIdentificacion, p.precioUnitario, " +
+           "t.idTalla, t.nombreTalla, " +
+           "c.idColor, c.nombre, " +
+           "cat.nombre, cat2.nombre " +
+           "FROM ProductoVariante pv " +
+           "JOIN pv.producto p " +
+           "LEFT JOIN p.categoria cat " +
+           "LEFT JOIN p.subCategoria2 cat2 " +
+           "JOIN pv.talla t " +
+           "JOIN pv.color c " +
+           "WHERE (pv.codigoBarrasVariante = :busqueda " +
+           "   OR p.codigoIdentificacion = :busqueda " +
+           "   OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) " +
+           "   OR LOWER(pv.codigoBarrasVariante) LIKE LOWER(CONCAT('%', :busqueda, '%')) " +
+           "   OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%'))) " +
+           "ORDER BY pv.idProductoVariante DESC")
+    Page<Object[]> findVariantesPaginadasConBusqueda(@Param("busqueda") String busqueda, Pageable pageable);
 }

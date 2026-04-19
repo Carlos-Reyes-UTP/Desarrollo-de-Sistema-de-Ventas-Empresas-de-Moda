@@ -351,4 +351,45 @@ export const ProductoVarianteService = {    // Crear nueva variante
       throw error;
     }
   },
+
+  // NUEVO: Obtener variantes paginadas con búsqueda server-side (para el cajero)
+  obtenerVariantesPaginadas: async (
+    page: number = 0, 
+    size: number = 30, 
+    busqueda?: string
+  ): Promise<{
+    content: ProductoVariante[];
+    totalElements: number;
+    totalPages: number;
+    pageNumber: number;
+    pageSize: number;
+  }> => {
+    try {
+      const params: Record<string, string | number> = { page, size };
+      if (busqueda && busqueda.trim()) {
+        params.busqueda = busqueda.trim();
+      }
+      
+      const response = await apiClient.get(RUTAS_PRODUCTOS.CAJERO.VARIANTES_PAGINADAS, { params });
+      
+      // Normalizar IDs en el contenido
+      const content = (response.data.content || []).map((variante: any) => {
+        if (variante.idProductoVariante && !variante.idVariante) {
+          variante.idVariante = variante.idProductoVariante;
+        }
+        return variante;
+      });
+      
+      return {
+        content,
+        totalElements: response.data.totalElements,
+        totalPages: response.data.totalPages,
+        pageNumber: response.data.pageNumber,
+        pageSize: response.data.pageSize,
+      };
+    } catch (error) {
+      console.error("Error al obtener variantes paginadas:", error);
+      throw error;
+    }
+  },
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 const PaginaLogin = () => {
   const [usuario, setUsuario] = useState('');
   const [clave, setClave] = useState('');
+  const [mostrarClave, setMostrarClave] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recordarme, setRecordarme] = useState(false);
   const { iniciarSesion, cargando, error: authError } = useAuth();
@@ -149,19 +151,33 @@ const PaginaLogin = () => {
               />
             </div>
 
-            <div>
+            <div className="relative group/password">
               <label htmlFor="clave" className="block text-[11px] font-bold tracking-[0.15em] text-gray-900 uppercase mb-3 text-left">
                 Clave de Acceso
               </label>
-              <input
-                type="password"
-                id="clave"
-                className="w-full px-6 py-4 bg-[#f2f2f2] border border-transparent rounded-[2rem] text-gray-800 text-base focus:outline-none focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-gray-100 transition-all font-medium tracking-[0.25em] placeholder:tracking-normal placeholder:text-gray-400"
-                placeholder="••••••••••••"
-                value={clave}
-                onChange={(e) => setClave(e.target.value)}
-                required
-              />
+              <div className="relative">
+                <input
+                  type={mostrarClave ? "text" : "password"}
+                  id="clave"
+                  className="w-full px-6 py-4 bg-[#f2f2f2] border border-transparent rounded-[2rem] text-gray-800 text-base focus:outline-none focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-gray-100 transition-all font-medium tracking-[0.25em] placeholder:tracking-normal placeholder:text-gray-400 pr-14"
+                  placeholder="••••••••••••"
+                  value={clave}
+                  onChange={(e) => setClave(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarClave(!mostrarClave)}
+                  className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors focus:outline-none"
+                  tabIndex={-1}
+                >
+                  {mostrarClave ? (
+                    <EyeOff size={20} className="tracking-normal" />
+                  ) : (
+                    <Eye size={20} className="tracking-normal" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between pt-1 mb-8">

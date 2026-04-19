@@ -35,44 +35,72 @@ public class CajeroProductoController {
     public ResponseEntity<List<Map<String, Object>>> obtenerTodasLasVariantes() {
         List<Object[]> resultados = productoVarianteService.obtenerTodasLasVariantesParaCajero();
         
-        List<Map<String, Object>> variantes = resultados.stream().map(resultado -> {
-            Map<String, Object> variante = new HashMap<>();
-            variante.put("idProductoVariante", resultado[0]);
-            variante.put("codigoBarrasVariante", resultado[1]);
-            variante.put("cantidad", resultado[2]);
-            
-            // Información del producto
-            Map<String, Object> producto = new HashMap<>();
-            producto.put("idProducto", resultado[3]);
-            producto.put("nombre", resultado[4]);
-            producto.put("sexo", resultado[5]);
-            producto.put("tipoPublico", resultado[6]); // NUEVO CAMPO
-            producto.put("codigoIdentificacion", resultado[7]);
-            producto.put("precioUnitario", resultado[8]);
-            variante.put("producto", producto);
-            
-            // Información de talla
-            Map<String, Object> talla = new HashMap<>();
-            talla.put("idTalla", resultado[9]);
-            talla.put("nombreTalla", resultado[10]);
-            variante.put("talla", talla);
-            
-            // Información de color
-            Map<String, Object> color = new HashMap<>();
-            color.put("idColor", resultado[11]);
-            color.put("nombre", resultado[12]);
-            variante.put("color", color);
-            
-            // Información de categorías
-            Map<String, Object> categorias = new HashMap<>();
-            categorias.put("categoria", resultado[13]); // Subcategoría principal
-            categorias.put("subCategoria2", resultado[14]); // NUEVO CAMPO
-            variante.put("categorias", categorias);
-            
-            return variante;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> variantes = resultados.stream().map(this::mapearResultadoAVariante).collect(Collectors.toList());
         
         return ResponseEntity.ok(variantes);
+    }
+
+    // NUEVO: Variantes paginadas con búsqueda server-side
+    @GetMapping("/variantes/pagina")
+    public ResponseEntity<Map<String, Object>> obtenerVariantesPaginadas(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "30") int size,
+            @RequestParam(required = false) String busqueda) {
+        int pagina = Math.max(page, 0);
+        int tamanio = Math.max(1, Math.min(size, 100));
+        String termino = busqueda == null ? null : busqueda.trim();
+        if (termino != null && termino.isEmpty()) {
+            termino = null;
+        }
+
+        org.springframework.data.domain.Page<Object[]> resultados = productoVarianteService
+                .obtenerVariantesPaginadasParaCajero(termino, org.springframework.data.domain.PageRequest.of(pagina, tamanio));
+        
+        List<Map<String, Object>> variantes = resultados.getContent().stream()
+                .map(this::mapearResultadoAVariante).collect(Collectors.toList());
+        
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", variantes);
+        response.put("totalElements", resultados.getTotalElements());
+        response.put("totalPages", resultados.getTotalPages());
+        response.put("pageNumber", resultados.getNumber());
+        response.put("pageSize", resultados.getSize());
+        
+        return ResponseEntity.ok(response);
+    }
+
+    // Método auxiliar para mapear un resultado de la query a un Map de variante
+    private Map<String, Object> mapearResultadoAVariante(Object[] resultado) {
+        Map<String, Object> variante = new HashMap<>();
+        variante.put("idProductoVariante", resultado[0]);
+        variante.put("codigoBarrasVariante", resultado[1]);
+        variante.put("cantidad", resultado[2]);
+        
+        Map<String, Object> producto = new HashMap<>();
+        producto.put("idProducto", resultado[3]);
+        producto.put("nombre", resultado[4]);
+        producto.put("sexo", resultado[5]);
+        producto.put("tipoPublico", resultado[6]);
+        producto.put("codigoIdentificacion", resultado[7]);
+        producto.put("precioUnitario", resultado[8]);
+        variante.put("producto", producto);
+        
+        Map<String, Object> talla = new HashMap<>();
+        talla.put("idTalla", resultado[9]);
+        talla.put("nombreTalla", resultado[10]);
+        variante.put("talla", talla);
+        
+        Map<String, Object> color = new HashMap<>();
+        color.put("idColor", resultado[11]);
+        color.put("nombre", resultado[12]);
+        variante.put("color", color);
+        
+        Map<String, Object> categorias = new HashMap<>();
+        categorias.put("categoria", resultado[13]);
+        categorias.put("subCategoria2", resultado[14]);
+        variante.put("categorias", categorias);
+        
+        return variante;
     }
 
     // Obtener variante específica por ID

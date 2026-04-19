@@ -10,7 +10,6 @@ import Login from "./pages/Login";
 import PaginaNoEncontrada from "./pages/PaginaNoEncontrada";
 import Reportes from "./pages/Reportes";
 import GestionCategorias from "./components/categorias/GestionCategorias";
-import GestionProductosUnificada from "./components/catalogo/GestionProductosUnificada";
 import Layout from "./components/layout/Layout";
 import GestionColores from "./components/productos/GestionColores";
 import GestionProductos from "./components/productos/GestionProductos";
@@ -167,19 +166,10 @@ function App() {
       />
 
       <Route
-        path="/pages/GestionUsuarios"
+        path="/pages/gestion-usuarios"
         element={
           <RutaProtegidaConLayout rolRequerido="ROLE_ADMIN">
             <GestionUsuarios />
-          </RutaProtegidaConLayout>
-        }
-      />
-
-      <Route
-        path="/pages/productos-unificado"
-        element={
-          <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
-            <GestionProductosUnificada />
           </RutaProtegidaConLayout>
         }
       />

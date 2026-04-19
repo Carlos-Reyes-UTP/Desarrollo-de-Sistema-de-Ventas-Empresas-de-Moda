@@ -81,6 +81,16 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     }
 
     @Override
+    public org.springframework.data.domain.Page<Object[]> obtenerVariantesPaginadasParaCajero(
+            String busqueda, org.springframework.data.domain.Pageable pageable) {
+        String termino = busqueda == null ? "" : busqueda.trim();
+        if (termino.isEmpty()) {
+            return productoVarianteRepository.findVariantesPaginadasSinBusqueda(pageable);
+        }
+        return productoVarianteRepository.findVariantesPaginadasConBusqueda(termino, pageable);
+    }
+
+    @Override
     public List<ProductoVariante> obtenerVariantesPorProducto(Long idProducto) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));

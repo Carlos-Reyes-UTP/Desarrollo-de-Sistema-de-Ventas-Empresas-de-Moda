@@ -517,22 +517,23 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
   // Si hay producto específico, mostrar como modal
   if (producto && onClose) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between p-6 border-b">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm w-full max-w-6xl max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between px-10 py-7 border-b border-gray-50">
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
-                Códigos de Barras - {producto.nombre}
+              <h2 className="text-[1.5rem] font-bold tracking-tight text-black leading-none mb-1">
+                Códigos de Barras
               </h2>
-              <p className="text-sm text-gray-600">
-                Gestiona los códigos de barras del producto y sus variantes
-              </p>
+              <p className="text-gray-400 text-sm font-medium">{producto.nombre}</p>
             </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <X className="w-6 h-6" />
+            <button
+              onClick={onClose}
+              className="w-10 h-10 bg-[#f8f8f8] border border-gray-100 rounded-2xl flex items-center justify-center hover:bg-gray-100 transition-all"
+            >
+              <X className="w-4 h-4 text-gray-400" />
             </button>
           </div>
-          <div className="p-6">
+          <div className="p-8">
             {renderContent()}
           </div>
         </div>
@@ -550,87 +551,70 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
 
       {/* Modales */}
       {showGenerarCodigo && entidadSeleccionada && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h3 className="text-lg font-semibold">Generar Código de Barras</h3>
-              <button
-                onClick={() => setShowGenerarCodigo(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+            <div className="bg-black px-8 py-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Generar Código de Barras</h3>
+                <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">{entidadSeleccionada.nombre}</p>
+              </div>
+              <button onClick={() => setShowGenerarCodigo(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+                <X className="w-4 h-4 text-white" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="px-8 py-7 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Entidad: {entidadSeleccionada.nombre}
-                </label>
-                <p className="text-sm text-gray-500">Tipo: {entidadSeleccionada.tipo}</p>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">Tipo: {entidadSeleccionada.tipo}</label>
               </div>
               <div>
-                <label htmlFor="generar-formato" className="block text-sm font-medium text-gray-700 mb-1">
-                  Formato
-                </label>
+                <label htmlFor="generar-formato" className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">Formato</label>
                 <select
                   id="generar-formato"
                   value={formGenerar.formato}
                   onChange={(e) => setFormGenerar(prev => ({ ...prev, formato: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                 >
                   <option value="EAN8">EAN-8 (8 dígitos)</option>
                   <option value="EAN13">EAN-13 (13 dígitos)</option>
                   <option value="CODE128">CODE128 (alfanumérico)</option>
                 </select>
               </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowGenerarCodigo(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleGenerarCodigo}
-                  disabled={loading}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  {loading ? 'Generando...' : 'Generar'}
-                </button>
-              </div>
+            </div>
+            <div className="px-8 pb-8 flex gap-3">
+              <button onClick={() => setShowGenerarCodigo(false)} className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+                Cancelar
+              </button>
+              <button onClick={handleGenerarCodigo} disabled={loading} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">
+                {loading ? 'Generando...' : 'Generar'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {showAsignarCodigo && entidadSeleccionada && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h3 className="text-lg font-semibold">Asignar Código de Barras</h3>
-              <button
-                onClick={() => setShowAsignarCodigo(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+            <div className="bg-black px-8 py-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Asignar Código de Barras</h3>
+                <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">{entidadSeleccionada.nombre}</p>
+              </div>
+              <button onClick={() => setShowAsignarCodigo(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+                <X className="w-4 h-4 text-white" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="px-8 py-7 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Entidad: {entidadSeleccionada.nombre}
-                </label>
-                <p className="text-sm text-gray-500">Tipo: {entidadSeleccionada.tipo}</p>
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">Tipo: {entidadSeleccionada.tipo}</label>
               </div>
               <div>
-                <label htmlFor="asignar-formato" className="block text-sm font-medium text-gray-700 mb-1">
-                  Formato
-                </label>
+                <label htmlFor="asignar-formato" className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">Formato</label>
                 <select
                   id="asignar-formato"
                   value={formAsignar.formato}
                   onChange={(e) => setFormAsignar(prev => ({ ...prev, formato: e.target.value as any }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                 >
                   <option value="EAN8">EAN-8 (8 dígitos)</option>
                   <option value="EAN13">EAN-13 (13 dígitos)</option>
@@ -638,9 +622,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 </select>
               </div>
               <div>
-                <label htmlFor="asignar-codigo" className="block text-sm font-medium text-gray-700 mb-1">
-                  Código de Barras
-                </label>
+                <label htmlFor="asignar-codigo" className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">Código de Barras</label>
                 <div className="flex gap-2">
                   <input
                     id="asignar-codigo"
@@ -648,87 +630,63 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                     value={formAsignar.codigo}
                     onChange={(e) => setFormAsignar(prev => ({ ...prev, codigo: e.target.value }))}
                     placeholder="Ingresa el código"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                   />
                   {formAsignar.formato === 'EAN8' && (
-                    <button
-                      onClick={generarEAN8Ejemplo}
-                      className="px-3 py-2 text-blue-600 border border-blue-300 rounded-lg hover:bg-blue-50"
-                      title="Generar EAN-8 de ejemplo"
-                    >
+                    <button onClick={generarEAN8Ejemplo} className="px-4 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-all" title="Generar EAN-8">
                       Gen
                     </button>
                   )}
                 </div>
                 {formAsignar.formato === 'EAN8' && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    EAN-8 debe tener exactamente 8 dígitos con checksum válido
-                  </p>
+                  <p className="text-[10px] text-gray-400 font-medium mt-2">EAN-8 debe tener exactamente 8 dígitos con checksum válido</p>
                 )}
               </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowAsignarCodigo(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleAsignarCodigo}
-                  disabled={loading || !formAsignar.codigo.trim()}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  {loading ? 'Asignando...' : 'Asignar'}
-                </button>
-              </div>
+            </div>
+            <div className="px-8 pb-8 flex gap-3">
+              <button onClick={() => setShowAsignarCodigo(false)} className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+                Cancelar
+              </button>
+              <button onClick={handleAsignarCodigo} disabled={loading || !formAsignar.codigo.trim()} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">
+                {loading ? 'Asignando...' : 'Asignar'}
+              </button>
             </div>
           </div>
         </div>
       )}
 
       {showScannerModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
-            <div className="flex items-center justify-between p-6 border-b">
-              <h3 className="text-lg font-semibold">Escanear Código de Barras</h3>
-              <button
-                onClick={() => setShowScannerModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+            <div className="bg-black px-8 py-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Escanear Código</h3>
+                <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">Ingrese o escanee un código de barras</p>
+              </div>
+              <button onClick={() => setShowScannerModal(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+                <X className="w-4 h-4 text-white" />
               </button>
             </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label htmlFor="scanner-input" className="block text-sm font-medium text-gray-700 mb-1">
-                  Código de Barras
-                </label>
-                <input
-                  id="scanner-input"
-                  type="text"
-                  value={scannerInput}
-                  onChange={(e) => setScannerInput(e.target.value)}
-                  placeholder="Escanea o ingresa el código"
-                  autoFocus
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  onKeyDown={(e) => e.key === 'Enter' && handleBuscarPorCodigo()}
-                />
-              </div>
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowScannerModal(false)}
-                  className="px-4 py-2 text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleBuscarPorCodigo}
-                  disabled={loading || !scannerInput.trim()}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                >
-                  {loading ? 'Buscando...' : 'Buscar'}
-                </button>
-              </div>
+            <div className="px-8 py-7">
+              <label htmlFor="scanner-input" className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">Código de Barras</label>
+              <input
+                id="scanner-input"
+                type="text"
+                value={scannerInput}
+                onChange={(e) => setScannerInput(e.target.value)}
+                placeholder="Escanea o ingresa el código"
+                autoFocus
+                className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
+                onKeyDown={(e) => e.key === 'Enter' && handleBuscarPorCodigo()}
+              />
+            </div>
+            <div className="px-8 pb-8 flex gap-3">
+              <button onClick={() => setShowScannerModal(false)} className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+                Cancelar
+              </button>
+              <button onClick={handleBuscarPorCodigo} disabled={loading || !scannerInput.trim()} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">
+                {loading ? 'Buscando...' : 'Buscar'}
+              </button>
             </div>
           </div>
         </div>

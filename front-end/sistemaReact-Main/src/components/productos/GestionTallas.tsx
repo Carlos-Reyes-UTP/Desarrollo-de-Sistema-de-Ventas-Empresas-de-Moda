@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { Talla } from '../../interfaces/Talla';
 import { TallaService } from '../../services/TallaService';
+import { ConfirmModal } from '../common';
 
 const GestionTallas: React.FC = () => {
     const [tallas, setTallas] = useState<Talla[]>([]);
@@ -362,42 +363,6 @@ const GestionTallas: React.FC = () => {
                 onConfirm={confirmarEliminar}
                 onCancel={cancelarEliminar}
             />
-        </div>
-    );
-};
-
-const ConfirmModal: React.FC<{
-    open: boolean;
-    message: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-}> = ({ open, message, onConfirm, onCancel }) => {
-    if (!open) return null;
-    return (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[110] backdrop-blur-sm animate-fadeIn">
-            <div className="bg-white rounded-[2rem] shadow-2xl p-10 w-full max-w-md relative animate-scaleIn">
-                <div className="mb-6 w-12 h-1 bg-red-500"></div>
-                <h2 className="text-2xl font-bold tracking-tight text-black mb-4 uppercase">
-                    Confirmar Eliminación
-                </h2>
-                <p className="text-gray-500 text-sm mb-10 leading-relaxed font-medium">
-                    {message}
-                </p>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={onCancel} 
-                        className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={onConfirm} 
-                        className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]"
-                    >
-                        Confirmar
-                    </button>
-                </div>
-            </div>
         </div>
     );
 };

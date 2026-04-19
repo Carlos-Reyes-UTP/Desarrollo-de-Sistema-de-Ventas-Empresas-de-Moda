@@ -19,6 +19,7 @@ export const RUTAS_USUARIOS = {
 export const RUTAS_PRODUCTOS = {
   // Almacenero endpoints (full CRUD)
   BASE: `${API_BASE_URL}/api/almacenero/productos`,
+  PAGINADOS: `${API_BASE_URL}/api/almacenero/productos/pagina`,
   POR_ID: (id: number) => `${API_BASE_URL}/api/almacenero/productos/${id}`,
   POR_CATEGORIA: (categoria: string) => `${API_BASE_URL}/api/almacenero/productos/categoria/${encodeURIComponent(categoria)}`,
   POR_CATEGORIA_PRINCIPAL: (categoriaPrincipal: string) => `${API_BASE_URL}/api/almacenero/productos/categoria-principal/${encodeURIComponent(categoriaPrincipal)}`,
@@ -46,6 +47,8 @@ export const RUTAS_PRODUCTOS = {
     VARIANTES_POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/cajero/productos/variantes/producto/${idProducto}`,
     DISMINUIR_VARIANTE: (id: number) => `${API_BASE_URL}/api/cajero/productos/variantes/${id}/disminuir`,
     DISMINUIR_PRODUCTO: (id: number) => `${API_BASE_URL}/api/cajero/productos/${id}/disminuir`,
+    // Paginación server-side
+    VARIANTES_PAGINADAS: `${API_BASE_URL}/api/cajero/productos/variantes/pagina`,
   }
 };
 
@@ -199,6 +202,13 @@ export const RUTAS_MAYORISTAS = {
   POR_CODIGO: (codigo: string) => `${API_BASE_URL}/api/admin/mayoristas/codigo/${encodeURIComponent(codigo)}`,
   POR_DOCUMENTO: (numeroDocumento: string) => `${API_BASE_URL}/api/admin/mayoristas/documento/${encodeURIComponent(numeroDocumento)}`,
   CREAR_DE_CLIENTE: (idCliente: number) => `${API_BASE_URL}/api/admin/mayoristas/cliente/${idCliente}`,
+};
+
+// Rutas de Dashboard (Agregación Server-Side)
+export const RUTAS_DASHBOARD = {
+  ESTADISTICAS: `${API_BASE_URL}/api/almacenero/dashboard/estadisticas`,
+  DISTRIBUCION_CATEGORIAS: `${API_BASE_URL}/api/almacenero/dashboard/distribucion-categorias`,
+  ESTADO_INVENTARIO: `${API_BASE_URL}/api/almacenero/dashboard/estado-inventario`,
 };
 
 // Rutas de Reportes

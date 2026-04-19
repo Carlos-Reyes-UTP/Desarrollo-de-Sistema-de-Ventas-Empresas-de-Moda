@@ -115,10 +115,10 @@ const DashboardAdmin = () => {
       setCargando(true);
       setError(null);
 
-      try {        // Cargar productos
-        const productosResponse = await ProductoService.getAllProductos();
-        const productosData = Array.isArray(productosResponse) ? productosResponse : [];
-        setProductos(productosData);
+      try {        
+        // Cargar solo los 5 productos más recientes para el panel inferior
+        const productosPaginados = await ProductoService.getProductosPaginados(0, 5, '', 'ROLE_ADMIN');
+        setProductos(productosPaginados.content || []);
 
         // Cargar ventas según el período seleccionado
         let ventasData: Venta[] = [];

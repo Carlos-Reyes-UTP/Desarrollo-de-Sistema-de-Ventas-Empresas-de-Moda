@@ -89,6 +89,14 @@ public class Producto {
     @Column(name = "cantidad", nullable = false)
     private Integer cantidad = 0;
 
+    public Integer getCantidad() {
+        return cantidad;
+    }
+
+    public void setCantidad(Integer cantidad) {
+        this.cantidad = cantidad;
+    }
+
     // Método para calcular la cantidad total de producto disponible
     public int getCantidadTotal() {
         // Si el producto usa el sistema de variantes, suma las cantidades de todas las

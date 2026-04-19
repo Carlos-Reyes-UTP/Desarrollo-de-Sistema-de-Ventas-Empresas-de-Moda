@@ -121,6 +121,11 @@ const GestionProductos: React.FC = () => {
       setSubcategorias([]);
     }
   };
+  // Estados de Paginación Server-Side
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+
   // Funciones para filtrar categorías según el término de búsqueda
   const categoriasPrincipalesFiltradas = categorias
     .filter(categoria => !categoria.categoriaPadre) // Solo categorías principales
@@ -135,41 +140,58 @@ const GestionProductos: React.FC = () => {
   );
 
 
-  const cargarDatos = async () => {
+  const cargarFiltrosYDatos = async (numeroPagina: number, busqueda: string) => {
     try {
       setLoading(true);
-      const [productosResponse, categoriasResponse, proveedoresResponse] = await Promise.all([
-        ProductoService.getAllProductos('ROLE_ADMIN'),
-        CategoriaService.obtenerCategoriasPrincipales(),
-        ProveedorService.obtenerTodosProveedores()
-      ]);
+      
+      // Cargar filtros solo si están vacíos
+      if (categorias.length === 0 || proveedores.length === 0) {
+        const [categoriasResponse, proveedoresResponse] = await Promise.all([
+          CategoriaService.obtenerCategoriasPrincipales(),
+          ProveedorService.obtenerTodosProveedores()
+        ]);
+        setCategorias(Array.isArray(categoriasResponse) ? categoriasResponse : []);
+        setProveedores(Array.isArray(proveedoresResponse) ? proveedoresResponse : []);
+      }
 
-      // Validar que las respuestas son arrays
-      const productosData = Array.isArray(productosResponse) ? productosResponse : [];
-      const categoriasData = Array.isArray(categoriasResponse) ? categoriasResponse : [];
-      const proveedoresData = Array.isArray(proveedoresResponse) ? proveedoresResponse : [];
-
-      // Cargar cantidad total para cada producto
-      const productosConCantidad = await Promise.all(
-        productosData.map(async (producto) => {
-          if (producto.idProducto) {
-            try {
-              const cantidadTotal = await ProductoVarianteService.obtenerCantidadTotalProducto(producto.idProducto);
-              return { ...producto, cantidadTotal };
-            } catch {
-              return { ...producto, cantidadTotal: 0 };
-            }
-          }
-          return producto;
-        })
-      );      setProductos(productosConCantidad);
-      setCategorias(categoriasData);
-      setProveedores(proveedoresData);
+      // Cargar productos PAGINADOS desde el servidor (Evita N+1 y colapso de RAM)
+      const paginaProductos = await ProductoService.getProductosPaginados(numeroPagina, 20, busqueda, 'ROLE_ADMIN');
+      
+      setProductos(paginaProductos.content || []);
+      setTotalPages(paginaProductos.totalPages);
+      setTotalElements(paginaProductos.totalElements);
+      setPage(paginaProductos.pageNumber);
+      
     } catch (err) {
       setError('Error al cargar los datos');
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const cargarDatos = () => {
+    cargarFiltrosYDatos(page, searchTerm);
+  };
+
+  const handleBuscar = () => {
+    setPage(0);
+    cargarFiltrosYDatos(0, searchTerm);
+  };
+
+  const handlePaginaAnterior = () => {
+    if (page > 0) {
+      const newPage = page - 1;
+      setPage(newPage);
+      cargarFiltrosYDatos(newPage, searchTerm);
+    }
+  };
+
+  const handlePaginaSiguiente = () => {
+    if (page < totalPages - 1) {
+      const newPage = page + 1;
+      setPage(newPage);
+      cargarFiltrosYDatos(newPage, searchTerm);
     }
   };
 
@@ -201,74 +223,6 @@ const GestionProductos: React.FC = () => {
     setProductoEditar(null);
     cargarDatos();
   };
-
-  const productosFiltrados = productos.filter(producto => {
-    // Filtro por nombre o código según la selección del usuario
-    let matchBusqueda = true;
-    if (searchTerm) {
-      matchBusqueda = (
-        producto.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        producto.codigoIdentificacion.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-    
-    // Filtro por categoría principal
-    const matchCategoriaPrincipal = !selectedCategoriaPrincipal || 
-      (producto.categoriaPadre?.nombre?.toLowerCase().includes(selectedCategoriaPrincipal.toLowerCase()) ?? false);
-    
-    // Filtro por subcategoría
-    const matchSubCategoria = !selectedSubCategoria || 
-      (producto.categoria?.nombre?.toLowerCase().includes(selectedSubCategoria.toLowerCase()) ?? false);
-    
-    // Filtro por tipo de público
-
-    const matchTipoPublico = !selectedTipoPublico || 
-      producto.tipoPublico === selectedTipoPublico;
-    
-    // Filtro por proveedor
-    const matchProveedor = !selectedProveedor || 
-      producto.proveedor.nombre.toLowerCase().includes(selectedProveedor.toLowerCase());
-    
-    // Filtro por stock
-    let matchStock = true;
-    if (selectedStock) {
-      const cantidad = producto.cantidadTotal ?? 0;
-      switch (selectedStock) {
-        case 'normal':
-          matchStock = cantidad > 10;
-          break;
-        case 'bajo':
-          matchStock = cantidad >= 6 && cantidad <= 10;
-          break;
-        case 'critico':
-          matchStock = cantidad >= 1 && cantidad <= 5;
-          break;
-        case 'sin-stock':
-          matchStock = cantidad === 0;
-          break;
-      }
-    }
-    
-    return matchBusqueda && matchCategoriaPrincipal && matchSubCategoria && matchTipoPublico && matchProveedor && matchStock;
-  });
-
-
-  // Paginación de productos
-  const [paginaActual, setPaginaActual] = useState(1);
-  const productosPorPagina = 10;
-  const totalPaginas = Math.ceil(productosFiltrados.length / productosPorPagina);
-
-  // Resetear página al cambiar filtros o búsqueda
-  useEffect(() => {
-    setPaginaActual(1);
-  }, [searchTerm, selectedCategoriaPrincipal, selectedSubCategoria, selectedTipoPublico, selectedProveedor, selectedStock]);
-
-
-  // Productos a mostrar en la página actual
-  const productosPaginados = productosFiltrados.slice(
-    (paginaActual - 1) * productosPorPagina,
-    paginaActual * productosPorPagina
-  );
 
   if (loading) {
     return (
@@ -340,7 +294,7 @@ const GestionProductos: React.FC = () => {
                 placeholder="Nombre o Código..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-
+                onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
                 className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium"
               />
             </div>
@@ -366,6 +320,7 @@ const GestionProductos: React.FC = () => {
                     e.stopPropagation();
                     setSelectedCategoriaPrincipal('');
                     setSearchCategoriaPrincipal('');
+                    handleBuscar(); // Recargar al borrar filtro
                   }}
                 />
               ) : (
@@ -394,6 +349,7 @@ const GestionProductos: React.FC = () => {
                       setSelectedCategoriaPrincipal(categoria.nombre);
                       setSearchCategoriaPrincipal('');
                       setIsCategoriaPrincipalFocused(false);
+                      // handleBuscar(); // Idealmente recargar con filtro server-side
                     }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg transition-colors font-medium"
                   >
@@ -424,6 +380,7 @@ const GestionProductos: React.FC = () => {
                     e.stopPropagation();
                     setSelectedSubCategoria('');
                     setSearchSubCategoria('');
+                    handleBuscar();
                   }}
                 />
               ) : (
@@ -464,7 +421,7 @@ const GestionProductos: React.FC = () => {
           {/* Provider / Public Combined (Simplified for UI) */}
           <div className="lg:col-span-1">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Proveedor / Público
+              Proveedor
             </label>
             <select
               value={selectedProveedor}
@@ -477,40 +434,14 @@ const GestionProductos: React.FC = () => {
           </div>
 
 
-          {/* Adult Toggle */}
-          <div className="lg:col-span-1 flex flex-col">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-center">
-              Público
-            </label>
-            <div className="flex bg-[#f8f8f8] p-1 rounded-xl">
-              <button 
-                onClick={() => setSelectedTipoPublico(selectedTipoPublico === 'ADULTO' ? '' : 'ADULTO')}
-                className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${selectedTipoPublico === 'ADULTO' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}
-              >
-                Adulto
-              </button>
-              <button 
-                onClick={() => setSelectedTipoPublico(selectedTipoPublico === 'NIÑO' ? '' : 'NIÑO')}
-                className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-all ${selectedTipoPublico === 'NIÑO' ? 'bg-white shadow-sm text-black' : 'text-gray-400'}`}
-              >
-                Niño
-              </button>
-            </div>
-          </div>
-
-
-          {/* Critical Stock Toggle */}
-          <div className="lg:col-span-1 flex items-center justify-center gap-3 mb-1">
-            <div 
-              onClick={() => setSelectedStock(selectedStock === 'critico' ? '' : 'critico')}
-              className={`w-12 h-6 rounded-full transition-colors relative cursor-pointer ${selectedStock === 'critico' ? 'bg-black' : 'bg-gray-200'}`}
+          {/* Botón Buscar explícito */}
+          <div className="lg:col-span-2 flex flex-col justify-end h-full">
+             <button
+              onClick={handleBuscar}
+              className="w-full py-3 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-md hover:bg-gray-800"
             >
-              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${selectedStock === 'critico' ? 'left-7' : 'left-1'}`}></div>
-            </div>
-            <span className="text-[10px] font-bold tracking-[0.15em] text-gray-500 uppercase">
-              Stock Crítico
-            </span>
-
+              Aplicar Búsqueda
+            </button>
           </div>
 
         </div>
@@ -518,6 +449,41 @@ const GestionProductos: React.FC = () => {
 
       {/* Product Table Section */}
       <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-50 overflow-hidden">
+        {/* Top Pagination Control */}
+        <div className="px-8 py-4 border-b border-gray-50 flex justify-between items-center bg-white">
+          <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Listado de Existencias</h3>
+          
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1 bg-[#fcfcfc] p-1 rounded-xl border border-gray-100 scale-90 origin-right">
+              <button
+                onClick={handlePaginaAnterior}
+                disabled={page === 0}
+                className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+                Atrás
+              </button>
+              
+              <div className="px-4 py-1.5 text-[10px] font-mono font-bold text-black border-x border-gray-100">
+                {page + 1} / {totalPages}
+              </div>
+
+              <button
+                onClick={handlePaginaSiguiente}
+                disabled={page >= totalPages - 1}
+                className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+              >
+                Sig.
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          )}
+        </div>
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -541,8 +507,8 @@ const GestionProductos: React.FC = () => {
             </thead>
 
             <tbody className="divide-y divide-gray-50">
-              {productosPaginados.map((producto) => {
-                const cantidad = producto.cantidadTotal ?? 0;
+              {productos.map((producto) => {
+                const cantidad = producto.cantidadTotal ?? producto.cantidad ?? 0;
                 let stockStatus = { color: 'bg-gray-400', label: 'SIN STOCK', text: 'text-gray-400' };
                 
                 if (cantidad > 10) {
@@ -552,7 +518,6 @@ const GestionProductos: React.FC = () => {
                 } else if (cantidad >= 1) {
                   stockStatus = { color: 'bg-[#ef4444]', label: 'CRÍTICO', text: 'text-[#ef4444]' };
                 }
-
 
                 return (
                   <tr key={producto.idProducto} className="hover:bg-[#fafafa] transition-colors group">
@@ -567,7 +532,6 @@ const GestionProductos: React.FC = () => {
                           <span className="text-[10px] font-mono font-medium tracking-tight">
                             {producto.codigoBarras || "SIN BARRAS"}
                           </span>
-
                         </div>
                       </div>
                     </td>
@@ -585,7 +549,6 @@ const GestionProductos: React.FC = () => {
                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                             {(producto.categoriaPadre?.nombre || 'General') + ' • ' + (producto.categoria?.nombre || 'Sin categoría')}
                           </span>
-
                         </div>
                       </div>
                     </td>
@@ -595,7 +558,7 @@ const GestionProductos: React.FC = () => {
                       <div className="flex items-center justify-center gap-6">
                         <div className="flex flex-col items-center">
                           <span className="text-[9px] font-bold text-gray-300 uppercase mb-1">Unid</span>
-                          <span className="text-sm font-bold text-gray-900">S/ {producto.precioUnitario.toFixed(2)}</span>
+                          <span className="text-sm font-bold text-gray-900">S/ {(producto.precioUnitario ?? 0).toFixed(2)}</span>
                         </div>
                         <div className="flex flex-col items-center">
                           <span className="text-[9px] font-bold text-gray-300 uppercase mb-1">Cto</span>
@@ -609,7 +572,6 @@ const GestionProductos: React.FC = () => {
                           <span className="text-[9px] font-bold text-gray-300 uppercase mb-1">Doc</span>
                           <span className="text-sm font-bold text-gray-500">S/ {(producto.precioDocena || 0).toFixed(2)}</span>
                         </div>
-
                       </div>
                     </td>
 
@@ -668,49 +630,46 @@ const GestionProductos: React.FC = () => {
               })}
             </tbody>
           </table>
-        </div>
-
-        {/* Improved Pagination / Footer */}
-        <div className="px-8 py-6 bg-[#fafafa] flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-            Mostrando <span className="text-black">{productosPaginados.length}</span> de <span className="text-black">{productosFiltrados.length}</span> productos
-          </p>
-
           
-          <div className="flex items-center gap-1 bg-white p-1 rounded-[14px] shadow-sm border border-gray-100">
-            <button
-              onClick={() => setPaginaActual(Math.max(1, paginaActual - 1))}
-              disabled={paginaActual === 1}
-              className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              Anterior
-            </button>
-
-            
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
-                <button
-                  key={num}
-                  onClick={() => setPaginaActual(num)}
-                  className={`w-9 h-9 flex items-center justify-center rounded-[10px] text-xs font-bold transition-all ${
-                    paginaActual === num ? 'bg-black text-white shadow-md' : 'text-gray-400 hover:bg-gray-50'
-                  }`}
-                >
-                  {num}
-                </button>
-              ))}
+          {productos.length === 0 && !loading && (
+            <div className="text-center py-16">
+              <Package className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900">No hay productos</h3>
+              <p className="text-sm text-gray-500 mt-2">Intenta ajustar tu búsqueda o crear un nuevo producto.</p>
             </div>
-
-            <button
-              onClick={() => setPaginaActual(Math.min(totalPaginas, paginaActual + 1))}
-              disabled={paginaActual === totalPaginas}
-              className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-            >
-              Siguiente
-            </button>
-
-          </div>
+          )}
         </div>
+
+        {/* Improved Pagination / Footer SERVER SIDE */}
+        {totalPages > 0 && (
+          <div className="px-8 py-6 bg-[#fafafa] flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+              Mostrando página <span className="text-black">{page + 1}</span> de <span className="text-black">{totalPages}</span> ({totalElements} totales)
+            </p>
+            
+            <div className="flex items-center gap-1 bg-white p-1 rounded-[14px] shadow-sm border border-gray-100">
+              <button
+                onClick={handlePaginaAnterior}
+                disabled={page === 0}
+                className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              
+              <div className="px-4 py-2 text-[12px] font-bold text-black border-x border-gray-100">
+                Pág. {page + 1}
+              </div>
+
+              <button
+                onClick={handlePaginaSiguiente}
+                disabled={page >= totalPages - 1}
+                className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Modales */}

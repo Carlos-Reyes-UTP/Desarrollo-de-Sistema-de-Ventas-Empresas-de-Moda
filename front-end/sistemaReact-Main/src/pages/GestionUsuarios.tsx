@@ -721,32 +721,53 @@ const GestionUsuarios = () => {
       {/* Modal: Password Verification */}
       {mostrarModalPassword && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-fadeIn">
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-md p-10 text-left animate-scaleIn">
-             <div className="mb-6 w-12 h-1 bg-amber-400"></div>
-             <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">Validar Seguridad</h2>
-             <p className="text-gray-500 text-sm mb-10 font-medium">Confirme su contraseña actual para habilitar el cambio de credenciales.</p>
-             
-             <div className="space-y-6">
-                <div className="space-y-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contraseña Actual</label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="password"
-                      value={passwordActual}
-                      onChange={(e) => setPasswordActual(e.target.value)}
-                      className="w-full pl-11 pr-4 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold border-transparent focus:bg-white focus:ring-2 focus:ring-amber-50 transition-all text-left"
-                      placeholder="Ingrese contraseña..."
-                    />
-                  </div>
-                  {errorPasswordActual && <span className="text-[10px] font-bold text-red-500 uppercase">{errorPasswordActual}</span>}
+          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+            {/* Header */}
+            <div className="bg-black px-8 py-6 flex items-center gap-4">
+              <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Lock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Verificar Identidad</h3>
+                <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">Confirme su contraseña para continuar</p>
+              </div>
+            </div>
+            {/* Body */}
+            <div className="px-8 py-7 space-y-6">
+              <div className="space-y-3">
+                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Contraseña Actual</label>
+                <div className="relative">
+                  <Lock className="w-4 h-4 text-gray-300 absolute left-5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="password"
+                    value={passwordActual}
+                    onChange={(e) => setPasswordActual(e.target.value)}
+                    className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner"
+                    placeholder="Ingrese su contraseña..."
+                  />
                 </div>
-
-                <div className="flex gap-4">
-                    <button type="button" onClick={() => setMostrarModalPassword(false)} className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-xl text-[10px] font-bold uppercase hover:bg-gray-100">Cancelar</button>
-                    <button type="button" onClick={verificarContrasenaActual} className="flex-1 py-4 bg-amber-400 text-white rounded-xl text-[10px] font-bold uppercase shadow-lg shadow-amber-200">Verificar</button>
-                </div>
-             </div>
+                {errorPasswordActual && (
+                  <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest block">{errorPasswordActual}</span>
+                )}
+              </div>
+            </div>
+            {/* Actions */}
+            <div className="px-8 pb-8 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMostrarModalPassword(false)}
+                className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={verificarContrasenaActual}
+                className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] active:scale-[0.97]"
+              >
+                Verificar
+              </button>
+            </div>
           </div>
         </div>
       )}

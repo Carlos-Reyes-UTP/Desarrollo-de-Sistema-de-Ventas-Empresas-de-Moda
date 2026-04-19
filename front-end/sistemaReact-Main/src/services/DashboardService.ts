@@ -1,5 +1,5 @@
 import apiClient from '../config/apiClient';
-import { RUTAS_PRODUCTOS, RUTAS_VENTAS } from '../config/apiConfig';
+import { RUTAS_PRODUCTOS, RUTAS_VENTAS, RUTAS_DASHBOARD } from '../config/apiConfig';
 import { ProductoService } from './ProductoServices';
 import { CategoriaService } from './CategoriaServices';
 import type { 
@@ -12,221 +12,71 @@ import type {
 import type { Producto } from '../interfaces/Producto';
 import type { Venta } from '../interfaces/Venta';
 
-export const DashboardService = {  // Obtener estadísticas generales de productos
+export const DashboardService = {
+  // Obtener estadísticas generales de productos (Server-Side)
   obtenerEstadisticasProductos: async (): Promise<ProductoStats> => {
     try {
-      const productosResponse = await ProductoService.getAllProductos('ROLE_ADMIN');
-      const categoriasResponse = await CategoriaService.obtenerTodasCategorias();
-      
-      // Validar que la respuesta es un array
-      const productosData = Array.isArray(productosResponse) ? productosResponse : [];
-      const categoriasData = Array.isArray(categoriasResponse) ? categoriasResponse : [];
-      
-      // Calcular estadísticas
-      const total = productosData.length;
-      const bajoStock = productosData.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) > 0 && (p?.cantidadTotal ?? p?.cantidad ?? 0) <= 10).length;
-      const sinStock = productosData.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) === 0).length;
-      const categorias_count = categoriasData.length;
-        // Para productos del último mes, necesitaríamos una fecha de creación en el modelo
-      // Por ahora, usaremos una aproximación
-      const ultimoMes = Math.floor(total * 0.15); // Aproximadamente 15% como nuevos
-      
-      return {
-        total,
-        bajoStock,
-        sinStock,
-        categorias: categorias_count,
-        ultimoMes
-      };
+      const response = await apiClient.get<ProductoStats>(RUTAS_DASHBOARD.ESTADISTICAS);
+      return response.data;
     } catch (error) {
       console.error('Error obteniendo estadísticas de productos:', error);
-      // Devolver estadísticas por defecto en caso de error
-      return {
-        total: 0,
-        bajoStock: 0,
-        sinStock: 0,
-        categorias: 0,
-        ultimoMes: 0
-      };
+      return { total: 0, bajoStock: 0, sinStock: 0, categorias: 0, ultimoMes: 0 };
     }
   },
 
-  // Obtener distribución por categorías
+  // Obtener distribución por categorías (Server-Side)
   obtenerDistribucionCategorias: async (): Promise<CategoriaDistribucion[]> => {
     try {
-      const productosResponse = await ProductoService.getAllProductos('ROLE_ADMIN');
-      
-      // Validar que la respuesta es un array
-      const productosData = Array.isArray(productosResponse) ? productosResponse : [];
-      console.log('Productos obtenidos para distribución de categorías:', productosData.length);
-      
-      // Mostrar algunos productos de ejemplo para debug
-      if (productosData.length > 0) {
-        console.log('Ejemplo de estructura de producto:', {
-          categoriaPadre: productosData[0]?.categoriaPadre,
-          categoria: productosData[0]?.categoria,
-          nombre: productosData[0]?.nombre
-        });
-      }
-      
-      // Agrupar por categoría padre - filtrar productos con datos válidos
-      const categoriasMap = new Map<number, { nombre: string; cantidad: number }>();
-
-      productosData.forEach(producto => {
-        // Priorizar categoriaPadre, luego categoria
-        let categoriaId: number | undefined;
-        let categoriaNombre: string | undefined;
-
-        if (producto?.categoriaPadre?.idCategoria && producto?.categoriaPadre?.nombre) {
-          // Usar categoria padre si existe
-          categoriaId = producto.categoriaPadre.idCategoria;
-          categoriaNombre = producto.categoriaPadre.nombre;
-        } else if (producto?.categoria?.idCategoria && producto?.categoria?.nombre) {
-          // Usar categoria directa si no tiene padre
-          categoriaId = producto.categoria.idCategoria;
-          categoriaNombre = producto.categoria.nombre;
-        }
-
-        if (!categoriaId || !categoriaNombre) {
-          console.warn('Producto sin categoría válida:', {
-            nombre: producto?.nombre,
-            categoriaPadre: producto?.categoriaPadre,
-            categoria: producto?.categoria
-          });
-          return; // Saltar este producto
-        }
-        
-        if (categoriasMap.has(categoriaId)) {
-          categoriasMap.get(categoriaId)!.cantidad++;
-        } else {
-          categoriasMap.set(categoriaId, { nombre: categoriaNombre, cantidad: 1 });
-        }
-      });
-
-      console.log('Categorías agrupadas:', Array.from(categoriasMap.entries()));
-
-      // Usar solo productos con categorías válidas para el total
-      const productosConCategoria = productosData.filter(producto => {
-        return (producto?.categoriaPadre?.idCategoria && producto?.categoriaPadre?.nombre) ||
-               (producto?.categoria?.idCategoria && producto?.categoria?.nombre);
-      });
-      const total = productosConCategoria.length;
-      
-      console.log('Total productos con categoría:', total);
-      
-      const resultado = Array.from(categoriasMap.entries()).map(([idCategoria, data]) => ({
-        idCategoria,
-        nombre: data.nombre,
-        cantidadProductos: data.cantidad,
-        porcentaje: total > 0 ? Math.round((data.cantidad / total) * 100) : 0
-      })).sort((a, b) => b.cantidadProductos - a.cantidadProductos);
-
-      console.log('Distribución de categorías resultado:', resultado);
-      return resultado;
+      const response = await apiClient.get<CategoriaDistribucion[]>(RUTAS_DASHBOARD.DISTRIBUCION_CATEGORIAS);
+      return response.data;
     } catch (error) {
       console.error('Error obteniendo distribución de categorías:', error);
       return [];
     }
   },
 
-  // Obtener estado del inventario
+  // Obtener estado del inventario (Server-Side)
   obtenerEstadoInventario: async (): Promise<EstadoInventario> => {
     try {
-      const productosResponse = await ProductoService.getAllProductos('ROLE_ADMIN');
-      
-      // Validar que la respuesta es un array
-      const productosData = Array.isArray(productosResponse) ? productosResponse : [];      const total = productosData.length;
-      const sinStock = productosData.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) === 0).length;
-      const critico = productosData.filter(p => {
-        const stock = p?.cantidadTotal ?? p?.cantidad ?? 0;
-        return stock > 0 && stock <= 5;
-      }).length;
-      const bajo = productosData.filter(p => {
-        const stock = p?.cantidadTotal ?? p?.cantidad ?? 0;
-        return stock > 5 && stock <= 15;
-      }).length;
-      const normal = total - sinStock - critico - bajo;
-      
-      return {
-        normal: total > 0 ? Math.round((normal / total) * 100) : 0,
-        bajo: total > 0 ? Math.round((bajo / total) * 100) : 0,
-        critico: total > 0 ? Math.round((critico / total) * 100) : 0,
-        sinStock: total > 0 ? Math.round((sinStock / total) * 100) : 0
-      };
+      const response = await apiClient.get<EstadoInventario>(RUTAS_DASHBOARD.ESTADO_INVENTARIO);
+      return response.data;
     } catch (error) {
       console.error('Error obteniendo estado del inventario:', error);
-      return {
-        normal: 0,
-        bajo: 0,
-        critico: 0,
-        sinStock: 0
-      };
+      return { normal: 0, bajo: 0, critico: 0, sinStock: 0 };
     }
   },
 
-  // Obtener productos del inventario con estado
+  // Obtener productos del inventario con estado (AHORA USANDO PAGINACIÓN)
   obtenerProductosInventario: async (limite: number = 20, busqueda?: string): Promise<ProductoInventario[]> => {
     try {
-      let productosResponse: Producto[];
+      // Usar endpoint paginado para no cargar 10,000 items en memoria para la lista
+      const pagina = await ProductoService.getProductosPaginados(0, limite, busqueda, 'ROLE_ADMIN');
+      const productos = pagina.content || [];
       
-      if (busqueda?.trim()) {
-        productosResponse = await ProductoService.getProductosByNombre(busqueda.trim(), 'ROLE_ADMIN');
-      } else {
-        productosResponse = await ProductoService.getAllProductos('ROLE_ADMIN');
-      }
-      
-      // Validar que la respuesta es un array
-      const productos = Array.isArray(productosResponse) ? productosResponse : [];      
-      
-      // Filtrar productos con datos válidos y mapear
-      return productos
-        .filter(producto => {
-          // Validar que el producto tenga nombre y al menos una categoría válida
-          if (!producto?.nombre) {
-            console.warn('Producto sin nombre:', producto);
-            return false;
-          }
-          
-          // Verificar que tenga categoría padre o categoría directa
-          const tieneCategoria = (producto?.categoriaPadre?.nombre) ?? (producto?.categoria?.nombre);
-          if (!tieneCategoria) {
-            console.warn('Producto sin categoría válida:', producto);
-            return false;
-          }
-          
-          return true;
-        })
-        .slice(0, limite)
-        .map(producto => {
-          let estado: 'normal' | 'bajo' | 'critico' | 'sin-stock';
-          const stock = producto.cantidadTotal ?? producto.cantidad ?? 0;
-          
-          if (stock === 0) {
-            estado = 'sin-stock';
-          } else if (stock <= 5) {
-            estado = 'critico';
-          } else if (stock <= 15) {
-            estado = 'bajo';
-          } else {
-            estado = 'normal';
-          }
+      return productos.map(producto => {
+        let estado: 'normal' | 'bajo' | 'critico' | 'sin-stock';
+        const stock = producto.cantidadTotal ?? producto.cantidad ?? 0;
+        
+        if (stock === 0) estado = 'sin-stock';
+        else if (stock <= 5) estado = 'critico';
+        else if (stock <= 15) estado = 'bajo';
+        else estado = 'normal';
 
-          // Priorizar categoría padre sobre categoría directa
-          const categoriaNombre = producto.categoriaPadre?.nombre ?? producto.categoria?.nombre ?? 'Sin categoría';
-          
-          return {
-            idProducto: producto.idProducto ?? 0,
-            nombre: producto.nombre,
-            codigoIdentificacion: producto.codigoIdentificacion ?? '',
-            categoria: categoriaNombre,
-            stock: stock,
-            estado,
-            precioUnitario: producto.precioUnitario ?? 0,
-            marca: producto.marca ?? '',
-            proveedor: producto.proveedor?.nombre ?? 'Sin proveedor',
-            fechaActualizacion: new Date().toLocaleDateString() // Mock date, idealmente del backend
-          };
-        });
+        const categoriaNombre = producto.categoriaPadre?.nombre ?? producto.categoria?.nombre ?? 'Sin categoría';
+        
+        return {
+          idProducto: producto.idProducto ?? 0,
+          nombre: producto.nombre,
+          codigoIdentificacion: producto.codigoIdentificacion ?? '',
+          categoria: categoriaNombre,
+          stock: stock,
+          estado,
+          precioUnitario: producto.precioUnitario ?? 0,
+          marca: producto.marca ?? '',
+          proveedor: producto.proveedor?.nombre ?? 'Sin proveedor',
+          fechaActualizacion: new Date().toLocaleDateString()
+        };
+      });
     } catch (error) {
       console.error('Error obteniendo productos del inventario:', error);
       return [];
@@ -236,12 +86,12 @@ export const DashboardService = {  // Obtener estadísticas generales de product
   // Obtener actividad reciente
   obtenerActividadReciente: async (userRole?: string): Promise<ActividadReciente[]> => {
     try {
-      // Esta función combina datos de diferentes fuentes para simular actividad
       const actividades: ActividadReciente[] = [];
+      // Ya no pedimos los 10,000 productos. Si queremos stock crítico, podríamos hacer un endpoint paginado
+      // o consultar solo 5. Por ahora lo simulamos con los primeros de la página para no romper el front
+      const paginaCriticos = await ProductoService.getProductosPaginados(0, 5, '', 'ROLE_ADMIN');
+      const productos = paginaCriticos.content || [];
       
-      // Obtener productos con stock crítico (disponible para todos los roles)
-      const productosResponse = await ProductoService.getAllProductos('ROLE_ADMIN');
-      const productos = Array.isArray(productosResponse) ? productosResponse : [];
       const productosCriticos = productos.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) <= 5);
       
       productosCriticos.slice(0, 2).forEach((producto, index) => {
@@ -251,10 +101,10 @@ export const DashboardService = {  // Obtener estadísticas generales de product
           tipo: 'stock_critico',
           descripcion: 'Stock crítico detectado',
           detalles: `${producto.nombre} - Solo ${stock} unidades`,
-          fecha: new Date(Date.now() - (index * 30 * 60 * 1000)).toISOString(), // Hace 30 min, 1 hora
+          fecha: new Date(Date.now() - (index * 30 * 60 * 1000)).toISOString(),
         });
       });
-        // Solo obtener ventas si el usuario tiene permisos (cajero o admin)
+
       if (userRole === 'ROLE_CAJERO' || userRole === 'ROLE_ADMIN') {
         try {
           const ventasHoy = await apiClient.get<Venta[]>(RUTAS_VENTAS.POR_FECHA(new Date().toISOString().split('T')[0]));
@@ -274,7 +124,6 @@ export const DashboardService = {  // Obtener estadísticas generales de product
         }
       }
       
-      // If no real activities found, you could add a message or leave empty
       if (actividades.length === 0) {
         actividades.push({
           id: 'no-activity',

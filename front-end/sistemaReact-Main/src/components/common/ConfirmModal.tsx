@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, AlertTriangle, CheckCircle, Info } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { AlertTriangle, Info, Trash2, CheckCircle } from 'lucide-react';
 
 export interface ConfirmModalProps {
   open: boolean;
@@ -12,7 +12,7 @@ export interface ConfirmModalProps {
   variant?: 'danger' | 'warning' | 'info';
 }
 
-const ConfirmModal: React.FC<ConfirmModalProps> = ({
+const ConfirmModal = ({
   open,
   title,
   message,
@@ -21,7 +21,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
   variant = 'danger'
-}) => {
+}: ConfirmModalProps) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -31,43 +31,16 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     } else {
       setIsVisible(false);
     }
-    return () => {
-      if (timeoutId) clearTimeout(timeoutId);
-    };
+    return () => { if (timeoutId) clearTimeout(timeoutId); };
   }, [open]);
 
   if (!open) return null;
 
   const getIcon = () => {
     switch (variant) {
-      case 'danger':
-        return <AlertTriangle className="w-8 h-8 text-red-600" />;
-      case 'warning':
-        return <AlertTriangle className="w-8 h-8 text-yellow-600" />;
-      case 'info':
-        return <Info className="w-8 h-8 text-blue-600" />;
-    }
-  };
-
-  const getIconBg = () => {
-    switch (variant) {
-      case 'danger':
-        return 'bg-red-100';
-      case 'warning':
-        return 'bg-yellow-100';
-      case 'info':
-        return 'bg-blue-100';
-    }
-  };
-
-  const getConfirmButtonClass = () => {
-    switch (variant) {
-      case 'danger':
-        return 'bg-red-600 hover:bg-red-700 shadow-lg hover:shadow-red-500/50';
-      case 'warning':
-        return 'bg-yellow-600 hover:bg-yellow-700 shadow-lg hover:shadow-yellow-500/50';
-      case 'info':
-        return 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-blue-500/50';
+      case 'danger':  return <Trash2 className="w-6 h-6 text-white" />;
+      case 'warning': return <AlertTriangle className="w-6 h-6 text-white" />;
+      case 'info':    return <Info className="w-6 h-6 text-white" />;
     }
   };
 
@@ -81,31 +54,40 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onClick={onCancel}
     >
       <div
-        className={`bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm m-4 relative border border-gray-200 transform transition-all duration-300 ${
+        className={`bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-sm transform transition-all duration-300 overflow-hidden ${
           isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="text-center">
-          <div className={`${getIconBg()} p-3 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center`}>
+        {/* Header negro */}
+        <div className="bg-black px-8 py-6 flex items-center gap-4">
+          <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
             {getIcon()}
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">{modalTitle}</h3>
-          <p className="text-gray-600 mb-6">{message}</p>
-          <div className="flex justify-center gap-3">
-            <button
-              onClick={onCancel}
-              className="px-6 py-3 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium transition-colors duration-200 w-full"
-            >
-              {cancelText}
-            </button>
-            <button
-              onClick={onConfirm}
-              className={`px-6 py-3 rounded-lg text-white font-medium transition-all duration-200 w-full ${getConfirmButtonClass()}`}
-            >
-              {confirmText}
-            </button>
-          </div>
+          <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase leading-tight">
+            {modalTitle}
+          </h3>
+        </div>
+
+        {/* Body */}
+        <div className="px-8 py-7">
+          <p className="text-sm text-gray-500 font-medium leading-relaxed">{message}</p>
+        </div>
+
+        {/* Actions */}
+        <div className="px-8 pb-8 flex gap-3">
+          <button
+            onClick={onCancel}
+            className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] active:scale-[0.97]"
+          >
+            {confirmText}
+          </button>
         </div>
       </div>
     </div>

@@ -53,11 +53,22 @@ export const useProductoVarianteService = (forSales: boolean = false) => {
     }
   }, [userRole, usuario, forSales]);
 
+  // NUEVO: Método para búsqueda paginada y optimizada en servidor
+  const getVariantesPaginadas = useCallback(async (page: number = 0, size: number = 30, busqueda?: string) => {
+    try {
+      return await ProductoVarianteService.obtenerVariantesPaginadas(page, size, busqueda);
+    } catch (error) {
+      console.error("Error al obtener variantes paginadas:", error);
+      throw error;
+    }
+  }, []);
+
   return useMemo(() => ({
     // Read operations (memoized)
     obtenerVariantesPorProducto,
     obtenerVariantePorId,
     getAllVariantes,
+    getVariantesPaginadas,
     
     // Write operations
     crearVariante: ProductoVarianteService.crearVariante,

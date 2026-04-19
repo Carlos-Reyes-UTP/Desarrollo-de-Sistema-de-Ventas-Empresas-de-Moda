@@ -17,11 +17,55 @@ const getEndpointForRole = (userRole: string | null, operationType: 'read' | 'wr
   return RUTAS_PRODUCTOS;
 };
 
+// Caché global para evitar colapsos al pedir el catálogo completo múltiples veces a la vez
+let cachedCatalogoPromise: Promise<Producto[]> | null = null;
+let lastCatalogoCacheTime = 0;
+const CATALOGO_CACHE_DURATION = 30000; // 30 segundos
+
 export const ProductoService = {
  
   getAllProductos: async (userRole?: string): Promise<Producto[]> => {
+    const now = Date.now();
+    
+    // Si hay una petición en curso o en caché fresco, devolver esa misma promesa
+    if (cachedCatalogoPromise && now - lastCatalogoCacheTime < CATALOGO_CACHE_DURATION) {
+      console.log('[CACHE] Devolviendo 10,000+ productos desde caché para evitar sobrecarga.');
+      return cachedCatalogoPromise;
+    }
+
     const endpoints = getEndpointForRole(userRole || null, 'read');
-    const response = await apiClient.get<Producto[]>(endpoints.BASE);
+    
+    console.log('[RED] Solicitando catálogo completo al servidor...');
+    cachedCatalogoPromise = apiClient.get<Producto[]>(endpoints.BASE).then(response => {
+      return response.data;
+    }).catch(error => {
+      cachedCatalogoPromise = null; // Limpiar si falla
+      throw error;
+    });
+    
+    lastCatalogoCacheTime = now;
+    return cachedCatalogoPromise;
+  },
+
+  // NUEVO: Obtener productos con paginación desde el servidor (Optimizado para 10k+ productos)
+  getProductosPaginados: async (page: number = 0, size: number = 20, busqueda?: string, userRole?: string): Promise<{
+    content: Producto[],
+    totalElements: number,
+    totalPages: number,
+    pageNumber: number,
+    pageSize: number
+  }> => {
+    const endpoints = getEndpointForRole(userRole || null, 'read');
+    // Si el rol es cajero, no tenemos endpoint de pagina de productos base implementado aún,
+    // usaremos el de almacenero temporalmente pero lo ideal sería tener RUTAS_PRODUCTOS.CAJERO.PAGINADOS
+    const url = endpoints.PAGINADOS || RUTAS_PRODUCTOS.PAGINADOS;
+    
+    const params: any = { page, size };
+    if (busqueda && busqueda.trim()) {
+      params.busqueda = busqueda.trim();
+    }
+    
+    const response = await apiClient.get(url, { params });
     return response.data;
   },
 

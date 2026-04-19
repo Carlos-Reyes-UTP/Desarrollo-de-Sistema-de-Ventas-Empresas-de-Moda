@@ -44,6 +44,32 @@ public class ProductoController {
         return productoService.obtenerProductos();
     }
 
+    // NUEVO: Productos paginados con búsqueda server-side
+    @GetMapping("/pagina")
+    public ResponseEntity<java.util.Map<String, Object>> obtenerProductosPaginados(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String busqueda) {
+        int pagina = Math.max(page, 0);
+        int tamanio = Math.max(1, Math.min(size, 100));
+        String termino = busqueda == null ? null : busqueda.trim();
+        if (termino != null && termino.isEmpty()) {
+            termino = null;
+        }
+
+        org.springframework.data.domain.Page<Producto> resultado = productoService
+                .obtenerProductosPaginados(termino, org.springframework.data.domain.PageRequest.of(pagina, tamanio));
+        
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("content", resultado.getContent());
+        response.put("totalElements", resultado.getTotalElements());
+        response.put("totalPages", resultado.getTotalPages());
+        response.put("pageNumber", resultado.getNumber());
+        response.put("pageSize", resultado.getSize());
+        
+        return ResponseEntity.ok(response);
+    }
+
     @PutMapping("/{id}")
     public Producto editarProducto(@PathVariable Long id, @RequestBody Producto productoActualizado) {
         return productoService.editarProducto(id, productoActualizado);

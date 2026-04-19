@@ -45,6 +45,14 @@ public interface ProductoVarianteService {
     List<Object[]> obtenerTodasLasVariantesParaCajero();
 
     /**
+     * Obtener variantes paginadas con búsqueda opcional para el cajero
+     * @param busqueda Texto de búsqueda (nombre, código de barras, código de identificación)
+     * @param pageable Configuración de paginación
+     * @return Página de variantes con información del producto
+     */
+    org.springframework.data.domain.Page<Object[]> obtenerVariantesPaginadasParaCajero(String busqueda, org.springframework.data.domain.Pageable pageable);
+
+    /**
      * Obtener todas las variantes de un producto
      * @param idProducto ID del producto
      * @return Lista de variantes

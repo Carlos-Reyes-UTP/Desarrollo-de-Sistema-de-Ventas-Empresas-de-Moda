@@ -159,6 +159,15 @@ public class ProductoService {
         return productoRepository.findAll();
     }
 
+    public org.springframework.data.domain.Page<Producto> obtenerProductosPaginados(
+            String busqueda, org.springframework.data.domain.Pageable pageable) {
+        String termino = busqueda == null ? "" : busqueda.trim();
+        if (termino.isEmpty()) {
+            return productoRepository.findProductosPaginadosSinBusqueda(pageable);
+        }
+        return productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
+    }
+
     public void eliminarProducto(Long id) {
         if (productoRepository.existsById(id)) {
             productoRepository.deleteById(id);

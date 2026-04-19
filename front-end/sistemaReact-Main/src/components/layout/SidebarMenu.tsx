@@ -302,43 +302,45 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
               )}
 
               {/* Administración / Inventario */}
-              <div className="py-2">
-                <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">
-                  {tieneRol('ROLE_ADMIN') ? 'Configuración' : 'Gestión'}
-                </p>
+              {(tieneRol('ROLE_ADMIN') || tieneRol('ROLE_ALMACENERO')) && (
+                <div className="py-2">
+                  <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">
+                    {tieneRol('ROLE_ADMIN') ? 'Configuración' : 'Gestión'}
+                  </p>
 
-                {/* Usuarios (Solo Admin) */}
-                {tieneRol('ROLE_ADMIN') && (
-                    <NavItem 
-                      icon={Users} 
-                      label="Usuarios" 
-                      selected={vistaActual === 'usuarios'} 
-                      onClick={() => handleMenuClick('usuarios', () => navigate('/pages/GestionUsuarios'))}
-                    />
-                )}
+                  {/* Usuarios (Solo Admin) */}
+                  {tieneRol('ROLE_ADMIN') && (
+                      <NavItem 
+                        icon={Users} 
+                        label="Usuarios" 
+                        selected={vistaActual === 'usuarios'} 
+                        onClick={() => handleMenuClick('usuarios', () => navigate('/pages/GestionUsuarios'))}
+                      />
+                  )}
 
-                {/* Inventario Acordeón */}
-                <Accordion open={openAccordion === 2 || openAccordion === 3} className="border-none mt-2">
-                    <ListItem className="p-0" selected={openAccordion === 2 || openAccordion === 3}>
-                      <AccordionHeader onClick={() => handleAccordionOpen(tieneRol('ROLE_ADMIN') ? 2 : 3)} className="border-none p-0">
-                        <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all ${openAccordion === 2 || openAccordion === 3 ? "bg-gray-100/50 text-black font-bold" : "text-[#9ca3af] hover:bg-gray-200/30 hover:text-black"}`}>
-                           <Box className="h-[18px] w-[18px] mr-3" strokeWidth={2.5} />
-                           <span className="text-[13.5px] items-center flex-1 text-left tracking-tight">Control Inventario</span>
-                           <ChevronDown className={`h-3 w-3 transition-transform ${openAccordion === 2 || openAccordion === 3 ? "rotate-180" : ""}`} strokeWidth={3} />
-                        </div>
-                      </AccordionHeader>
-                    </ListItem>
-                    <AccordionBody className="py-2 pl-4 pr-1">
-                      <List className="p-0 space-y-1.5">
-                        <NavItem icon={Box} label="Productos" selected={vistaActual.includes('productos')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'productos-admin' : 'productos-inventario', () => navigate('/pages/productos'))} />
-                        <NavItem icon={Palette} label="Colores" selected={vistaActual.includes('colores')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'colores-admin' : 'colores-inventario', () => navigate('/pages/colores'))} />
-                        <NavItem icon={Maximize2} label="Tallas" selected={vistaActual.includes('tallas')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'tallas-admin' : 'tallas-inventario', () => navigate('/pages/tallas'))} />
-                        <NavItem icon={Truck} label="Proveedores" selected={vistaActual.includes('proveedores')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'proveedores-admin' : 'proveedores', () => navigate('/pages/proveedores'))} />
-                        <NavItem icon={Layers} label="Categorías" selected={vistaActual.includes('categorias')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'categorias-admin' : 'categorias', () => navigate('/pages/categorias'))} />
-                      </List>
-                    </AccordionBody>
-                </Accordion>
-              </div>
+                  {/* Inventario Acordeón */}
+                  <Accordion open={openAccordion === 2 || openAccordion === 3} className="border-none mt-2">
+                      <ListItem className="p-0" selected={openAccordion === 2 || openAccordion === 3}>
+                        <AccordionHeader onClick={() => handleAccordionOpen(tieneRol('ROLE_ADMIN') ? 2 : 3)} className="border-none p-0">
+                          <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all ${openAccordion === 2 || openAccordion === 3 ? "bg-gray-100/50 text-black font-bold" : "text-[#9ca3af] hover:bg-gray-200/30 hover:text-black"}`}>
+                             <Box className="h-[18px] w-[18px] mr-3" strokeWidth={2.5} />
+                             <span className="text-[13.5px] items-center flex-1 text-left tracking-tight">Control Inventario</span>
+                             <ChevronDown className={`h-3 w-3 transition-transform ${openAccordion === 2 || openAccordion === 3 ? "rotate-180" : ""}`} strokeWidth={3} />
+                          </div>
+                        </AccordionHeader>
+                      </ListItem>
+                      <AccordionBody className="py-2 pl-4 pr-1">
+                        <List className="p-0 space-y-1.5">
+                          <NavItem icon={Box} label="Productos" selected={vistaActual.includes('productos')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'productos-admin' : 'productos-inventario', () => navigate('/pages/productos'))} />
+                          <NavItem icon={Palette} label="Colores" selected={vistaActual.includes('colores')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'colores-admin' : 'colores-inventario', () => navigate('/pages/colores'))} />
+                          <NavItem icon={Maximize2} label="Tallas" selected={vistaActual.includes('tallas')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'tallas-admin' : 'tallas-inventario', () => navigate('/pages/tallas'))} />
+                          <NavItem icon={Truck} label="Proveedores" selected={vistaActual.includes('proveedores')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'proveedores-admin' : 'proveedores', () => navigate('/pages/proveedores'))} />
+                          <NavItem icon={Layers} label="Categorías" selected={vistaActual.includes('categorias')} onClick={() => handleMenuClick(tieneRol('ROLE_ADMIN') ? 'categorias-admin' : 'categorias', () => navigate('/pages/categorias'))} />
+                        </List>
+                      </AccordionBody>
+                  </Accordion>
+                </div>
+              )}
 
               {/* Reportes para Admin */}
               {tieneRol('ROLE_ADMIN') && (

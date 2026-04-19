@@ -19,4 +19,12 @@ public class Rol {
     @Enumerated(EnumType.STRING)
     @Column(name = "nombre_rol", nullable = false, unique = true)
     private Role nombreRol;
+
+    public Role getNombreRol() {
+        return nombreRol;
+    }
+
+    public void setNombreRol(Role nombreRol) {
+        this.nombreRol = nombreRol;
+    }
 }

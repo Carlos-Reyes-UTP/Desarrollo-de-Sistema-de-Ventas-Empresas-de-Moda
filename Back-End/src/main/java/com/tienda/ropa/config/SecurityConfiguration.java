@@ -56,6 +56,9 @@ public class SecurityConfiguration {
                         // Proteger las rutas de cajero. Solo ADMIN y CAJERO pueden acceder.
                         .requestMatchers("/api/cajero/**").hasAnyRole("ADMIN", "CAJERO")
 
+                        // Proteger las rutas de caja. ADMIN, CAJERO y ALMACENERO pueden acceder.
+                        .requestMatchers("/api/caja/**").hasAnyRole("ADMIN", "CAJERO", "ALMACENERO")
+
                         // Proteger las rutas de almacenero. Solo ADMIN y ALMACENERO pueden acceder.
                         // Esto incluye productos, categorías, códigos de barras, etc.
                         .requestMatchers("/api/almacenero/**").hasAnyRole("ADMIN", "ALMACENERO")
