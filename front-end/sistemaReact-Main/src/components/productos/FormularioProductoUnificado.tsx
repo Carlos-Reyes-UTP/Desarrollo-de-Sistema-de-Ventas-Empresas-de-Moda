@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Download, Tag, Layers, Package2, Barcode, Trash, Plus, AlertCircle } from 'lucide-react';
+import { X, Save, Download, Tag, Package2, Barcode, Trash, Plus, AlertCircle, Search, FolderTree, Building2, Info, Lightbulb, Layers } from 'lucide-react';
 import type { Producto } from '../../interfaces/Producto';
 import type { Categoria } from '../../interfaces/Categoria';
 import type { Proveedor } from '../../interfaces/Proveedor';
@@ -280,7 +280,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       );
       
       if (variantesUnicas.length !== variantesExistentes.length) {
-        console.warn(`âš ï¸  Se removieron ${variantesExistentes.length - variantesUnicas.length} variantes duplicadas`);
+        console.warn(`âš   Se removieron ${variantesExistentes.length - variantesUnicas.length} variantes duplicadas`);
       }      // Mapear variantes del backend al formato del formulario
       const variantesFormData: VarianteFormData[] = variantesUnicas.map(v => {
         // Priorizar idProductoVariante (que es el ID real en BD) sobre idVariante
@@ -294,11 +294,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           codigoIdentificacion: v.codigoBarrasVariante || ''
         };
         
-        console.log(`   âœ… Variante mapeada: ID=${variante.id}, Talla=${v.talla.nombreTalla}, Color=${v.color.nombre}, Cantidad=${variante.cantidad}`);
+        console.log(` Variante mapeada: ID=${variante.id}, Talla=${v.talla.nombreTalla}, Color=${v.color.nombre}, Cantidad=${variante.cantidad}`);
         return variante;
       });
       
-      console.log(`âœ… ${variantesFormData.length} variantes cargadas en el estado del formulario`);
+      console.log(`${variantesFormData.length} variantes cargadas en el estado del formulario`);
       setVariantes(variantesFormData);
     } catch (err: unknown) {
       console.error('Error al cargar variantes existentes:', err);
@@ -390,7 +390,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     setError(null);
 
     try {
-      console.log('ðŸš€ Iniciando proceso de guardado de producto');
+      console.log('Iniciando proceso de guardado de producto');
       console.log('ðŸ“Š Estado actual de variantes:', {
         cantidad: variantes.length,
         variantes: variantes.map(v => ({ id: v.id, tallaId: v.tallaId, colorId: v.colorId, cantidad: v.cantidad }))
@@ -412,7 +412,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         categoriaSeleccionada = subcategorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId)!;
         categoriaPadreSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
         
-        console.log('📁 Usando subcategoría como categoría principal:', categoriaSeleccionada?.nombre);
+        console.log('Usando subcategoría como categoría principal:', categoriaSeleccionada?.nombre);
         console.log('ðŸ“ Categoría padre seleccionada:', categoriaPadreSeleccionada?.nombre);
       } else {
         // Caso 2: Si solo hay categoría principal seleccionada
@@ -500,7 +500,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       let productoGuardado: Producto;
 
       // Crear o actualizar producto
-      console.log(`${producto?.idProducto ? 'âœï¸  Actualizando' : 'âž• Creando'} producto...`);
+      console.log(`${producto?.idProducto ? '  Actualizando' : 'Creando'} producto...`);
       if (producto?.idProducto) {
         productoGuardado = await ProductoService.updateProducto(producto.idProducto, {
           ...productoData,
@@ -509,7 +509,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       } else {
         productoGuardado = await ProductoService.createProducto(productoData);
       }
-      console.log(`âœ… Producto ${producto?.idProducto ? 'actualizado' : 'creado'} con ID: ${productoGuardado.idProducto}`);      // ===== PROCESAMIENTO MEJORADO DE VARIANTES =====
+      console.log(`Producto ${producto?.idProducto ? 'actualizado' : 'creado'} con ID: ${productoGuardado.idProducto}`);      // ===== PROCESAMIENTO MEJORADO DE VARIANTES =====
       if (productoGuardado.idProducto && variantes.length > 0) {
         console.log('ðŸ”§ Iniciando sincronización de variantes...');
 
@@ -541,19 +541,19 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         // -> Variantes a CREAR: Están en el formulario pero no tienen ID (son nuevas)
         const variantesACrear = variantesEnFormulario.filter(vForm => !vForm.id);
 
-        console.log(`âž• ${variantesACrear.length} para crear, âœï¸ ${variantesAActualizar.length} para actualizar, ðŸ—‘ï¸ ${variantesAEliminar.length} para eliminar.`);
+        console.log(`${variantesACrear.length} para crear,  ${variantesAActualizar.length} para actualizar, ðŸ—‘ ${variantesAEliminar.length} para eliminar.`);
 
         // 3. EJECUTAR OPERACIONES EN ORDEN (Eliminar, Actualizar, Crear)
         
         // -> Eliminar primero
         for (const variante of variantesAEliminar) {
-          console.log(`  ðŸ—‘ï¸ Eliminando variante ID: ${variante.idProductoVariante}`);
+          console.log(`ðŸ—‘ Eliminando variante ID: ${variante.idProductoVariante}`);
           try {
             await ProductoVarianteService.eliminarVariante(variante.idProductoVariante!);
-            console.log(`  âœ… Variante ID=${variante.idProductoVariante} eliminada correctamente`);
+            console.log(`Variante ID=${variante.idProductoVariante} eliminada correctamente`);
           } catch (error: unknown) {
             console.error(
-              `âŒ Error al eliminar variante ID ${variante.idProductoVariante}:`,
+              `Œ Error al eliminar variante ID ${variante.idProductoVariante}:`,
               getErrorMessage(error, 'Error desconocido')
             );
             throw new Error(`Fallo al eliminar la variante ${variante.talla.nombreTalla} - ${variante.color.nombre}.`);
@@ -566,15 +566,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           
           // Solo llamar a la API si hay cambios reales
           if (existente && (existente.cantidad !== variante.cantidad || existente.codigoBarrasVariante !== variante.codigoIdentificacion)) {
-            console.log(`  âœï¸ Actualizando variante ID: ${variante.id}`);
-            console.log(`    ðŸ“Š Cantidad: ${existente.cantidad} â†’ ${variante.cantidad}`);
-            console.log(`    ðŸ·ï¸ Código: '${existente.codigoBarrasVariante}' â†’ '${variante.codigoIdentificacion}'`);
+            console.log(` Actualizando variante ID: ${variante.id}`);
+            console.log(`ðŸ“Š Cantidad: ${existente.cantidad} â†’ ${variante.cantidad}`);
+            console.log(`ðŸ· Código: '${existente.codigoBarrasVariante}' â†’ '${variante.codigoIdentificacion}'`);
             
             const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
             const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
 
             if (!talla || !color) {
-              console.warn(`âš ï¸ Saltando actualización - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+              console.warn(`âš  Saltando actualización - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
               continue;
             }
 
@@ -591,14 +591,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                 ...varianteData,
                 idProductoVariante: variante.id
               });
-              console.log(`  âœ… Variante ID=${variante.id} actualizada correctamente`);
+              console.log(`Variante ID=${variante.id} actualizada correctamente`);
             } catch (error: unknown) {
               const errorMessage = getErrorMessage(error, 'Error desconocido');
-              console.error(`âŒ Error al actualizar variante ID ${variante.id}:`, errorMessage);
+              console.error(`Œ Error al actualizar variante ID ${variante.id}:`, errorMessage);
               throw new Error(`Error al actualizar variante ${talla.nombreTalla}-${color.nombre}: ${errorMessage}`);
             }
           } else {
-            console.log(`  â© Saltando variante ID: ${variante.id} (sin cambios)`);
+            console.log(`Saltando variante ID: ${variante.id} (sin cambios)`);
           }
         }
 
@@ -608,11 +608,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
 
           if (!talla || !color) {
-            console.warn(`âš ï¸ Saltando creación - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+            console.warn(`âš  Saltando creación - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
             continue;
           }
 
-          console.log(`  âž• Creando nueva variante (Talla: ${talla.nombreTalla}, Color: ${color.nombre}, Cantidad: ${variante.cantidad})`);
+          console.log(`Creando nueva variante (Talla: ${talla.nombreTalla}, Color: ${color.nombre}, Cantidad: ${variante.cantidad})`);
           
           const varianteData: Omit<ProductoVariante, 'idVariante'> = {
             producto: productoGuardado,
@@ -624,17 +624,17 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
           try {
             const nuevaVariante = await ProductoVarianteService.crearVariante(varianteData);
-            console.log(`  âœ… Nueva variante creada con ID=${nuevaVariante.idProductoVariante}`);
+            console.log(`Nueva variante creada con ID=${nuevaVariante.idProductoVariante}`);
           } catch (error: unknown) {
             const errorMessage = getErrorMessage(error, 'Error desconocido');
-            console.error(`âŒ Error al crear nueva variante:`, errorMessage);
+            console.error(`Œ Error al crear nueva variante:`, errorMessage);
             throw new Error(`Error al crear variante ${talla.nombreTalla}-${color.nombre}: ${errorMessage}`);
           }
         }
 
-        console.log('\nâœ… ¡Sincronización de variantes completada exitosamente!');
+        console.log('\n¡Sincronización de variantes completada exitosamente!');
       } else if (variantes.length === 0) {
-        console.log('â„¹ï¸ No hay variantes para procesar');
+        console.log(' No hay variantes para procesar');
       }
 
       // Obtener las variantes actualizadas del producto para devolver un producto completo con sus variantes
@@ -647,11 +647,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           ...productoGuardado,
           cantidad: cantidadTotalActualizada
         };
-      }      console.log('ðŸŽ‰ Proceso de guardado completado exitosamente');
+      }      console.log('Proceso de guardado completado exitosamente');
       onProductoGuardado(productoGuardado);
       handleClose();
     } catch (err: unknown) {
-      console.error('âŒ Error al guardar producto:', err);
+      console.error('Œ Error al guardar producto:', err);
       const status = getStatusCode(err);
       
       // Manejo específico para errores de autenticación/autorización
@@ -690,13 +690,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       const precioUnitarioMediaDocena = precios.precioMediaDocena > 0 ? precios.precioMediaDocena / 6 : 0;
       const precioUnitarioDocena = precios.precioDocena > 0 ? precios.precioDocena / 12 : 0;
       
-      // Validar que el precio por unidad sea decreciente: Individual â‰¥ Cuarto/3 â‰¥ MediaDocena/6 â‰¥ Docena/12
+      // Validar que el precio por unidad sea decreciente: Individual >= Cuarto/3 >= MediaDocena/6 >= Docena/12
       if (
         (precios.precioCuarto > 0 && precioUnitarioCuarto > precioUnitarioIndividual) ||
         (precios.precioMediaDocena > 0 && precioUnitarioMediaDocena > precioUnitarioCuarto) ||
         (precios.precioDocena > 0 && precioUnitarioDocena > precioUnitarioMediaDocena)
       ) {
-        setErrorPrecio('El precio por unidad debe ser decreciente: Individual â‰¥ Cuarto/3 â‰¥ MediaDocena/6 â‰¥ Docena/12');
+        setErrorPrecio('El precio por unidad debe ser decreciente: Individual >= Cuarto/3 >= MediaDocena/6 >= Docena/12');
         return;
       }
       setErrorPrecio(null);
@@ -726,7 +726,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       try {
       setLoading(true);
       setError(null);
-      console.log(`ðŸ·ï¸ Generando código de barras para variante ID: ${varianteId}`);
+      console.log(`ðŸ· Generando código de barras para variante ID: ${varianteId}`);
       
       const blob = await CodigoBarrasService.generarImagenVariante(varianteId);
       
@@ -1028,12 +1028,12 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         value={formData.codigoBarras}
                         onChange={handleInputChange}
                         placeholder="Código de barras (opcional)"
-                        className="flex-1 px-4 py-3 border-2 border-gray-300 rounded-xl bg-gray-50 focus:bg-white focus:border-gray-300 focus:outline-none focus:ring-4 focus:ring-gray-300/20 transition-all duration-200 hover:border-indigo-400 font-mono text-sm"
+                        className="flex-1 px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all font-mono"
                       />
                       <button
                         type="button"
                         onClick={() => generarCodigoBarrasAutomatico()}
-                        className="px-4 py-2 bg-indigo-600 text-black rounded-lg hover:bg-indigo-700 focus:ring-2 focus:ring-gray-300 focus:ring-offset-2 transition-colors duration-200 flex items-center gap-2"
+                        className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
                         title="Generar código de barras automático"
                       >
                         <Barcode size={16} />
@@ -1113,9 +1113,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       Categoría Principal (Nivel 1) *
                     </label>
                     <div className="relative">
+                      {!categoriaSeleccionada && (
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                      )}
                       <input
                         type="text"
-                        placeholder={categoriaSeleccionada ? "Categoría seleccionada" : "ðŸ—‚ï¸ Buscar Categoría Principal"}
+                        placeholder={categoriaSeleccionada ? "Categoría seleccionada" : "Buscar Categoría Principal..."}
                         value={searchCategoria}
                         onChange={(e) => setSearchCategoria(e.target.value)}
                         onFocus={() => setIsCategoriaFocused(true)}
@@ -1131,7 +1136,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } });
                           }
                         }}
-                        className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                        className={`w-full ${!categoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
                         disabled={!!categoriaSeleccionada}
                         required
                       />
@@ -1173,8 +1178,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       
                       {/* Mostrar categoría seleccionada */}
                       {categoriaSeleccionada && !searchCategoria && (
-                        <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                          <span className="text-black font-medium">ðŸ“ {categoriaSeleccionada}</span>
+                        <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-2"><FolderTree className="w-4 h-4 text-white/60" /><span className="text-white font-bold text-sm">{categoriaSeleccionada}</span></div>
                           <button
                             onClick={() => {
                               setCategoriaSeleccionada('');
@@ -1182,7 +1187,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               setSearchCategoria('');
                               handleCategoriaChange({ target: { value: '' } });
                             }}
-                            className="text-indigo-600 hover:text-black"
+                            className="text-white/60 hover:text-white transition-colors"
                             title="Limpiar selección"
                             type="button"
                           >
@@ -1199,9 +1204,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         Subcategoría (Nivel 2) *
                       </label>
                       <div className="relative">
+                        {!subcategoriaSeleccionada && (
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                          </div>
+                        )}
                         <input
                           type="text"
-                          placeholder={subcategoriaSeleccionada ? "Subcategoría seleccionada" : "📁 Buscar Subcategoría"}
+                          placeholder={subcategoriaSeleccionada ? "Subcategoría seleccionada" : "Buscar Subcategoría..."}
                           value={searchSubcategoria}
                           onChange={(e) => setSearchSubcategoria(e.target.value)}
                           onFocus={() => setIsSubcategoriaFocused(true)}
@@ -1217,7 +1227,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } });
                             }
                           }}
-                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                          className={`w-full ${!subcategoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
                           disabled={!!subcategoriaSeleccionada}
                           required
                         />
@@ -1253,8 +1263,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         
                         {/* Mostrar subcategoría seleccionada */}
                         {subcategoriaSeleccionada && !searchSubcategoria && (
-                          <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                            <span className="text-black font-medium">📁 {subcategoriaSeleccionada}</span>
+                          <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+                            <div className="flex items-center gap-2"><FolderTree className="w-4 h-4 text-white/60" /><span className="text-white font-bold text-sm">{subcategoriaSeleccionada}</span></div>
                             <button
                               onClick={() => {
                                 setSubcategoriaSeleccionada('');
@@ -1262,7 +1272,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 setSearchSubcategoria('');
                                 handleSubcategoriaChange({ target: { value: '' } });
                               }}
-                              className="text-indigo-600 hover:text-black"
+                              className="text-white/60 hover:text-white transition-colors"
                               title="Limpiar selección"
                               type="button"
                             >
@@ -1287,9 +1297,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         Segunda Subcategoría (Nivel 3) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
+                        {!subcategoria2Seleccionada && (
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Search className="h-4 w-4 text-gray-400" />
+                          </div>
+                        )}
                         <input
                           type="text"
-                          placeholder={subcategoria2Seleccionada ? "2da subcategoría seleccionada" : "ðŸ“ Buscar Segunda Subcategoría"}
+                          placeholder={subcategoria2Seleccionada ? "2da subcategoría seleccionada" : "Buscar Segunda Subcategoría..."}
                           value={searchSubcategoria2}
                           onChange={(e) => setSearchSubcategoria2(e.target.value)}
                           onFocus={() => setIsSubcategoria2Focused(true)}
@@ -1304,7 +1319,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               setSearchSubcategoria2('');
                             }
                           }}
-                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                          className={`w-full ${!subcategoria2Seleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
                           disabled={!!subcategoria2Seleccionada}
                           required
                         />
@@ -1339,15 +1354,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         
                         {/* Mostrar segunda subcategoría seleccionada */}
                         {subcategoria2Seleccionada && !searchSubcategoria2 && (
-                          <div className="absolute inset-0 px-4 py-3 bg-orange-50 border border-orange-300 rounded-lg flex items-center justify-between">
-                            <span className="text-orange-800 font-medium">ðŸ“ {subcategoria2Seleccionada}</span>
+                          <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+                            <div className="flex items-center gap-2"><FolderTree className="w-4 h-4 text-white/60" /><span className="text-white font-bold text-sm">{subcategoria2Seleccionada}</span></div>
                             <button
                               onClick={() => {
                                 setSubcategoria2Seleccionada('');
                                 setFormData(prev => ({ ...prev, subCategoria2Id: '' }));
                                 setSearchSubcategoria2('');
                               }}
-                              className="text-orange-600 hover:text-orange-800"
+                              className="text-white/60 hover:text-white transition-colors"
                               title="Limpiar selección"
                               type="button"
                             >
@@ -1369,9 +1384,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   {/* Mensaje informativo cuando no hay subcategorías de nivel 3 */}
                   {subcategorias.length > 0 && subCategorias2.length === 0 && formData.subcategoriaId && (
                     <div className="md:col-span-2">
-                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                      <div className="bg-[#f8f8f8] rounded-xl p-3 border border-gray-100 flex items-start gap-2">
+                        <Info className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
                         <p className="text-xs text-gray-600">
-                          â„¹ï¸ La subcategoría seleccionada no tiene categorías de nivel 3 disponibles.
+                          La subcategoría seleccionada no tiene categorías de nivel 3 disponibles.
                         </p>
                       </div>
                     </div>
@@ -1382,9 +1398,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       Proveedor *
                     </label>
                     <div className="relative">
+                      {!proveedorSeleccionado && (
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Search className="h-4 w-4 text-gray-400" />
+                        </div>
+                      )}
                       <input
                         type="text"
-                        placeholder={proveedorSeleccionado ? "Proveedor seleccionado" : "ðŸ¢ Buscar Proveedor"}
+                        placeholder={proveedorSeleccionado ? "Proveedor seleccionado" : "Buscar Proveedor..."}
                         value={searchProveedor}
                         onChange={(e) => setSearchProveedor(e.target.value)}
                         onFocus={() => setIsProveedorFocused(true)}
@@ -1399,7 +1420,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             setSearchProveedor('');
                           }
                         }}
-                        className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                        className={`w-full ${!proveedorSeleccionado ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
                         disabled={!!proveedorSeleccionado}
                         required
                       />
@@ -1434,15 +1455,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       
                       {/* Mostrar proveedor seleccionado */}
                       {proveedorSeleccionado && !searchProveedor && (
-                        <div className="absolute inset-0 px-4 py-3 bg-indigo-50 border border-indigo-300 rounded-lg flex items-center justify-between">
-                          <span className="text-black font-medium">ðŸ¢ {proveedorSeleccionado}</span>
+                        <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+                          <div className="flex items-center gap-2"><Building2 className="w-4 h-4 text-white/60" /><span className="text-white font-bold text-sm">{proveedorSeleccionado}</span></div>
                           <button
                             onClick={() => {
                               setProveedorSeleccionado('');
                               setFormData(prev => ({ ...prev, proveedorId: '' }));
                               setSearchProveedor('');
                             }}
-                            className="text-indigo-600 hover:text-black"
+                            className="text-white/60 hover:text-white transition-colors"
                             title="Limpiar selección"
                             type="button"
                           >
@@ -1460,82 +1481,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     </div>
                   </div>
 
-                  <div className="md:col-span-2">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Precio Unitario (S/) *
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          name="precioUnitario"
-                          value={formData.precioUnitario}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
-                          placeholder="0.00"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Precio por Cuarto (S/)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          name="precioCuarto"
-                          value={formData.precioCuarto}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
-                          placeholder="0.00"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Precio Media Docena (S/)
-                        </label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          name="precioMediaDocena"
-                          value={formData.precioMediaDocena}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
-                          placeholder="0.00"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Precio por Docena (S/)
-                        </label><input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          name="precioDocena"
-                          value={formData.precioDocena}
-                          onChange={handleInputChange}
-                          className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
-                          placeholder="0.00"
-                        />
-                      </div>
-                    </div>
-                    
-                    {/* Mensaje de error para validación de precios */}
-                    {errorPrecio && (
-                      <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <div className="flex items-center">
-                          <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-                          <p className="text-sm text-red-700">{errorPrecio}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  
                 </div>
               </div>
             )}            {/* Pestaña: Variantes */}
@@ -1552,7 +1498,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       <select
                         value={modoFormulario}
                         onChange={(e) => setModoFormulario(e.target.value as 'simple' | 'optimizado')}
-                        className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-gray-300 focus:border-gray-300"
+                        className="px-3 py-1.5 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
                       >
                         <option value="optimizado">Optimizado (por talla)</option>
                         <option value="simple">Simple (individual)</option>
@@ -1561,14 +1507,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     <button
                       type="button"
                       onClick={() => setShowFormularioVariante(!showFormularioVariante)}
-                      className="bg-black hover:bg-gray-900 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                      className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
                     >
                       {showFormularioVariante ? 'Cancelar' : 'Agregar Variante'}
                     </button>
                   </div>
                 </div>              {/* Formularios de variantes */}
               {showFormularioVariante && (
-                <div className="bg-white rounded-lg p-4 mb-4 border border-green-200">
+                <div className="bg-white rounded-xl p-6 mb-4 border border-gray-200">
                   {modoFormulario === 'simple' ? (
                     // Formulario simple (una variante a la vez)
                     <>
@@ -1642,7 +1588,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         <button
                           type="button"
                           onClick={agregarVariante}
-                          className="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
                         >
                           Agregar Variante
                         </button>
@@ -1651,9 +1597,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   ) : (
                     // Formulario optimizado (múltiples colores por talla)
                     <>                      <h4 className="text-md font-semibold mb-3 text-gray-800">Agregar Variantes por Talla (Modo Optimizado)</h4>
-                      <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                        <p className="text-sm text-gray-700 mb-1">💡 <strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
-                        <p className="text-xs text-blue-600 italic">
+                      <div className="mb-4 p-3 bg-[#f8f8f8] rounded-xl border border-gray-100">
+                        <p className="text-sm text-gray-700 mb-1"><strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
+                        <p className="text-xs text-gray-500 italic">
                           Las etiquetas incluirán automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
                         </p>
                       </div>
@@ -1686,7 +1632,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             </label>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                               {coloresDisponibles.map(color => (
-                                <div key={color.idColor} className="flex flex-col items-center p-3 border border-gray-200 rounded-lg">
+                                <div key={color.idColor} className="flex flex-col items-center p-3 border border-gray-100 rounded-xl bg-[#fafafa]">
                                   <div className="flex items-center gap-2 mb-2">
                                     <div 
                                       className="w-5 h-5 rounded-full border border-gray-300" 
@@ -1699,7 +1645,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                     min="0"
                                     value={formularioOptimizado.cantidadesPorColor[color.idColor!] || 0}
                                     onChange={(e) => actualizarCantidadColor(color.idColor!, parseInt(e.target.value) || 0)}
-                                    className="w-full px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-gray-300 focus:border-gray-300"
+                                    className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                                     placeholder="0"
                                   />
                                 </div>
@@ -1719,7 +1665,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           type="button"
                           onClick={agregarVariantesOptimizado}
                           disabled={formularioOptimizado.tallaSeleccionada === 0 || Object.values(formularioOptimizado.cantidadesPorColor).every(qty => qty === 0)}
-                          className="bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-black px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                          className="bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
                         >
                           Agregar Variantes
                         </button>
@@ -1731,22 +1677,22 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
               {/* Lista de variantes */}
               {variantes.length > 0 && (
-                <div className="bg-white rounded-lg border border-green-200 overflow-hidden">
+                <div className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
-                      <thead className="bg-green-50">
+                      <thead className="bg-[#fafafa]">
                         <tr>
-                          <th className="text-left py-3 px-4 font-semibold text-green-800">Talla</th>
-                          <th className="text-left py-3 px-4 font-semibold text-green-800">Color</th>
-                          <th className="text-center py-3 px-4 font-semibold text-green-800">Cantidad</th>
-                          <th className="text-left py-3 px-4 font-semibold text-green-800">Código</th>
-                          <th className="text-center py-3 px-4 font-semibold text-green-800">Acciones</th>
+                          <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Talla</th>
+                          <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Color</th>
+                          <th className="text-center py-3 px-4 text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Cantidad</th>
+                          <th className="text-left py-3 px-4 text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Código</th>
+                          <th className="text-center py-3 px-4 text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
                         {/* FIX: Se usa una clave única y estable en lugar del índice. */}
                         {variantes.map((variante, index) => (
-                          <tr key={variante.id || `new-${variante.tallaId}-${variante.colorId}`} className="border-t border-green-100 hover:bg-green-50 transition-colors">
+                          <tr key={variante.id || `new-${variante.tallaId}-${variante.colorId}`} className="border-t border-gray-50 hover:bg-[#fafafa] transition-colors">
                             <td className="py-3 px-4">
                               {tallasDisponibles.find(t => t.idTalla === variante.tallaId)?.nombreTalla || 'N/A'}
                             </td>
@@ -1767,7 +1713,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 min="1"
                                 value={variante.cantidad}
                                 onChange={(e) => actualizarCantidadVariante(index, parseInt(e.target.value) || 1)}
-                                className="w-20 px-2 py-1 border border-gray-300 rounded text-center text-sm focus:ring-2 focus:ring-gray-300 focus:border-gray-300"
+                                className="w-20 px-2 py-1.5 bg-[#f8f8f8] border border-transparent rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-gray-200 transition-all"
                               />
                             </td>
                             <td className="py-3 px-4 text-xs text-gray-600 font-mono">
@@ -1778,7 +1724,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                   <button
                                     type="button"
                                     onClick={() => generarCodigoBarrasVariante(variante.id)}
-                                    className="text-blue-600 hover:text-black p-1 rounded-full hover:bg-gray-50"
+                                    className="text-gray-400 hover:text-black p-1 rounded-full hover:bg-gray-100 transition-colors"
                                     disabled={loading}
                                     title="Ver código de barras"
                                   >
@@ -1808,9 +1754,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     </table>
                   </div>
                   
-                  <div className="bg-green-50 px-4 py-3 border-t border-green-200">
+                  <div className="bg-[#fafafa] px-4 py-3 border-t border-gray-100">
                     <div className="text-sm font-semibold text-gray-700 flex items-center justify-between">
-                      <span>Total de unidades: <span className="text-green-700 font-bold">{cantidadTotal}</span></span>
+                      <span>Total de unidades: <span className="text-black font-bold">{cantidadTotal}</span></span>
                       <span className="text-xs text-gray-500">
                         {variantes.length === 1 ? '1 variante' : `${variantes.length} variantes`}
                       </span>
@@ -1828,42 +1774,19 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               </div>
             )}
 
-            {/* Resumen de variantes */}
-            {variantes.length > 0 && (
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">
-                  Resumen de Variantes ({variantes.length})
-                </h3>
-                <div className="text-sm text-gray-600 mb-4">                  Cantidad total: <span className="font-semibold">{cantidadTotal}</span> unidades
-                </div>
-                
-                {variantes.length === 0 ? (
-                  <div className="text-center py-8 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-gray-700 mb-3">No hay variantes agregadas todavía</p>
-                    <button
-                      type="button"
-                      onClick={() => setShowFormularioVariante(true)}
-                      className="bg-blue-600 hover:bg-blue-700 text-black px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
-                    >
-                      <Plus className="w-4 h-4" />
-                      Agregar Variante
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            )}
+            
 
             {/* Pestaña: Precios */}
             {tabActiva === 'precios' && (
-              <div className="bg-white rounded-xl border border-amber-200 shadow-sm">
+              <div className="bg-gray-50 rounded-xl">
                 <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-amber-800 flex items-center gap-2">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center gap-2">
                     <Tag className="w-5 h-5" />
                     Configuración de Precios
                   </h3>
                   
-                  <div className="mb-4 p-4 bg-amber-50 rounded-lg border border-amber-100">
-                    <p className="text-sm text-amber-700">
+                  <div className="mb-4 p-4 bg-[#f8f8f8] rounded-xl border border-gray-100">
+                    <p className="text-sm text-gray-600">
                       Configure los diferentes precios según la cantidad. El precio unitario es obligatorio, los demás son opcionales.
                     </p>
                   </div>
@@ -1882,7 +1805,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioUnitario"
                             value={formData.precioUnitario}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
                             required
                           />
                         </div>
@@ -1903,7 +1826,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioCuarto"
                             value={formData.precioCuarto}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
                           />
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
@@ -1925,7 +1848,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioMediaDocena"
                             value={formData.precioMediaDocena}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
                           />
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
@@ -1945,7 +1868,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioDocena"
                             value={formData.precioDocena}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500"
+                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
                           />
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
@@ -1955,13 +1878,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     </div>
                   </div>
                   
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-blue-100">
+                  <div className="mt-6 p-4 bg-[#f8f8f8] rounded-xl border border-gray-100">
                     <h4 className="font-medium text-black mb-2">Resumen de Descuentos</h4>
                     <div className="grid grid-cols-3 gap-4">
                       {formData.precioCuarto && formData.precioUnitario && (
                         <div className="bg-white p-3 rounded-lg border border-gray-200">
                           <p className="text-xs text-gray-500">Descuento por 1/4 docena</p>
-                          <p className="text-lg font-semibold text-blue-600">
+                          <p className="text-lg font-black text-black">
                             {(((parseFloat(formData.precioUnitario) * 3) - parseFloat(formData.precioCuarto)) / (parseFloat(formData.precioUnitario) * 3) * 100).toFixed(1)}%
                           </p>
                         </div>
@@ -1970,7 +1893,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       {formData.precioMediaDocena && formData.precioUnitario && (
                         <div className="bg-white p-3 rounded-lg border border-gray-200">
                           <p className="text-xs text-gray-500">Descuento por 1/2 docena</p>
-                          <p className="text-lg font-semibold text-blue-600">
+                          <p className="text-lg font-black text-black">
                             {(((parseFloat(formData.precioUnitario) * 6) - parseFloat(formData.precioMediaDocena)) / (parseFloat(formData.precioUnitario) * 6) * 100).toFixed(1)}%
                           </p>
                         </div>
@@ -1979,7 +1902,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       {formData.precioDocena && formData.precioUnitario && (
                         <div className="bg-white p-3 rounded-lg border border-gray-200">
                           <p className="text-xs text-gray-500">Descuento por docena</p>
-                          <p className="text-lg font-semibold text-blue-600">
+                          <p className="text-lg font-black text-black">
                             {(((parseFloat(formData.precioUnitario) * 12) - parseFloat(formData.precioDocena)) / (parseFloat(formData.precioUnitario) * 12) * 100).toFixed(1)}%
                           </p>
                         </div>
@@ -1991,23 +1914,26 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
             )}
 
             {/* Pestaña: Códigos de Barras */}
-            {tabActiva === 'codigosBarras' && (              <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-black flex items-center gap-2">
+            {tabActiva === 'codigosBarras' && (              <div className="bg-gray-50 rounded-xl p-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center gap-2">
                     <Barcode className="w-5 h-5" />
                     Códigos de Barras
                   </h3>
                     {/* Mensaje informativo actualizado */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <h4 className="font-medium text-black mb-2">ðŸ·ï¸ Sobre las etiquetas de código de barras</h4>                    <div className="text-sm text-gray-700 space-y-1">
+                  <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-start gap-3">
+                    <Tag className="w-5 h-5 text-gray-500 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-medium text-gray-900 mb-1">Sobre las etiquetas de código de barras</h4>                    <div className="text-sm text-gray-700 space-y-1">
                       <p><strong>Etiquetas de Variantes:</strong> Cada etiqueta incluye automáticamente toda la información necesaria</p>
                       <p className="text-xs italic">Formato: "Nombre del Producto [Código] - T/Talla - Color"</p>
                       <p className="text-xs italic">Ejemplo: "Boxer Americano [BA001] - T/M - Azul"</p>
+                      </div>
                     </div>
                   </div>
                     <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <div className="bg-indigo-50 p-5 rounded-lg border border-gray-200 h-full"><h4 className="font-medium text-black mb-3">
+                      <div className="bg-white p-5 rounded-xl border border-gray-100 h-full"><h4 className="font-medium text-black mb-3">
                           {varianteSeleccionada 
                             ? 'Etiqueta con Información Completa'
                             : 'Etiquetas de Variantes (con nombre del producto)'}
@@ -2022,7 +1948,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                   const color = coloresDisponibles.find(c => c.idColor === v.colorId);
                                   return (
                                     <div key={v.id} className="bg-gray-50 p-3 rounded-lg">                                      <p className="font-medium text-gray-800">Esta etiqueta contiene:</p>
-                                      <p className="text-green-700 font-semibold">"{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"</p>
+                                      <p className="text-black font-semibold">"{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"</p>
                                       <p className="text-xs text-gray-500 mt-1">Código: {v.codigoIdentificacion}</p>
                                     </div>
                                   );
@@ -2031,7 +1957,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               })}
                             </div>
                             
-                            <div className="flex flex-col items-center justify-center bg-white p-4 rounded-lg border border-purple-200">
+                            <div className="flex flex-col items-center justify-center bg-white p-4 rounded-xl border border-gray-200">
                               <img 
                                 src={codigoBarrasPreview} 
                                 alt="Código de barras de variante" 
@@ -2041,7 +1967,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 <button
                                   type="button"
                                   onClick={descargarCodigoBarrasVariante}
-                                  className="bg-black hover:bg-gray-900 text-black px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2"
+                                  className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-sm flex items-center gap-2"
                                 >
                                   <Download className="w-4 h-4" />
                                   Descargar
@@ -2052,7 +1978,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                     setVarianteSeleccionada(null);
                                     setCodigoBarrasPreview(null);
                                   }}
-                                  className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2"
+                                  className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2"
                                 >
                                   <X className="w-4 h-4" />
                                   Cerrar
@@ -2078,16 +2004,16 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                       key={index}
                                       type="button"
                                       onClick={() => generarCodigoBarrasVariante(variante.id!)}
-                                      className="flex flex-col items-start gap-1 w-full p-3 mb-2 rounded-lg border border-indigo-100 hover:bg-indigo-100 transition-colors text-left"
+                                      className="flex flex-col items-start gap-1 w-full p-3 mb-2 rounded-xl border border-gray-100 hover:bg-[#f8f8f8] transition-colors text-left"
                                       disabled={loading}
                                     >
                                       <div className="flex items-center gap-2 w-full">
                                         <div className="w-3 h-3 rounded-full" style={{
                                           backgroundColor: color?.codigoHex || '#CCCCCC'
                                         }} />                                        <span className="font-medium flex-1">T/{talla?.nombreTalla} - {color?.nombre}</span>
-                                        <Barcode className="w-4 h-4 text-indigo-600" />
+                                        <Barcode className="w-4 h-4 text-gray-400" />
                                       </div>
-                                      <span className="text-xs text-green-600 font-medium">
+                                      <span className="text-xs text-gray-500 font-medium">
                                         "{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"
                                       </span>
                                     </button>
@@ -2108,7 +2034,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                   setTabActiva('variantes');
                                   setShowFormularioVariante(true);
                                 }}
-                                className="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-lg text-sm font-medium shadow transition-all flex items-center gap-2 mx-auto"
+                                className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 mx-auto"
                               >
                                 <Plus className="w-4 h-4" />
                                 Agregar Variantes

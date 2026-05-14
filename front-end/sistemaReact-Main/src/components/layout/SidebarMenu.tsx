@@ -82,7 +82,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
       return { vista, accordion: 1 };
     }
     
-    if (path.includes('/pages/GestionUsuarios')) {
+    if (path.includes('/pages/gestion-usuarios')) {
       return { vista: 'usuarios', accordion: 2 };
     }
     
@@ -314,7 +314,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                         icon={Users} 
                         label="Usuarios" 
                         selected={vistaActual === 'usuarios'} 
-                        onClick={() => handleMenuClick('usuarios', () => navigate('/pages/GestionUsuarios'))}
+                        onClick={() => handleMenuClick('usuarios', () => navigate('/pages/gestion-usuarios'))}
                       />
                   )}
 

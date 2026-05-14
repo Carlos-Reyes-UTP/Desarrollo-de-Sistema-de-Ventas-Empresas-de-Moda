@@ -26,7 +26,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
       return vista;
     }
     
-    if (path.includes('/pages/GestionUsuarios')) {
+    if (path.includes('/pages/gestion-usuarios')) {
       return 'usuarios';
     }
     

@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# AI and Agent Context
+AGENTE.md
+QA-LOGS.md
+

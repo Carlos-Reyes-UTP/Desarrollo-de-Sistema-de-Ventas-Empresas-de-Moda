@@ -218,3 +218,22 @@ Login.tsx
 - No hardcodear URLs del backend — usar las constantes de `apiConfig.ts`.
 - No modificar `AuthContext.tsx` sin revisión, es el corazón de la sesión.
 - No crear páginas sin envolverlas en `RutaProtegidaConLayout` con el rol apropiado.
+
+
+## Flujo obligatorio al resolver cualquier error
+1. Entiende el error antes de tocar código
+2. Reproduce el error primero
+3. Crea o actualiza un test que lo cubra
+4. Aplica el fix
+5. Verifica que el test pasa
+6. Registra el error en QA-LOG.md
+
+## Al escribir código nuevo
+- No rompas funcionalidad existente
+- Si modificas una función, revisa todos sus usos
+- Prefiere soluciones simples sobre complejas
+
+## Nunca hacer
+- Borrar tests existentes
+- Hacer fix sin entender la causa raíz
+- Asumir que algo funciona sin verificarlo
