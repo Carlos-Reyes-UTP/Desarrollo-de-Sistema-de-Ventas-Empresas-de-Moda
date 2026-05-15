@@ -32,6 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 
+# Windows: nombre de dispositivo reservado (p. ej. redirección mal escrita a `nul`)
+nul
+NUL
+
 # AI and Agent Context
 AGENTE.md
 QA-LOGS.md
