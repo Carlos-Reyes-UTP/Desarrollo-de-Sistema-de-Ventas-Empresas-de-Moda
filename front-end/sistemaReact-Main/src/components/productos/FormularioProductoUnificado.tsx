@@ -1690,7 +1690,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             onChange={(e) =>
                               setFormularioOptimizado((prev) => ({ ...prev, nombreTalla: e.target.value }))
                             }
-                            placeholder="Escribir o elegir talla"
+                            placeholder="Elegir talla"
                             className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
                           />
                           <datalist id="fp-opt-tallas-dl">
@@ -1731,13 +1731,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                               {coloresGridOptimizado.map((nombreColor) => (
                                 <div key={nombreColor} className="flex flex-col items-center p-3 border border-gray-100 rounded-xl bg-[#fafafa]">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div
-                                      className="w-5 h-5 rounded-full border border-gray-300"
-                                      style={{ backgroundColor: '#CCCCCC' }}
-                                    />
-                                    <span className="text-sm font-medium text-gray-700">{nombreColor}</span>
-                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 w-full text-center pb-1">{nombreColor}</span>
                                   <input
                                     type="number"
                                     min="0"
