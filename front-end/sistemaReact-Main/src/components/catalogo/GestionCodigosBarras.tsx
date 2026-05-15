@@ -5,7 +5,7 @@ import type { ProductoVariante } from '../../types/ProductoVariante';
 import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../types/CodigoBarras';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
-import { ConfirmModal } from '@/shared/ui';
+import { ConfirmModal, TableSkeleton } from '@/shared/ui';
 
 interface GestionCodigosBarrasProps {
   producto?: Producto;
@@ -388,9 +388,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       {/* Lista de códigos */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          </div>
+          <TableSkeleton rows={8} columns={5} className="rounded-lg" />
         ) : (
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">

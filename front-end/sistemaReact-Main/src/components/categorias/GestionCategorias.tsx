@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import type { CategoriaDTO } from '../../types/CategoriaDTO';
 import { CategoriaService } from '../../services/CategoriaService';
-import { ConfirmModal } from '@/shared/ui';
+import { ConfirmModal, ListItemSkeleton } from '@/shared/ui';
 
 interface ArbolCategoriaProps {
   categoria: CategoriaDTO;
@@ -434,11 +434,8 @@ const GestionCategorias: React.FC = () => {
       {/* Main Structural Tree Display */}
       <div className="relative">
         {loading ? (
-          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200 shadow-sm p-40">
-            <div className="flex flex-col items-center justify-center gap-6">
-                <div className="w-12 h-12 border-4 border-gray-100 border-t-black rounded-full animate-spin"></div>
-                <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Sincronizando...</span>
-            </div>
+          <div className="bg-white/40 backdrop-blur-sm rounded-[2.5rem] p-6 border border-gray-200">
+            <ListItemSkeleton count={8} className="p-2" />
           </div>
         ) : categoriasFiltradas.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200 shadow-sm py-40 text-center flex flex-col items-center gap-6">

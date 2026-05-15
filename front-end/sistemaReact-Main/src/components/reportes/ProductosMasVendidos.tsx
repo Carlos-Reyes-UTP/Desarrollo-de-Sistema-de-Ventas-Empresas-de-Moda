@@ -30,7 +30,7 @@ import {
   CustomTooltip,
   CustomTooltipVariantes,
 } from './productos-mas-vendidos/chartRenderers';
-import { AlertModal } from '@/shared/ui';
+import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton } from '@/shared/ui';
 
 // Estilos CSS para animaciones
 const animationStyles = `
@@ -582,19 +582,10 @@ const ProductosMasVendidos: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-gray-100 transform transition-all duration-300 ease-out">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-blue-100 rounded-full"></div>
-              <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"></div>
-            </div>
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Cargando reporte</h3>
-              <p className="text-sm text-gray-600">Generando productos más vendidos...</p>
-            </div>
-          </div>
-        </div>
+      <div className="space-y-6 p-6 bg-gray-50">
+        <Skeleton className="h-8 w-64" />
+        <ChartSkeleton />
+        <TableSkeleton rows={10} columns={6} />
       </div>
     );
   }

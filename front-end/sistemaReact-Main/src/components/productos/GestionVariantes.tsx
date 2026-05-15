@@ -11,7 +11,7 @@ import {
   mismoParTallaColor,
   nombresUnicosOrdenados,
 } from '../../utils/varianteCatalogoHelpers';
-import { AlertModal, ConfirmModal } from '@/shared/ui';
+import { AlertModal, ConfirmModal, Skeleton } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
 
@@ -252,7 +252,16 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-50">
-                  {variantes.map((variante) => (
+                  {loading ? (
+                    Array.from({ length: 6 }, (_, row) => (
+                      <tr key={`sk-var-${row}`}>
+                        <td className="px-8 py-5"><Skeleton className="h-4 w-16" /></td>
+                        <td className="px-8 py-5"><Skeleton className="h-4 w-24" /></td>
+                        <td className="px-8 py-5 text-center"><Skeleton className="mx-auto h-4 w-12" /></td>
+                        <td className="px-8 py-5 text-right"><Skeleton className="ml-auto h-8 w-20 rounded-xl" /></td>
+                      </tr>
+                    ))
+                  ) : variantes.map((variante) => (
                     <VarianteRow
                       key={variante.idVariante}
                       variante={variante}

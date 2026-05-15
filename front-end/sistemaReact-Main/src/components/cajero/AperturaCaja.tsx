@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Printer, CheckCircle, Clock, User, Loader2, ArrowRight, TrendingUp } from 'lucide-react';
 import { CajaService, type AperturaCajaRequest } from '../../services/CajaService';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
+import { Skeleton } from '@/shared/ui';
 
 interface AperturaCajaProps {
   onAperturaCompleta: () => void;
@@ -137,9 +138,20 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
 
   if (verificandoCaja) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fafafa]">
-        <Loader2 className="h-10 w-10 text-black animate-spin mb-4" />
-        <p className="text-[11px] font-bold uppercase tracking-[0.3em] text-gray-400">Verificando estado de caja...</p>
+      <div className="p-10 max-w-[900px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left font-sans">
+        <Skeleton className="mb-2 h-10 w-72" />
+        <Skeleton className="mb-10 h-4 w-96 max-w-full" variant="muted" />
+        <div className="overflow-hidden rounded-[3rem] border border-gray-100 bg-white shadow-sm">
+          <div className="border-b border-gray-50 px-10 py-8">
+            <Skeleton className="h-4 w-48" />
+          </div>
+          <div className="space-y-8 p-10">
+            <Skeleton className="h-16 w-full rounded-[1.5rem]" variant="muted" />
+            <Skeleton className="h-16 w-full rounded-[1.5rem]" variant="muted" />
+            <Skeleton className="h-16 w-full rounded-[1.5rem]" variant="muted" />
+            <Skeleton className="h-14 w-full rounded-[1.5rem]" />
+          </div>
+        </div>
       </div>
     );
   }

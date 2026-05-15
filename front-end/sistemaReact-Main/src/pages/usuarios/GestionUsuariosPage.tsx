@@ -21,6 +21,7 @@ import { UsuarioService } from '@/services/UsuarioService';
 import type { RolNombre } from '@/types/enums';
 import type { ActualizarUsuarioDTO, Usuario, UsuarioBackend } from '@/types/Usuario';
 import { getErrorMessage, getResponseMessage } from '@/utils/errorUtils';
+import { Skeleton } from '@/shared/ui';
 
 const GestionUsuariosPage = () => {
   // Contexto de autenticación
@@ -551,7 +552,24 @@ const GestionUsuariosPage = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {usuariosPagina.map((usuario, index) => (
+            {cargando ? (
+              Array.from({ length: 8 }, (_, row) => (
+                <tr key={`sk-user-${row}`}>
+                  <td className="px-8 py-6">
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="h-12 w-12 rounded-2xl shrink-0" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-36" />
+                        <Skeleton className="h-3 w-28" variant="muted" />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-8 py-6"><Skeleton className="h-6 w-20 rounded-lg" /></td>
+                  <td className="px-8 py-6"><Skeleton className="h-4 w-16" /></td>
+                  <td className="px-8 py-6 text-right"><Skeleton className="ml-auto h-8 w-20 rounded-xl" /></td>
+                </tr>
+              ))
+            ) : usuariosPagina.map((usuario, index) => (
               <tr key={usuario.id ?? `user-${usuario.usuario}-${index}`} className="hover:bg-[#fafafa] transition-colors group">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4 text-left">

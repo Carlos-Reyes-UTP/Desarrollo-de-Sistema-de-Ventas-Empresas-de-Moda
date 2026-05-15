@@ -7,7 +7,7 @@ import type { Proveedor } from '../../types/Proveedor';
 import { ProductoService } from '../../services/ProductoService';
 import { CategoriaService } from '../../services/CategoriaService';
 import { ProveedorService } from '../../services/ProveedorService';
-import { ConfirmModal } from '@/shared/ui';
+import { ConfirmModal, TableSkeleton, Skeleton } from '@/shared/ui';
 import FormularioProductoUnificado from './FormularioProductoUnificado'
 import GestionVariantes from './GestionVariantes';
 import GestionPisos from '../almacen/GestionPisos';
@@ -277,14 +277,6 @@ const GestionProductos: React.FC = () => {
     setProductoEditar(null);
     cargarDatos();
   };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent font-sans text-gray-900 pb-8">
@@ -604,7 +596,17 @@ const GestionProductos: React.FC = () => {
             </thead>
 
             <tbody className="divide-y divide-gray-50">
-              {productosFiltrados.map((producto) => {
+              {loading ? (
+                Array.from({ length: 8 }, (_, row) => (
+                  <tr key={`sk-${row}`}>
+                    {Array.from({ length: 5 }, (_, col) => (
+                      <td key={col} className="px-8 py-6">
+                        <Skeleton className={`h-4 ${col === 0 ? 'w-32' : col === 1 ? 'w-48' : 'w-20'}`} />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : productosFiltrados.map((producto) => {
                 const cantidad = producto.stockAlmacen ?? 0;
                 let stockStatus = { color: 'bg-gray-400', label: 'SIN STOCK', text: 'text-gray-400' };
                 
@@ -723,10 +725,15 @@ const GestionProductos: React.FC = () => {
                       </div>
                     </td>
                   </tr>
-                );
+                )
               })}
             </tbody>
           </table>
+        </div>
+
+        {loading && productos.length === 0 && (
+          <TableSkeleton rows={8} columns={5} className="rounded-none border-0 shadow-none" />
+        )}
           
           {productosFiltrados.length === 0 && !loading && (
             <div className="text-center py-16 px-4 border-t border-gray-100 bg-slate-50/40">
@@ -754,7 +761,6 @@ const GestionProductos: React.FC = () => {
               </div>
             </div>
           )}
-        </div>
 
         {/* Improved Pagination / Footer SERVER SIDE */}
         {totalPages > 0 && (
@@ -815,7 +821,8 @@ const GestionProductos: React.FC = () => {
             setProductoVariantes(null);
           }}
           onVariantesActualizadas={cargarDatos}
-        />      )}
+        />
+      )}
 
       <ConfirmModal
         open={confirmModalOpen}

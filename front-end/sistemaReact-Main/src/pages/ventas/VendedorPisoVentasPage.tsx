@@ -21,6 +21,7 @@ import {
   VendedorPisoPedidosDock,
   type VendedorAlmacenActualizacion,
 } from "../../components/vendedor-piso/VendedorPisoPedidosDock";
+import { SearchResultSkeleton } from "@/shared/ui";
 
 function esPeticionCancelada(error: unknown): boolean {
   if (axios.isCancel(error)) return true;
@@ -369,13 +370,7 @@ const VendedorPisoVentasPage = () => {
               Buscar Producto
             </button>
           </div>
-          {buscando && (
-            <div className="space-y-2 rounded-3xl border border-gray-100 bg-white/80 p-4 shadow-sm backdrop-blur-md">
-              <div className="h-4 w-[60%] max-w-xs animate-pulse rounded-lg bg-gray-200" />
-              <div className="h-4 w-[40%] max-w-[10rem] animate-pulse rounded-lg bg-gray-100" />
-              <div className="h-24 animate-pulse rounded-2xl bg-gray-100" />
-            </div>
-          )}
+          {buscando && <SearchResultSkeleton />}
         </section>
 
         {coincidencias.length > 0 && !buscando && (

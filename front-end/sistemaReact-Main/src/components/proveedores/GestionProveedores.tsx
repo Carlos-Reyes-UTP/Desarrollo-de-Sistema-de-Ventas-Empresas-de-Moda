@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Save, Building2, Loader2, AlertCircle } from 'lucide-react';
 import type { Proveedor } from '../../types/Proveedor';
 import { ProveedorService } from '../../services/ProveedorService';
-import { ConfirmModal } from '@/shared/ui';
+import { ConfirmModal, Skeleton } from '@/shared/ui';
 
 const GestionProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -310,16 +310,20 @@ const GestionProveedores: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {loading && (
-                <tr>
-                  <td colSpan={4} className="px-8 py-20 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                      <div className="w-8 h-8 border-4 border-gray-200 border-t-black rounded-full animate-spin"></div>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Cargando datos...</span>
-                    </div>
-                  </td>
-                </tr>
-              )}
+              {loading &&
+                Array.from({ length: 8 }, (_, row) => (
+                  <tr key={`sk-prov-${row}`}>
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-12 w-12 rounded-2xl shrink-0" />
+                        <Skeleton className="h-4 w-40" />
+                      </div>
+                    </td>
+                    <td className="px-8 py-6"><Skeleton className="h-4 w-28" /></td>
+                    <td className="px-8 py-6"><Skeleton className="h-6 w-16 rounded-lg" /></td>
+                    <td className="px-8 py-6 text-right"><Skeleton className="ml-auto h-8 w-24 rounded-xl" /></td>
+                  </tr>
+                ))}
               {!loading && proveedores.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-8 py-16 text-center bg-slate-50/50">

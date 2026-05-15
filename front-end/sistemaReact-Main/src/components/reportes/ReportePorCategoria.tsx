@@ -18,7 +18,7 @@ import {
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
 import type { ReporteCategoriaData, FiltrosReporte } from '../../types/ReporteVentas';
-import { AlertModal } from '@/shared/ui';
+import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton } from '@/shared/ui';
 
 // Tipos para el estado de navegación
 interface Breadcrumb {
@@ -236,11 +236,10 @@ const ReportePorCategoria: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <div className="flex flex-col items-center gap-3">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <span className="text-gray-600">Cargando reportes por categoría...</span>
-        </div>
+      <div className="space-y-6 p-6">
+        <Skeleton className="h-8 w-56" />
+        <ChartSkeleton />
+        <TableSkeleton rows={8} columns={5} />
       </div>
     );
   }

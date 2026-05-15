@@ -1,7 +1,7 @@
 import { Search, X, Loader2, Plus, ChevronLeft, ChevronRight, Tag, Barcode } from 'lucide-react';
 import type { ProductoVariante } from '../../../types/ProductoVariante';
 import { BorderBeam } from 'border-beam';
-import { Card } from '@/shared/ui';
+import { Card, CardGridSkeleton } from '@/shared/ui';
 
 interface CatalogoSectionProps {
   variantesFiltradas: ProductoVariante[];
@@ -126,10 +126,7 @@ export const CatalogoSection = ({
         {/* Catalog Grid */}
         <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
           {cargandoProductosIniciales ? (
-            <div className="flex flex-col justify-center items-center h-full text-gray-300">
-              <div className="w-16 h-16 border-[3px] border-gray-100 border-t-black rounded-full animate-spin mb-6"></div>
-              <span className="text-[11px] font-bold uppercase tracking-[0.3em]">Cargando productos...</span>
-            </div>
+            <CardGridSkeleton count={6} />
           ) : variantesFiltradas.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8 pb-10">
               {variantesPaginadas.map(v => (

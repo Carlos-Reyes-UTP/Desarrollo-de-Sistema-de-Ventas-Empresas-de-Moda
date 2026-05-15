@@ -18,6 +18,7 @@ import type { AlmacenSolicitudCard } from '@/types/AlmacenCola';
 import { useAuth } from '@/context/AuthContext';
 import { useAuthReady } from '@/hooks/useAuthReady';
 import { AuthLoadingScreen } from '@/shared/auth/AuthLoadingScreen';
+import { MetricCardsSkeleton, ChartSkeleton } from '@/shared/ui';
 import { APP_PATHS } from '@/shared/layout/navigationConfig';
 import { DashboardService } from '@/services/DashboardService';
 import { playKioskChime } from '@/components/almacen-tablero/almacenTableroSound';
@@ -281,6 +282,9 @@ const DashboardAlmaceneroPage = () => {
         </header>
 
         {/* Tarjetas métricas - DARK PREMIUM REDESIGN CON CONTRASTE ALTO */}
+        {cargando ? (
+          <MetricCardsSkeleton />
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {[
             { label: 'Total Productos', val: productosData.total, icon: Package, col: 'bg-indigo-500/20', iconCol: 'text-indigo-400', glow: 'rgba(99, 102, 241, 0.2)' },
@@ -310,6 +314,7 @@ const DashboardAlmaceneroPage = () => {
             </div>
           ))}
         </div>
+        )}
 
         {/* Layout Analítico */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -317,6 +322,9 @@ const DashboardAlmaceneroPage = () => {
           <div className="lg:col-span-8 space-y-8">
             <div className="grid grid-cols-1 gap-8">
               {/* Distribución - Donut con métrica central y Leyenda Lateral */}
+              {cargando ? (
+                <ChartSkeleton />
+              ) : (
               <div className="flex flex-col rounded-[2.5rem] bg-white p-8 border border-[#E5E7EB] transition-all text-left" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.04)' }}>
                 <div className="flex items-center justify-between mb-8">
                   <div>
@@ -377,6 +385,7 @@ const DashboardAlmaceneroPage = () => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Estado - BARRA APILADA HORIZONTAL (Stacked Progress Bar) */}
               <div className="flex flex-col rounded-[2.5rem] bg-white p-8 border border-[#E5E7EB] transition-all text-left" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.04)' }}>

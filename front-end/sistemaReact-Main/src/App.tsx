@@ -16,6 +16,7 @@ import GestionProveedoresPage from "./pages/inventario/GestionProveedoresPage";
 import ReportesPage from "./pages/reportes/ReportesPage";
 import Layout from "./shared/layout/Layout";
 import { APP_PATHS } from "./shared/layout/navigationConfig";
+import { AppShellSkeleton } from "./shared/ui";
 
 const ROLES_ADMIN_O_ALMACENERO: RolNombre[] = [
   "ROLE_ADMIN",
@@ -140,11 +141,7 @@ function App() {
   );
 
   if (cargando) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900"></div>
-      </div>
-    );
+    return <AppShellSkeleton />;
   }
 
   return (

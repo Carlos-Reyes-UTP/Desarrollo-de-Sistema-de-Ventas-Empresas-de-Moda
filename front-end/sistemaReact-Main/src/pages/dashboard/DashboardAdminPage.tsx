@@ -19,6 +19,7 @@ import ModalHacerMayorista from '@/components/mayoristas/ModalHacerMayorista';
 import { useAuthReady } from '@/hooks/useAuthReady';
 import { useAuth } from '@/context/AuthContext';
 import { AuthLoadingScreen } from '@/shared/auth/AuthLoadingScreen';
+import { MetricCardsSkeleton, ChartSkeleton } from '@/shared/ui';
 import { APP_PATHS } from '@/shared/layout/navigationConfig';
 import { UsuarioService } from '@/services/UsuarioService';
 import { VentaService } from '@/services/VentaService';
@@ -350,6 +351,9 @@ const DashboardAdminPage = () => {
         </header>
 
         {/* Tarjetas métricas - Estilo Dark Premium */}
+        {cargando ? (
+          <MetricCardsSkeleton />
+        ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {[
             { label: 'Ventas Totales', val: formatearMoneda(metricasVenta.totalVentas), sub: 'Últimos 7 días', icon: DollarSign, col: 'bg-emerald-500/20', iconCol: 'text-emerald-400', glow: 'rgba(16, 185, 129, 0.2)' },
@@ -378,6 +382,7 @@ const DashboardAdminPage = () => {
             </div>
           ))}
         </div>
+        )}
 
         {/* Layout Analítico */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -385,6 +390,9 @@ const DashboardAdminPage = () => {
           <div className="lg:col-span-8 space-y-8">
             
             {/* Gráfico de Ventas */}
+            {cargando ? (
+              <ChartSkeleton />
+            ) : (
             <div className="flex flex-col rounded-[2.5rem] bg-white p-8 border border-[#E5E7EB] transition-all text-left" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.04)' }}>
               <div className="flex items-center justify-between mb-8">
                 <div>
@@ -419,6 +427,7 @@ const DashboardAdminPage = () => {
                 </ResponsiveContainer>
               </div>
             </div>
+            )}
 
             {/* Gestión de Clientes */}
             <div className="rounded-[2.5rem] bg-white p-8 border border-[#E5E7EB] text-left transition-all" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.04)' }}>

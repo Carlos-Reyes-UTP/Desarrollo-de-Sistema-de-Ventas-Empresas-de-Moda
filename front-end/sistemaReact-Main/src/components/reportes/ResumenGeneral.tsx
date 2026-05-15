@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
-import { AlertModal } from '@/shared/ui';
+import { AlertModal, Skeleton, TableSkeleton } from '@/shared/ui';
 
 // Interfaz local para el componente hasta que se alinee con el backend
 interface ResumenVentasLocal {
@@ -314,8 +314,20 @@ const ResumenGeneral: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+      <div className="p-6 bg-gray-50">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <Skeleton className="h-8 w-48" />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 4 }, (_, i) => (
+              <div key={i} className="rounded-lg bg-white p-6 shadow-md">
+                <Skeleton className="mb-3 h-4 w-32" />
+                <Skeleton className="mb-2 h-8 w-28" />
+                <Skeleton className="h-3 w-24" variant="muted" />
+              </div>
+            ))}
+          </div>
+          <TableSkeleton rows={6} columns={4} />
+        </div>
       </div>
     );
   }

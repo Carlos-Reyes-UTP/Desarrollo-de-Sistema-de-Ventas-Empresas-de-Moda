@@ -3,6 +3,7 @@ import { Building2, LayoutGrid, MoveRight, RefreshCw, LogIn, ArrowLeft } from "l
 import { AlmacenService } from "@/services/AlmacenService";
 import type { Ubicacion, StockUbicacion } from "@/types/Almacen";
 import MoverMercaderiaModal from "./MoverMercaderiaModal";
+import { ListItemSkeleton, TableSkeleton } from "@/shared/ui";
 
 interface AreaConStock {
   ubicacion: Ubicacion;
@@ -198,7 +199,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
             <h3 className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Pisos</h3>
           </div>
           {cargandoPisos ? (
-            <p className="text-sm text-gray-500">Cargando…</p>
+            <ListItemSkeleton count={5} showAvatar={false} />
           ) : pisos.length === 0 ? (
             <p className="text-sm text-gray-500">
               No hay pisos registrados. Agrega filas en <code>ubicacion</code> con un nombre distinto
@@ -260,7 +261,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                 </div>
 
                 {cargandoDetalle ? (
-                  <div className="py-16 text-center text-sm text-gray-500 font-medium">Cargando inventario...</div>
+                  <TableSkeleton rows={6} columns={4} />
                 ) : stockDetalle.length === 0 ? (
                   <div className="py-16 text-center text-sm text-gray-500 font-medium">No hay stock en esta área.</div>
                 ) : (

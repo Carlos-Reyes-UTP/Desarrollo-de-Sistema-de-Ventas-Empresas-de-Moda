@@ -4,7 +4,7 @@ import { Download, Calendar, TrendingUp, DollarSign, FileText, Users, ChevronLef
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaService';
 import type { Venta } from '../../types/Venta';
-import { AlertModal } from '@/shared/ui';
+import { AlertModal, ChartSkeleton } from '@/shared/ui';
 
 interface ReporteData {
   fecha: string;
@@ -515,9 +515,7 @@ const ReporteDeVentas: React.FC = () => {
           
           <div className="h-80">
             {cargando ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              </div>
+              <ChartSkeleton height="h-80" className="border-0 p-4 shadow-none" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={datosGrafico}>
