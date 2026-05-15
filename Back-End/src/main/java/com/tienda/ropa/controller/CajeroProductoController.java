@@ -17,9 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.entity.Ubicacion;
 import com.tienda.ropa.service.InventarioUbicacionService;
 import com.tienda.ropa.service.ProductoService;
 import com.tienda.ropa.service.ProductoVarianteService;
+import com.tienda.ropa.service.ReposicionAutomaticaService;
 
 @RestController
 @RequestMapping("/api/cajero/productos")
@@ -33,6 +35,9 @@ public class CajeroProductoController {
 
     @Autowired
     private InventarioUbicacionService inventarioUbicacionService;
+
+    @Autowired
+    private ReposicionAutomaticaService reposicionAutomaticaService;
 
     // Obtener todas las variantes de productos (método principal para ventas)
     @GetMapping("/variantes")
@@ -142,7 +147,13 @@ public class CajeroProductoController {
             return ResponseEntity.badRequest().build(); // No hay suficiente stock
         }
 
-        inventarioUbicacionService.aplicarDeltaStockPrincipal(id, -cantidad);
+    Ubicacion ubicacionVenta = inventarioUbicacionService.resolverUbicacionUnicaDeVenta(id);
+    inventarioUbicacionService.aplicarDeltaEnUbicacion(
+        id,
+        ubicacionVenta,
+        -cantidad,
+        "Stock insuficiente en la ubicación de venta: " + ubicacionVenta.getNombre());
+    reposicionAutomaticaService.evaluarTrasSalidaEnUbicacion(id, ubicacionVenta.getIdUbicacion());
         ProductoVariante varianteActualizada = productoVarianteService.obtenerVariantePorId(id).orElse(variante);
         return ResponseEntity.ok(varianteActualizada);
     }

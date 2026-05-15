@@ -62,8 +62,10 @@ export const isCajeroView = (value: unknown): value is CajeroView =>
   typeof value === "string" &&
   CAJERO_VIEWS.includes(value as CajeroView);
 
-export const getDefaultCajeroView = (hasRole: RoleChecker): CajeroView =>
-  hasRole("ROLE_CAJERO") ? "apertura" : "ventas";
+export const getDefaultCajeroView = (_hasRole: RoleChecker): CajeroView =>
+  // UX: la pantalla principal del POS debe ser Ventas.
+  // Apertura/Cierre se acceden explícitamente con `state.view`.
+  "ventas";
 
 export const resolveCajeroView = (
   stateView: unknown,

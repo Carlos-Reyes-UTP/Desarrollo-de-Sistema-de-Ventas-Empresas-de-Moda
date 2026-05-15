@@ -66,7 +66,7 @@ const RedirectToDashboard = () => {
     console.log(
       "RedirectToDashboard - Usuario es CAJERO, redirigiendo al punto de venta"
     );
-    return <Navigate to={APP_PATHS.caja} />;
+  return <Navigate to={APP_PATHS.caja} state={{ view: "apertura" }} />;
   }
 
   console.log(

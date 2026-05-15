@@ -1,4 +1,6 @@
+
 package com.tienda.ropa.entity;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import com.tienda.ropa.agregates.validation.ContrasenaSegura;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 @Builder
 @Entity
 @Table(name = "usuario")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Usuario implements UserDetails {
 
     @Id

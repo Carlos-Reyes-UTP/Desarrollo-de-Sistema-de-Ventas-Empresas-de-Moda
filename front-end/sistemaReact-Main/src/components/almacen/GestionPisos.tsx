@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Building2, LayoutGrid, MoveRight, RefreshCw } from "lucide-react";
+import { Building2, LayoutGrid, MoveRight, RefreshCw, LogIn, ArrowLeft } from "lucide-react";
 import { AlmacenService } from "@/services/AlmacenService";
-import type { StockUbicacion, Ubicacion } from "@/types/Almacen";
+import type { Ubicacion, StockUbicacion } from "@/types/Almacen";
 import MoverMercaderiaModal from "./MoverMercaderiaModal";
 
 interface AreaConStock {
@@ -15,9 +15,6 @@ interface GestionPisosProps {
   embedded?: boolean;
 }
 
-/** Actualización en segundo plano del resumen del piso (solo pestaña visible; sin modal abierto). */
-const POLL_AREAS_MS = 45_000;
-
 const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
   const [pisos, setPisos] = useState<string[]>([]);
   const [pisoSeleccionado, setPisoSeleccionado] = useState<string | null>(null);
@@ -25,6 +22,12 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
   const [cargandoPisos, setCargandoPisos] = useState(false);
   const [cargandoAreas, setCargandoAreas] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Nuevos estados para el detalle del área
+  const [areaDetalle, setAreaDetalle] = useState<Ubicacion | null>(null);
+  const [stockDetalle, setStockDetalle] = useState<StockUbicacion[]>([]);
+  const [cargandoDetalle, setCargandoDetalle] = useState(false);
+
   /** Fila "Mover mercadería": el listado de productos es solo el stock de esta ubicación. */
   const [origenAreaModal, setOrigenAreaModal] = useState<Ubicacion | null>(null);
   const [trasladoGlobalAbierto, setTrasladoGlobalAbierto] = useState(false);
@@ -93,35 +96,61 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
 
   useEffect(() => {
     if (pisoSeleccionado) {
+      setAreaDetalle(null); // Resetear detalle si se cambia de piso
       cargarAreasDePiso(pisoSeleccionado);
     }
   }, [pisoSeleccionado, cargarAreasDePiso]);
 
-  const refrescar = () => {
-    if (pisoSeleccionado) void cargarAreasDePiso(pisoSeleccionado);
+  const refrescar = async () => {
+    if (pisoSeleccionado) {
+      if (areaDetalle) {
+        cargarDetalleArea(areaDetalle);
+      } else {
+        await cargarAreasDePiso(pisoSeleccionado);
+      }
+    }
+  };
+
+  const cargarDetalleArea = async (ubicacion: Ubicacion) => {
+    setAreaDetalle(ubicacion);
+    setCargandoDetalle(true);
+    try {
+      const data = await AlmacenService.stockPorUbicacion(ubicacion.idUbicacion);
+      setStockDetalle(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error cargando detalle de stock:", err);
+      setError("No se pudo cargar el detalle del área.");
+    } finally {
+      setCargandoDetalle(false);
+    }
   };
 
   useEffect(() => {
-    if (!pisoSeleccionado) return;
+    cargarPisos();
+  }, []);
 
-    const tick = () => {
-      if (document.visibilityState !== "visible") return;
-      if (modalAbiertoRef.current) return;
-      void cargarAreasDePiso(pisoSeleccionado, { silent: true });
-    };
-
-    const id = window.setInterval(tick, POLL_AREAS_MS);
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") tick();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      window.clearInterval(id);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [pisoSeleccionado, cargarAreasDePiso]);
+  const cargarPisos = async () => {
+    setCargandoPisos(true);
+    setError(null);
+    try {
+      const data = await AlmacenService.listarPisos();
+      setPisos(data);
+      if (data.length === 0) {
+        setPisoSeleccionado(null);
+        setAreas([]);
+      } else {
+        setPisoSeleccionado((prev) => {
+          if (prev && data.includes(prev)) return prev;
+          return data[0];
+        });
+      }
+    } catch (err) {
+      console.error("Error cargando pisos:", err);
+      setError("No se pudieron cargar los pisos. Intente nuevamente.");
+    } finally {
+      setCargandoPisos(false);
+    }
+  };
 
   return (
     <div className={embedded ? "" : "p-4 md:p-6 max-w-7xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-100"}>
@@ -204,81 +233,139 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
           )}
 
           {pisoSeleccionado ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-100 table-zebra">
-                <thead className="bg-[#fafafa]">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
-                      Área
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
-                      Variantes con stock
-                    </th>
-                    <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
-                      Unidades totales
-                    </th>
-                    <th className="px-6 py-4 text-right text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-50">
-                  {cargandoAreas ? (
+            areaDetalle ? (
+              <div className="animate-fadeIn p-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+                  <div>
+                    <button
+                      onClick={() => setAreaDetalle(null)}
+                      className="text-gray-500 hover:text-black text-sm font-bold flex items-center gap-2 mb-2 transition-colors duration-200"
+                    >
+                      <ArrowLeft className="h-4 w-4" /> Volver a áreas de {pisoSeleccionado}
+                    </button>
+                    <h3 className="text-xl font-bold text-gray-900">
+                      Detalle: {areaDetalle.area ?? "Sin área específica"}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOrigenAreaModal(areaDetalle);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-all duration-200 shadow-sm active:scale-[0.98]"
+                  >
+                    <MoveRight className="h-4 w-4" />
+                    Mover desde aquí
+                  </button>
+                </div>
+
+                {cargandoDetalle ? (
+                  <div className="py-16 text-center text-sm text-gray-500 font-medium">Cargando inventario...</div>
+                ) : stockDetalle.length === 0 ? (
+                  <div className="py-16 text-center text-sm text-gray-500 font-medium">No hay stock en esta área.</div>
+                ) : (
+                  <div className="overflow-x-auto border border-gray-100 rounded-xl">
+                    <table className="min-w-full divide-y divide-gray-100 table-zebra">
+                      <thead className="bg-[#fafafa]">
+                        <tr>
+                          <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Producto</th>
+                          <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Color</th>
+                          <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Talla</th>
+                          <th className="px-6 py-4 text-right text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">Stock Físico</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-50">
+                        {stockDetalle.map(item => (
+                          <tr key={`${item.idVariante}-${item.idUbicacion}`} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4">
+                              <span className="font-bold text-gray-900">{item.nombreProducto}</span>
+                              <span className="ml-2 text-xs text-gray-500 font-mono">({item.codigoIdentificacion})</span>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600 font-medium">{item.color}</td>
+                            <td className="px-6 py-4 text-sm text-gray-900 font-bold">{item.talla}</td>
+                            <td className="px-6 py-4 text-right">
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700">
+                                {item.stockActual} uds
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto animate-fadeIn">
+                <table className="min-w-full divide-y divide-gray-100 table-zebra">
+                  <thead className="bg-[#fafafa]">
                     <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500 font-medium">
-                        Cargando áreas…
-                      </td>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                        Área
+                      </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                        Variantes con stock
+                      </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                        Unidades totales
+                      </th>
+                      <th className="px-6 py-4 text-right text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                        Acciones
+                      </th>
                     </tr>
-                  ) : areas.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500 font-medium">
-                        Este piso aún no tiene áreas registradas.
-                      </td>
-                    </tr>
-                  ) : (
-                    areas.map(({ ubicacion, totalUnidades, totalVariantes }) => (
-                      <tr key={ubicacion.idUbicacion} className="hover:bg-slate-100/50 transition-colors duration-150">
-                        <td className="px-6 py-4">
-                          <div className="text-sm text-gray-900 font-bold">
-                            {ubicacion.area ?? <span className="text-gray-400 font-medium">Sin área específica</span>}
-                          </div>
-                          {ubicacion.descripcion && (
-                            <div className="text-xs text-gray-500 mt-1">
-                              {ubicacion.descripcion}
-                            </div>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 font-medium">{totalVariantes}</td>
-                        <td className="px-6 py-4">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-800">
-                            {totalUnidades}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setTrasladoGlobalAbierto(false);
-                              setOrigenAreaModal(ubicacion);
-                            }}
-                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-black text-white text-xs font-bold uppercase tracking-wider hover:bg-gray-800 transition-all duration-200 shadow-sm active:scale-[0.98]"
-                          >
-                            <MoveRight className="h-4 w-4" />
-                            Mover mercadería
-                          </button>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-50">
+                    {cargandoAreas ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500 font-medium">
+                          Cargando áreas…
                         </td>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="py-16 text-center">
-              <Building2 className="h-12 w-12 text-gray-200 mx-auto mb-4" />
-              <p className="text-sm text-gray-500 font-medium">Selecciona un piso para ver sus áreas y stock.</p>
-            </div>
-          )}
+                    ) : areas.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500 font-medium">
+                          Este piso aún no tiene áreas registradas.
+                        </td>
+                      </tr>
+                    ) : (
+                      areas.map(({ ubicacion, totalUnidades, totalVariantes }) => (
+                        <tr key={ubicacion.idUbicacion} className="hover:bg-slate-100/50 transition-colors duration-150">
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 font-bold">
+                              {ubicacion.area ?? <span className="text-gray-400 font-medium">Sin área específica</span>}
+                            </div>
+                            {ubicacion.descripcion && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                {ubicacion.descripcion}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-gray-600 font-medium">{totalVariantes}</td>
+                          <td className="px-6 py-4">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-100 text-gray-800">
+                              {totalUnidades}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                cargarDetalleArea(ubicacion);
+                              }}
+                              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider hover:bg-indigo-100 transition-all duration-200 shadow-sm active:scale-[0.98]"
+                            >
+                              <LogIn className="h-4 w-4" />
+                              Ingresar
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )
+          ) : null}
         </div>
       </section>
 

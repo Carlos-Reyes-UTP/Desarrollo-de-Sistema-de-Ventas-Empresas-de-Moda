@@ -112,7 +112,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Efecto separado para sincronizar el token cuando cambie
   useEffect(() => {
     setAuthToken(token);
-  }, [token]);  const iniciarSesion = useCallback(async (credenciales: CredencialesLogin): Promise<boolean> => {
+  }, [token]);
+
+  const iniciarSesion = useCallback(async (credenciales: CredencialesLogin): Promise<boolean> => {
     try {
       setError(null);
       console.log('🔄 Intentando iniciar sesión con:', { usuario: credenciales.usuario });
@@ -159,7 +161,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setAuthToken(null);
     setUsuario(null);
     window.location.href = '/login';
-  }, []);  const tieneRol = useCallback((rol: RolNombre): boolean => {
+  }, []);
+
+  const tieneRol = useCallback((rol: RolNombre): boolean => {
     if (!usuario?.roles) return false;
     
     // Los roles se almacenan como array de objetos Rol con { nombreRol: RolNombre }

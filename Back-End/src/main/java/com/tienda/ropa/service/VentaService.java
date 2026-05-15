@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tienda.ropa.entity.DetalleVenta;
+import com.tienda.ropa.entity.Ubicacion;
 import com.tienda.ropa.entity.Venta;
 import com.tienda.ropa.repository.DetalleVentaRepository;
 import com.tienda.ropa.repository.VentaRepository;
@@ -42,8 +43,13 @@ public class VentaService {
     public Venta registrarVenta(Venta venta) {
         for (DetalleVenta detalle : venta.getDetalles()) {
             Long idVariante = detalle.getProductoVariante().getIdProductoVariante();
-            inventarioUbicacionService.aplicarDeltaStockPrincipal(idVariante, -detalle.getCantidad());
-            reposicionAutomaticaService.evaluarTrasSalidaEnPrincipal(idVariante);
+        Ubicacion ubicacionVenta = inventarioUbicacionService.resolverUbicacionUnicaDeVenta(idVariante);
+        inventarioUbicacionService.aplicarDeltaEnUbicacion(
+            idVariante,
+            ubicacionVenta,
+            -detalle.getCantidad(),
+            "Stock insuficiente en la ubicación de venta: " + ubicacionVenta.getNombre());
+        reposicionAutomaticaService.evaluarTrasSalidaEnUbicacion(idVariante, ubicacionVenta.getIdUbicacion());
         }
 
         BigDecimal totalVenta = BigDecimal.ZERO;

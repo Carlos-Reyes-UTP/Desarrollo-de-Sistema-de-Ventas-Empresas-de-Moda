@@ -1,5 +1,11 @@
 package com.tienda.ropa.service;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.tienda.ropa.dto.CrearSolicitudDTO;
 import com.tienda.ropa.dto.DetalleSolicitudLineaDTO;
 import com.tienda.ropa.entity.EstadoSolicitud;
@@ -11,12 +17,8 @@ import com.tienda.ropa.repository.DetalleSolicitudRepository;
 import com.tienda.ropa.repository.InventarioUbicacionRepository;
 import com.tienda.ropa.repository.UbicacionRepository;
 import com.tienda.ropa.repository.UsuarioRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Tras una salida de stock en la ubicación de tienda (Principal), evalúa mínimos
@@ -41,12 +43,25 @@ public class ReposicionAutomaticaService {
     @Transactional
     public void evaluarTrasSalidaEnPrincipal(Long idVariante) {
         Ubicacion principal = ubicacionPrincipal();
+        evaluarTrasSalidaEnUbicacion(idVariante, principal.getIdUbicacion());
+    }
+
+    /**
+     * Tras una salida de stock en una ubicación de tienda (piso/área o Principal), evalúa mínimos
+     * y genera solicitudes de reposición desde Almacén hacia esa misma ubicación.
+     */
+    @Transactional
+    public void evaluarTrasSalidaEnUbicacion(Long idVariante, Long idUbicacionDestino) {
         Optional<InventarioUbicacion> filaOpt = inventarioUbicacionRepository
-                .findByVariante_IdProductoVarianteAndUbicacion_IdUbicacion(idVariante, principal.getIdUbicacion());
+                .findByVariante_IdProductoVarianteAndUbicacion_IdUbicacion(idVariante, idUbicacionDestino);
         if (filaOpt.isEmpty()) {
             return;
         }
         InventarioUbicacion fila = filaOpt.get();
+        Ubicacion destino = fila.getUbicacion();
+        if (destino == null) {
+            return;
+        }
         int actual = fila.getStockActual() != null ? fila.getStockActual() : 0;
         int min = fila.getStockMinimo() != null ? fila.getStockMinimo() : 0;
         if (actual > min) {
@@ -56,7 +71,7 @@ public class ReposicionAutomaticaService {
                 idVariante, TipoSolicitud.REPOSICION, EstadoSolicitud.PENDIENTE)) {
             return;
         }
-        Optional<Ubicacion> origenOpt = ubicacionOrigenReposicion(principal);
+        Optional<Ubicacion> origenOpt = ubicacionOrigenReposicion(destino);
         if (origenOpt.isEmpty()) {
             return;
         }
@@ -69,7 +84,7 @@ public class ReposicionAutomaticaService {
         CrearSolicitudDTO dto = new CrearSolicitudDTO(
                 TipoSolicitud.REPOSICION.name(),
                 origen.getIdUbicacion(),
-                principal.getIdUbicacion(),
+                destino.getIdUbicacion(),
                 List.of(new DetalleSolicitudLineaDTO(idVariante, cantidad))
         );
         solicitudService.crear(dto, sistema.getId());

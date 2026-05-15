@@ -1,15 +1,16 @@
 package com.tienda.ropa.repository;
 
-import com.tienda.ropa.entity.InventarioUbicacion;
-import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.entity.Ubicacion;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-import java.util.List;
-import java.util.Optional;
+import com.tienda.ropa.entity.InventarioUbicacion;
+import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.entity.Ubicacion;
 
 public interface InventarioUbicacionRepository extends JpaRepository<InventarioUbicacion, Long> {
 
@@ -21,6 +22,19 @@ public interface InventarioUbicacionRepository extends JpaRepository<InventarioU
 
     @Query("SELECT COALESCE(SUM(i.stockActual), 0) FROM InventarioUbicacion i WHERE i.variante.idProductoVariante = :idVariante")
     int sumStockByVariante(@Param("idVariante") Long idVariante);
+
+    /**
+     * Devuelve las filas con stock positivo para una variante, excluyendo la ubicación Almacén.
+     * Usado para resolver el "área de venta" cuando se asume que una variante solo existe en un área.
+     */
+    @Query("SELECT i FROM InventarioUbicacion i "
+            + "JOIN FETCH i.ubicacion u "
+            + "WHERE i.variante.idProductoVariante = :idVariante "
+            + "AND COALESCE(i.stockActual, 0) > 0 "
+            + "AND LOWER(u.nombre) <> LOWER(:nombreAlmacen)")
+    List<InventarioUbicacion> findConStockPositivoExcluyendoUbicacion(
+            @Param("idVariante") Long idVariante,
+            @Param("nombreAlmacen") String nombreAlmacen);
 
     @Query("SELECT i FROM InventarioUbicacion i " +
             "JOIN FETCH i.variante v JOIN FETCH v.producto " +

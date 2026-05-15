@@ -1,16 +1,19 @@
 package com.tienda.ropa.service;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.tienda.ropa.entity.InventarioUbicacion;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Ubicacion;
 import com.tienda.ropa.repository.InventarioUbicacionRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.UbicacionRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +48,36 @@ public class InventarioUbicacionService {
         }
         throw new IllegalStateException(
                 "No existe la ubicación 'Almacén'; ejecute la migración V9 o créela manualmente.");
+    }
+
+    /**
+     * Resuelve la ubicación "real" de una variante para salida por venta, asumiendo la regla de negocio:
+     * una variante no puede existir en más de un área (excluyendo Almacén).
+     *
+     * @throws IllegalStateException si no hay stock vendible en ninguna ubicación o si hay más de una ubicación.
+     */
+    @Transactional(readOnly = true)
+    public Ubicacion resolverUbicacionUnicaDeVenta(Long idVariante) {
+    List<InventarioUbicacion> filas = inventarioUbicacionRepository
+        .findConStockPositivoExcluyendoUbicacion(idVariante, UBICACION_ALMACEN_NOMBRE);
+    if (filas.isEmpty()) {
+        throw new IllegalStateException(
+            "No existe stock vendible para la variante " + idVariante + " (solo hay stock en 'Almacén' o es 0)."
+        );
+    }
+    if (filas.size() > 1) {
+        String ubicaciones = filas.stream()
+            .map(f -> f.getUbicacion() != null ? f.getUbicacion().getNombre() : "(sin ubicación)")
+            .distinct()
+            .limit(5)
+            .reduce((a, b) -> a + ", " + b)
+            .orElse("(múltiples)");
+        throw new IllegalStateException(
+            "La variante " + idVariante + " tiene stock en múltiples áreas: " + ubicaciones
+                + ". Esto contradice la regla de unicidad por área."
+        );
+    }
+    return filas.get(0).getUbicacion();
     }
 
     @Transactional
@@ -137,17 +170,19 @@ public class InventarioUbicacionService {
      */
     @Transactional
     public void aplicarDeltaEnUbicacion(Long idVariante, Ubicacion ubicacion, int delta, String mensajeStockInsuficiente) {
-        ProductoVariante v = productoVarianteRepository.findById(idVariante)
-                .orElseThrow(() -> new IllegalArgumentException("No existe variante: " + idVariante));
-        InventarioUbicacion row = obtenerOCrearFila(v, ubicacion);
-        int actual = row.getStockActual() != null ? row.getStockActual() : 0;
-        int nuevo = actual + delta;
-        if (nuevo < 0) {
-            throw new IllegalArgumentException(mensajeStockInsuficiente);
-        }
-        row.setStockActual(nuevo);
-        inventarioUbicacionRepository.save(row);
-        sincronizarCantidadVariante(idVariante);
+    ProductoVariante v = productoVarianteRepository.findById(idVariante)
+        .orElseThrow(() -> new IllegalArgumentException("No existe variante: " + idVariante));
+    InventarioUbicacion row = obtenerOCrearFila(v, ubicacion);
+    int actual = row.getStockActual() != null ? row.getStockActual() : 0;
+    int nuevo = actual + delta;
+    System.out.println("[DEBUG] aplicarDeltaEnUbicacion: Variante=" + idVariante + ", Ubicacion=" + (ubicacion != null ? ubicacion.getNombre() : "null") + ", StockActual=" + actual + ", Delta=" + delta + ", NuevoStock=" + nuevo);
+    if (nuevo < 0) {
+        System.out.println("[ERROR] Stock insuficiente: Variante=" + idVariante + ", Ubicacion=" + (ubicacion != null ? ubicacion.getNombre() : "null") + ", StockActual=" + actual + ", Delta=" + delta);
+        throw new IllegalArgumentException(mensajeStockInsuficiente);
+    }
+    row.setStockActual(nuevo);
+    inventarioUbicacionRepository.save(row);
+    sincronizarCantidadVariante(idVariante);
     }
 
     @Transactional

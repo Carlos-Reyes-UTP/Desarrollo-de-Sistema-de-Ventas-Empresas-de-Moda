@@ -1,5 +1,16 @@
 package com.tienda.ropa.service;
 
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.tienda.ropa.dto.AreaStockResumenDTO;
 import com.tienda.ropa.dto.StockDesdeAlmacenDTO;
 import com.tienda.ropa.dto.StockUbicacionDTO;
@@ -9,19 +20,8 @@ import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Ubicacion;
 import com.tienda.ropa.repository.InventarioUbicacionRepository;
 import com.tienda.ropa.repository.UbicacionRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 /**
  * Consultas auxiliares para la UI almacenera: listar pisos, áreas, orígenes
@@ -138,39 +138,15 @@ public class UbicacionAlmacenService {
      */
     @Transactional(readOnly = true)
     public StockDesdeAlmacenDTO stockDesdeAlmacen() {
-        Ubicacion almacen = inventarioUbicacionService.ubicacionAlmacen();
-        Ubicacion principal = inventarioUbicacionService.ubicacionPrincipal();
-
-        List<StockUbicacionDTO> filasAlmacen = inventarioUbicacionRepository
-                .findStockPositivoByUbicacion(almacen.getIdUbicacion()).stream()
-                .map(UbicacionAlmacenService::toStockDTO)
-                .toList();
-        List<StockUbicacionDTO> filasPrincipal = inventarioUbicacionRepository
-                .findStockPositivoByUbicacion(principal.getIdUbicacion()).stream()
-                .map(UbicacionAlmacenService::toStockDTO)
-                .toList();
-
-        Map<Long, StockUbicacionDTO> porVariante = new LinkedHashMap<>();
-        for (StockUbicacionDTO fila : filasAlmacen) {
-            porVariante.put(fila.idVariante(), fila);
-        }
-        for (StockUbicacionDTO fila : filasPrincipal) {
-            porVariante.putIfAbsent(fila.idVariante(), fila);
-        }
-
-        List<StockUbicacionDTO> merged = new ArrayList<>(porVariante.values());
-        merged.sort(Comparator.comparing(
-                s -> Optional.ofNullable(s.nombreProducto()).orElse(""),
-                String.CASE_INSENSITIVE_ORDER));
-
-        String etiquetaAlmacen = almacen.getArea() != null && !almacen.getArea().isBlank()
-                ? almacen.getNombre() + " · " + almacen.getArea()
-                : almacen.getNombre();
-        String leyenda = filasAlmacen.isEmpty() && !filasPrincipal.isEmpty()
-                ? etiquetaAlmacen + " (incluye stock aún en Principal por migración)"
-                : etiquetaAlmacen;
-
-        return new StockDesdeAlmacenDTO(almacen.getIdUbicacion(), leyenda, merged);
+    Ubicacion almacen = inventarioUbicacionService.ubicacionAlmacen();
+    List<StockUbicacionDTO> filasAlmacen = inventarioUbicacionRepository
+        .findStockPositivoByUbicacion(almacen.getIdUbicacion()).stream()
+        .map(UbicacionAlmacenService::toStockDTO)
+        .toList();
+    String etiquetaAlmacen = almacen.getArea() != null && !almacen.getArea().isBlank()
+        ? almacen.getNombre() + " · " + almacen.getArea()
+        : almacen.getNombre();
+    return new StockDesdeAlmacenDTO(almacen.getIdUbicacion(), etiquetaAlmacen, filasAlmacen);
     }
 
     @Transactional(readOnly = true)
