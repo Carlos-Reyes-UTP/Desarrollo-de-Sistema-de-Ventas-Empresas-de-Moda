@@ -19,6 +19,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Transient;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
@@ -94,12 +95,23 @@ public class Producto {
     @Column(name = "cantidad", nullable = false)
     private Integer cantidad = 0;
 
+    @Transient
+    private Integer stockAlmacen = 0;
+
     public Integer getCantidad() {
         return cantidad;
     }
 
     public void setCantidad(Integer cantidad) {
         this.cantidad = cantidad;
+    }
+
+    public Integer getStockAlmacen() {
+        return stockAlmacen;
+    }
+
+    public void setStockAlmacen(Integer stockAlmacen) {
+        this.stockAlmacen = stockAlmacen;
     }
 
     // Método para calcular la cantidad total de producto disponible

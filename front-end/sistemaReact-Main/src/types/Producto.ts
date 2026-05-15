@@ -22,6 +22,7 @@ export interface Producto {
   precioDocena?: number;
   // Campos calculados/agregados
   cantidadTotal?: number; // Sum de todas las variantes
+  stockAlmacen?: number; // Stock solo en ubicación Almacén
   fechaCreacion?: Date;
   fechaActualizacion?: Date;
 }

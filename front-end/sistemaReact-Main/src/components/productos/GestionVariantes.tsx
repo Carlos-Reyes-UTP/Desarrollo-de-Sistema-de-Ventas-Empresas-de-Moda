@@ -146,7 +146,11 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   const handleActualizarCantidad = async (idVariante: number, nuevaCantidad: number) => {
     try {
       const varianteActualizada = await ProductoVarianteService.actualizarCantidad(idVariante, nuevaCantidad);
-      setVariantes(prev => prev.map(v => v.idVariante === idVariante ? varianteActualizada : v));
+      setVariantes(prev => prev.map(v =>
+        v.idVariante === idVariante
+          ? { ...v, stockAlmacen: varianteActualizada.stockAlmacen ?? nuevaCantidad, cantidad: varianteActualizada.cantidad }
+          : v
+      ));
       onVariantesActualizadas();
     } catch (err: unknown) {
       setError('Error al actualizar cantidad: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
@@ -178,7 +182,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
     setConfirmModalOpen(false);
   };
 
-  const totalStock = variantes.reduce((sum, v) => sum + v.cantidad, 0);
+  const totalStock = variantes.reduce((sum, v) => sum + (v.stockAlmacen ?? v.cantidad), 0);
 
   return (
     <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${isModalVisible ? 'animate-fadeIn' : 'animate-fadeOut'}`}>
@@ -435,23 +439,24 @@ const VarianteRow: React.FC<{
   onAlert: (msg: string) => void;
   ocultarColumnaVariante?: boolean;
 }> = ({ variante, onActualizarCantidad, onEliminar, onAlert, ocultarColumnaVariante }) => {
+  const stockAlmacen = variante.stockAlmacen ?? variante.cantidad;
   const [editandoCantidad, setEditandoCantidad] = useState(false);
-  const [nuevaCantidad, setNuevaCantidad] = useState(variante.cantidad.toString());
+  const [nuevaCantidad, setNuevaCantidad] = useState(stockAlmacen.toString());
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {
-    setNuevaCantidad(variante.cantidad.toString());
-  }, [variante.cantidad]);
+    setNuevaCantidad((variante.stockAlmacen ?? variante.cantidad).toString());
+  }, [variante.stockAlmacen, variante.cantidad]);
 
   const handleGuardarCantidad = async () => {
     if (!variante.idVariante || guardando) return;
     const cantidadNumerica = parseInt(nuevaCantidad, 10);
     if (isNaN(cantidadNumerica) || cantidadNumerica < 0) {
       onAlert('Por favor ingresa una cantidad válida.');
-      setNuevaCantidad(variante.cantidad.toString());
+      setNuevaCantidad((variante.stockAlmacen ?? variante.cantidad).toString());
       return;
     }
-    if (cantidadNumerica === variante.cantidad) {
+    if (cantidadNumerica === stockAlmacen) {
       setEditandoCantidad(false);
       return;
     }
@@ -460,7 +465,7 @@ const VarianteRow: React.FC<{
       await onActualizarCantidad(variante.idVariante, cantidadNumerica);
       setEditandoCantidad(false);
     } catch {
-      setNuevaCantidad(variante.cantidad.toString());
+      setNuevaCantidad((variante.stockAlmacen ?? variante.cantidad).toString());
     } finally {
       setGuardando(false);
     }
@@ -506,10 +511,11 @@ const VarianteRow: React.FC<{
           </div>
         ) : (
           (() => {
+            const stockAlmacen = variante.stockAlmacen ?? variante.cantidad;
             let cantidadClass;
-            if (variante.cantidad === 0) {
+            if (stockAlmacen === 0) {
               cantidadClass = 'bg-red-100 text-red-700';
-            } else if (variante.cantidad < 10) {
+            } else if (stockAlmacen < 10) {
               cantidadClass = 'bg-orange-100 text-orange-700';
             } else {
               cantidadClass = 'bg-green-100 text-green-700';
@@ -522,7 +528,7 @@ const VarianteRow: React.FC<{
                 title="Clic para editar cantidad"
               >
                 <ShoppingBag className="w-4 h-4" />
-                {variante.cantidad}
+                {stockAlmacen}
               </button>
             );
           })()

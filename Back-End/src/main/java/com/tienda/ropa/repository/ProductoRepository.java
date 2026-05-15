@@ -35,6 +35,18 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Query("SELECT p FROM Producto p ORDER BY p.idProducto DESC")
     Page<Producto> findProductosPaginadosSinBusqueda(Pageable pageable);
 
+    // Stock de Almacén agrupado por producto (batch para evitar N+1)
+    @Query(value = """
+        SELECT pv.id_producto, COALESCE(SUM(iu.stock_actual), 0)
+        FROM producto_variante pv
+        LEFT JOIN inventario_ubicacion iu
+            ON iu.id_variante = pv.id_producto_variante
+            AND iu.id_ubicacion = (SELECT id_ubicacion FROM ubicacion WHERE LOWER(nombre) = 'almacén')
+        WHERE pv.id_producto IN :ids
+        GROUP BY pv.id_producto
+        """, nativeQuery = true)
+    List<Object[]> findStockAlmacenByProductoIds(@Param("ids") List<Long> ids);
+
     // Paginación con búsqueda opcional por nombre, código de identificación o código de barras
     @Query("SELECT p FROM Producto p " +
            "WHERE (p.codigoIdentificacion = :busqueda " +

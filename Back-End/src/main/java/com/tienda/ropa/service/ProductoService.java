@@ -1,7 +1,9 @@
 package com.tienda.ropa.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -166,10 +168,24 @@ public class ProductoService {
     public org.springframework.data.domain.Page<Producto> obtenerProductosPaginados(
             String busqueda, org.springframework.data.domain.Pageable pageable) {
         String termino = busqueda == null ? "" : busqueda.trim();
+        org.springframework.data.domain.Page<Producto> page;
         if (termino.isEmpty()) {
-            return productoRepository.findProductosPaginadosSinBusqueda(pageable);
+            page = productoRepository.findProductosPaginadosSinBusqueda(pageable);
+        } else {
+            page = productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
         }
-        return productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
+        if (page.hasContent()) {
+            List<Long> ids = page.getContent().stream()
+                    .map(Producto::getIdProducto)
+                    .collect(Collectors.toList());
+            Map<Long, Integer> map = productoRepository.findStockAlmacenByProductoIds(ids).stream()
+                    .collect(Collectors.toMap(
+                            r -> ((Number) r[0]).longValue(),
+                            r -> ((Number) r[1]).intValue()));
+            page.getContent().forEach(p ->
+                    p.setStockAlmacen(map.getOrDefault(p.getIdProducto(), 0)));
+        }
+        return page;
     }
 
     public void eliminarProducto(Long id) {

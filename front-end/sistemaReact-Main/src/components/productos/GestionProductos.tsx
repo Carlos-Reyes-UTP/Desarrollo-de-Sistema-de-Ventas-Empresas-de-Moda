@@ -97,7 +97,7 @@ const GestionProductos: React.FC = () => {
       '';
     const subcategoriaNombre = producto.categoria?.nombre ?? '';
     const proveedorNombre = producto.proveedor?.nombre ?? '';
-    const cantidad = producto.cantidadTotal ?? producto.cantidad ?? 0;
+    const cantidad = producto.stockAlmacen ?? 0;
 
     const coincideCategoriaPrincipal =
       !selectedCategoriaPrincipal ||
@@ -605,7 +605,7 @@ const GestionProductos: React.FC = () => {
 
             <tbody className="divide-y divide-gray-50">
               {productosFiltrados.map((producto) => {
-                const cantidad = producto.cantidadTotal ?? producto.cantidad ?? 0;
+                const cantidad = producto.stockAlmacen ?? 0;
                 let stockStatus = { color: 'bg-gray-400', label: 'SIN STOCK', text: 'text-gray-400' };
                 
                 if (cantidad > 10) {

@@ -9,6 +9,7 @@ export interface ProductoVariante {
   talla: Talla;
   color: Color;
   cantidad: number;
+  stockAlmacen?: number;
   codigoIdentificacion?: string; // Campo deprecated, usar codigoBarrasVariante
   codigoBarrasVariante?: string; // Campo correcto que corresponde con el backend
   fechaCreacion?: Date;

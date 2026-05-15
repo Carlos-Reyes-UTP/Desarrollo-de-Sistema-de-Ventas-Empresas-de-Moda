@@ -26,6 +26,7 @@ interface VarianteFormData {
   nombreTalla: string;
   nombreColor: string;
   cantidad: number;
+  stockAlmacen?: number;
   codigoIdentificacion: string;
 }
 
@@ -306,6 +307,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           nombreTalla: v.talla?.nombreTalla?.trim() ?? '',
           nombreColor: v.color?.nombre?.trim() ?? '',
           cantidad: v.cantidad,
+          stockAlmacen: v.stockAlmacen ?? v.cantidad,
           codigoIdentificacion: v.codigoBarrasVariante || ''
         };
         console.log(` Variante mapeada: ID=${variante.id}, Talla=${variante.nombreTalla}, Color=${variante.nombreColor}, Cantidad=${variante.cantidad}`);
@@ -341,7 +343,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };
 
-  const cantidadTotal = variantes.reduce((total, variante) => total + variante.cantidad, 0);
+  const cantidadTotal = variantes.reduce((total, variante) => total + (variante.stockAlmacen ?? variante.cantidad), 0);
 
   // Funciones para manejar variantes
   const agregarVariante = () => {
@@ -374,6 +376,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       nombreTalla: nt,
       nombreColor: nc,
       cantidad: nuevaVariante.cantidad,
+      stockAlmacen: nuevaVariante.cantidad,
       codigoIdentificacion
     };
 
@@ -398,7 +401,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     if (cantidad < 1) return;
     
     setVariantes(prev => prev.map((variante, i) => 
-      i === index ? { ...variante, cantidad } : variante
+      i === index ? { ...variante, stockAlmacen: cantidad } : variante
     ));
   };
 
@@ -632,42 +635,56 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         // -> Luego, actualizar existentes
         for (const variante of variantesAActualizar) {
           const existente = mapaVariantesBD.get(variante.id!);
-          
-          // Solo llamar a la API si hay cambios reales
-          if (existente && (existente.cantidad !== variante.cantidad || existente.codigoBarrasVariante !== variante.codigoIdentificacion)) {
-            console.log(` Actualizando variante ID: ${variante.id}`);
-            console.log(`ðŸ“Š Cantidad: ${existente.cantidad} â†’ ${variante.cantidad}`);
-            console.log(`ðŸ· Código: '${existente.codigoBarrasVariante}' â†’ '${variante.codigoIdentificacion}'`);
-            
-            const talla = tallaDesdeNombre(variante.nombreTalla);
-            const color = colorDesdeNombre(variante.nombreColor);
+          if (!existente) continue;
 
-            if (!variante.nombreTalla.trim() || !variante.nombreColor.trim()) {
-              console.warn(`Saltando actualización - Talla o color vacío: ${variante.nombreTalla} / ${variante.nombreColor}`);
-              continue;
+          const stockAlmacenForm = variante.stockAlmacen ?? variante.cantidad;
+          const stockAlmacenBD = existente.stockAlmacen ?? existente.cantidad;
+          const cantidadCambio = stockAlmacenForm !== stockAlmacenBD;
+          const codigoCambio = existente.codigoBarrasVariante !== variante.codigoIdentificacion;
+
+          if (!cantidadCambio && !codigoCambio) {
+            console.log(`Saltando variante ID: ${variante.id} (sin cambios)`);
+            continue;
+          }
+
+          console.log(`🔄 Actualizando variante ID: ${variante.id}`);
+          if (cantidadCambio) {
+            console.log(`📊 Stock Almacén: ${stockAlmacenBD} → ${stockAlmacenForm}`);
+          }
+          if (codigoCambio) {
+            console.log(`🏷️ Código: '${existente.codigoBarrasVariante}' → '${variante.codigoIdentificacion}'`);
+          }
+
+          try {
+            // Cantidad: usar PATCH (actualizarCantidad) para stock de Almacén
+            if (cantidadCambio) {
+              await ProductoVarianteService.actualizarCantidad(variante.id!, stockAlmacenForm);
             }
-
-            const varianteData: Omit<ProductoVariante, 'idVariante'> = {
-              producto: productoGuardado,
-              talla,
-              color,
-              cantidad: variante.cantidad,
-              codigoBarrasVariante: variante.codigoIdentificacion
-            };
-
-            try {
+            // Código: usar PUT (actualizarVariante) solo si cambió
+            if (codigoCambio) {
+              const talla = tallaDesdeNombre(variante.nombreTalla);
+              const color = colorDesdeNombre(variante.nombreColor);
+              if (!variante.nombreTalla.trim() || !variante.nombreColor.trim()) {
+                console.warn(`Saltando actualización - Talla o color vacío: ${variante.nombreTalla} / ${variante.nombreColor}`);
+                continue;
+              }
+              const varianteData: Omit<ProductoVariante, 'idVariante'> = {
+                producto: productoGuardado,
+                talla,
+                color,
+                cantidad: existente.cantidad,
+                codigoBarrasVariante: variante.codigoIdentificacion
+              };
               await ProductoVarianteService.actualizarVariante(variante.id!, {
                 ...varianteData,
                 idProductoVariante: variante.id
               });
-              console.log(`Variante ID=${variante.id} actualizada correctamente`);
-            } catch (error: unknown) {
-              const errorMessage = getErrorMessage(error, 'Error desconocido');
-              console.error(`Œ Error al actualizar variante ID ${variante.id}:`, errorMessage);
-              throw new Error(`Error al actualizar variante ${variante.nombreTalla}-${variante.nombreColor}: ${errorMessage}`);
             }
-          } else {
-            console.log(`Saltando variante ID: ${variante.id} (sin cambios)`);
+            console.log(`Variante ID=${variante.id} actualizada correctamente`);
+          } catch (error: unknown) {
+            const errorMessage = getErrorMessage(error, 'Error desconocido');
+            console.error(`❌ Error al actualizar variante ID ${variante.id}:`, errorMessage);
+            throw new Error(`Error al actualizar variante ${variante.nombreTalla}-${variante.nombreColor}: ${errorMessage}`);
           }
         }
 
@@ -687,7 +704,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
             producto: productoGuardado,
             talla,
             color,
-            cantidad: variante.cantidad,
+            cantidad: variante.stockAlmacen ?? variante.cantidad,
             codigoBarrasVariante: variante.codigoIdentificacion
           };
 
@@ -711,7 +728,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         const variantesActualizadas = await ProductoVarianteService.obtenerVariantesPorProducto(productoGuardado.idProducto);
         console.log(`ðŸ”„ Obtenidas ${variantesActualizadas.length} variantes actualizadas para el producto`);
         // Añadir la cantidad total actualizada al producto
-        const cantidadTotalActualizada = variantesActualizadas.reduce((total, v) => total + v.cantidad, 0);
+        const cantidadTotalActualizada = variantesActualizadas.reduce((total, v) => total + (v.stockAlmacen ?? v.cantidad), 0);
         productoGuardado = {
           ...productoGuardado,
           cantidad: cantidadTotalActualizada
@@ -921,6 +938,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         nombreTalla: nt,
         nombreColor: nc,
         cantidad,
+        stockAlmacen: cantidad,
         codigoIdentificacion
       });
     }
@@ -1797,7 +1815,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               <input
                                 type="number"
                                 min="1"
-                                value={variante.cantidad}
+                                value={variante.stockAlmacen ?? variante.cantidad}
                                 onChange={(e) => actualizarCantidadVariante(index, parseInt(e.target.value) || 1)}
                                 className="w-20 px-2 py-1.5 bg-[#f8f8f8] border border-transparent rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-gray-200 transition-all"
                               />

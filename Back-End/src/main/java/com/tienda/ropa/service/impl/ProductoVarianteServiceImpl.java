@@ -56,6 +56,7 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
             guardada = productoVarianteRepository.save(guardada);
         }
         inventarioUbicacionService.asegurarFilaAlmacenConStock(guardada, guardada.getCantidad() != null ? guardada.getCantidad() : 0);
+        guardada.setStockAlmacen(inventarioUbicacionService.stockEnAlmacen(guardada.getIdProductoVariante()));
         return guardada;
     }
 
@@ -86,17 +87,22 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
         }
         ProductoVariante guardada = productoVarianteRepository.save(existente);
         inventarioUbicacionService.sincronizarCantidadVariante(idVariante);
+        guardada.setStockAlmacen(inventarioUbicacionService.stockEnAlmacen(idVariante));
         return guardada;
     }
 
     @Override
     public Optional<ProductoVariante> obtenerVariantePorId(Long idVariante) {
-        return productoVarianteRepository.findById(idVariante);
+        Optional<ProductoVariante> opt = productoVarianteRepository.findById(idVariante);
+        opt.ifPresent(v -> v.setStockAlmacen(inventarioUbicacionService.stockEnAlmacen(v.getIdProductoVariante())));
+        return opt;
     }
 
     @Override
     public List<ProductoVariante> obtenerTodasLasVariantes() {
-        return productoVarianteRepository.findAll();
+        List<ProductoVariante> variantes = productoVarianteRepository.findAll();
+        variantes.forEach(v -> v.setStockAlmacen(inventarioUbicacionService.stockEnAlmacen(v.getIdProductoVariante())));
+        return variantes;
     }
 
     @Override
@@ -118,7 +124,9 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     public List<ProductoVariante> obtenerVariantesPorProducto(Long idProducto) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
-        return productoVarianteRepository.findByProductoWithInventarios(producto);
+        List<ProductoVariante> variantes = productoVarianteRepository.findByProductoWithInventarios(producto);
+        variantes.forEach(v -> v.setStockAlmacen(inventarioUbicacionService.stockEnAlmacen(v.getIdProductoVariante())));
+        return variantes;
     }
 
     @Override
@@ -146,14 +154,16 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
         if (!productoVarianteRepository.existsById(idVariante)) {
             throw new IllegalArgumentException("No existe una variante con el ID: " + idVariante);
         }
-        int actual = inventarioUbicacionService.stockTotalVariante(idVariante);
+        int actual = inventarioUbicacionService.stockEnAlmacen(idVariante);
         int delta = nuevaCantidad - actual;
         inventarioUbicacionService.aplicarDeltaEnUbicacion(
                 idVariante,
                 inventarioUbicacionService.ubicacionAlmacen(),
                 delta,
                 "Stock insuficiente en Almacén para reducir la cantidad solicitada");
-        return productoVarianteRepository.findById(idVariante).orElseThrow();
+        ProductoVariante v = productoVarianteRepository.findById(idVariante).orElseThrow();
+        v.setStockAlmacen(nuevaCantidad);
+        return v;
     }
 
     @Override
