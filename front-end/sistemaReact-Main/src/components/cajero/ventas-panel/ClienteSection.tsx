@@ -1,5 +1,5 @@
 import { Search, Users, CheckCircle, Plus, X, Loader2 } from 'lucide-react';
-import type { Cliente } from '../../../interfaces/Cliente';
+import type { Cliente } from '../../../types/Cliente';
 
 interface ClienteSectionProps {
   tipoDocumento: 'DNI' | 'RUC';

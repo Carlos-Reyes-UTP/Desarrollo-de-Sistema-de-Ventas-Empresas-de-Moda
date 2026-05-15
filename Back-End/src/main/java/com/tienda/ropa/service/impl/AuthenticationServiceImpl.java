@@ -23,8 +23,10 @@ import com.tienda.ropa.service.UsuarioService;
 import com.tienda.ropa.util.JwtUtils;
 
 import jakarta.validation.constraints.NotBlank;
+import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class AuthenticationServiceImpl implements AuthenticationService {
@@ -98,11 +100,17 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String username = signInRequest.usuario();
         String password = signInRequest.clave();
 
+        log.info("Intentando iniciar sesión para el usuario: {}", username);
+
         Authentication authentication = this.authenticate(username,password);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         String accessToken = jwtUtils.createToken(authentication);
         AuthenticationResponse authenticationResponse = new AuthenticationResponse(username,"User loged successfully",accessToken,true);
+        
+        log.info("Inicio de sesión exitoso para el usuario: {}", username);
+        log.info("Output de inicio de sesión generado (Token omitido por seguridad): {}", authenticationResponse.message());
+        
         return authenticationResponse;
     }
 
@@ -110,9 +118,11 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private Authentication authenticate(String username, String password) {
         UserDetails userDetails = usuarioService.userDetailsService().loadUserByUsername(username);
         if (userDetails == null) {
+            log.error("Error de inicio de sesión: Usuario no encontrado - {}", username);
             throw new BadCredentialsException("Usuario o contraseña incorrectos");
         }
         if (!passwordEncoder.matches(password, userDetails.getPassword())) {
+            log.error("Error de inicio de sesión: Contraseña incorrecta para el usuario - {}", username);
             throw new BadCredentialsException("Usuario o contraseña incorrectos");
         }
         return new UsernamePasswordAuthenticationToken(username, userDetails.getPassword(), userDetails.getAuthorities());

@@ -13,12 +13,12 @@ import {
 } from 'lucide-react';
 
 // Importar servicios
-import { ClienteService } from '../../services/ClienteServices';
+import { ClienteService } from '../../services/ClienteService';
 import { MayoristaService } from '../../services/MayoristaService';
 
 // Importar tipos
-import type { Cliente } from '../../interfaces/Cliente';
-import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../../interfaces/MayoristaDTO';
+import type { Cliente } from '../../types/Cliente';
+import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../../types/MayoristaDTO';
 
 // Estilos CSS para las animaciones del modal
 const modalStyles = `

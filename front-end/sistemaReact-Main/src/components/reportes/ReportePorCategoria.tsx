@@ -17,8 +17,8 @@ import {
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
-import type { ReporteCategoriaData, FiltrosReporte } from '../../interfaces/ReporteVentas';
-import { AlertModal } from '../common';
+import type { ReporteCategoriaData, FiltrosReporte } from '../../types/ReporteVentas';
+import { AlertModal } from '@/shared/ui';
 
 // Tipos para el estado de navegación
 interface Breadcrumb {

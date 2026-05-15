@@ -1,27 +1,24 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { useProductoVarianteService } from '../../../hooks/useProductoVarianteService';
 import { useAuthReady } from '../../../hooks/useAuthReady';
 import { useAuth } from '../../../context/AuthContext';
-import { ClienteService } from '../../../services/ClienteServices';
-import { VentaService } from '../../../services/VentaServices';
-import { ProductoService } from '../../../services/ProductoServices';
+import { ClienteService } from '../../../services/ClienteService';
+import { VentaService } from '../../../services/VentaService';
+import { ProductoService } from '../../../services/ProductoService';
 import { MayoristaService } from '../../../services/MayoristaService';
 import { ProductoVarianteService } from '../../../services/ProductoVarianteService';
-import type { ProductoVenta } from '../../../interfaces/Producto';
-import type { ProductoVariante } from '../../../interfaces/ProductoVariante';
-import type { Cliente } from '../../../interfaces/Cliente';
-import type { VentaInput } from '../../../interfaces/Venta';
-import type { DetalleVentaInput } from '../../../interfaces/DetalleVenta';
-import { getErrorMessage } from './errorUtils';
+import type { ProductoVenta } from '../../../types/Producto';
+import type { ProductoVariante } from '../../../types/ProductoVariante';
+import type { Cliente } from '../../../types/Cliente';
+import type { VentaInput } from '../../../types/Venta';
+import type { DetalleVentaInput } from '../../../types/DetalleVenta';
+import { getErrorMessage } from '../../../utils/errorUtils';
 import { imprimirBoletaVenta } from './printBoleta';
 import type { DatosVentaBoleta, PrecioCalculado } from './types';
 
 export const useVentas = () => {
 const { isReady, isAuthenticated } = useAuthReady();
   const { usuario } = useAuth();
-  // Get role-aware product variante service methods
-  const { getAllVariantes, disminuirCantidadVariante } = useProductoVarianteService(true);
-  
+
   // --------------------------------------------------------------------------------------------
   // A. ESTADO DEL COMPONENTE
   // --------------------------------------------------------------------------------------------
@@ -686,24 +683,9 @@ const { isReady, isAuthenticated } = useAuthReady();
       // Registrar la venta usando el servicio
       const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
       console.log('Venta registrada exitosamente:', ventaRegistrada);
-      
-      // Actualizar el stock de las variantes usando el nuevo método
-      console.log('[DEBUG] Iniciando actualización de stock para productos vendidos:', productosSeleccionadosVenta);
-      
-      for (const item of productosSeleccionadosVenta) {
-        console.log(`[DEBUG] Procesando item: ID variante ${item.idProductoVariante}, cantidad ${item.cantidad}`);
-        
-        if (item.idProductoVariante) {
-          try {
-            console.log(`[DEBUG] Disminuyendo stock de variante ${item.idProductoVariante} en ${item.cantidad} unidades`);
-            const varianteActualizada = await disminuirCantidadVariante(item.idProductoVariante, item.cantidad);
-            console.log(`[DEBUG] Stock de variante actualizado:`, varianteActualizada);
-          } catch (error) {
-            console.error(`[ERROR] Error al actualizar stock de variante ${item.idProductoVariante}:`, error);
-          }
-        }
-      }
-      
+
+      // El stock se descuenta en el mismo backend al registrar la venta (ubicación Principal + reposición si aplica).
+
       // Actualizar el stock local de las variantes
       const variantesActualizadas = variantesCargadas.map(v => {
         const vendido = productosSeleccionadosVenta.find(ps => ps.idProductoVariante === v.idProductoVariante);
@@ -842,7 +824,7 @@ const { isReady, isAuthenticated } = useAuthReady();
     qrDataModal, setQrDataModal,
     mostrarModalBoleta, setMostrarModalBoleta,
     datosVentaParaBoleta,
-    paginaActual, setPaginaActual,
+    paginaActual,
     totalElementos,
 
     // Computed

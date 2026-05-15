@@ -1,16 +1,15 @@
 import apiClient from '../config/apiClient';
 import { RUTAS_PRODUCTOS, RUTAS_VENTAS, RUTAS_DASHBOARD } from '../config/apiConfig';
-import { ProductoService } from './ProductoServices';
-import { CategoriaService } from './CategoriaServices';
+import { ProductoService } from './ProductoService';
 import type { 
   ProductoStats, 
   CategoriaDistribucion, 
   EstadoInventario, 
   ProductoInventario, 
   ActividadReciente
-} from '../interfaces/DashboardStats';
-import type { Producto } from '../interfaces/Producto';
-import type { Venta } from '../interfaces/Venta';
+} from '../types/DashboardStats';
+import type { Producto } from '../types/Producto';
+import type { Venta } from '../types/Venta';
 
 export const DashboardService = {
   // Obtener estadísticas generales de productos (Server-Side)

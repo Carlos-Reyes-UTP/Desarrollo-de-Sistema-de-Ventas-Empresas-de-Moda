@@ -1,18 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Plus, Edit, Trash2, Package, X, Search } from 'lucide-react';
-import type { Producto } from '../../interfaces/Producto';
-import type { Categoria } from '../../interfaces/Categoria';
-import type { Proveedor } from '../../interfaces/Proveedor';
-import { ProductoService } from '../../services/ProductoServices';
-import { CategoriaService } from '../../services/CategoriaServices';
-import { ProveedorService } from '../../services/ProveedorServices';
-import { ProductoVarianteService } from '../../services/ProductoVarianteService';
+import type { Producto } from '../../types/Producto';
+import type { Categoria } from '../../types/Categoria';
+import type { Proveedor } from '../../types/Proveedor';
+import { ProductoService } from '../../services/ProductoService';
+import { CategoriaService } from '../../services/CategoriaService';
+import { ProveedorService } from '../../services/ProveedorService';
+import { ConfirmModal } from '@/shared/ui';
 import FormularioProductoUnificado from './FormularioProductoUnificado'
 import GestionVariantes from './GestionVariantes';
+import GestionPisos from '../almacen/GestionPisos';
+import { useAuth } from '@/context/AuthContext';
 
 const GestionProductos: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const tabActual = tabParam === 'pisos' ? 'pisos' : 'catalogo';
+
+  const { tieneRol } = useAuth();
+  const rolParaApiProductos = useMemo(() => {
+    if (tieneRol('ROLE_ADMIN')) return 'ROLE_ADMIN';
+    if (tieneRol('ROLE_ALMACENERO')) return 'ROLE_ALMACENERO';
+    if (tieneRol('ROLE_VENDEDOR')) return 'ROLE_VENDEDOR';
+    return undefined;
+  }, [tieneRol]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
@@ -21,7 +33,6 @@ const GestionProductos: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategoriaPrincipal, setSelectedCategoriaPrincipal] = useState<string>('');
   const [selectedSubCategoria, setSelectedSubCategoria] = useState<string>('');
-  const [selectedTipoPublico, setSelectedTipoPublico] = useState<string>('');
   const [selectedStock, setSelectedStock] = useState<string>('');
   const [searchCategoriaPrincipal, setSearchCategoriaPrincipal] = useState<string>('');
   const [searchSubCategoria, setSearchSubCategoria] = useState<string>('');
@@ -30,7 +41,8 @@ const GestionProductos: React.FC = () => {
   const [showFormulario, setShowFormulario] = useState(false);
   const [showVariantes, setShowVariantes] = useState(false);
   const [productoEditar, setProductoEditar] = useState<Producto | null>(null);
-  const [productoVariantes, setProductoVariantes] = useState<Producto | null>(null);  const [error, setError] = useState<string | null>(null);
+  const [productoVariantes, setProductoVariantes] = useState<Producto | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
   const [isCategoriaPrincipalFocused, setIsCategoriaPrincipalFocused] = useState(false);
@@ -39,73 +51,11 @@ const GestionProductos: React.FC = () => {
   // Referencias para los componentes de búsqueda
   const categoriaPrincipalRef = useRef<HTMLDivElement>(null);
   const subcategoriaRef = useRef<HTMLDivElement>(null);
+  const datosInicialesCargadosRef = useRef(false);
 
 
 
-  useEffect(() => {
-    cargarDatos();
-  }, []);
-
-  // Verificar si se debe abrir el modal automáticamente
-  useEffect(() => {
-    const openModal = searchParams.get('openModal');
-    if (openModal === 'true') {
-      setShowFormulario(true);
-      // Limpiar el parámetro de URL después de abrir el modal
-      setSearchParams({});
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Aplicar filtro de stock desde URL
-  useEffect(() => {
-    const stockFilter = searchParams.get('stockFilter');
-    if (stockFilter && (stockFilter === 'critico' || stockFilter === 'normal' || stockFilter === 'sin-stock')) {
-      setSelectedStock(stockFilter);
-      // Limpiar el parámetro de URL después de aplicar el filtro
-      const params = new URLSearchParams(searchParams);
-      params.delete('stockFilter');
-      setSearchParams(params);
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Limpiar búsqueda cuando se cambia el tipo de búsqueda
-  useEffect(() => {
-    setSearchTerm('');
-  }, []);
-
-  // Limpiar subcategoría cuando se cambia la categoría principal
-  useEffect(() => {
-    setSelectedSubCategoria('');
-    setSearchSubCategoria(''); // Limpiar también el término de búsqueda de subcategoría
-    // Cargar subcategorías si hay una categoría principal seleccionada
-    if (selectedCategoriaPrincipal) {
-      cargarSubcategorias(selectedCategoriaPrincipal);
-    } else {
-      setSubcategorias([]);
-    }
-  }, [selectedCategoriaPrincipal]);
-
-
-  // Manejar clics fuera de los componentes de búsqueda para cerrar las listas
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (categoriaPrincipalRef.current && !categoriaPrincipalRef.current.contains(event.target as Node)) {
-        setIsCategoriaPrincipalFocused(false);
-      }
-      if (subcategoriaRef.current && !subcategoriaRef.current.contains(event.target as Node)) {
-        setIsSubCategoriaFocused(false);
-      }
-    };
-
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
-
-  const cargarSubcategorias = async (nombreCategoriaPrincipal: string) => {
+  const cargarSubcategorias = useCallback(async (nombreCategoriaPrincipal: string) => {
     try {
       // Encontrar la categoría principal por nombre
       const categoriaPrincipalObj = categorias.find(cat => cat.nombre === nombreCategoriaPrincipal);
@@ -120,11 +70,12 @@ const GestionProductos: React.FC = () => {
       console.error('Error al cargar subcategorías:', error);
       setSubcategorias([]);
     }
-  };
+  }, [categorias]);
   // Estados de Paginación Server-Side
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [ultimaCargaLista, setUltimaCargaLista] = useState<string | null>(null);
 
   // Funciones para filtrar categorías según el término de búsqueda
   const categoriasPrincipalesFiltradas = categorias
@@ -139,8 +90,38 @@ const GestionProductos: React.FC = () => {
     categoria.nombre.toLowerCase().includes(searchSubCategoria.toLowerCase())
   );
 
+  const productosFiltrados = productos.filter((producto) => {
+    const categoriaPrincipalNombre =
+      producto.categoriaPadre?.nombre ??
+      producto.categoria?.categoriaPadre?.nombre ??
+      '';
+    const subcategoriaNombre = producto.categoria?.nombre ?? '';
+    const proveedorNombre = producto.proveedor?.nombre ?? '';
+    const cantidad = producto.cantidadTotal ?? producto.cantidad ?? 0;
 
-  const cargarFiltrosYDatos = async (numeroPagina: number, busqueda: string) => {
+    const coincideCategoriaPrincipal =
+      !selectedCategoriaPrincipal ||
+      categoriaPrincipalNombre === selectedCategoriaPrincipal;
+    const coincideSubCategoria =
+      !selectedSubCategoria || subcategoriaNombre === selectedSubCategoria;
+    const coincideProveedor =
+      !selectedProveedor || proveedorNombre === selectedProveedor;
+    const coincideStock =
+      !selectedStock ||
+      (selectedStock === 'sin-stock' && cantidad === 0) ||
+      (selectedStock === 'critico' && cantidad >= 1 && cantidad <= 5) ||
+      (selectedStock === 'normal' && cantidad > 5);
+
+    return (
+      coincideCategoriaPrincipal &&
+      coincideSubCategoria &&
+      coincideProveedor &&
+      coincideStock
+    );
+  });
+
+
+  const cargarFiltrosYDatos = useCallback(async (numeroPagina: number, busqueda: string) => {
     try {
       setLoading(true);
       
@@ -155,12 +136,15 @@ const GestionProductos: React.FC = () => {
       }
 
       // Cargar productos PAGINADOS desde el servidor (Evita N+1 y colapso de RAM)
-      const paginaProductos = await ProductoService.getProductosPaginados(numeroPagina, 20, busqueda, 'ROLE_ADMIN');
+      const paginaProductos = await ProductoService.getProductosPaginados(numeroPagina, 20, busqueda, rolParaApiProductos);
       
       setProductos(paginaProductos.content || []);
       setTotalPages(paginaProductos.totalPages);
       setTotalElements(paginaProductos.totalElements);
       setPage(paginaProductos.pageNumber);
+      setUltimaCargaLista(
+        new Date().toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })
+      );
       
     } catch (err) {
       setError('Error al cargar los datos');
@@ -168,10 +152,80 @@ const GestionProductos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [categorias.length, proveedores.length, rolParaApiProductos]);
 
-  const cargarDatos = () => {
+  const cargarDatos = useCallback(() => {
     cargarFiltrosYDatos(page, searchTerm);
+  }, [cargarFiltrosYDatos, page, searchTerm]);
+
+  useEffect(() => {
+    if (datosInicialesCargadosRef.current) {
+      return;
+    }
+
+    datosInicialesCargadosRef.current = true;
+    void cargarFiltrosYDatos(0, '');
+  }, [cargarFiltrosYDatos]);
+
+  // Verificar si se debe abrir el modal automáticamente
+  useEffect(() => {
+    const openModal = searchParams.get('openModal');
+    if (openModal === 'true') {
+      setShowFormulario(true);
+      const params = new URLSearchParams(searchParams);
+      params.delete('openModal');
+      setSearchParams(params);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Aplicar filtro de stock desde URL
+  useEffect(() => {
+    const stockFilter = searchParams.get('stockFilter');
+    if (stockFilter && (stockFilter === 'critico' || stockFilter === 'normal' || stockFilter === 'sin-stock')) {
+      setSelectedStock(stockFilter);
+      const params = new URLSearchParams(searchParams);
+      params.delete('stockFilter');
+      setSearchParams(params);
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Limpiar subcategoría cuando se cambia la categoría principal
+  useEffect(() => {
+    setSelectedSubCategoria('');
+    setSearchSubCategoria('');
+    if (selectedCategoriaPrincipal) {
+      cargarSubcategorias(selectedCategoriaPrincipal);
+    } else {
+      setSubcategorias([]);
+    }
+  }, [selectedCategoriaPrincipal, cargarSubcategorias]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoriaPrincipalRef.current && !categoriaPrincipalRef.current.contains(event.target as Node)) {
+        setIsCategoriaPrincipalFocused(false);
+      }
+      if (subcategoriaRef.current && !subcategoriaRef.current.contains(event.target as Node)) {
+        setIsSubCategoriaFocused(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const limpiarFiltrosYRecargar = () => {
+    setSearchTerm("");
+    setSelectedCategoriaPrincipal("");
+    setSelectedSubCategoria("");
+    setSelectedProveedor("");
+    setSelectedStock("");
+    setSearchCategoriaPrincipal("");
+    setSearchSubCategoria("");
+    setPage(0);
+    void cargarFiltrosYDatos(0, "");
   };
 
   const handleBuscar = () => {
@@ -233,40 +287,80 @@ const GestionProductos: React.FC = () => {
   }
 
   return (
-    <div className="p-8 bg-[#fafafa] min-h-screen font-sans text-gray-900">
+    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent font-sans text-gray-900 pb-8">
       {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <div>
           <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
-            Gestión de productos
+            Inventario
           </h1>
-          <p className="text-gray-500 text-sm max-w-md font-medium">
-            Sincronización avanzada de precios multinivel y stock para el ecosistema DK-SYSTEM.
+          <p className="text-gray-500 text-sm max-w-lg font-medium">
+            Sincronización avanzada de stock multinivel para el ecosistema DK-SYSTEM.
           </p>
+          {tabActual === "catalogo" && ultimaCargaLista && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 font-semibold text-gray-700 shadow-sm">
+                {totalElements} producto{totalElements !== 1 ? "s" : ""} en catálogo
+              </span>
+              <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-3 py-1 font-medium">
+                Lista actualizada · {ultimaCargaLista}
+              </span>
+            </div>
+          )}
         </div>
 
-        
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {/* Lógica de exportación si existe */}}
-            className="bg-white hover:bg-gray-50 text-gray-900 px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm border border-gray-100 transition-all font-bold text-xs uppercase tracking-wider"
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
-            Exportar Lista
-          </button>
+        {tabActual === 'catalogo' && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {/* Lógica de exportación si existe */}}
+              className="bg-white hover:bg-gray-50 text-gray-900 px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm border border-gray-100 transition-all duration-200 font-bold text-xs uppercase tracking-wider"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Exportar Lista
+            </button>
+            <button
+              onClick={() => setShowFormulario(true)}
+              className="bg-black text-white hover:bg-gray-800 px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 font-bold text-xs uppercase tracking-wider active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4" />
+              Nuevo Producto
+            </button>
+          </div>
+        )}
+      </div>
 
-          
-          <button
-            onClick={() => setShowFormulario(true)}
-            className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider"
-          >
-            <Plus className="w-4 h-4" />
-            Nuevo Producto
-          </button>
-
-        </div>
+      {/* Tabs */}
+      <div className="flex items-center gap-2 border-b border-gray-200 mb-8">
+        <button
+          onClick={() => {
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete('tab');
+            setSearchParams(newParams);
+          }}
+          className={`px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all border-b-2 ${
+            tabActual === 'catalogo'
+              ? 'border-black text-black'
+              : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
+          }`}
+        >
+          Catálogo principal
+        </button>
+        <button
+          onClick={() => {
+            const newParams = new URLSearchParams(searchParams);
+            newParams.set('tab', 'pisos');
+            setSearchParams(newParams);
+          }}
+          className={`px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all border-b-2 ${
+            tabActual === 'pisos'
+              ? 'border-black text-black'
+              : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
+          }`}
+        >
+          Pisos y áreas
+        </button>
       </div>
 
       {error && (
@@ -278,8 +372,13 @@ const GestionProductos: React.FC = () => {
         </div>
       )}
 
-      {/* Filters and Search Bar */}
-      <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-gray-50">
+      <div key={tabActual} className="animate-fadeIn">
+      {tabActual === 'pisos' ? (
+        <GestionPisos embedded />
+      ) : (
+        <>
+          {/* Filters and Search Bar */}
+          <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-gray-50">
         <div className="grid grid-cols-1 lg:grid-cols-6 gap-8 items-end">
           
           {/* Search Input - Taking more space */}
@@ -320,7 +419,6 @@ const GestionProductos: React.FC = () => {
                     e.stopPropagation();
                     setSelectedCategoriaPrincipal('');
                     setSearchCategoriaPrincipal('');
-                    handleBuscar(); // Recargar al borrar filtro
                   }}
                 />
               ) : (
@@ -380,7 +478,6 @@ const GestionProductos: React.FC = () => {
                     e.stopPropagation();
                     setSelectedSubCategoria('');
                     setSearchSubCategoria('');
-                    handleBuscar();
                   }}
                 />
               ) : (
@@ -485,7 +582,7 @@ const GestionProductos: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full table-zebra">
             <thead>
               <tr className="bg-white border-b border-gray-100">
                 <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
@@ -507,7 +604,7 @@ const GestionProductos: React.FC = () => {
             </thead>
 
             <tbody className="divide-y divide-gray-50">
-              {productos.map((producto) => {
+              {productosFiltrados.map((producto) => {
                 const cantidad = producto.cantidadTotal ?? producto.cantidad ?? 0;
                 let stockStatus = { color: 'bg-gray-400', label: 'SIN STOCK', text: 'text-gray-400' };
                 
@@ -520,7 +617,7 @@ const GestionProductos: React.FC = () => {
                 }
 
                 return (
-                  <tr key={producto.idProducto} className="hover:bg-[#fafafa] transition-colors group">
+                  <tr key={producto.idProducto} className="hover:bg-slate-100/60 transition-colors duration-150 group">
                     {/* Code & Identity */}
                     <td className="px-8 py-6">
                       <div className="flex flex-col">
@@ -631,11 +728,30 @@ const GestionProductos: React.FC = () => {
             </tbody>
           </table>
           
-          {productos.length === 0 && !loading && (
-            <div className="text-center py-16">
-              <Package className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-              <h3 className="text-lg font-bold text-gray-900">No hay productos</h3>
-              <p className="text-sm text-gray-500 mt-2">Intenta ajustar tu búsqueda o crear un nuevo producto.</p>
+          {productosFiltrados.length === 0 && !loading && (
+            <div className="text-center py-16 px-4 border-t border-gray-100 bg-slate-50/40">
+              <Package className="mx-auto h-14 w-14 text-slate-300 mb-4" />
+              <h3 className="text-lg font-bold text-gray-900">No hay productos que coincidan</h3>
+              <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
+                Prueba otra búsqueda, ajusta los filtros o crea un producto nuevo en el catálogo.
+              </p>
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowFormulario(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Nuevo producto
+                </button>
+                <button
+                  type="button"
+                  onClick={limpiarFiltrosYRecargar}
+                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98]"
+                >
+                  Limpiar filtros y recargar
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -672,6 +788,11 @@ const GestionProductos: React.FC = () => {
         )}
       </div>
 
+        {/* Cierre de la vista Catálogo */}
+        </>
+      )}
+      </div>
+
       {/* Modales */}
       {showFormulario && (
         <FormularioProductoUnificado
@@ -702,45 +823,6 @@ const GestionProductos: React.FC = () => {
         onConfirm={confirmarEliminarProducto}
         onCancel={cancelarEliminarProducto}
       />
-    </div>
-  );
-};
-
-const ConfirmModal: React.FC<{
-  open: boolean;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}> = ({ open, message, onConfirm, onCancel }) => {
-  if (!open) return null;
-  return (
-
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[100] backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-[2rem] shadow-2xl p-10 w-full max-w-md relative animate-scaleIn">
-        <div className="mb-6 w-12 h-1 bg-red-500"></div>
-        <h2 className="text-2xl font-bold tracking-tight text-black mb-4 uppercase">
-          Confirmar Eliminación
-        </h2>
-
-        <p className="text-gray-500 text-sm mb-10 leading-relaxed font-medium">
-          {message}
-        </p>
-        <div className="flex gap-3">
-          <button 
-            onClick={onCancel} 
-            className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
-          >
-            Cancelar
-          </button>
-          <button 
-            onClick={onConfirm} 
-            className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-lg active:scale-[0.98]"
-          >
-            Confirmar
-          </button>
-        </div>
-
-      </div>
     </div>
   );
 };

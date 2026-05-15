@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 
 /**
@@ -11,6 +11,8 @@ import { useAuth } from '../context/AuthContext';
  */
 export const useAuthReady = () => {
   const { cargando, usuario } = useAuth();
+  const usuarioRef = useRef(usuario);
+  usuarioRef.current = usuario;
   const [isReady, setIsReady] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
 
@@ -37,10 +39,10 @@ export const useAuthReady = () => {
         // Hay token pero no usuario, el token podría ser inválido
         console.log('🔄 Esperando validación de token...');
         const timeoutId = setTimeout(() => {
-          // Check current localStorage state at callback time, not closure time
           const stillHasToken = localStorage.getItem('token');
-          if (stillHasToken && !usuario) {
-            console.log('❌ Token inválido, limpiando localStorage');
+          // usuarioRef evita cierre obsoleto: si el AuthProvider ya hidrató al usuario, no borrar el token
+          if (stillHasToken && !usuarioRef.current) {
+            console.log('❌ Token sin sesión en contexto, limpiando localStorage');
             localStorage.removeItem('token');
           }
           setIsReady(true);

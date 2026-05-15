@@ -22,15 +22,15 @@ import {
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
-import type { ProductoMasVendido, TallaProducto, VariantesPorColor } from '../../interfaces/ReporteVentas';
-import { CategoriaService } from '../../services/CategoriaServices';
-import type { Categoria } from '../../interfaces/Categoria';
+import type { ProductoMasVendido, TallaProducto, VariantesPorColor } from '../../types/ReporteVentas';
+import { CategoriaService } from '../../services/CategoriaService';
+import type { Categoria } from '../../types/Categoria';
 import {
   CustomPieLabel,
   CustomTooltip,
   CustomTooltipVariantes,
 } from './productos-mas-vendidos/chartRenderers';
-import { AlertModal } from '../common';
+import { AlertModal } from '@/shared/ui';
 
 // Estilos CSS para animaciones
 const animationStyles = `
@@ -132,7 +132,7 @@ const ProductosMasVendidos: React.FC = () => {
   // Estados para el análisis detallado por producto
   const [productoSeleccionado, setProductoSeleccionado] = useState<ProductoMasVendido | null>(null);
   const [tallasProducto, setTallasProducto] = useState<TallaProducto[]>([]);
-  const [tallaSeleccionada, setTallaSeleccionada] = useState<number | null>(null);
+  const [tallaSeleccionada, setTallaSeleccionada] = useState<string | null>(null);
   const [variantesPorColor, setVariantesPorColor] = useState<VariantesPorColor[]>([]);
   const [mostrarAnalisisDetallado, setMostrarAnalisisDetallado] = useState(false);
   const [loadingTallas, setLoadingTallas] = useState(false);
@@ -272,16 +272,16 @@ const ProductosMasVendidos: React.FC = () => {
     }
   };
 
-  const seleccionarTalla = async (idTalla: number) => {
+  const seleccionarTalla = async (nombreTalla: string) => {
     if (!productoSeleccionado) return;
     
     // Actualizar la talla seleccionada inmediatamente para mostrar feedback visual
-    setTallaSeleccionada(idTalla);
+    setTallaSeleccionada(nombreTalla);
     
     try {
       setLoadingVariantes(true);
       // Mantener las variantes anteriores mientras carga para evitar parpadeo
-      const variantes = await ReporteService.getVariantesPorColor(productoSeleccionado.idProducto, idTalla);
+      const variantes = await ReporteService.getVariantesPorColor(productoSeleccionado.idProducto, nombreTalla);
       setVariantesPorColor(variantes);
     } catch (error) {
       console.error('Error al cargar variantes por color:', error);
@@ -388,7 +388,7 @@ const ProductosMasVendidos: React.FC = () => {
           for (const talla of tallas) {
             try {
               // Obtener variantes por color para cada talla
-              const variantes = await ReporteService.getVariantesPorColor(producto.idProducto, talla.idTalla);
+              const variantes = await ReporteService.getVariantesPorColor(producto.idProducto, talla.nombreTalla);
               
               for (const variante of variantes) {
                 stockTotalProducto += variante.cantidadStock; // Sumar al stock total
@@ -398,8 +398,8 @@ const ProductosMasVendidos: React.FC = () => {
                 try {
                   const varianteCompleta = await ProductoVarianteService.obtenerVariantePorProductoTallaColor(
                     producto.idProducto, 
-                    talla.idTalla, 
-                    variante.idColor
+                    talla.nombreTalla, 
+                    variante.nombreColor
                   );
                   codigoBarras = varianteCompleta?.codigoBarrasVariante || varianteCompleta?.codigoIdentificacion || 'Sin código';
                 } catch (error) {
@@ -1156,10 +1156,10 @@ const ProductosMasVendidos: React.FC = () => {
               <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                 {tallasProducto.map((talla, index) => (
                   <button
-                    key={talla.idTalla}
-                    onClick={() => seleccionarTalla(talla.idTalla)}
+                    key={`${talla.nombreTalla}-${index}`}
+                    onClick={() => seleccionarTalla(talla.nombreTalla)}
                     className={`p-3 rounded-lg border-2 font-medium transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-md ${
-                      tallaSeleccionada === talla.idTalla
+                      tallaSeleccionada === talla.nombreTalla
                         ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105'
                         : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'
                     }`}
@@ -1186,7 +1186,7 @@ const ProductosMasVendidos: React.FC = () => {
             <div className="transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-right-4">
               <div className="flex justify-between items-center mb-4">
                 <h4 className="text-lg font-semibold text-gray-900">
-                  🎨 Variantes por color - Talla: {tallasProducto.find(t => t.idTalla === tallaSeleccionada)?.nombreTalla}
+                  🎨 Variantes por color - Talla: {tallasProducto.find(t => t.nombreTalla === tallaSeleccionada)?.nombreTalla}
                 </h4>
                 {/* Selector de tipo de gráfico */}
                 <div className="flex bg-gray-100 rounded-lg p-1">
@@ -1252,7 +1252,7 @@ const ProductosMasVendidos: React.FC = () => {
                             >
                               {variantesPorColor.filter(v => v.cantidadVendida > 0).map((entry, index) => (
                                 <Cell 
-                                  key={`color-${entry.idColor}`} 
+                                  key={`color-${entry.nombreColor}-${index}`} 
                                   fill={entry.hexColor || `hsl(${index * 45}, 70%, 60%)`}
                                 />
                               ))}
@@ -1284,8 +1284,8 @@ const ProductosMasVendidos: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
-                        {variantesPorColor.map((variante) => (
-                          <tr key={variante.idColor} className="hover:bg-gray-50">
+                        {variantesPorColor.map((variante, vi) => (
+                          <tr key={`${variante.nombreColor}-${vi}`} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center">
                                 <div 

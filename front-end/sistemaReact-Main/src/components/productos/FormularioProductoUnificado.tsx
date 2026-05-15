@@ -1,23 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Download, Tag, Package2, Barcode, Trash, Plus, AlertCircle, Search, FolderTree, Building2, Info, Lightbulb, Layers } from 'lucide-react';
-import type { Producto } from '../../interfaces/Producto';
-import type { Categoria } from '../../interfaces/Categoria';
-import type { Proveedor } from '../../interfaces/Proveedor';
-import type { Color } from '../../interfaces/Color';
-import type { Talla } from '../../interfaces/Talla';
-import type { ProductoVariante } from '../../interfaces/ProductoVariante';
-import { ProductoService } from '../../services/ProductoServices';
-import { ColorService } from '../../services/ColorService';
-import { TallaService } from '../../services/TallaService';
+import React, { useState, useEffect, useMemo } from 'react';
+import { X, Save, Download, Tag, Package2, Barcode, Trash, Plus, AlertCircle, Search, FolderTree, Building2, Info, Layers } from 'lucide-react';
+import type { Producto } from '../../types/Producto';
+import type { Categoria } from '../../types/Categoria';
+import type { Proveedor } from '../../types/Proveedor';
+import type { ProductoVariante } from '../../types/ProductoVariante';
+import { ProductoService } from '../../services/ProductoService';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
-import { getErrorMessage, getStatusCode } from './formulario-producto-unificado/errorUtils';
-import { AlertModal } from '../common';
+import {
+  collectTallaNamesFromVariantes,
+  collectColorNamesFromVariantes,
+  tallaDesdeNombre,
+  colorDesdeNombre,
+  mismoParTallaColor,
+  nombresUnicosOrdenados,
+} from '../../utils/varianteCatalogoHelpers';
+import { validarJerarquiaPreciosProducto } from '../../utils/validarPreciosProducto';
+import { getErrorMessage, getStatusCode } from '@/utils/errorUtils';
+import { AlertModal } from '@/shared/ui';
+import { useAuth } from '@/context/AuthContext';
+import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
 
 interface VarianteFormData {
   id?: number;
-  tallaId: number;
-  colorId: number;
+  nombreTalla: string;
+  nombreColor: string;
   cantidad: number;
   codigoIdentificacion: string;
 }
@@ -41,6 +48,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   onClose,
   onProductoGuardado
 }) => {  // Estado básico del formulario
+  const { usuario } = useAuth();
   const [formData, setFormData] = useState({
     codigoIdentificacion: '',
     codigoBarras: '',
@@ -59,8 +67,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   });
     // Estados para variantes y datos relacionados
   const [variantes, setVariantes] = useState<VarianteFormData[]>([]);
-  const [coloresDisponibles, setColoresDisponibles] = useState<Color[]>([]);
-  const [tallasDisponibles, setTallasDisponibles] = useState<Talla[]>([]);
+  const [sugerenciasTallas, setSugerenciasTallas] = useState<string[]>([]);
+  const [sugerenciasColores, setSugerenciasColores] = useState<string[]>([]);
+  const [coloresExtraOptimizado, setColoresExtraOptimizado] = useState<string[]>([]);
+  const [nuevoColorExtraInput, setNuevoColorExtraInput] = useState('');
   const [subcategorias, setSubcategorias] = useState<Categoria[]>([]);
   const [subCategorias2, setSubCategorias2] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(false);
@@ -68,8 +78,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   const [errorPrecio, setErrorPrecio] = useState<string | null>(null);
     // Estados para nueva variante (modo simple)
   const [nuevaVariante, setNuevaVariante] = useState({
-    tallaId: 0,
-    colorId: 0,
+    nombreTalla: '',
+    nombreColor: '',
     cantidad: 1,
     codigoIdentificacion: ''
   });
@@ -78,8 +88,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   // Estados para formulario optimizado (múltiples colores por talla)
   const [modoFormulario, setModoFormulario] = useState<'simple' | 'optimizado'>('optimizado');
   const [formularioOptimizado, setFormularioOptimizado] = useState({
-    tallaSeleccionada: 0,
-    cantidadesPorColor: {} as Record<number, number>
+    nombreTalla: '',
+    cantidadesPorColor: {} as Record<string, number>
   });  // Estados nuevos para UI mejorada
   const [tabActiva, setTabActiva] = useState<TabType>('informacion');
   const [codigoBarrasPreview, setCodigoBarrasPreview] = useState<string | null>(null);
@@ -108,7 +118,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
   // Cargar datos iniciales
   useEffect(() => {
     setIsModalVisible(true);
-    cargarColoresYTallas();
+    cargarSugerenciasCatalogo();
   }, []);
   
   // Función para cerrar con animación
@@ -212,27 +222,30 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   }, [producto, categorias]);
 
-  const cargarColoresYTallas = async () => {
+  const coloresGridOptimizado = useMemo(
+    () => nombresUnicosOrdenados([...sugerenciasColores, ...coloresExtraOptimizado]),
+    [sugerenciasColores, coloresExtraOptimizado]
+  );
+
+  const cargarSugerenciasCatalogo = async () => {
     try {
       setLoading(true);
-      const [coloresData, tallasData] = await Promise.all([
-        ColorService.getAllColores(),
-        TallaService.getAllTallas()
-      ]);
-      setColoresDisponibles(coloresData);
-      setTallasDisponibles(tallasData);
+      const todas = await ProductoVarianteService.obtenerTodasLasVariantes(
+        resolveInventarioUserRole(usuario?.roles),
+        false
+      );
+      setSugerenciasTallas(collectTallaNamesFromVariantes(todas));
+      setSugerenciasColores(collectColorNamesFromVariantes(todas));
     } catch (err: unknown) {
-      console.error('Error al cargar colores y tallas:', err);
+      console.error('Error al cargar sugerencias de tallas y colores:', err);
       const status = getStatusCode(err);
-      
-      // Manejo específico para errores de autenticación/autorización
       if (status === 401) {
         setError('Error de autorización: Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
       } else if (status === 403) {
         setError('Error de permisos: No tienes autorización para acceder a esta información.');
       } else {
         setError(
-          'Error al cargar colores y tallas disponibles: ' +
+          'Error al cargar sugerencias de tallas y colores: ' +
             getErrorMessage(err, 'Error de comunicación con el servidor')
         );
       }
@@ -280,26 +293,34 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       );
       
       if (variantesUnicas.length !== variantesExistentes.length) {
-        console.warn(`âš   Se removieron ${variantesExistentes.length - variantesUnicas.length} variantes duplicadas`);
-      }      // Mapear variantes del backend al formato del formulario
+        console.warn(
+          `Se removieron ${variantesExistentes.length - variantesUnicas.length} variantes duplicadas`
+        );
+      }
+
+      // Mapear variantes del backend al formato del formulario
       const variantesFormData: VarianteFormData[] = variantesUnicas.map(v => {
-        // Priorizar idProductoVariante (que es el ID real en BD) sobre idVariante
         const varianteId = v.idProductoVariante || v.idVariante;
-        
         const variante = {
           id: varianteId,
-          tallaId: v.talla.idTalla || 0,
-          colorId: v.color.idColor || 0,
+          nombreTalla: v.talla?.nombreTalla?.trim() ?? '',
+          nombreColor: v.color?.nombre?.trim() ?? '',
           cantidad: v.cantidad,
           codigoIdentificacion: v.codigoBarrasVariante || ''
         };
-        
-        console.log(` Variante mapeada: ID=${variante.id}, Talla=${v.talla.nombreTalla}, Color=${v.color.nombre}, Cantidad=${variante.cantidad}`);
+        console.log(` Variante mapeada: ID=${variante.id}, Talla=${variante.nombreTalla}, Color=${variante.nombreColor}, Cantidad=${variante.cantidad}`);
         return variante;
       });
       
       console.log(`${variantesFormData.length} variantes cargadas en el estado del formulario`);
       setVariantes(variantesFormData);
+
+      setSugerenciasTallas((prev) =>
+        nombresUnicosOrdenados([...prev, ...collectTallaNamesFromVariantes(variantesUnicas)])
+      );
+      setSugerenciasColores((prev) =>
+        nombresUnicosOrdenados([...prev, ...collectColorNamesFromVariantes(variantesUnicas)])
+      );
     } catch (err: unknown) {
       console.error('Error al cargar variantes existentes:', err);
       const status = getStatusCode(err);
@@ -324,14 +345,18 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
   // Funciones para manejar variantes
   const agregarVariante = () => {
-    if (nuevaVariante.tallaId === 0 || nuevaVariante.colorId === 0) {
-      setError('Debe seleccionar una talla y un color para la variante');
+    const nt = nuevaVariante.nombreTalla.trim();
+    const nc = nuevaVariante.nombreColor.trim();
+    if (!nt || !nc) {
+      setError('Debe indicar talla y color para la variante');
       return;
     }
 
-    // Verificar si ya existe una variante con la misma talla y color
-    const existeVariante = variantes.some(v => 
-      v.tallaId === nuevaVariante.tallaId && v.colorId === nuevaVariante.colorId
+    const existeVariante = variantes.some((v) =>
+      mismoParTallaColor(
+        { nombreTalla: v.nombreTalla, nombreColor: v.nombreColor },
+        { nombreTalla: nt, nombreColor: nc }
+      )
     );
 
     if (existeVariante) {
@@ -339,37 +364,30 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       return;
     }
 
-    const talla = tallasDisponibles.find(t => t.idTalla === nuevaVariante.tallaId);
-    const color = coloresDisponibles.find(c => c.idColor === nuevaVariante.colorId);
-
-    if (!talla || !color) {
-      setError('Error al encontrar la talla o color seleccionado');
-      return;
-    }
-
-    // Generar código de identificación si está vacío
     let codigoIdentificacion = nuevaVariante.codigoIdentificacion;
     if (!codigoIdentificacion) {
       const codigoBase = formData.codigoIdentificacion || 'PROD';
-      codigoIdentificacion = `${codigoBase}-${talla.nombreTalla}-${color.nombre}`;
+      codigoIdentificacion = `${codigoBase}-${nt}-${nc}`;
     }
 
     const nuevaVarianteCompleta: VarianteFormData = {
-      tallaId: nuevaVariante.tallaId,
-      colorId: nuevaVariante.colorId,
+      nombreTalla: nt,
+      nombreColor: nc,
       cantidad: nuevaVariante.cantidad,
       codigoIdentificacion
     };
 
     setVariantes(prev => [...prev, nuevaVarianteCompleta]);
     setNuevaVariante({
-      tallaId: 0,
-      colorId: 0,
+      nombreTalla: '',
+      nombreColor: '',
       cantidad: 1,
       codigoIdentificacion: ''
     });
     setShowFormularioVariante(false);
     setError(null);
+    setSugerenciasTallas((p) => nombresUnicosOrdenados([...p, nt]));
+    setSugerenciasColores((p) => nombresUnicosOrdenados([...p, nc]));
   };
 
   const eliminarVariante = (index: number) => {
@@ -388,12 +406,13 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setErrorPrecio(null);
 
     try {
       console.log('Iniciando proceso de guardado de producto');
       console.log('ðŸ“Š Estado actual de variantes:', {
         cantidad: variantes.length,
-        variantes: variantes.map(v => ({ id: v.id, tallaId: v.tallaId, colorId: v.colorId, cantidad: v.cantidad }))
+        variantes: variantes.map(v => ({ id: v.id, nombreTalla: v.nombreTalla, nombreColor: v.nombreColor, cantidad: v.cantidad }))
       });
 
       // Validaciones básicas
@@ -403,7 +422,57 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
       if (!formData.codigoIdentificacion.trim()) {
         throw new Error('El código de identificación es requerido');
-      }      // Encontrar objetos de categorías y proveedor
+      }
+
+      if (!formData.categoriaId) {
+        throw new Error('Debe seleccionar una categoría principal');
+      }
+
+      if (!formData.sexo) {
+        throw new Error('Debe seleccionar el sexo del producto');
+      }
+
+      if (!formData.marca.trim()) {
+        throw new Error('La marca es requerida');
+      }
+
+      if (!formData.precioUnitario.trim() || isNaN(parseFloat(formData.precioUnitario))) {
+        setErrorPrecio('Indique un precio unitario válido.');
+        setTabActiva('precios');
+        setLoading(false);
+        return;
+      }
+
+      const pu = parseFloat(formData.precioUnitario);
+      const pc = parseFloat(formData.precioCuarto);
+      const pmd = parseFloat(formData.precioMediaDocena);
+      const pd = parseFloat(formData.precioDocena);
+      const faltanTotalesVolumen =
+        !formData.precioCuarto.trim() ||
+        !formData.precioMediaDocena.trim() ||
+        !formData.precioDocena.trim() ||
+        !Number.isFinite(pc) ||
+        !Number.isFinite(pmd) ||
+        !Number.isFinite(pd);
+
+      if (faltanTotalesVolumen) {
+        setErrorPrecio(
+          'Para guardar hace falta indicar el total para 3, 6 y 12 unidades (además del unitario). No son opcionales en el servidor.'
+        );
+        setTabActiva('precios');
+        setLoading(false);
+        return;
+      }
+
+      const errJerarquia = validarJerarquiaPreciosProducto(pu, pc, pmd, pd);
+      if (errJerarquia) {
+        setErrorPrecio(errJerarquia);
+        setTabActiva('precios');
+        setLoading(false);
+        return;
+      }
+
+      // Encontrar objetos de categorías y proveedor
       let categoriaSeleccionada: Categoria | undefined = undefined;
       let categoriaPadreSeleccionada: Categoria | undefined = undefined;
 
@@ -446,6 +515,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
       }
 
+      if (!formData.proveedorId) {
+        throw new Error('Debe seleccionar un proveedor');
+      }
+
       const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
 
       if (!proveedor) {
@@ -468,33 +541,29 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
         throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
       }
 
-      // Crear una categoría temporal si no hay segunda subcategoría pero se requiere para la interface
-      const subCategoria2Final = subCategoria2 || {
-        idCategoria: 0,
-        nombre: "Sin categoría nivel 3",
-        categoriaPadre: undefined,
-        subCategorias: undefined,
-        esCategoriaPrincipal: false,
-        tieneSubcategorias: false
-      };
-
       // Crear objeto producto
+      // subCategoria2 se envía solo con idCategoria para que JPA resuelva la referencia correctamente.
+      // Cuando no existe nivel 3, se omite (null) — el campo es nullable en la BD.
+      const subCategoria2Final: Categoria | undefined = subCategoria2?.idCategoria
+        ? { ...subCategoria2, idCategoria: subCategoria2.idCategoria }
+        : undefined;
+
       const productoData: Omit<Producto, 'idProducto'> = {
         codigoIdentificacion: formData.codigoIdentificacion,
         codigoBarras: formData.codigoBarras || undefined,
         nombre: formData.nombre,
-        sexo: formData.sexo || undefined,
+        sexo: formData.sexo,
         tipoPublico: formData.tipoPublico,
         categoria: categoriaSeleccionada,
-        subCategoria2: subCategoria2Final,
+        subCategoria2: subCategoria2Final as Categoria,
         categoriaPadre: categoriaPadreSeleccionada,
-        marca: formData.marca || undefined,
+        marca: formData.marca,
         proveedor,
         cantidad: cantidadTotal,
         precioUnitario: parseFloat(formData.precioUnitario),
-        precioCuarto: formData.precioCuarto ? parseFloat(formData.precioCuarto) : undefined,
-        precioMediaDocena: formData.precioMediaDocena ? parseFloat(formData.precioMediaDocena) : undefined,
-        precioDocena: formData.precioDocena ? parseFloat(formData.precioDocena) : undefined
+        precioCuarto: parseFloat(formData.precioCuarto),
+        precioMediaDocena: parseFloat(formData.precioMediaDocena),
+        precioDocena: parseFloat(formData.precioDocena),
       };
 
       let productoGuardado: Producto;
@@ -556,7 +625,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               `Œ Error al eliminar variante ID ${variante.idProductoVariante}:`,
               getErrorMessage(error, 'Error desconocido')
             );
-            throw new Error(`Fallo al eliminar la variante ${variante.talla.nombreTalla} - ${variante.color.nombre}.`);
+            throw new Error(`Fallo al eliminar la variante ${variante.talla?.nombreTalla ?? ''} - ${variante.color?.nombre ?? ''}.`);
           }
         }
 
@@ -570,11 +639,11 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
             console.log(`ðŸ“Š Cantidad: ${existente.cantidad} â†’ ${variante.cantidad}`);
             console.log(`ðŸ· Código: '${existente.codigoBarrasVariante}' â†’ '${variante.codigoIdentificacion}'`);
             
-            const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
-            const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
+            const talla = tallaDesdeNombre(variante.nombreTalla);
+            const color = colorDesdeNombre(variante.nombreColor);
 
-            if (!talla || !color) {
-              console.warn(`âš  Saltando actualización - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+            if (!variante.nombreTalla.trim() || !variante.nombreColor.trim()) {
+              console.warn(`Saltando actualización - Talla o color vacío: ${variante.nombreTalla} / ${variante.nombreColor}`);
               continue;
             }
 
@@ -595,7 +664,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
             } catch (error: unknown) {
               const errorMessage = getErrorMessage(error, 'Error desconocido');
               console.error(`Œ Error al actualizar variante ID ${variante.id}:`, errorMessage);
-              throw new Error(`Error al actualizar variante ${talla.nombreTalla}-${color.nombre}: ${errorMessage}`);
+              throw new Error(`Error al actualizar variante ${variante.nombreTalla}-${variante.nombreColor}: ${errorMessage}`);
             }
           } else {
             console.log(`Saltando variante ID: ${variante.id} (sin cambios)`);
@@ -604,15 +673,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
         // -> Finalmente, crear nuevas
         for (const variante of variantesACrear) {
-          const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
-          const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
+          const talla = tallaDesdeNombre(variante.nombreTalla);
+          const color = colorDesdeNombre(variante.nombreColor);
 
-          if (!talla || !color) {
-            console.warn(`âš  Saltando creación - Talla o color no encontrado: tallaId=${variante.tallaId}, colorId=${variante.colorId}`);
+          if (!variante.nombreTalla.trim() || !variante.nombreColor.trim()) {
+            console.warn(`Saltando creación - Talla o color vacío: ${variante.nombreTalla} / ${variante.nombreColor}`);
             continue;
           }
 
-          console.log(`Creando nueva variante (Talla: ${talla.nombreTalla}, Color: ${color.nombre}, Cantidad: ${variante.cantidad})`);
+          console.log(`Creando nueva variante (Talla: ${variante.nombreTalla}, Color: ${variante.nombreColor}, Cantidad: ${variante.cantidad})`);
           
           const varianteData: Omit<ProductoVariante, 'idVariante'> = {
             producto: productoGuardado,
@@ -628,7 +697,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
           } catch (error: unknown) {
             const errorMessage = getErrorMessage(error, 'Error desconocido');
             console.error(`Œ Error al crear nueva variante:`, errorMessage);
-            throw new Error(`Error al crear variante ${talla.nombreTalla}-${color.nombre}: ${errorMessage}`);
+            throw new Error(`Error al crear variante ${variante.nombreTalla}-${variante.nombreColor}: ${errorMessage}`);
           }
         }
 
@@ -669,38 +738,41 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     const { name, value } = e.target;
     // Validación para campos de precio
     if (["precioUnitario", "precioCuarto", "precioMediaDocena", "precioDocena"].includes(name)) {
-      const nuevoValor = value === '' ? '' : Math.max(0, parseFloat(value));
-      // Si el usuario intenta poner un valor negativo, lo forzamos a 0
       if (value !== '' && parseFloat(value) < 0) {
         setErrorPrecio('No se permiten valores negativos en los precios.');
-        setFormData(prev => ({ ...prev, [name]: 0 }));
+        setFormData((prev) => ({ ...prev, [name]: '0' }));
         return;
       }
-      // Validación de jerarquía de precios por unidad
-      let precios = {
-        precioUnitario: name === 'precioUnitario' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioUnitario) || 0,
-        precioCuarto: name === 'precioCuarto' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioCuarto) || 0,
-        precioMediaDocena: name === 'precioMediaDocena' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioMediaDocena) || 0,
-        precioDocena: name === 'precioDocena' ? (typeof nuevoValor === 'number' ? nuevoValor : 0) : parseFloat(formData.precioDocena) || 0,
-      };
-      
-      // Calcular precio por unidad para cada volumen
-      const precioUnitarioIndividual = precios.precioUnitario;
-      const precioUnitarioCuarto = precios.precioCuarto > 0 ? precios.precioCuarto / 3 : 0;
-      const precioUnitarioMediaDocena = precios.precioMediaDocena > 0 ? precios.precioMediaDocena / 6 : 0;
-      const precioUnitarioDocena = precios.precioDocena > 0 ? precios.precioDocena / 12 : 0;
-      
-      // Validar que el precio por unidad sea decreciente: Individual >= Cuarto/3 >= MediaDocena/6 >= Docena/12
-      if (
-        (precios.precioCuarto > 0 && precioUnitarioCuarto > precioUnitarioIndividual) ||
-        (precios.precioMediaDocena > 0 && precioUnitarioMediaDocena > precioUnitarioCuarto) ||
-        (precios.precioDocena > 0 && precioUnitarioDocena > precioUnitarioMediaDocena)
-      ) {
-        setErrorPrecio('El precio por unidad debe ser decreciente: Individual >= Cuarto/3 >= MediaDocena/6 >= Docena/12');
-        return;
+
+      const nextPu = name === 'precioUnitario' ? value : formData.precioUnitario;
+      const nextPc = name === 'precioCuarto' ? value : formData.precioCuarto;
+      const nextPmd = name === 'precioMediaDocena' ? value : formData.precioMediaDocena;
+      const nextPd = name === 'precioDocena' ? value : formData.precioDocena;
+
+      const pu = parseFloat(nextPu);
+      const pc = parseFloat(nextPc);
+      const pmd = parseFloat(nextPmd);
+      const pd = parseFloat(nextPd);
+
+      const todosLlenos =
+        nextPu.trim() !== '' &&
+        nextPc.trim() !== '' &&
+        nextPmd.trim() !== '' &&
+        nextPd.trim() !== '' &&
+        Number.isFinite(pu) &&
+        Number.isFinite(pc) &&
+        Number.isFinite(pmd) &&
+        Number.isFinite(pd);
+
+      if (todosLlenos) {
+        const errJer = validarJerarquiaPreciosProducto(pu, pc, pmd, pd);
+        if (errJer) {
+          setErrorPrecio(errJer);
+          return;
+        }
       }
       setErrorPrecio(null);
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData((prev) => ({ ...prev, [name]: value }));
       return;
     }
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -808,21 +880,15 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
   // Función optimizada para agregar múltiples variantes de una talla
   const agregarVariantesOptimizado = () => {
-    if (formularioOptimizado.tallaSeleccionada === 0) {
-      setError('Debe seleccionar una talla');
+    const nt = formularioOptimizado.nombreTalla.trim();
+    if (!nt) {
+      setError('Debe indicar una talla');
       return;
     }
 
-    const talla = tallasDisponibles.find(t => t.idTalla === formularioOptimizado.tallaSeleccionada);
-    if (!talla) {
-      setError('Talla no encontrada');
-      return;
-    }
-
-    // Filtrar solo los colores que tienen cantidad > 0
     const coloresConCantidad = Object.entries(formularioOptimizado.cantidadesPorColor)
-      .filter(([_, cantidad]) => cantidad > 0)
-      .map(([colorId, cantidad]) => ({ colorId: parseInt(colorId), cantidad }));
+      .filter(([, cantidad]) => cantidad > 0)
+      .map(([nombreColor, cantidad]) => ({ nombreColor, cantidad }));
 
     if (coloresConCantidad.length === 0) {
       setError('Debe especificar al menos una cantidad mayor a 0 para algún color');
@@ -832,31 +898,28 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     const nuevasVariantes: VarianteFormData[] = [];
     const errores: string[] = [];
 
-    for (const { colorId, cantidad } of coloresConCantidad) {
-      // Verificar si ya existe una variante con esta talla y color
-      const existeVariante = variantes.some(v => 
-        v.tallaId === formularioOptimizado.tallaSeleccionada && v.colorId === colorId
+    for (const { nombreColor, cantidad } of coloresConCantidad) {
+      const nc = nombreColor.trim();
+      if (!nc) continue;
+
+      const existeVariante = variantes.some((v) =>
+        mismoParTallaColor(
+          { nombreTalla: v.nombreTalla, nombreColor: v.nombreColor },
+          { nombreTalla: nt, nombreColor: nc }
+        )
       );
 
       if (existeVariante) {
-        const color = coloresDisponibles.find(c => c.idColor === colorId);
-        errores.push(`Ya existe una variante para ${talla.nombreTalla} - ${color?.nombre || 'Color desconocido'}`);
+        errores.push(`Ya existe una variante para ${nt} - ${nc}`);
         continue;
       }
 
-      const color = coloresDisponibles.find(c => c.idColor === colorId);
-      if (!color) {
-        errores.push(`Color con ID ${colorId} no encontrado`);
-        continue;
-      }
-
-      // Generar código de identificación automático
       const codigoBase = formData.codigoIdentificacion || 'PROD';
-      const codigoIdentificacion = `${codigoBase}-${talla.nombreTalla}-${color.nombre}`;
+      const codigoIdentificacion = `${codigoBase}-${nt}-${nc}`;
 
       nuevasVariantes.push({
-        tallaId: formularioOptimizado.tallaSeleccionada,
-        colorId,
+        nombreTalla: nt,
+        nombreColor: nc,
         cantidad,
         codigoIdentificacion
       });
@@ -869,33 +932,29 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
     if (nuevasVariantes.length > 0) {
       setVariantes(prev => [...prev, ...nuevasVariantes]);
-      // Limpiar formulario
       setFormularioOptimizado({
-        tallaSeleccionada: 0,
+        nombreTalla: '',
         cantidadesPorColor: {}
       });
+      setColoresExtraOptimizado([]);
+      setNuevoColorExtraInput('');
       setShowFormularioVariante(false);
       setError(null);
+      setSugerenciasTallas((p) => nombresUnicosOrdenados([...p, nt]));
+      for (const nv of nuevasVariantes) {
+        setSugerenciasColores((p) => nombresUnicosOrdenados([...p, nv.nombreColor]));
+      }
     }
   };
 
-  // Función para actualizar cantidad de un color en el formulario optimizado
-  const actualizarCantidadColor = (colorId: number, cantidad: number) => {
+  const actualizarCantidadColor = (nombreColor: string, cantidad: number) => {
     setFormularioOptimizado(prev => ({
       ...prev,
       cantidadesPorColor: {
         ...prev.cantidadesPorColor,
-        [colorId]: cantidad >= 0 ? cantidad : 0
+        [nombreColor]: cantidad >= 0 ? cantidad : 0
       }
     }));
-  };
-
-  // Función para cambiar talla en formulario optimizado
-  const cambiarTallaOptimizada = (tallaId: number) => {
-    setFormularioOptimizado({
-      tallaSeleccionada: tallaId,
-      cantidadesPorColor: {} // Limpiar cantidades al cambiar talla
-    });
   };
 
   return (
@@ -944,7 +1003,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
           <form onSubmit={handleSubmit} className="space-y-8">
             {/* Navegación por pestañas */}
-            <div className="flex border-b border-gray-100 mb-6 mx-8 mt-2 overflow-x-auto custom-scrollbar">
+            <div className="flex border-b border-gray-100 mb-6 overflow-x-auto custom-scrollbar">
               <button
                 type="button"
                 onClick={() => setTabActiva('informacion')}
@@ -1000,26 +1059,29 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
             {/* Pestaña: Información básica */}
             {tabActiva === 'informacion' && (
-              <div className="bg-gray-50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-gray-900">Información Básica</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Código de Identificación *
+              <div className="bg-gray-50 rounded-[1.5rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-6">
+                  Información básica
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Código de identificación <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="codigoIdentificacion"
                       value={formData.codigoIdentificacion}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
                       placeholder="Ingrese el código de identificación..."
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Código de Barras
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Código de barras
                     </label>
                     <div className="flex gap-2">
                       <input
@@ -1028,7 +1090,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         value={formData.codigoBarras}
                         onChange={handleInputChange}
                         placeholder="Código de barras (opcional)"
-                        className="flex-1 px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all font-mono"
+                        className="flex-1 px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm font-mono"
                       />
                       <button
                         type="button"
@@ -1046,29 +1108,30 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Nombre del Producto *
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Nombre del producto <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="nombre"
                       value={formData.nombre}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
                       placeholder="Ingrese el nombre del producto..."
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Sexo
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Sexo <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="sexo"
                       value={formData.sexo}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
+                      required
                     >
                       <option value="">Seleccionar sexo</option>
                       <option value="Hombre">Hombre</option>
@@ -1078,14 +1141,14 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Tipo de Público <span className="text-red-500">*</span>
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Tipo de público <span className="text-red-500">*</span>
                     </label>
                     <select
                       name="tipoPublico"
                       value={formData.tipoPublico}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
                       required
                     >
                       <option value="">Seleccionar tipo de público</option>
@@ -1095,22 +1158,23 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Marca
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Marca <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="text"
                       name="marca"
                       value={formData.marca}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
                       placeholder="Ingrese la marca del producto..."
+                      required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Categoría Principal (Nivel 1) *
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Categoría principal (nivel 1) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       {!categoriaSeleccionada && (
@@ -1200,9 +1264,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   {subcategorias.length > 0 && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Subcategoría (Nivel 2) *
-                      </label>
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Subcategoría (nivel 2) <span className="text-red-500">*</span>
+                    </label>
                       <div className="relative">
                         {!subcategoriaSeleccionada && (
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -1293,8 +1357,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                   {subCategorias2.length > 0 && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Segunda Subcategoría (Nivel 3) <span className="text-red-500">*</span>
+                      <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                        Segunda subcategoría (nivel 3) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         {!subcategoria2Seleccionada && (
@@ -1394,8 +1458,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                   )}
 
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Proveedor *
+                    <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                      Proveedor <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
                       {!proveedorSeleccionado && (
@@ -1516,7 +1580,6 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
               {showFormularioVariante && (
                 <div className="bg-white rounded-xl p-6 mb-4 border border-gray-200">
                   {modoFormulario === 'simple' ? (
-                    // Formulario simple (una variante a la vez)
                     <>
                       <h4 className="text-md font-semibold mb-3 text-gray-800">Nueva Variante (Modo Simple)</h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1524,36 +1587,36 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Talla *
                           </label>
-                          <select
-                            value={nuevaVariante.tallaId}
-                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, tallaId: parseInt(e.target.value) }))}
+                          <input
+                            list="fp-simple-tallas-dl"
+                            value={nuevaVariante.nombreTalla}
+                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, nombreTalla: e.target.value }))}
+                            placeholder="Escribir o elegir"
                             className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
-                          >
-                            <option value={0}>Seleccionar talla</option>
-                            {tallasDisponibles.map(talla => (
-                              <option key={talla.idTalla} value={talla.idTalla}>
-                                {talla.nombreTalla}
-                              </option>
+                          />
+                          <datalist id="fp-simple-tallas-dl">
+                            {sugerenciasTallas.map((t) => (
+                              <option key={t} value={t} />
                             ))}
-                          </select>
+                          </datalist>
                         </div>
 
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Color *
                           </label>
-                          <select
-                            value={nuevaVariante.colorId}
-                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, colorId: parseInt(e.target.value) }))}
+                          <input
+                            list="fp-simple-colores-dl"
+                            value={nuevaVariante.nombreColor}
+                            onChange={(e) => setNuevaVariante(prev => ({ ...prev, nombreColor: e.target.value }))}
+                            placeholder="Escribir o elegir"
                             className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
-                          >
-                            <option value={0}>Seleccionar color</option>
-                            {coloresDisponibles.map(color => (
-                              <option key={color.idColor} value={color.idColor}>
-                                {color.nombre}
-                              </option>
+                          />
+                          <datalist id="fp-simple-colores-dl">
+                            {sugerenciasColores.map((c) => (
+                              <option key={c} value={c} />
                             ))}
-                          </select>
+                          </datalist>
                         </div>
 
                         <div>
@@ -1595,56 +1658,79 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       </div>
                     </>
                   ) : (
-                    // Formulario optimizado (múltiples colores por talla)
-                    <>                      <h4 className="text-md font-semibold mb-3 text-gray-800">Agregar Variantes por Talla (Modo Optimizado)</h4>
+                    <>
+                      <h4 className="text-md font-semibold mb-3 text-gray-800">Agregar Variantes por Talla (Modo Optimizado)</h4>
                       <div className="mb-4 p-3 bg-[#f8f8f8] rounded-xl border border-gray-100">
-                        <p className="text-sm text-gray-700 mb-1"><strong>Modo Optimizado:</strong> Selecciona una talla y especifica las cantidades para cada color.</p>
+                        <p className="text-sm text-gray-700 mb-1"><strong>Modo Optimizado:</strong> Indica la talla y las cantidades por color (sugerencias desde el inventario; puedes añadir colores nuevos).</p>
                         <p className="text-xs text-gray-500 italic">
                           Las etiquetas incluirán automáticamente: "{formData.nombre} [{formData.codigoIdentificacion}] - T/X - Color Y"
                         </p>
                       </div>
                       
                       <div className="space-y-4">
-                        {/* Selector de talla */}
                         <div>
                           <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Talla *
                           </label>
-                          <select
-                            value={formularioOptimizado.tallaSeleccionada}
-                            onChange={(e) => cambiarTallaOptimizada(parseInt(e.target.value))}
+                          <input
+                            list="fp-opt-tallas-dl"
+                            value={formularioOptimizado.nombreTalla}
+                            onChange={(e) =>
+                              setFormularioOptimizado((prev) => ({ ...prev, nombreTalla: e.target.value }))
+                            }
+                            placeholder="Escribir o elegir talla"
                             className="w-full px-3 py-2 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 transition-all"
-                          >
-                            <option value={0}>Seleccionar talla</option>
-                            {tallasDisponibles.map(talla => (
-                              <option key={talla.idTalla} value={talla.idTalla}>
-                                {talla.nombreTalla}
-                              </option>
+                          />
+                          <datalist id="fp-opt-tallas-dl">
+                            {sugerenciasTallas.map((t) => (
+                              <option key={t} value={t} />
                             ))}
-                          </select>
+                          </datalist>
                         </div>
 
-                        {/* Grid de colores y cantidades */}
-                        {formularioOptimizado.tallaSeleccionada > 0 && (
+                        {formularioOptimizado.nombreTalla.trim() !== '' && (
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-3">
-                              Cantidades por Color
+                              Cantidades por color
                             </label>
+                            <div className="flex flex-wrap gap-2 mb-3">
+                              <input
+                                type="text"
+                                value={nuevoColorExtraInput}
+                                onChange={(e) => setNuevoColorExtraInput(e.target.value)}
+                                placeholder="Otro color (nombre)"
+                                className="flex-1 min-w-[160px] px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const n = nuevoColorExtraInput.trim();
+                                  if (!n) return;
+                                  setColoresExtraOptimizado((prev) =>
+                                    prev.some((x) => x.toLowerCase() === n.toLowerCase()) ? prev : [...prev, n]
+                                  );
+                                  setNuevoColorExtraInput('');
+                                }}
+                                className="px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold uppercase tracking-wider"
+                              >
+                                Añadir color
+                              </button>
+                            </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                              {coloresDisponibles.map(color => (
-                                <div key={color.idColor} className="flex flex-col items-center p-3 border border-gray-100 rounded-xl bg-[#fafafa]">
+                              {coloresGridOptimizado.map((nombreColor) => (
+                                <div key={nombreColor} className="flex flex-col items-center p-3 border border-gray-100 rounded-xl bg-[#fafafa]">
                                   <div className="flex items-center gap-2 mb-2">
-                                    <div 
-                                      className="w-5 h-5 rounded-full border border-gray-300" 
-                                      style={{ backgroundColor: color.codigoHex || '#CCCCCC' }}
+                                    <div
+                                      className="w-5 h-5 rounded-full border border-gray-300"
+                                      style={{ backgroundColor: '#CCCCCC' }}
                                     />
-                                    <span className="text-sm font-medium text-gray-700">{color.nombre}</span>
+                                    <span className="text-sm font-medium text-gray-700">{nombreColor}</span>
                                   </div>
                                   <input
                                     type="number"
                                     min="0"
-                                    value={formularioOptimizado.cantidadesPorColor[color.idColor!] || 0}
-                                    onChange={(e) => actualizarCantidadColor(color.idColor!, parseInt(e.target.value) || 0)}
+                                    value={formularioOptimizado.cantidadesPorColor[nombreColor] || 0}
+                                    onChange={(e) => actualizarCantidadColor(nombreColor, parseInt(e.target.value, 10) || 0)}
                                     className="w-full px-2 py-1.5 bg-white border border-gray-200 rounded-lg text-center text-sm font-bold focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all"
                                     placeholder="0"
                                   />
@@ -1664,7 +1750,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         <button
                           type="button"
                           onClick={agregarVariantesOptimizado}
-                          disabled={formularioOptimizado.tallaSeleccionada === 0 || Object.values(formularioOptimizado.cantidadesPorColor).every(qty => qty === 0)}
+                          disabled={!formularioOptimizado.nombreTalla.trim() || Object.values(formularioOptimizado.cantidadesPorColor).every(qty => qty === 0)}
                           className="bg-black hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed text-white px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
                         >
                           Agregar Variantes
@@ -1692,19 +1778,19 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       <tbody>
                         {/* FIX: Se usa una clave única y estable en lugar del índice. */}
                         {variantes.map((variante, index) => (
-                          <tr key={variante.id || `new-${variante.tallaId}-${variante.colorId}`} className="border-t border-gray-50 hover:bg-[#fafafa] transition-colors">
+                          <tr key={variante.id || `new-${variante.nombreTalla}-${variante.nombreColor}`} className="border-t border-gray-50 hover:bg-[#fafafa] transition-colors">
                             <td className="py-3 px-4">
-                              {tallasDisponibles.find(t => t.idTalla === variante.tallaId)?.nombreTalla || 'N/A'}
+                              {variante.nombreTalla || 'N/A'}
                             </td>
                             <td className="py-3 px-4">
                               <div className="flex items-center gap-2">
                                 <div 
                                   className="w-4 h-4 rounded-full border border-gray-300" 
                                   style={{ 
-                                    backgroundColor: coloresDisponibles.find(c => c.idColor === variante.colorId)?.codigoHex || '#CCCCCC'
+                                    backgroundColor: '#CCCCCC'
                                   }} 
                                 />
-                                {coloresDisponibles.find(c => c.idColor === variante.colorId)?.nombre || 'N/A'}
+                                {variante.nombreColor || 'N/A'}
                               </div>
                             </td>
                             <td className="py-3 px-4 text-center">
@@ -1778,23 +1864,32 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
             {/* Pestaña: Precios */}
             {tabActiva === 'precios' && (
-              <div className="bg-gray-50 rounded-xl">
-                <div className="p-6">
-                  <h3 className="text-lg font-semibold mb-4 text-gray-900 flex items-center gap-2">
-                    <Tag className="w-5 h-5" />
-                    Configuración de Precios
-                  </h3>
-                  
-                  <div className="mb-4 p-4 bg-[#f8f8f8] rounded-xl border border-gray-100">
+              <div className="bg-gray-50 rounded-[1.5rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+                <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-2 flex items-center gap-2">
+                  <Tag className="w-4 h-4" />
+                  Precios por volumen
+                </h3>
+                <p className="text-sm text-gray-500 mb-6 max-w-2xl">
+                  El precio unitario es el dato principal. Los totales para 3, 6 y 12 unidades no se marcan como obligatorios en la etiqueta, pero el servidor los exige al guardar. Deben cumplir la jerarquía: a más unidades, menor precio unitario equivalente.
+                </p>
+
+                  <div className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
                     <p className="text-sm text-gray-600">
-                      Configure los diferentes precios según la cantidad. El precio unitario es obligatorio, los demás son opcionales.
+                      Al guardar se valida la misma regla que en base de datos (totales coherentes y descuento por volumen).
                     </p>
                   </div>
+
+                  {errorPrecio && (
+                    <div className="mb-4 p-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-800">
+                      {errorPrecio}
+                    </div>
+                  )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-6">
-                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Precio Unitario *
+                      <div>
+                        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                          Precio unitario <span className="text-red-500">*</span>
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-3 text-gray-500">S/</span>
@@ -1805,7 +1900,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioUnitario"
                             value={formData.precioUnitario}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
+                            className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
                             required
                           />
                         </div>
@@ -1814,8 +1909,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         </p>
                       </div>
 
-                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Precio por Cuarto de Docena
+                      <div>
+                        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                          Precio por cuarto (3 u.)
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-3 text-gray-500">S/</span>
@@ -1826,7 +1922,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioCuarto"
                             value={formData.precioCuarto}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
+                            className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
                           />
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
@@ -1836,8 +1932,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     </div>
 
                     <div className="space-y-6">
-                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Precio por Media Docena
+                      <div>
+                        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                          Precio por media docena (6 u.)
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-3 text-gray-500">S/</span>
@@ -1848,7 +1945,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioMediaDocena"
                             value={formData.precioMediaDocena}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
+                            className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
                           />
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
@@ -1856,8 +1953,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         </p>
                       </div>
 
-                      <div>                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Precio por Docena
+                      <div>
+                        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                          Precio por docena (12 u.)
                         </label>
                         <div className="relative">
                           <span className="absolute left-3 top-3 text-gray-500">S/</span>
@@ -1868,7 +1966,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             name="precioDocena"
                             value={formData.precioDocena}
                             onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 bg-[#f8f8f8] border border-transparent rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-transparent"
+                            className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
                           />
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
@@ -1878,8 +1976,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                     </div>
                   </div>
                   
-                  <div className="mt-6 p-4 bg-[#f8f8f8] rounded-xl border border-gray-100">
-                    <h4 className="font-medium text-black mb-2">Resumen de Descuentos</h4>
+                  <div className="mt-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+                    <h4 className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">Resumen de descuentos</h4>
                     <div className="grid grid-cols-3 gap-4">
                       {formData.precioCuarto && formData.precioUnitario && (
                         <div className="bg-white p-3 rounded-lg border border-gray-200">
@@ -1909,7 +2007,6 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                       )}
                     </div>
                   </div>
-                </div>
               </div>
             )}
 
@@ -1944,11 +2041,9 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                             <div className="text-sm text-gray-600">
                               {variantes.map(v => {
                                 if (v.id === varianteSeleccionada) {
-                                  const talla = tallasDisponibles.find(t => t.idTalla === v.tallaId);
-                                  const color = coloresDisponibles.find(c => c.idColor === v.colorId);
                                   return (
                                     <div key={v.id} className="bg-gray-50 p-3 rounded-lg">                                      <p className="font-medium text-gray-800">Esta etiqueta contiene:</p>
-                                      <p className="text-black font-semibold">"{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"</p>
+                                      <p className="text-black font-semibold">"{formData.nombre} [{formData.codigoIdentificacion}] - T/{v.nombreTalla} - {v.nombreColor}"</p>
                                       <p className="text-xs text-gray-500 mt-1">Código: {v.codigoIdentificacion}</p>
                                     </div>
                                   );
@@ -1996,8 +2091,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                 {variantes.map((variante, index) => {
                                   if (!variante.id) return null;
                                   
-                                  const talla = tallasDisponibles.find(t => t.idTalla === variante.tallaId);
-                                  const color = coloresDisponibles.find(c => c.idColor === variante.colorId);
+                                  const tallaNombre = variante.nombreTalla;
+                                  const colorNombre = variante.nombreColor;
                                   
                                   return (
                                     <button
@@ -2009,19 +2104,20 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                                     >
                                       <div className="flex items-center gap-2 w-full">
                                         <div className="w-3 h-3 rounded-full" style={{
-                                          backgroundColor: color?.codigoHex || '#CCCCCC'
-                                        }} />                                        <span className="font-medium flex-1">T/{talla?.nombreTalla} - {color?.nombre}</span>
+                                          backgroundColor: '#CCCCCC'
+                                        }} />                                        <span className="font-medium flex-1">T/{tallaNombre} - {colorNombre}</span>
                                         <Barcode className="w-4 h-4 text-gray-400" />
                                       </div>
                                       <span className="text-xs text-gray-500 font-medium">
-                                        "{formData.nombre} [{formData.codigoIdentificacion}] - T/{talla?.nombreTalla} - {color?.nombre}"
+                                        "{formData.nombre} [{formData.codigoIdentificacion}] - T/{tallaNombre} - {colorNombre}"
                                       </span>
                                     </button>
                                   );
                                 })}
                               </div>
                             </div>
-                          ): (                            <div className="text-center py-6">
+                          ) : (
+                            <div className="text-center py-6">
                               <p className="text-sm text-gray-500 mb-2">
                                 No hay variantes agregadas.
                               </p>                              <p className="text-xs text-gray-500 italic mb-4">
@@ -2041,7 +2137,8 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               </button>
                             </div>
                           )
-                        )}
+                        )
+                        }
                       </div>
                     </div>
                   </div>

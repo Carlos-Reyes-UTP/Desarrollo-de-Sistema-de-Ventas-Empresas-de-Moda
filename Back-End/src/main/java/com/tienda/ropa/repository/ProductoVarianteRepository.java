@@ -5,77 +5,99 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.tienda.ropa.entity.Color;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.entity.Talla;
 
 @Repository
 public interface ProductoVarianteRepository extends JpaRepository<ProductoVariante, Long> {
+
+    @EntityGraph(attributePaths = {"inventariosUbicacion", "inventariosUbicacion.ubicacion"})
+    @Query("SELECT DISTINCT pv FROM ProductoVariante pv WHERE pv.producto = :producto")
+    List<ProductoVariante> findByProductoWithInventarios(@Param("producto") Producto producto);
+
     List<ProductoVariante> findByProducto(Producto producto);
 
-    List<ProductoVariante> findByProductoAndTalla(Producto producto, Talla talla);
+    List<ProductoVariante> findByProducto_IdProductoAndTallaIgnoreCase(Long idProducto, String talla);
 
-    List<ProductoVariante> findByProductoAndColor(Producto producto, Color color);
+    List<ProductoVariante> findByProducto_IdProductoAndColorIgnoreCase(Long idProducto, String color);
 
-    Optional<ProductoVariante> findByProductoAndTallaAndColor(Producto producto, Talla talla, Color color);
+    Optional<ProductoVariante> findByProducto_IdProductoAndTallaIgnoreCaseAndColorIgnoreCase(
+            Long idProducto, String talla, String color);
 
-    Optional<ProductoVariante> findByCodigoBarrasVariante(String codigoBarras);
+    Optional<ProductoVariante> findByCodigoBarras(String codigoBarras);
 
     @Query("SELECT SUM(pv.cantidad) FROM ProductoVariante pv WHERE pv.producto.idProducto = :idProducto")
     Integer getTotalCantidadByProducto(Long idProducto);
 
-    @Query("SELECT pv.idProductoVariante, pv.codigoBarrasVariante, pv.cantidad, " +
-           "p.idProducto, p.nombre, p.sexo, p.tipoPublico, p.codigoIdentificacion, p.precioUnitario, " +
-           "t.idTalla, t.nombreTalla, " +
-           "c.idColor, c.nombre, " +
-           "cat.nombre, cat2.nombre " +
-           "FROM ProductoVariante pv " +
-           "JOIN pv.producto p " +
-           "LEFT JOIN p.categoria cat " +
-           "LEFT JOIN p.subCategoria2 cat2 " +
-           "JOIN pv.talla t " +
-           "JOIN pv.color c " +
-           "ORDER BY pv.idProductoVariante DESC")
-    List<Object[]> findAllVariantesConInformacionCompleta();
+    String VARIANTE_CAJERO_SELECT = """
+            SELECT
+              pv.id_producto_variante,
+              COALESCE(pv.codigo_barras, ''),
+              COALESCE((SELECT SUM(iu.stock_actual) FROM inventario_ubicacion iu WHERE iu.id_variante = pv.id_producto_variante), COALESCE(pv.cantidad, 0)),
+              p.id_producto,
+              p.nombre,
+              p.sexo,
+              p.tipo_publico,
+              p.codigo_identificacion,
+              p.precio_unitario,
+              0,
+              pv.talla,
+              0,
+              pv.color,
+              COALESCE(cat.nombre, ''),
+              COALESCE(cat2.nombre, ''),
+              COALESCE(pv.sku, '')
+            FROM producto_variante pv
+            INNER JOIN producto p ON p.id_producto = pv.id_producto
+            LEFT JOIN categoria cat ON cat.id_categoria = p.id_subcategoria
+            LEFT JOIN categoria cat2 ON cat2.id_categoria = p.id_sub_categoria2
+            """;
 
-    // Paginación sin búsqueda (camino más rápido para carga inicial)
-    @Query("SELECT pv.idProductoVariante, pv.codigoBarrasVariante, pv.cantidad, " +
-           "p.idProducto, p.nombre, p.sexo, p.tipoPublico, p.codigoIdentificacion, p.precioUnitario, " +
-           "t.idTalla, t.nombreTalla, " +
-           "c.idColor, c.nombre, " +
-           "cat.nombre, cat2.nombre " +
-           "FROM ProductoVariante pv " +
-           "JOIN pv.producto p " +
-           "LEFT JOIN p.categoria cat " +
-           "LEFT JOIN p.subCategoria2 cat2 " +
-           "JOIN pv.talla t " +
-           "JOIN pv.color c " +
-           "ORDER BY pv.idProductoVariante DESC")
+    String VARIANTE_CAJERO_COUNT_BASE = """
+            SELECT COUNT(*)
+            FROM producto_variante pv
+            INNER JOIN producto p ON p.id_producto = pv.id_producto
+            """;
+
+    @Query(nativeQuery = true,
+            value = VARIANTE_CAJERO_SELECT + " ORDER BY pv.id_producto_variante DESC",
+            countQuery = VARIANTE_CAJERO_COUNT_BASE)
     Page<Object[]> findVariantesPaginadasSinBusqueda(Pageable pageable);
 
-    // Paginación con búsqueda (prioriza coincidencias exactas por código)
-    @Query("SELECT pv.idProductoVariante, pv.codigoBarrasVariante, pv.cantidad, " +
-           "p.idProducto, p.nombre, p.sexo, p.tipoPublico, p.codigoIdentificacion, p.precioUnitario, " +
-           "t.idTalla, t.nombreTalla, " +
-           "c.idColor, c.nombre, " +
-           "cat.nombre, cat2.nombre " +
-           "FROM ProductoVariante pv " +
-           "JOIN pv.producto p " +
-           "LEFT JOIN p.categoria cat " +
-           "LEFT JOIN p.subCategoria2 cat2 " +
-           "JOIN pv.talla t " +
-           "JOIN pv.color c " +
-           "WHERE (pv.codigoBarrasVariante = :busqueda " +
-           "   OR p.codigoIdentificacion = :busqueda " +
-           "   OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) " +
-           "   OR LOWER(pv.codigoBarrasVariante) LIKE LOWER(CONCAT('%', :busqueda, '%')) " +
-           "   OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%'))) " +
-           "ORDER BY pv.idProductoVariante DESC")
+    @Query(nativeQuery = true,
+            value = VARIANTE_CAJERO_SELECT
+                    + """
+                    WHERE (
+                      :busqueda IS NULL OR :busqueda = '' OR
+                      pv.codigo_barras ILIKE CONCAT('%', :busqueda, '%') OR
+                      pv.sku ILIKE CONCAT('%', :busqueda, '%') OR
+                      pv.color ILIKE CONCAT('%', :busqueda, '%') OR
+                      pv.talla ILIKE CONCAT('%', :busqueda, '%') OR
+                      p.codigo_identificacion ILIKE CONCAT('%', :busqueda, '%') OR
+                      p.nombre ILIKE CONCAT('%', :busqueda, '%')
+                    )
+                    ORDER BY pv.id_producto_variante DESC
+                    """,
+            countQuery = VARIANTE_CAJERO_COUNT_BASE
+                    + """
+                    WHERE (
+                      :busqueda IS NULL OR :busqueda = '' OR
+                      pv.codigo_barras ILIKE CONCAT('%', :busqueda, '%') OR
+                      pv.sku ILIKE CONCAT('%', :busqueda, '%') OR
+                      pv.color ILIKE CONCAT('%', :busqueda, '%') OR
+                      pv.talla ILIKE CONCAT('%', :busqueda, '%') OR
+                      p.codigo_identificacion ILIKE CONCAT('%', :busqueda, '%') OR
+                      p.nombre ILIKE CONCAT('%', :busqueda, '%')
+                    )
+                    """)
     Page<Object[]> findVariantesPaginadasConBusqueda(@Param("busqueda") String busqueda, Pageable pageable);
+
+    @Query(nativeQuery = true, value = VARIANTE_CAJERO_SELECT + " ORDER BY pv.id_producto_variante DESC")
+    List<Object[]> findAllVariantesConInformacionCompleta();
 }

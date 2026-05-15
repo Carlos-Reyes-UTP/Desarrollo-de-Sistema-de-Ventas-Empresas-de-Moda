@@ -1,8 +1,7 @@
 package com.tienda.ropa.controller;
 
-import com.tienda.ropa.entity.Color;
+import com.tienda.ropa.dto.MigrarVariantesRequest;
 import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.entity.Talla;
 import com.tienda.ropa.service.ProductoVarianteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -20,6 +19,15 @@ public class ProductoVarianteController {
 
     @Autowired
     private ProductoVarianteService productoVarianteService;
+
+    /**
+     * Listado completo de variantes (sugerencias de talla/color en formularios, inventario).
+     * Ruta explícita para no colisionar con {@code GET /{id}}.
+     */
+    @GetMapping("/todas")
+    public ResponseEntity<List<ProductoVariante>> obtenerTodasLasVariantes() {
+        return ResponseEntity.ok(productoVarianteService.obtenerTodasLasVariantes());
+    }
 
     @PostMapping
     public ResponseEntity<ProductoVariante> crearVariante(@RequestBody ProductoVariante productoVariante) {
@@ -47,28 +55,28 @@ public class ProductoVarianteController {
         return ResponseEntity.ok(variantes);
     }
 
-    @GetMapping("/producto/{idProducto}/talla/{idTalla}")
+    @GetMapping("/producto/{idProducto}/talla")
     public ResponseEntity<List<ProductoVariante>> obtenerVariantesPorProductoYTalla(
             @PathVariable Long idProducto,
-            @PathVariable Long idTalla) {
-        List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProductoYTalla(idProducto, idTalla);
+            @RequestParam("nombre") String nombreTalla) {
+        List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProductoYTallaNombre(idProducto, nombreTalla);
         return ResponseEntity.ok(variantes);
     }
 
-    @GetMapping("/producto/{idProducto}/color/{idColor}")
+    @GetMapping("/producto/{idProducto}/color")
     public ResponseEntity<List<ProductoVariante>> obtenerVariantesPorProductoYColor(
             @PathVariable Long idProducto,
-            @PathVariable Long idColor) {
-        List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProductoYColor(idProducto, idColor);
+            @RequestParam("nombre") String nombreColor) {
+        List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProductoYColorNombre(idProducto, nombreColor);
         return ResponseEntity.ok(variantes);
     }
 
-    @GetMapping("/producto/{idProducto}/talla/{idTalla}/color/{idColor}")
+    @GetMapping("/producto/{idProducto}/combinacion")
     public ResponseEntity<ProductoVariante> obtenerVariantePorProductoTallaColor(
             @PathVariable Long idProducto,
-            @PathVariable Long idTalla,
-            @PathVariable Long idColor) {
-        Optional<ProductoVariante> variante = productoVarianteService.obtenerVariantePorProductoTallaColor(idProducto, idTalla, idColor);
+            @RequestParam String talla,
+            @RequestParam String color) {
+        Optional<ProductoVariante> variante = productoVarianteService.obtenerVariantePorProductoTallaColorNombre(idProducto, talla, color);
         return variante.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -90,15 +98,12 @@ public class ProductoVarianteController {
             productoVarianteService.eliminarVariante(idVariante);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException e) {
-            // Error por variante no encontrada
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", e.getMessage()));
         } catch (IllegalStateException e) {
-            // Error al eliminar la variante
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
-            // Error inesperado
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Error inesperado al eliminar la variante: " + e.getMessage()));
         }
@@ -113,11 +118,10 @@ public class ProductoVarianteController {
     @PostMapping("/producto/{idProducto}/migrar")
     public ResponseEntity<List<ProductoVariante>> migrarProductoAVariantes(
             @PathVariable Long idProducto,
-            @RequestBody List<Talla> tallas,
-            @RequestBody List<Color> colores,
+            @RequestBody MigrarVariantesRequest body,
             @RequestParam(defaultValue = "false") boolean distribucionPorcentual) {
         List<ProductoVariante> variantes = productoVarianteService.migrarProductoAVariantes(
-                idProducto, tallas, colores, distribucionPorcentual);
+                idProducto, body.tallas(), body.colores(), distribucionPorcentual);
         return ResponseEntity.ok(variantes);
     }
 }

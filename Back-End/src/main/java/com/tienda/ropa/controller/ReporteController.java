@@ -173,9 +173,9 @@ public class ReporteController {
     @GetMapping("/producto/variantes-por-color")
     public ResponseEntity<List<VariantesPorColorDTO>> obtenerVariantesPorColor(
             @RequestParam Long idProducto,
-            @RequestParam Long idTalla) {
+            @RequestParam String nombreTalla) {
         try {
-            List<VariantesPorColorDTO> variantes = reporteService.obtenerVariantesPorColor(idProducto, idTalla);
+            List<VariantesPorColorDTO> variantes = reporteService.obtenerVariantesPorColor(idProducto, nombreTalla);
             return ResponseEntity.ok(variantes);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

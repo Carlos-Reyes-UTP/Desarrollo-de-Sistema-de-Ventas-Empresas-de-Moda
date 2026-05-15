@@ -3,6 +3,7 @@ package com.tienda.ropa.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.PageRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,11 +13,11 @@ import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Proveedores;
 import com.tienda.ropa.repository.CategoriaRepository;
-import com.tienda.ropa.repository.ColorRepository;
 import com.tienda.ropa.repository.ProductoRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.ProveedoresRepository;
-import com.tienda.ropa.repository.TallaRepository;
+import com.tienda.ropa.service.InventarioUbicacionService;
+import com.tienda.ropa.service.ProductoVarianteService;
 
 @Service
 public class ProductoService {
@@ -34,10 +35,12 @@ public class ProductoService {
     private ProductoVarianteRepository productoVarianteRepository;
 
     @Autowired
-    private TallaRepository tallaRepository;
+    private InventarioUbicacionService inventarioUbicacionService;
 
     @Autowired
-    private ColorRepository colorRepository;    @Transactional
+    private ProductoVarianteService productoVarianteService;
+
+    @Transactional
     public Producto agregarProducto(Producto producto) {
         // Validar y configurar las categorías correctamente
         configurarCategorias(producto);
@@ -129,6 +132,7 @@ public class ProductoService {
             // Actualizar todas las propiedades del producto
             producto.setCodigoIdentificacion(productoActualizado.getCodigoIdentificacion());
             producto.setNombre(productoActualizado.getNombre());
+            producto.setDescripcion(productoActualizado.getDescripcion());
             producto.setSexo(productoActualizado.getSexo());
             producto.setTipoPublico(productoActualizado.getTipoPublico());
             producto.setCategoria(productoActualizado.getCategoria());
@@ -239,6 +243,18 @@ public class ProductoService {
         return productoRepository.findByNombre(nombre);
     }
 
+    /**
+     * Coincidencias por fragmento de nombre (no sensible a mayúsculas), ordenadas por nombre.
+     */
+    public List<Producto> buscarProductosPorNombreContiene(String fragmento, int limite) {
+        if (fragmento == null || fragmento.isBlank()) {
+            return List.of();
+        }
+        int n = Math.max(1, Math.min(limite, 20));
+        return productoRepository.findByNombreContainingIgnoreCaseOrderByNombreAsc(
+                fragmento.trim(), PageRequest.of(0, n));
+    }
+
     @Transactional
     public Producto actualizarProductoConVariantes(Long idProducto, Producto productoActualizado, List<ProductoVariante> variantes) {
         // Primero, actualizar el producto principal
@@ -270,39 +286,48 @@ public class ProductoService {
                     v.setTalla(variante.getTalla());
                     v.setColor(variante.getColor());
                     v.setCantidad(variante.getCantidad());
-                    v.setCodigoBarrasVariante(variante.getCodigoBarrasVariante());
+                    v.setCodigoBarras(variante.getCodigoBarras());
+                    v.setSku(variante.getSku());
                     productoVarianteRepository.save(v);
+                    inventarioUbicacionService.establecerStockAlmacen(
+                            v.getIdProductoVariante(), v.getCantidad() != null ? v.getCantidad() : 0);
                 }
             } else {
                 // Verificar si ya existe una variante con la misma talla y color
-                Optional<ProductoVariante> varianteExistente = productoVarianteRepository.findByProductoAndTallaAndColor(
-                        productoGuardado, variante.getTalla(), variante.getColor());
+                Optional<ProductoVariante> varianteExistente =
+                        productoVarianteRepository.findByProducto_IdProductoAndTallaIgnoreCaseAndColorIgnoreCase(
+                                productoGuardado.getIdProducto(), variante.getTalla(), variante.getColor());
                 
                 if (varianteExistente.isPresent()) {
                     // Actualizar la cantidad y código de la variante existente
                     ProductoVariante v = varianteExistente.get();
                     v.setCantidad(variante.getCantidad());
-                    if (variante.getCodigoBarrasVariante() != null) {
-                        v.setCodigoBarrasVariante(variante.getCodigoBarrasVariante());
+                    if (variante.getCodigoBarras() != null) {
+                        v.setCodigoBarras(variante.getCodigoBarras());
                     }
                     productoVarianteRepository.save(v);
+                    inventarioUbicacionService.establecerStockAlmacen(
+                            v.getIdProductoVariante(), v.getCantidad() != null ? v.getCantidad() : 0);
                 } else {
                     // Es una nueva variante, crearla
-                    // Generar código de barras si no tiene
-                    if (variante.getCodigoBarrasVariante() == null || variante.getCodigoBarrasVariante().isEmpty()) {
-                        String codigo = productoGuardado.getCodigoIdentificacion() + "-" + 
-                                variante.getTalla().getNombreTalla() + "-" + 
-                                variante.getColor().getNombre();
-                        variante.setCodigoBarrasVariante(codigo);
+                    variante.setProducto(productoGuardado);
+                    if (variante.getCodigoBarras() == null || variante.getCodigoBarras().isEmpty()) {
+                        String codigo = productoGuardado.getCodigoIdentificacion() + "-" +
+                                variante.getTalla() + "-" +
+                                variante.getColor();
+                        variante.setCodigoBarras(codigo);
                     }
-                    productoVarianteRepository.save(variante);
+                    if (variante.getCantidad() == null) {
+                        variante.setCantidad(0);
+                    }
+                    productoVarianteService.crearVariante(variante);
                 }
             }
         }
         
         // Actualizar la cantidad total del producto sumando todas las variantes
         Integer cantidadTotal = productoVarianteRepository.findByProducto(productoGuardado).stream()
-                .mapToInt(ProductoVariante::getCantidad)
+                .mapToInt(v -> inventarioUbicacionService.stockTotalVariante(v.getIdProductoVariante()))
                 .sum();
         productoGuardado.setCantidad(cantidadTotal);
         productoRepository.save(productoGuardado);

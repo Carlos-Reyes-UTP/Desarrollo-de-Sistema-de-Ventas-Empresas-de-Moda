@@ -1,5 +1,7 @@
 import { Search, X, Loader2, Plus, ChevronLeft, ChevronRight, Tag, Barcode } from 'lucide-react';
-import type { ProductoVariante } from '../../../interfaces/ProductoVariante';
+import type { ProductoVariante } from '../../../types/ProductoVariante';
+import { BorderBeam } from 'border-beam';
+import { Card } from '@/shared/ui';
 
 interface CatalogoSectionProps {
   variantesFiltradas: ProductoVariante[];
@@ -17,7 +19,6 @@ interface CatalogoSectionProps {
   handleSeleccionarVarianteDeLista: (v: ProductoVariante) => void;
   totalPaginas: number;
   paginaActual: number;
-  setPaginaActual: (val: number | ((prev: number) => number)) => void;
   totalElementos: number;
   handleCambiarPagina: (page: number) => void;
 }
@@ -38,7 +39,6 @@ export const CatalogoSection = ({
   handleSeleccionarVarianteDeLista,
   totalPaginas,
   paginaActual,
-  setPaginaActual,
   totalElementos,
   handleCambiarPagina
 }: CatalogoSectionProps) => {
@@ -80,43 +80,47 @@ export const CatalogoSection = ({
           </div>
         </div>
         
-        {/* Barra de búsqueda profesional */}
-        <div className="relative mb-12">
-          <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-            <Search size={20} className="text-gray-300" />
-          </div>
-          <input 
-            type="text" 
-            className="w-full pl-14 pr-40 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all placeholder:text-gray-300 tracking-wider shadow-inner"
-            placeholder={tipoBusqueda === 'nombre' ? "Búsqueda por nombre de producto..." : "Escanear código de barras..."} 
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter' && busqueda.trim()) {
-                const esPosibleCodigo = tipoBusqueda === 'codigo' || (/^[A-Za-z0-9-_]{6,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" "));
-                if (esPosibleCodigo) handleBuscarPorCodigoExacto(busqueda.trim());
-                else handleBuscarEnServicio();
-              }
-            }} 
-          />
-          
-          <div className="absolute inset-y-0 right-3 flex items-center gap-2">
-            {busqueda && (
-              <button
-                className="p-2 text-gray-300 hover:text-black transition-colors"
-                onClick={() => { setBusqueda(''); setMensajeInfoVista(null); }}
-              >
-                <X size={18} />
-              </button>
-            )}
-            <button 
-              className="px-6 py-2.5 bg-black text-white rounded-[1rem] text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 disabled:bg-gray-200 transition-all shadow-lg active:scale-95"
-              onClick={handleBuscarEnServicio} 
-              disabled={cargandoBusquedaAccion || !busqueda.trim()}
-            >
-              {cargandoBusquedaAccion ? <Loader2 className="animate-spin" size={16}/> : 'Buscar'}
-            </button>
-          </div>
+        {/* Barra de búsqueda profesional con BorderBeam */}
+        <div className="mb-12">
+          <BorderBeam size="line" colorVariant="colorful" duration={2.4} strength={0.83}>
+            <Card className="relative">
+              <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                <Search size={20} className="text-gray-300" />
+              </div>
+              <input 
+                type="text" 
+                className="w-full pl-14 pr-40 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all placeholder:text-gray-300 tracking-wider shadow-inner"
+                placeholder={tipoBusqueda === 'nombre' ? "Búsqueda por nombre de producto..." : "Escanear código de barras..."} 
+                value={busqueda}
+                onChange={(e) => setBusqueda(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && busqueda.trim()) {
+                    const esPosibleCodigo = tipoBusqueda === 'codigo' || (/^[A-Za-z0-9-_]{6,}$/.test(busqueda.trim()) && !busqueda.trim().includes(" "));
+                    if (esPosibleCodigo) handleBuscarPorCodigoExacto(busqueda.trim());
+                    else handleBuscarEnServicio();
+                  }
+                }} 
+              />
+              
+              <div className="absolute inset-y-0 right-3 flex items-center gap-2">
+                {busqueda && (
+                  <button
+                    className="p-2 text-gray-300 hover:text-black transition-colors"
+                    onClick={() => { setBusqueda(''); setMensajeInfoVista(null); }}
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+                <button 
+                  className="px-6 py-2.5 bg-black text-white rounded-[1rem] text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 disabled:bg-gray-200 transition-all shadow-lg active:scale-95"
+                  onClick={handleBuscarEnServicio} 
+                  disabled={cargandoBusquedaAccion || !busqueda.trim()}
+                >
+                  {cargandoBusquedaAccion ? <Loader2 className="animate-spin" size={16}/> : 'Buscar'}
+                </button>
+              </div>
+            </Card>
+          </BorderBeam>
         </div>
         
         {/* Catalog Grid */}

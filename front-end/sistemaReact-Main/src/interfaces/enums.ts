@@ -1,1 +1,0 @@
-export type RolNombre = 'ROLE_ADMIN' | 'ROLE_ALMACENERO' | 'ROLE_CAJERO';

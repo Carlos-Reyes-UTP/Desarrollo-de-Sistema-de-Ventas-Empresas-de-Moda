@@ -1,30 +1,33 @@
 import { useMemo, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { ProductoVarianteService } from '../services/ProductoVarianteService';
+import type { Rol } from '../types/Usuario';
 
-export const useProductoVarianteService = (forSales: boolean = false) => {
+/** Prioriza inventario sobre cajero cuando el JWT trae varios roles. */
+export function resolveInventarioUserRole(roles: Rol[] | undefined): string | undefined {
+  const nombres = (roles ?? []).map((r) => r.nombreRol);
+  if (nombres.length === 0) return undefined;
+  if (nombres.includes('ROLE_ADMIN')) return 'ROLE_ADMIN';
+  if (nombres.includes('ROLE_ALMACENERO')) return 'ROLE_ALMACENERO';
+  if (nombres.includes('ROLE_VENDEDOR')) return 'ROLE_VENDEDOR';
+  if (nombres.includes('ROLE_CAJERO')) return 'ROLE_CAJERO';
+  return nombres[0];
+}
+
+export const useProductoVarianteService = () => {
   const { usuario } = useAuth();
-  
-  // Get the user's primary role
-  const getUserRole = useCallback((): string | undefined => {
-    console.log("DEBUG: getUserRole called. usuario:", usuario);
-    console.log("DEBUG: usuario?.roles:", usuario?.roles);
-    
-    if (!usuario?.roles?.length) {
-      console.log("DEBUG: No roles found");
-      return undefined;
-    }
-    // Return the first role (could be enhanced to handle multiple roles)
-    const role = usuario.roles[0].nombreRol;
-    console.log("DEBUG: Found role:", role);
-    return role;
-  }, [usuario]);
 
-  const userRole = useMemo(() => {
-    const role = getUserRole();
-    console.log("DEBUG: userRole computed as:", role);
-    return role;
-  }, [getUserRole]);
+  /** Nombres de rol del token (puede haber varios). */
+  const nombresRoles = useMemo(
+    () => (usuario?.roles ?? []).map((r) => r.nombreRol),
+    [usuario?.roles]
+  );
+
+  /**
+   * Rol preferido para lógica de API: el de mayor privilegio para inventario,
+   * no el primero del array (orden del JWT podía dejar CAJERO delante de ALMACENERO).
+   */
+  const userRole = useMemo((): string | undefined => resolveInventarioUserRole(usuario?.roles), [usuario?.roles]);
 
   // Memoize the functions to prevent unnecessary re-renders
   const obtenerVariantesPorProducto = useCallback(
@@ -36,22 +39,6 @@ export const useProductoVarianteService = (forSales: boolean = false) => {
     (id: number) => ProductoVarianteService.obtenerVariantePorId(id), 
     []
   );
-
-  // Método personalizado para obtener todas las variantes disponibles
-  const getAllVariantes = useCallback(async () => {
-    try {
-      console.log("DEBUG: getAllVariantes called. Current userRole:", userRole, "forSales:", forSales);
-      console.log("DEBUG: Usuario actual:", usuario);
-      
-      // Usar el nuevo método optimizado del servicio
-      const variantes = await ProductoVarianteService.obtenerTodasLasVariantes(userRole, forSales);
-      console.log("DEBUG: getAllVariantes success. Variantes count:", variantes.length);
-      return variantes;
-    } catch (error) {
-      console.error("Error al obtener todas las variantes:", error);
-      throw error;
-    }
-  }, [userRole, usuario, forSales]);
 
   // NUEVO: Método para búsqueda paginada y optimizada en servidor
   const getVariantesPaginadas = useCallback(async (page: number = 0, size: number = 30, busqueda?: string) => {
@@ -67,7 +54,6 @@ export const useProductoVarianteService = (forSales: boolean = false) => {
     // Read operations (memoized)
     obtenerVariantesPorProducto,
     obtenerVariantePorId,
-    getAllVariantes,
     getVariantesPaginadas,
     
     // Write operations
@@ -78,16 +64,18 @@ export const useProductoVarianteService = (forSales: boolean = false) => {
     
     // User info
     userRole,
-    canWrite: userRole === 'ROLE_ADMIN' || userRole === 'ROLE_ALMACENERO',
-    canRead: !!userRole, // Any authenticated user can read
-    isAdmin: userRole === 'ROLE_ADMIN',
-    isCajero: userRole === 'ROLE_CAJERO',
-    isAlmacenero: userRole === 'ROLE_ALMACENERO',
+    canWrite: nombresRoles.some(
+      (r) => r === 'ROLE_ADMIN' || r === 'ROLE_ALMACENERO' || r === 'ROLE_VENDEDOR'
+    ),
+    canRead: nombresRoles.length > 0,
+    isAdmin: nombresRoles.includes('ROLE_ADMIN'),
+    isCajero: nombresRoles.includes('ROLE_CAJERO'),
+    isAlmacenero: nombresRoles.includes('ROLE_ALMACENERO'),
   }), [
     obtenerVariantesPorProducto,
     obtenerVariantePorId,
-    getAllVariantes,
+    getVariantesPaginadas,
     userRole,
-    forSales
+    nombresRoles,
   ]);
 };

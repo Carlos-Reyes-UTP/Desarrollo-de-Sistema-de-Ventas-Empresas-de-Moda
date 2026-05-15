@@ -8,7 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
-import { AlertModal } from '../common';
+import { AlertModal } from '@/shared/ui';
 
 // Interfaz local para el componente hasta que se alinee con el backend
 interface ResumenVentasLocal {
@@ -44,7 +44,7 @@ const ResumenGeneral: React.FC = () => {
           const backendData = await ReporteService.getResumenGeneral();
 
           // Siempre obtener las ventas reales para tener datos correctos
-          const { VentaService } = await import('../../services/VentaServices');
+          const { VentaService } = await import('../../services/VentaService');
           const todasLasVentas = await VentaService.obtenerTodasVentas();
           console.log('🔍 Ventas obtenidas:', todasLasVentas);
           
@@ -80,7 +80,7 @@ const ResumenGeneral: React.FC = () => {
 
           // Obtener cantidad de clientes registrados
           try {
-            const { ClienteService } = await import('../../services/ClienteServices');
+            const { ClienteService } = await import('../../services/ClienteService');
             const clientes = await ClienteService.obtenerTodosClientes();
             console.log('🔍 Clientes obtenidos:', clientes);
             
@@ -102,7 +102,7 @@ const ResumenGeneral: React.FC = () => {
           console.warn('⚠️ No se pudo acceder al resumen del backend, calculando desde ventas:', backendError);
 
           // Si el backend no está disponible o da 403, calcular desde las ventas
-          const { VentaService } = await import('../../services/VentaServices');
+          const { VentaService } = await import('../../services/VentaService');
           const todasLasVentas = await VentaService.obtenerTodasVentas();
           console.log('🔍 Ventas obtenidas (fallback):', todasLasVentas);
 
@@ -137,7 +137,7 @@ const ResumenGeneral: React.FC = () => {
 
             // Obtener cantidad de clientes registrados
             try {
-              const { ClienteService } = await import('../../services/ClienteServices');
+              const { ClienteService } = await import('../../services/ClienteService');
               const clientes = await ClienteService.obtenerTodosClientes();
               console.log('🔍 Clientes obtenidos (fallback):', clientes);
               

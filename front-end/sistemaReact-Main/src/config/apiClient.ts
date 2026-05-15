@@ -78,20 +78,23 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Interceptor de respuesta para manejar errores comunes
-// NOTA: El manejo de 401 se hace en AuthContext para evitar bucles infinitos
+// Interceptor de respuesta: 401 aquí (esta instancia es la que usan los servicios).
+// El axios "por defecto" no recibe estas respuestas; antes el token quedaba huérfano.
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response) {
       const { status } = error.response;
 
-      // Handle unauthorized - Comentado para evitar conflicto con AuthContext
-      // if (status === 401) {
-      //   localStorage.removeItem('token');
-      //   currentToken = null;
-      //   // ... resto del manejo
-      // }
+      if (status === 401) {
+        localStorage.removeItem('token');
+        setAuthToken(null);
+        const path = window.location.pathname;
+        if (path !== '/login' && !path.endsWith('/login')) {
+          window.location.assign(`${window.location.origin}/login`);
+        }
+        return Promise.reject(error);
+      }
 
       // Handle server unavailable (cuando el servidor está apagado)
       if (status >= 500 || error.code === 'ECONNREFUSED' || error.code === 'ERR_NETWORK') {

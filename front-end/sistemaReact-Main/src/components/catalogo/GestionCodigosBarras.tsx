@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Trash2, BarChart3, Scan, X, AlertCircle, CheckCircle } from 'lucide-react';
-import type { Producto } from '../../interfaces/Producto';
-import type { ProductoVariante } from '../../interfaces/ProductoVariante';
-import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../interfaces/CodigoBarras';
+import type { Producto } from '../../types/Producto';
+import type { ProductoVariante } from '../../types/ProductoVariante';
+import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../types/CodigoBarras';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
-import { ConfirmModal } from '../common';
+import { ConfirmModal } from '@/shared/ui';
 
 interface GestionCodigosBarrasProps {
   producto?: Producto;

@@ -6,5 +6,6 @@ import lombok.Getter;
 public enum Role {
     ADMIN,
     ALMACENERO,
-    CAJERO
+    CAJERO,
+    VENDEDOR
 }

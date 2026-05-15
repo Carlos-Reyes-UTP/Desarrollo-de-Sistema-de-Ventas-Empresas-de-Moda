@@ -11,7 +11,7 @@ const VentasPanel = () => {
   const ventas = useVentas();
 
   return (
-    <div className="p-10 max-w-[1700px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left font-sans">
+    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent min-h-screen animate-fadeIn text-left font-sans">
       {/* SECCIÓN 0: NOTIFICACIONES */}
       {ventas.errorGlobal && <NotificationToast title="Error" message={ventas.errorGlobal} variant="error" topClassName="top-4" onClose={() => ventas.setErrorGlobal(null)} />}
       
@@ -100,7 +100,6 @@ const VentasPanel = () => {
             handleSeleccionarVarianteDeLista={ventas.handleSeleccionarVarianteDeLista}
             totalPaginas={ventas.totalPaginas}
             paginaActual={ventas.paginaActual}
-            setPaginaActual={ventas.setPaginaActual}
             totalElementos={ventas.totalElementos}
             handleCambiarPagina={ventas.handleCambiarPagina}
           />

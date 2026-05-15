@@ -99,32 +99,22 @@ export const RUTAS_METODOS_PAGO = {
   // POR_ID: (id: number) => `${API_BASE_URL}/api/cajero/metodos-pago/${id}`,
 };
 
-// Rutas de Colores
-export const RUTAS_COLORES = {
-  BASE: `${API_BASE_URL}/api/almacenero/colores`,
-  POR_ID: (id: number) => `${API_BASE_URL}/api/almacenero/colores/${id}`,
-  BUSCAR: (nombre: string) => `${API_BASE_URL}/api/almacenero/colores/buscar?nombre=${encodeURIComponent(nombre)}`,
-};
-
-// Rutas de Tallas
-export const RUTAS_TALLAS = {
-  BASE: `${API_BASE_URL}/api/almacenero/tallas`,
-  POR_ID: (id: number) => `${API_BASE_URL}/api/almacenero/tallas/${id}`,
-  BUSCAR: (nombre: string) => `${API_BASE_URL}/api/almacenero/tallas/buscar?nombre=${encodeURIComponent(nombre)}`,
-  ORDENADAS: `${API_BASE_URL}/api/almacenero/tallas/ordenadas`,
-};
-
-// Rutas de Variantes de Productos
+// Rutas de Métodos de Pago (TODO: Implementar controlador en backend)
 export const RUTAS_VARIANTES = {
   BASE: `${API_BASE_URL}/api/almacenero/variantes`,
+  /** GET: listado completo (alineado con ProductoVarianteController /todas) */
+  TODAS: `${API_BASE_URL}/api/almacenero/variantes/todas`,
   POR_ID: (id: number) => `${API_BASE_URL}/api/almacenero/variantes/${id}`,
   POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}`,
-  POR_PRODUCTO_Y_TALLA: (idProducto: number, idTalla: number) => 
-    `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/talla/${idTalla}`,
-  POR_PRODUCTO_Y_COLOR: (idProducto: number, idColor: number) => 
-    `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/color/${idColor}`,
-  POR_PRODUCTO_TALLA_COLOR: (idProducto: number, idTalla: number, idColor: number) => 
-    `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/talla/${idTalla}/color/${idColor}`,
+  /** Filtro por nombre de talla (texto en variante), query `nombre` */
+  POR_PRODUCTO_Y_TALLA: (idProducto: number, nombreTalla: string) =>
+    `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/talla?nombre=${encodeURIComponent(nombreTalla)}`,
+  /** Filtro por nombre de color, query `nombre` */
+  POR_PRODUCTO_Y_COLOR: (idProducto: number, nombreColor: string) =>
+    `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/color?nombre=${encodeURIComponent(nombreColor)}`,
+  /** Combinación talla+color por texto */
+  POR_PRODUCTO_TALLA_COLOR: (idProducto: number, talla: string, color: string) =>
+    `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/combinacion?talla=${encodeURIComponent(talla)}&color=${encodeURIComponent(color)}`,
   ACTUALIZAR_CANTIDAD: (id: number) => `${API_BASE_URL}/api/almacenero/variantes/${id}/cantidad`,
   CANTIDAD_TOTAL_PRODUCTO: (idProducto: number) => 
     `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/cantidad-total`,
@@ -204,7 +194,49 @@ export const RUTAS_MAYORISTAS = {
   CREAR_DE_CLIENTE: (idCliente: number) => `${API_BASE_URL}/api/admin/mayoristas/cliente/${idCliente}`,
 };
 
-// Rutas de Dashboard (Agregación Server-Side)
+// Rutas de Almacén (pisos / áreas / traslados)
+/** Vendedor de piso: búsqueda por código, solicitudes a almacén (solo rol VENDEDOR) */
+export const RUTAS_VENDEDOR = {
+  CATALOGO_POR_CODIGO: (codigo: string) =>
+    `${API_BASE_URL}/api/vendedor/catalogo-por-codigo/${encodeURIComponent(codigo)}`,
+  CATALOGO_QUERY: (termino: string) =>
+    `${API_BASE_URL}/api/vendedor/catalogo?termino=${encodeURIComponent(termino)}`,
+  CATALOGO_POR_PRODUCTO: (idProducto: number) =>
+    `${API_BASE_URL}/api/vendedor/catalogo-por-producto/${idProducto}`,
+  CATALOGO_POR_VARIANTE: (idVariante: number) =>
+    `${API_BASE_URL}/api/vendedor/catalogo-por-variante/${idVariante}`,
+  SOLICITUDES: `${API_BASE_URL}/api/vendedor/solicitudes`,
+  MIS_SOLICITUDES: `${API_BASE_URL}/api/vendedor/solicitudes/mias`,
+};
+
+/** Tablero almacén: cola de solicitudes pendientes */
+export const RUTAS_ALMACENERO_SOLICITUDES = {
+  COLA: `${API_BASE_URL}/api/almacenero/solicitudes/cola`,
+  ATENDER: (id: number) => `${API_BASE_URL}/api/almacenero/solicitudes/${id}/atender`,
+  RECHAZAR: (id: number) => `${API_BASE_URL}/api/almacenero/solicitudes/${id}/rechazar`,
+};
+
+export const RUTAS_ALMACEN = {
+  PISOS: `${API_BASE_URL}/api/almacenero/ubicaciones/pisos`,
+  AREAS_POR_PISO: (nombrePiso: string) =>
+    `${API_BASE_URL}/api/almacenero/ubicaciones/pisos/${encodeURIComponent(nombrePiso)}/areas`,
+  RESUMEN_STOCK_PISO: (nombrePiso: string) =>
+    `${API_BASE_URL}/api/almacenero/ubicaciones/pisos/${encodeURIComponent(nombrePiso)}/resumen-stock`,
+  ORIGENES_POSIBLES: (idDestino: number) =>
+    `${API_BASE_URL}/api/almacenero/ubicaciones/origenes?destino=${idDestino}`,
+  STOCK_POR_UBICACION: (idUbicacion: number) =>
+    `${API_BASE_URL}/api/almacenero/ubicaciones/${idUbicacion}/stock`,
+  STOCK_DESDE_ALMACEN: `${API_BASE_URL}/api/almacenero/ubicaciones/stock/almacen`,
+  STOCK_ALMACEN_BUSCAR: (q: string, limit: number, soloAlmacen = false) => {
+    const params = new URLSearchParams();
+    params.set("q", q);
+    params.set("limit", String(limit));
+    if (soloAlmacen) params.set("soloAlmacen", "true");
+    return `${API_BASE_URL}/api/almacenero/ubicaciones/stock/almacen/buscar?${params.toString()}`;
+  },
+  TRASLADO: `${API_BASE_URL}/api/almacenero/inventario/traslado`,
+};
+
 export const RUTAS_DASHBOARD = {
   ESTADISTICAS: `${API_BASE_URL}/api/almacenero/dashboard/estadisticas`,
   DISTRIBUCION_CATEGORIAS: `${API_BASE_URL}/api/almacenero/dashboard/distribucion-categorias`,

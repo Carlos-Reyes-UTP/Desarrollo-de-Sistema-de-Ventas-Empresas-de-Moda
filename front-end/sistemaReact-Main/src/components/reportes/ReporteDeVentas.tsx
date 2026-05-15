@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Download, Calendar, TrendingUp, DollarSign, FileText, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import * as XLSX from 'xlsx';
-import { VentaService } from '../../services/VentaServices';
-import type { Venta } from '../../interfaces/Venta';
-import { AlertModal } from '../common';
+import { VentaService } from '../../services/VentaService';
+import type { Venta } from '../../types/Venta';
+import { AlertModal } from '@/shared/ui';
 
 interface ReporteData {
   fecha: string;

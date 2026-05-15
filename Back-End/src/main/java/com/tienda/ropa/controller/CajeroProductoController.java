@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.service.InventarioUbicacionService;
 import com.tienda.ropa.service.ProductoService;
 import com.tienda.ropa.service.ProductoVarianteService;
 
@@ -29,6 +30,9 @@ public class CajeroProductoController {
 
     @Autowired
     private ProductoVarianteService productoVarianteService;
+
+    @Autowired
+    private InventarioUbicacionService inventarioUbicacionService;
 
     // Obtener todas las variantes de productos (método principal para ventas)
     @GetMapping("/variantes")
@@ -73,8 +77,10 @@ public class CajeroProductoController {
     private Map<String, Object> mapearResultadoAVariante(Object[] resultado) {
         Map<String, Object> variante = new HashMap<>();
         variante.put("idProductoVariante", resultado[0]);
+        variante.put("codigoBarras", resultado[1]);
         variante.put("codigoBarrasVariante", resultado[1]);
         variante.put("cantidad", resultado[2]);
+        variante.put("sku", resultado[15]);
         
         Map<String, Object> producto = new HashMap<>();
         producto.put("idProducto", resultado[3]);
@@ -130,13 +136,14 @@ public class CajeroProductoController {
         }
 
         ProductoVariante variante = varianteOpt.get();
-        int nuevaCantidad = variante.getCantidad() - cantidad;
+        int stock = inventarioUbicacionService.stockTotalVariante(id);
 
-        if (nuevaCantidad < 0) {
+        if (stock < cantidad) {
             return ResponseEntity.badRequest().build(); // No hay suficiente stock
         }
 
-        ProductoVariante varianteActualizada = productoVarianteService.actualizarCantidad(id, nuevaCantidad);
+        inventarioUbicacionService.aplicarDeltaStockPrincipal(id, -cantidad);
+        ProductoVariante varianteActualizada = productoVarianteService.obtenerVariantePorId(id).orElse(variante);
         return ResponseEntity.ok(varianteActualizada);
     }
 

@@ -1,31 +1,102 @@
 import apiClient from '../config/apiClient';
 import { AxiosError } from 'axios';
-import type { ProductoVariante } from '../interfaces/ProductoVariante';
-import type { Color } from '../interfaces/Color';
-import type { Talla } from '../interfaces/Talla';
+import type { ProductoVariante } from '../types/ProductoVariante';
+import type { Talla } from '../types/Talla';
+import type { Color } from '../types/Color';
 import { RUTAS_VARIANTES, RUTAS_PRODUCTOS } from '../config/apiConfig';
+import { throwAuthError } from '../utils/handleApiError';
+import { logger } from '../utils/logger';
+
+/**
+ * Adaptador desde el backend.
+ *
+ * La entidad JPA `ProductoVariante` expone `talla` y `color` como `String`,
+ * mientras el endpoint del cajero (`CajeroProductoController#mapearResultadoAVariante`)
+ * los envuelve como objetos. Este normalizador unifica ambos formatos al shape
+ * que consume el front (`Talla` / `Color`) y sincroniza los IDs y el campo del
+ * código de barras (entidad: `codigoBarras`; cajero: `codigoBarrasVariante`).
+ */
+function normalizarVarianteDesdeBackend(raw: any): ProductoVariante {
+  if (!raw || typeof raw !== 'object') return raw;
+
+  let talla: Talla;
+  if (typeof raw.talla === 'string') {
+    talla = { nombreTalla: raw.talla };
+  } else if (raw.talla && typeof raw.talla === 'object') {
+    talla = { nombreTalla: '', ...raw.talla } as Talla;
+  } else {
+    talla = { nombreTalla: '' };
+  }
+
+  let color: Color;
+  if (typeof raw.color === 'string') {
+    color = { nombre: raw.color };
+  } else if (raw.color && typeof raw.color === 'object') {
+    color = { nombre: '', ...raw.color } as Color;
+  } else {
+    color = { nombre: '' };
+  }
+
+  const codigoBarrasVariante = raw.codigoBarrasVariante ?? raw.codigoBarras;
+  const idProductoVariante = raw.idProductoVariante ?? raw.idVariante;
+  const idVariante = raw.idVariante ?? raw.idProductoVariante;
+
+  return {
+    ...raw,
+    idProductoVariante,
+    idVariante,
+    talla,
+    color,
+    codigoBarrasVariante,
+  } as ProductoVariante;
+}
+
+/**
+ * Adapta el shape del front al contrato real de la entidad antes de enviarlo:
+ * aplana `talla`/`color` a `String`, reescribe `codigoBarrasVariante` →
+ * `codigoBarras` y reduce `producto` al mínimo que el back resuelve por id.
+ */
+function prepararPayloadParaBackend(variante: Partial<ProductoVariante>): Record<string, unknown> {
+  const tallaRaw = variante.talla as unknown;
+  const nombreTalla = typeof tallaRaw === 'string'
+    ? tallaRaw
+    : (tallaRaw as Talla | undefined)?.nombreTalla ?? '';
+
+  const colorRaw = variante.color as unknown;
+  const nombreColor = typeof colorRaw === 'string'
+    ? colorRaw
+    : (colorRaw as Color | undefined)?.nombre ?? '';
+
+  const codigoBarras = variante.codigoBarrasVariante ?? (variante as Record<string, unknown>).codigoBarras;
+
+  const productoMinimo = variante.producto?.idProducto != null
+    ? { idProducto: variante.producto.idProducto }
+    : variante.producto;
+
+  const payload: Record<string, unknown> = {
+    ...variante,
+    talla: nombreTalla,
+    color: nombreColor,
+    codigoBarras,
+    producto: productoMinimo,
+  };
+
+  delete payload.codigoBarrasVariante;
+  delete payload.idVariante;
+
+  return payload;
+}
 
 export const ProductoVarianteService = {    // Crear nueva variante
   crearVariante: async (variante: Omit<ProductoVariante, 'idVariante'>): Promise<ProductoVariante> => {
     try {
-      console.log("Creando nueva variante con datos:", variante);
-      const response = await apiClient.post<ProductoVariante>(RUTAS_VARIANTES.BASE, variante);
-      
-      // Normalizar los IDs: asegurar que idVariante refleje el ID real de BD
-      const varianteCreada = response.data;
-      if (varianteCreada.idProductoVariante && !varianteCreada.idVariante) {
-        varianteCreada.idVariante = varianteCreada.idProductoVariante;
-      }
-      
-      return varianteCreada;
+      const payload = prepararPayloadParaBackend(variante);
+      logger.debug('Creando nueva variante con datos:', payload);
+      const response = await apiClient.post<ProductoVariante>(RUTAS_VARIANTES.BASE, payload);
+      return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
-      console.error("Error al crear variante:", error);
-      if (error.response?.status === 401) {
-        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para crear variantes. Inicia sesión como Almacenero o Administrador.');
-      } else if (error.response?.status === 403) {
-        throw new Error('Error de permisos: No tienes autorización para crear variantes. Esta acción requiere rol de Almacenero o Administrador.');
-      }
-      throw error;
+      logger.error('Error al crear variante:', error);
+      throwAuthError(error, 'crear variantes');
     }
   },  // Actualizar variante completa
   actualizarVariante: async (id: number, variante: ProductoVariante): Promise<ProductoVariante> => {
@@ -34,67 +105,43 @@ export const ProductoVarianteService = {    // Crear nueva variante
         throw new Error('ID de variante inválido o indefinido');
       }
       
-      console.log(`Actualizando variante ID: ${id} con datos:`, variante);
-      
-      // Asegurar que el ID correcto esté en el payload
-      const varianteConId = {
-        ...variante,
-        idProductoVariante: id // El backend espera idProductoVariante como ID principal
+      const payload = {
+        ...prepararPayloadParaBackend(variante),
+        idProductoVariante: id,
       };
-      
-      const response = await apiClient.put<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id), varianteConId);
-      
-      // Normalizar la respuesta
-      const varianteActualizada = response.data;
-      if (varianteActualizada.idProductoVariante && !varianteActualizada.idVariante) {
-        varianteActualizada.idVariante = varianteActualizada.idProductoVariante;
-      }
-      
-      return varianteActualizada;
+      logger.debug(`Actualizando variante ID: ${id} con datos:`, payload);
+      const response = await apiClient.put<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id), payload);
+      return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
-      // Si es error 401/403, personalizar mensaje
-      if (error.response?.status === 401) {
-        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para actualizar variantes. Inicia sesión como Almacenero o Administrador.');
-      } else if (error.response?.status === 403) {
-        throw new Error('Error de permisos: No tienes autorización para actualizar variantes. Esta acción requiere rol de Almacenero o Administrador.');
-      } else if (error.response?.status === 404) {
-        throw new Error(`No se encontró la variante con ID: ${id}. Es posible que haya sido eliminada.`);
+      if (error.response?.status === 404) {
+        throw new Error(`No se encontro la variante con ID: ${id}. Es posible que haya sido eliminada.`);
       }
-      // Devolver error original si no es un error conocido
-      throw error;
+      throwAuthError(error, 'actualizar variantes');
     }
   },
   // Obtener variante por ID
   obtenerVariantePorId: async (id: number): Promise<ProductoVariante | null> => {
     try {
-      console.log(`Obteniendo variante con ID: ${id}`);
+      logger.debug(`Obteniendo variante con ID: ${id}`);
       const response = await apiClient.get<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id));
-      
-      // Normalizar IDs para consistencia
-      const variante = response.data;
-      if (variante.idProductoVariante && !variante.idVariante) {
-        variante.idVariante = variante.idProductoVariante;
-      }
-      
-      return variante;
+      return normalizarVarianteDesdeBackend(response.data);
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {
-        console.log(`No se encontró la variante con ID: ${id}`);
+        logger.debug(`No se encontro la variante con ID: ${id}`);
         return null;
       }
-      console.error(`Error al obtener variante ${id}:`, error);
+      logger.error(`Error al obtener variante ${id}:`, error);
       throw error;
     }
   },  // Obtener todas las variantes de un producto
   obtenerVariantesPorProducto: async (idProducto: number): Promise<ProductoVariante[]> => {
     try {
-      console.log(`Obteniendo variantes para producto ID: ${idProducto}`);
+      logger.debug(`Obteniendo variantes para producto ID: ${idProducto}`);
       const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.POR_PRODUCTO(idProducto));
       
-      // Imprimir la estructura de las primeras variantes recibidas para diagnóstico
       if (response.data.length > 0) {
         const primerVariante = response.data[0];
-        console.log(`Estructura de la primera variante para producto ${idProducto}:`, {
+        logger.debug(`Estructura de la primera variante para producto ${idProducto}:`, {
           idVariante: primerVariante.idVariante,
           idProductoVariante: primerVariante.idProductoVariante,
           tieneProducto: !!primerVariante.producto,
@@ -104,68 +151,62 @@ export const ProductoVarianteService = {    // Crear nueva variante
         });
       }
       
-      // Normalizar IDs y eliminar duplicados
-      const variantesMapeadas = response.data.map(variante => {
-        // Priorizar idProductoVariante como ID principal, sincronizar con idVariante
-        if (variante.idProductoVariante && !variante.idVariante) {
-          return {
-            ...variante,
-            idVariante: variante.idProductoVariante
-          };
-        }
-        return variante;
-      });
-      
-      // Eliminar duplicados basándose en idProductoVariante (ID real de BD)
+      const variantesMapeadas = response.data.map(normalizarVarianteDesdeBackend);
+
       const variantesUnicas = Array.from(
-        new Map(variantesMapeadas.map(v => [v.idProductoVariante || v.idVariante, v])).values()
+        new Map(variantesMapeadas.map(v => [v.idProductoVariante ?? v.idVariante, v])).values()
       );
       
-      console.log(`Variantes obtenidas: ${variantesUnicas.length}`);
+      logger.debug(`Variantes obtenidas: ${variantesUnicas.length}`);
       return variantesUnicas;
     } catch (error: any) {
-      console.error(`Error al obtener variantes para producto ${idProducto}:`, error);
+      logger.error(`Error al obtener variantes para producto ${idProducto}:`, error);
       
-      if (error.response?.status === 401) {
-        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para ver las variantes.');
-      } else if (error.response?.status === 403) {
-        throw new Error('Error de permisos: No tienes autorización para ver las variantes.');
-      } else if (error.response?.status === 404) {
-        // Si no se encuentran variantes, devolver un array vacío en lugar de error
-        console.log(`No se encontraron variantes para el producto ${idProducto}`);
+      if (error.response?.status === 404) {
+        logger.debug(`No se encontraron variantes para el producto ${idProducto}`);
         return [];
       }
+      throwAuthError(error, 'ver las variantes');
+    }
+  },
+
+  // Obtener variantes por producto y talla (nombre de talla como texto en BD)
+  obtenerVariantesPorProductoYTalla: async (idProducto: number, nombreTalla: string): Promise<ProductoVariante[]> => {
+    try {
+      const response = await apiClient.get<ProductoVariante[]>(
+        RUTAS_VARIANTES.POR_PRODUCTO_Y_TALLA(idProducto, nombreTalla)
+      );
+      return response.data.map(normalizarVarianteDesdeBackend);
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) return [];
       throw error;
     }
   },
 
-  // Obtener variantes por producto y talla
-  obtenerVariantesPorProductoYTalla: async (idProducto: number, idTalla: number): Promise<ProductoVariante[]> => {
-    const response = await apiClient.get<ProductoVariante[]>(
-      RUTAS_VARIANTES.POR_PRODUCTO_Y_TALLA(idProducto, idTalla)
-    );
-    return response.data;
+  // Obtener variantes por producto y color (nombre de color como texto en BD)
+  obtenerVariantesPorProductoYColor: async (idProducto: number, nombreColor: string): Promise<ProductoVariante[]> => {
+    try {
+      const response = await apiClient.get<ProductoVariante[]>(
+        RUTAS_VARIANTES.POR_PRODUCTO_Y_COLOR(idProducto, nombreColor)
+      );
+      return response.data.map(normalizarVarianteDesdeBackend);
+    } catch (error) {
+      if (error instanceof AxiosError && error.response?.status === 404) return [];
+      throw error;
+    }
   },
 
-  // Obtener variantes por producto y color
-  obtenerVariantesPorProductoYColor: async (idProducto: number, idColor: number): Promise<ProductoVariante[]> => {
-    const response = await apiClient.get<ProductoVariante[]>(
-      RUTAS_VARIANTES.POR_PRODUCTO_Y_COLOR(idProducto, idColor)
-    );
-    return response.data;
-  },
-
-  // Obtener variante específica por producto, talla y color
+  // Obtener variante específica por producto, talla y color (texto)
   obtenerVariantePorProductoTallaColor: async (
-    idProducto: number, 
-    idTalla: number, 
-    idColor: number
+    idProducto: number,
+    nombreTalla: string,
+    nombreColor: string
   ): Promise<ProductoVariante | null> => {
     try {
       const response = await apiClient.get<ProductoVariante>(
-        RUTAS_VARIANTES.POR_PRODUCTO_TALLA_COLOR(idProducto, idTalla, idColor)
+        RUTAS_VARIANTES.POR_PRODUCTO_TALLA_COLOR(idProducto, nombreTalla, nombreColor)
       );
-      return response.data;
+      return normalizarVarianteDesdeBackend(response.data);
     } catch (error) {
       if (error instanceof AxiosError && error.response?.status === 404) {
         return null;
@@ -185,32 +226,23 @@ export const ProductoVarianteService = {    // Crear nueva variante
         null,
         { params: { cantidad } }
       );
-      return response.data;
+      return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para actualizar la cantidad. Inicia sesión como Almacenero o Administrador.');
-      } else if (error.response?.status === 403) {
-        throw new Error('Error de permisos: No tienes autorización para actualizar la cantidad. Esta acción requiere rol de Almacenero o Administrador.');
-      }
-      throw error;
+      throwAuthError(error, 'actualizar la cantidad');
     }
   },
   // Eliminar variante
   eliminarVariante: async (id: number): Promise<void> => {
     try {
-      console.log(`Eliminando variante con ID: ${id}`);
+      logger.debug(`Eliminando variante con ID: ${id}`);
       await apiClient.delete(RUTAS_VARIANTES.POR_ID(id));
-      console.log(`Variante eliminada correctamente`);
+      logger.debug(`Variante eliminada correctamente`);
     } catch (error: any) {
-      console.error(`Error al eliminar variante ${id}:`, error);
-      if (error.response?.status === 401) {
-        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para eliminar variantes. Inicia sesión como Almacenero o Administrador.');
-      } else if (error.response?.status === 403) {
-        throw new Error('Error de permisos: No tienes autorización para eliminar variantes. Esta acción requiere rol de Almacenero o Administrador.');
-      } else if (error.response?.status === 404) {
-        throw new Error(`No se encontró la variante con ID: ${id}. Es posible que ya haya sido eliminada.`);
+      logger.error(`Error al eliminar variante ${id}:`, error);
+      if (error.response?.status === 404) {
+        throw new Error(`No se encontro la variante con ID: ${id}. Es posible que ya haya sido eliminada.`);
       }
-      throw error;
+      throwAuthError(error, 'eliminar variantes');
     }
   },
 
@@ -220,134 +252,92 @@ export const ProductoVarianteService = {    // Crear nueva variante
     return response.data;
   },
 
-  // Migrar producto existente a sistema de variantes
+  // Migrar producto existente a sistema de variantes (backend: listas de nombres como string)
   migrarProductoAVariantes: async (
     idProducto: number,
-    tallas: Talla[],
-    colores: Color[],    distribucionPorcentual: boolean = false
+    tallas: string[],
+    colores: string[],
+    distribucionPorcentual: boolean = false
   ): Promise<ProductoVariante[]> => {
     try {
-      const payload = {
-        tallas,
-        colores
-      };
+      const payload = { tallas, colores };
       const response = await apiClient.post<ProductoVariante[]>(
         RUTAS_VARIANTES.MIGRAR_PRODUCTO(idProducto),
         payload,
         { params: { distribucionPorcentual } }
       );
-      return response.data;
+      return response.data.map(normalizarVarianteDesdeBackend);
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw new Error('Error de autorización: Tu sesión ha expirado o no tienes permisos para migrar el producto. Inicia sesión como Almacenero o Administrador.');
-      } else if (error.response?.status === 403) {
-        throw new Error('Error de permisos: No tienes autorización para migrar el producto. Esta acción requiere rol de Almacenero o Administrador.');
-      }
-      throw error;
+      throwAuthError(error, 'migrar el producto');
     }
   },
 
   // Obtener todas las variantes (optimizado por rol y contexto)
   obtenerTodasLasVariantes: async (userRole?: string, forSales?: boolean): Promise<ProductoVariante[]> => {
+    const normalizedRole = userRole?.toUpperCase();
+    
+    let endpoint: string;
+    let isAlmaceneroEndpoint = false;
+    
+    if (forSales || normalizedRole === 'ROLE_CAJERO' || normalizedRole === 'CAJERO') {
+      endpoint = RUTAS_PRODUCTOS.CAJERO.VARIANTES;
+    } else {
+      endpoint = RUTAS_VARIANTES.TODAS;
+      isAlmaceneroEndpoint = true;
+    }
+    
     try {
-      console.log("DEBUG: obtenerTodasLasVariantes called with userRole:", userRole, "forSales:", forSales);
+      const response = await apiClient.get<ProductoVariante[]>(endpoint);
+      logger.debug(`Se obtuvieron ${response.data.length} variantes desde ${isAlmaceneroEndpoint ? 'almacenero' : 'cajero'}`);
+
+      const variantes = response.data.map(normalizarVarianteDesdeBackend);
       
-      // Decidir qué endpoint usar según el contexto y rol del usuario
-      let endpoint: string;
-      let isAlmaceneroEndpoint = false;
-      
-      // Normalizar el rol para la comparación
-      const normalizedRole = userRole?.toUpperCase();
-      console.log("DEBUG: normalized role:", normalizedRole);
-      
-      // Si es para ventas o el usuario es cajero, usar endpoint de cajero
-      if (forSales || normalizedRole === 'ROLE_CAJERO' || normalizedRole === 'CAJERO') {
-        // Para ventas (cualquier rol) o cajeros específicamente
-        endpoint = RUTAS_PRODUCTOS.CAJERO.VARIANTES;
-        console.log("DEBUG: Usando endpoint del cajero para ventas:", endpoint);
-      } else {
-        // Para gestión de almacén (almaceneros y admins)
-        endpoint = RUTAS_VARIANTES.BASE;
-        isAlmaceneroEndpoint = true;
-        console.log("DEBUG: Usuario almacenero/admin detectado (rol:", userRole, "), usando endpoint completo:", endpoint);
+      if (variantes.length > 0) {
+        logger.debug('Primera variante obtenida:', {
+          producto: variantes[0].producto ? variantes[0].producto.nombre : 'NO HAY PRODUCTO',
+          endpoint_usado: isAlmaceneroEndpoint ? 'almacenero' : 'cajero'
+        });
       }
       
-      try {
-        const response = await apiClient.get<ProductoVariante[]>(endpoint);
-        console.log(`DEBUG: Se obtuvieron ${response.data.length} variantes desde ${isAlmaceneroEndpoint ? 'almacenero' : 'cajero'}`);
+      return variantes;
+    } catch (primaryError: any) {
+      const status = primaryError.response?.status;
+      if ((status === 403 || status === 404) && isAlmaceneroEndpoint) {
+        logger.debug(`Error ${status} con endpoint de almacenero, intentando con cajero como fallback`);
         
-        // Normalizar IDs para consistencia
-        const variantes = response.data.map(variante => {
-          if (variante.idProductoVariante && !variante.idVariante) {
-            variante.idVariante = variante.idProductoVariante;
-          }
-          return variante;
-        });
+        const fallbackResponse = await apiClient.get<ProductoVariante[]>(RUTAS_PRODUCTOS.CAJERO.VARIANTES);
+        const variantes = fallbackResponse.data.map(normalizarVarianteDesdeBackend);
         
-        // Log de la primera variante para verificar estructura
-        if (variantes.length > 0) {
-          const primerVariante = variantes[0];
-          console.log("DEBUG: Primera variante obtenida:", {
-            producto: primerVariante.producto ? primerVariante.producto.nombre : 'NO HAY PRODUCTO',
-            endpoint_usado: isAlmaceneroEndpoint ? 'almacenero' : 'cajero'
-          });
-        }
+        logger.debug(`Se obtuvieron ${variantes.length} variantes desde endpoint del cajero (fallback)`);
+        logger.warn('Los precios de volumen pueden no estar disponibles con el endpoint del cajero');
         
         return variantes;
-      } catch (primaryError: any) {
-        console.log("DEBUG: Error con endpoint primario:", primaryError.response?.status);
-        
-        // Si es un error 403 y estábamos usando el endpoint de almacenero, intentar con cajero
-        if (primaryError.response?.status === 403 && isAlmaceneroEndpoint) {
-          console.log("DEBUG: Error 403 con endpoint de almacenero, intentando con cajero como fallback");
-          console.log("DEBUG: Usando endpoint de cajero como fallback:", RUTAS_PRODUCTOS.CAJERO.VARIANTES);
-          
-          const fallbackResponse = await apiClient.get<ProductoVariante[]>(RUTAS_PRODUCTOS.CAJERO.VARIANTES);
-          
-          // Normalizar IDs para consistencia
-          const variantes = fallbackResponse.data.map(variante => {
-            if (variante.idProductoVariante && !variante.idVariante) {
-              variante.idVariante = variante.idProductoVariante;
-            }
-            return variante;
-          });
-          
-          console.log(`DEBUG: Se obtuvieron ${variantes.length} variantes desde endpoint del cajero (fallback)`);
-          console.warn("⚠️ ADVERTENCIA: Los precios de volumen pueden no estar disponibles con el endpoint del cajero");
-          
-          return variantes;
-        }
-        
-        // Si no es un error 403 o no podemos hacer fallback, relanzar el error
-        throw primaryError;
       }
-    } catch (error) {
-      console.error("DEBUG: Error al obtener todas las variantes:", error);
-      throw error;
+      
+      throw primaryError;
     }
   },
 
   // Disminuir cantidad de variante (para ventas del cajero)
   disminuirCantidadVariante: async (id: number, cantidad: number): Promise<ProductoVariante> => {
     try {
-      console.log(`Disminuyendo ${cantidad} unidades de la variante ID: ${id}`);
+      logger.debug(`Disminuyendo ${cantidad} unidades de la variante ID: ${id}`);
       
-      // Siempre usar el endpoint del cajero para disminuir, ya que es el diseñado para esta operación
       const response = await apiClient.patch<ProductoVariante>(
         RUTAS_PRODUCTOS.CAJERO.DISMINUIR_VARIANTE(id),
         null,
         { params: { cantidad } }
       );
-      
-      console.log(`✅ Stock de variante ${id} reducido exitosamente en ${cantidad} unidades`);
-      return response.data;
+
+      logger.debug(`Stock de variante ${id} reducido exitosamente en ${cantidad} unidades`);
+      return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
       if (error.response?.status === 400) {
         throw new Error('Stock insuficiente para realizar la venta');
       } else if (error.response?.status === 404) {
-        throw new Error(`No se encontró la variante con ID: ${id}`);
+        throw new Error(`No se encontro la variante con ID: ${id}`);
       }
-      console.error(`❌ Error al disminuir cantidad de variante ${id}:`, error);
+      logger.error(`Error al disminuir cantidad de variante ${id}:`, error);
       throw error;
     }
   },
@@ -371,14 +361,8 @@ export const ProductoVarianteService = {    // Crear nueva variante
       }
       
       const response = await apiClient.get(RUTAS_PRODUCTOS.CAJERO.VARIANTES_PAGINADAS, { params });
-      
-      // Normalizar IDs en el contenido
-      const content = (response.data.content || []).map((variante: any) => {
-        if (variante.idProductoVariante && !variante.idVariante) {
-          variante.idVariante = variante.idProductoVariante;
-        }
-        return variante;
-      });
+
+      const content = (response.data.content || []).map(normalizarVarianteDesdeBackend);
       
       return {
         content,
@@ -388,7 +372,7 @@ export const ProductoVarianteService = {    // Crear nueva variante
         pageSize: response.data.pageSize,
       };
     } catch (error) {
-      console.error("Error al obtener variantes paginadas:", error);
+      logger.error('Error al obtener variantes paginadas:', error);
       throw error;
     }
   },

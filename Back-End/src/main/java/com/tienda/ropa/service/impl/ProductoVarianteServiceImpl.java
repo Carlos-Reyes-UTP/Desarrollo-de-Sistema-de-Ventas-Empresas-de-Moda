@@ -1,15 +1,12 @@
 package com.tienda.ropa.service.impl;
 
-import com.tienda.ropa.entity.Color;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.entity.Talla;
-import com.tienda.ropa.repository.ColorRepository;
 import com.tienda.ropa.repository.ProductoRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
-import com.tienda.ropa.repository.TallaRepository;
-import com.tienda.ropa.service.CodigoBarrasService;
+import com.tienda.ropa.service.InventarioUbicacionService;
 import com.tienda.ropa.service.ProductoVarianteService;
+import com.tienda.ropa.util.SkuNormalizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,41 +25,68 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     private ProductoRepository productoRepository;
 
     @Autowired
-    private TallaRepository tallaRepository;
-
-    @Autowired
-    private ColorRepository colorRepository;
-
-    @Autowired
-    private CodigoBarrasService codigoBarrasService;
+    private InventarioUbicacionService inventarioUbicacionService;
 
     @Override
+    @Transactional
     public ProductoVariante crearVariante(ProductoVariante productoVariante) {
-        // No crear variantes con talla 'Única' o color 'Único'
-        if (productoVariante.getTalla() != null && "Única".equalsIgnoreCase(productoVariante.getTalla().getNombreTalla())) {
+        if ("Única".equalsIgnoreCase(productoVariante.getTalla())) {
             throw new IllegalArgumentException("No se permite crear variantes con talla 'Única'");
         }
-        if (productoVariante.getColor() != null && "Único".equalsIgnoreCase(productoVariante.getColor().getNombre())) {
+        if ("Único".equalsIgnoreCase(productoVariante.getColor())) {
             throw new IllegalArgumentException("No se permite crear variantes con color 'Único'");
         }
-        if (productoVariante.getCodigoBarrasVariante() == null || productoVariante.getCodigoBarrasVariante().isEmpty()) {
-            Producto producto = productoVariante.getProducto();
-            Talla talla = productoVariante.getTalla();
-            Color color = productoVariante.getColor();
-            String codigo = producto.getCodigoIdentificacion() + "-" + talla.getNombreTalla() + "-" + color.getNombre();
-            productoVariante.setCodigoBarrasVariante(codigo);
+        Producto producto = productoRepository.findById(productoVariante.getProducto().getIdProducto())
+                .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+        productoVariante.setProducto(producto);
+        if (productoVariante.getCodigoBarras() == null || productoVariante.getCodigoBarras().isEmpty()) {
+            String codigo = producto.getCodigoIdentificacion() + "-" + productoVariante.getTalla() + "-" + productoVariante.getColor();
+            productoVariante.setCodigoBarras(codigo);
+        }
+        if (productoVariante.getCantidad() == null) {
+            productoVariante.setCantidad(0);
         }
         ProductoVariante guardada = productoVarianteRepository.save(productoVariante);
+        if (guardada.getSku() == null || guardada.getSku().isBlank()) {
+            guardada.setSku(SkuNormalizer.buildSku(
+                    guardada.getProducto().getCodigoIdentificacion(),
+                    guardada.getColor(),
+                    guardada.getTalla(),
+                    guardada.getIdProductoVariante()));
+            guardada = productoVarianteRepository.save(guardada);
+        }
+        inventarioUbicacionService.asegurarFilaAlmacenConStock(guardada, guardada.getCantidad() != null ? guardada.getCantidad() : 0);
         return guardada;
     }
 
     @Override
+    @Transactional
     public ProductoVariante actualizarVariante(Long idVariante, ProductoVariante productoVariante) {
-        if (!productoVarianteRepository.existsById(idVariante)) {
-            throw new IllegalArgumentException("No existe una variante con el ID: " + idVariante);
+        ProductoVariante existente = productoVarianteRepository.findById(idVariante)
+                .orElseThrow(() -> new IllegalArgumentException("No existe una variante con el ID: " + idVariante));
+        if (productoVariante.getColor() != null) {
+            existente.setColor(productoVariante.getColor());
         }
-        productoVariante.setIdProductoVariante(idVariante);
-        return productoVarianteRepository.save(productoVariante);
+        if (productoVariante.getTalla() != null) {
+            existente.setTalla(productoVariante.getTalla());
+        }
+        if (productoVariante.getSku() != null) {
+            existente.setSku(productoVariante.getSku());
+        }
+        if (productoVariante.getCodigoBarras() != null) {
+            existente.setCodigoBarras(productoVariante.getCodigoBarras());
+        }
+        if (productoVariante.getCantidad() != null) {
+            existente.setCantidad(productoVariante.getCantidad());
+        }
+        if (productoVariante.getProducto() != null && productoVariante.getProducto().getIdProducto() != null) {
+            Producto p = productoRepository.findById(productoVariante.getProducto().getIdProducto())
+                    .orElseThrow(() -> new IllegalArgumentException("Producto no encontrado"));
+            existente.setProducto(p);
+        }
+        ProductoVariante guardada = productoVarianteRepository.save(existente);
+        inventarioUbicacionService.sincronizarCantidadVariante(idVariante);
+        return guardada;
     }
 
     @Override
@@ -94,81 +118,58 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     public List<ProductoVariante> obtenerVariantesPorProducto(Long idProducto) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
-        return productoVarianteRepository.findByProducto(producto);
+        return productoVarianteRepository.findByProductoWithInventarios(producto);
     }
 
     @Override
-    public List<ProductoVariante> obtenerVariantesPorProductoYTalla(Long idProducto, Long idTalla) {
-        Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
-        Talla talla = tallaRepository.findById(idTalla)
-                .orElseThrow(() -> new IllegalArgumentException("No existe una talla con el ID: " + idTalla));
-        return productoVarianteRepository.findByProductoAndTalla(producto, talla);
+    public List<ProductoVariante> obtenerVariantesPorProductoYTallaNombre(Long idProducto, String nombreTalla) {
+        return productoVarianteRepository.findByProducto_IdProductoAndTallaIgnoreCase(idProducto, nombreTalla);
     }
 
     @Override
-    public List<ProductoVariante> obtenerVariantesPorProductoYColor(Long idProducto, Long idColor) {
-        Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
-        Color color = colorRepository.findById(idColor)
-                .orElseThrow(() -> new IllegalArgumentException("No existe un color con el ID: " + idColor));
-        return productoVarianteRepository.findByProductoAndColor(producto, color);
+    public List<ProductoVariante> obtenerVariantesPorProductoYColorNombre(Long idProducto, String nombreColor) {
+        return productoVarianteRepository.findByProducto_IdProductoAndColorIgnoreCase(idProducto, nombreColor);
     }
 
     @Override
-    public Optional<ProductoVariante> obtenerVariantePorProductoTallaColor(Long idProducto, Long idTalla, Long idColor) {
-        Producto producto = productoRepository.findById(idProducto)
-                .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
-        Talla talla = tallaRepository.findById(idTalla)
-                .orElseThrow(() -> new IllegalArgumentException("No existe una talla con el ID: " + idTalla));
-        Color color = colorRepository.findById(idColor)
-                .orElseThrow(() -> new IllegalArgumentException("No existe un color con el ID: " + idColor));
-        return productoVarianteRepository.findByProductoAndTallaAndColor(producto, talla, color);
+    public Optional<ProductoVariante> obtenerVariantePorProductoTallaColorNombre(Long idProducto, String talla, String color) {
+        return productoVarianteRepository.findByProducto_IdProductoAndTallaIgnoreCaseAndColorIgnoreCase(
+                idProducto, talla, color);
     }
 
     @Override
+    @Transactional
     public ProductoVariante actualizarCantidad(Long idVariante, Integer nuevaCantidad) {
         if (nuevaCantidad < 0) {
             throw new IllegalArgumentException("La cantidad no puede ser negativa");
         }
-
-        ProductoVariante variante = productoVarianteRepository.findById(idVariante)
-                .orElseThrow(() -> new IllegalArgumentException("No existe una variante con el ID: " + idVariante));
-
-        variante.setCantidad(nuevaCantidad);
-        return productoVarianteRepository.save(variante);
+        if (!productoVarianteRepository.existsById(idVariante)) {
+            throw new IllegalArgumentException("No existe una variante con el ID: " + idVariante);
+        }
+        int actual = inventarioUbicacionService.stockTotalVariante(idVariante);
+        int delta = nuevaCantidad - actual;
+        inventarioUbicacionService.aplicarDeltaEnUbicacion(
+                idVariante,
+                inventarioUbicacionService.ubicacionAlmacen(),
+                delta,
+                "Stock insuficiente en Almacén para reducir la cantidad solicitada");
+        return productoVarianteRepository.findById(idVariante).orElseThrow();
     }
 
     @Override
     @Transactional
     public void eliminarVariante(Long idVariante) {
-        // Verificar si la variante existe
         ProductoVariante variante = productoVarianteRepository.findById(idVariante)
                 .orElseThrow(() -> new IllegalArgumentException("No existe una variante con el ID: " + idVariante));
-        
-        try {
-            // Eliminar la variante
-            productoVarianteRepository.deleteById(idVariante);
-            
-            // Confirmar que la variante ya no existe para evitar duplicaciones
-            if (productoVarianteRepository.existsById(idVariante)) {
-                throw new IllegalStateException("Error al eliminar la variante. La variante aún existe después de la eliminación.");
-            }
-        } catch (Exception e) {
-            // Registrar el error
-            System.err.println("Error al eliminar variante: " + e.getMessage());
-            throw e;
-        }
+        productoVarianteRepository.delete(variante);
     }
 
     @Override
     public Integer obtenerCantidadTotalProducto(Long idProducto) {
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
-
-        List<ProductoVariante> variantes = productoVarianteRepository.findByProducto(producto);
-        return variantes.stream()
-                .mapToInt(ProductoVariante::getCantidad)
+        return productoVarianteRepository.findByProducto(producto).stream()
+                .mapToInt(v -> inventarioUbicacionService.stockTotalVariante(v.getIdProductoVariante()))
                 .sum();
     }
 
@@ -176,15 +177,18 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     @Transactional
     public List<ProductoVariante> migrarProductoAVariantes(
             Long idProducto,
-            List<Talla> tallas,
-            List<Color> colores,
+            List<String> tallas,
+            List<String> colores,
             boolean distribucionPorcentual) {
 
         Producto producto = productoRepository.findById(idProducto)
                 .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
 
         Integer stockActual = producto.getCantidad();
-        int totalVariantes = tallas.size() * colores.size();
+
+        List<String> listaTallas = tallas != null ? tallas : List.of();
+        List<String> listaColores = colores != null ? colores : List.of();
+        int totalVariantes = listaTallas.size() * listaColores.size();
 
         if (totalVariantes == 0) {
             throw new IllegalArgumentException("Debe proporcionar al menos una talla y un color");
@@ -192,42 +196,50 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
 
         List<ProductoVariante> nuevasVariantes = new ArrayList<>();
 
-        for (Talla talla : tallas) {
-            if ("Única".equalsIgnoreCase(talla.getNombreTalla())) continue;
-            for (Color color : colores) {
-                if ("Único".equalsIgnoreCase(color.getNombre())) continue;
-                // Verificar si ya existe esta combinación
+        for (String nombreTalla : listaTallas) {
+            if (nombreTalla == null || "Única".equalsIgnoreCase(nombreTalla.trim())) {
+                continue;
+            }
+            for (String nombreColor : listaColores) {
+                if (nombreColor == null || "Único".equalsIgnoreCase(nombreColor.trim())) {
+                    continue;
+                }
                 Optional<ProductoVariante> varianteExistente =
-                        productoVarianteRepository.findByProductoAndTallaAndColor(producto, talla, color);
+                        productoVarianteRepository.findByProducto_IdProductoAndTallaIgnoreCaseAndColorIgnoreCase(
+                                idProducto, nombreTalla.trim(), nombreColor.trim());
 
                 if (varianteExistente.isPresent()) {
                     nuevasVariantes.add(varianteExistente.get());
                     continue;
                 }
 
-                // Crear nueva variante
                 ProductoVariante nuevaVariante = new ProductoVariante();
                 nuevaVariante.setProducto(producto);
-                nuevaVariante.setTalla(talla);
-                nuevaVariante.setColor(color);
+                nuevaVariante.setTalla(nombreTalla.trim());
+                nuevaVariante.setColor(nombreColor.trim());
 
-                // Calcular la cantidad según la distribución
-                if (distribucionPorcentual && stockActual > 0) {
+                if (distribucionPorcentual && stockActual != null && stockActual > 0) {
                     nuevaVariante.setCantidad(stockActual / totalVariantes);
                 } else {
                     nuevaVariante.setCantidad(0);
                 }
 
-                // Generar código de barras único para la variante (si se necesita)
-                nuevaVariante.setCodigoBarrasVariante(
-                        producto.getCodigoIdentificacion() + "-" + talla.getNombreTalla() + "-" + color.getNombre());
+                nuevaVariante.setCodigoBarras(
+                        producto.getCodigoIdentificacion() + "-" + nombreTalla.trim() + "-" + nombreColor.trim());
 
-                nuevasVariantes.add(productoVarianteRepository.save(nuevaVariante));
+                ProductoVariante guardada = productoVarianteRepository.save(nuevaVariante);
+                guardada.setSku(SkuNormalizer.buildSku(
+                        producto.getCodigoIdentificacion(),
+                        guardada.getColor(),
+                        guardada.getTalla(),
+                        guardada.getIdProductoVariante()));
+                guardada = productoVarianteRepository.save(guardada);
+                inventarioUbicacionService.asegurarFilaAlmacenConStock(guardada, guardada.getCantidad());
+                nuevasVariantes.add(guardada);
             }
         }
 
-        // Si se distribuyó el stock, actualizar el stock del producto principal a 0
-        if (distribucionPorcentual && stockActual > 0) {
+        if (distribucionPorcentual && stockActual != null && stockActual > 0) {
             producto.setCantidad(0);
             productoRepository.save(producto);
         }

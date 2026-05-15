@@ -1,6 +1,8 @@
 import apiClient from '../config/apiClient';
 import { RUTAS_CODIGOS_BARRAS } from '../config/apiConfig';
-import type { CodigoBarras, CodigoBarrasConDetallesDTO, GenerarCodigoRequest, AsignarCodigoRequest } from '../interfaces/CodigoBarras';
+import type { CodigoBarras, CodigoBarrasConDetallesDTO, GenerarCodigoRequest, AsignarCodigoRequest } from '../types/CodigoBarras';
+import { throwAuthErrorShort } from '../utils/handleApiError';
+import { logger } from '../utils/logger';
 
 export const CodigoBarrasService = {
   
@@ -12,20 +14,13 @@ export const CodigoBarrasService = {
    */
   async obtenerTodosConDetalles(): Promise<CodigoBarrasConDetallesDTO[]> {
     try {
-      console.log('🚀 Obteniendo todos los códigos de barras con detalles (método optimizado)');
+      logger.debug('Obteniendo todos los codigos de barras con detalles (metodo optimizado)');
       const response = await apiClient.get(RUTAS_CODIGOS_BARRAS.OBTENER_TODOS_CON_DETALLES);
-      console.log(`✅ Obtenidos ${response.data.length} códigos de barras con detalles completos`);
+      logger.debug(`Obtenidos ${response.data.length} codigos de barras con detalles completos`);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error al obtener códigos con detalles:', error);
-      
-      if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para acceder a esta información.');
-      }
-      
-      throw new Error(`Error al cargar códigos de barras: ${error.message || 'Error desconocido'}`);
+      logger.error('Error al obtener codigos con detalles:', error);
+      throwAuthErrorShort(error, 'acceder a esta informacion');
     }
   },
 
@@ -34,22 +29,16 @@ export const CodigoBarrasService = {
    */
   async obtenerCodigosProducto(idProducto: number): Promise<CodigoBarras[]> {
     try {
-      console.log(`📦 Obteniendo códigos de producto ID: ${idProducto}`);
+      logger.debug(`Obteniendo codigos de producto ID: ${idProducto}`);
       const response = await apiClient.get(RUTAS_CODIGOS_BARRAS.OBTENER_CODIGOS_PRODUCTO(idProducto));
-      console.log(`✅ Obtenidos ${response.data.length} códigos para producto ${idProducto}`);
+      logger.debug(`Obtenidos ${response.data.length} codigos para producto ${idProducto}`);
       return response.data;
     } catch (error: any) {
-      console.error(`❌ Error al obtener códigos del producto ${idProducto}:`, error);
-      
+      logger.error(`Error al obtener codigos del producto ${idProducto}:`, error);
       if (error.response?.status === 404) {
-        throw new Error(`No se encontró el producto con ID: ${idProducto}`);
-      } else if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para acceder a esta información.');
+        throw new Error(`No se encontro el producto con ID: ${idProducto}`);
       }
-      
-      throw new Error(`Error al obtener códigos del producto: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'acceder a esta informacion');
     }
   },
 
@@ -58,22 +47,16 @@ export const CodigoBarrasService = {
    */
   async obtenerCodigosVariante(idVariante: number): Promise<CodigoBarras[]> {
     try {
-      console.log(`🎨 Obteniendo códigos de variante ID: ${idVariante}`);
+      logger.debug(`Obteniendo codigos de variante ID: ${idVariante}`);
       const response = await apiClient.get(RUTAS_CODIGOS_BARRAS.OBTENER_CODIGOS_VARIANTE(idVariante));
-      console.log(`✅ Obtenidos ${response.data.length} códigos para variante ${idVariante}`);
+      logger.debug(`Obtenidos ${response.data.length} codigos para variante ${idVariante}`);
       return response.data;
     } catch (error: any) {
-      console.error(`❌ Error al obtener códigos de variante ${idVariante}:`, error);
-      
+      logger.error(`Error al obtener codigos de variante ${idVariante}:`, error);
       if (error.response?.status === 404) {
-        throw new Error(`No se encontró la variante con ID: ${idVariante}`);
-      } else if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para acceder a esta información.');
+        throw new Error(`No se encontro la variante con ID: ${idVariante}`);
       }
-      
-      throw new Error(`Error al obtener códigos de la variante: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'acceder a esta informacion');
     }
   },
 
@@ -83,62 +66,42 @@ export const CodigoBarrasService = {
    * Generar imagen de código de barras para un producto
    */  async generarImagenProducto(idProducto: number, ancho?: number, alto?: number): Promise<Blob> {
     try {
-      console.log(`🏷️ Generando código de barras para producto ID: ${idProducto}`);
+      logger.debug(`Generando codigo de barras para producto ID: ${idProducto}`);
       const response = await apiClient.get(RUTAS_CODIGOS_BARRAS.GENERAR_PRODUCTO(idProducto, ancho, alto), {
         responseType: 'blob',
-        headers: {
-          'Accept': 'image/png, image/*, */*'
-        }
+        headers: { 'Accept': 'image/png, image/*, */*' }
       });
-      console.log(`✅ Código de barras generado exitosamente para producto ID: ${idProducto}`);
+      logger.debug(`Codigo de barras generado exitosamente para producto ID: ${idProducto}`);
       return response.data;
     } catch (error: any) {
-      console.error(`❌ Error al generar código de barras para producto ID ${idProducto}:`, error);
-      
-      // Manejo específico de errores de autenticación
-      if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente para generar códigos de barras.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para generar códigos de barras. Se requiere rol de Almacenero o Administrador.');
-      } else if (error.response?.status === 404) {
-        throw new Error(`No se encontró el producto con ID: ${idProducto}. Verifica que el producto existe.`);
+      logger.error(`Error al generar codigo de barras para producto ID ${idProducto}:`, error);
+      if (error.response?.status === 404) {
+        throw new Error(`No se encontro el producto con ID: ${idProducto}. Verifica que el producto existe.`);
       } else if (error.response?.status === 400) {
-        throw new Error('Datos inválidos para generar el código de barras. Verifica que el ID del producto sea correcto.');
+        throw new Error('Datos invalidos para generar el codigo de barras. Verifica que el ID del producto sea correcto.');
       }
-      
-      // Error genérico
-      throw new Error(`Error al generar código de barras: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'generar codigos de barras');
     }
   },
   /**
    * Generar imagen de código de barras para una variante
    */  async generarImagenVariante(idVariante: number, ancho?: number, alto?: number): Promise<Blob> {
     try {
-      console.log(`🏷️ Generando código de barras para variante ID: ${idVariante}`);
+      logger.debug(`Generando codigo de barras para variante ID: ${idVariante}`);
       const response = await apiClient.get(RUTAS_CODIGOS_BARRAS.GENERAR_VARIANTE(idVariante, ancho, alto), {
         responseType: 'blob',
-        headers: {
-          'Accept': 'image/png, image/*, */*'
-        }
+        headers: { 'Accept': 'image/png, image/*, */*' }
       });
-      console.log(`✅ Código de barras generado exitosamente para variante ID: ${idVariante}`);
+      logger.debug(`Codigo de barras generado exitosamente para variante ID: ${idVariante}`);
       return response.data;
     } catch (error: any) {
-      console.error(`❌ Error al generar código de barras para variante ID ${idVariante}:`, error);
-      
-      // Manejo específico de errores de autenticación
-      if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente para generar códigos de barras.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para generar códigos de barras. Se requiere rol de Almacenero o Administrador.');
-      } else if (error.response?.status === 404) {
-        throw new Error(`No se encontró la variante con ID: ${idVariante}. Verifica que la variante existe.`);
+      logger.error(`Error al generar codigo de barras para variante ID ${idVariante}:`, error);
+      if (error.response?.status === 404) {
+        throw new Error(`No se encontro la variante con ID: ${idVariante}. Verifica que la variante existe.`);
       } else if (error.response?.status === 400) {
-        throw new Error('Datos inválidos para generar el código de barras. Verifica que el ID de la variante sea correcto.');
+        throw new Error('Datos invalidos para generar el codigo de barras. Verifica que el ID de la variante sea correcto.');
       }
-      
-      // Error genérico
-      throw new Error(`Error al generar código de barras: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'generar codigos de barras');
     }
   },
 
@@ -163,93 +126,60 @@ export const CodigoBarrasService = {
    */
   async generarCodigo(request: GenerarCodigoRequest): Promise<CodigoBarras> {
     try {
-      console.log(`🏷️ Generando código ${request.formato || 'EAN8'} para ${request.tipo} ID: ${request.entidadId}`);
+      logger.debug(`Generando codigo ${request.formato || 'EAN8'} para ${request.tipo} ID: ${request.entidadId}`);
       const response = await apiClient.post(`${RUTAS_CODIGOS_BARRAS.BASE}/generar`, request);
-      console.log(`✅ Código generado exitosamente: ${response.data.codigo}`);
+      logger.debug(`Codigo generado exitosamente: ${response.data.codigo}`);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error al generar código:', error);
-      
-      if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para generar códigos de barras.');
-      } else if (error.response?.status === 404) {
-        throw new Error(`No se encontró la entidad con ID: ${request.entidadId}`);
+      logger.error('Error al generar codigo:', error);
+      if (error.response?.status === 404) {
+        throw new Error(`No se encontro la entidad con ID: ${request.entidadId}`);
       }
-      
-      throw new Error(`Error al generar código: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'generar codigos de barras');
     }
   },
 
-  /**
-   * Asignar código de barras personalizado
-   */
   async asignarCodigo(request: AsignarCodigoRequest): Promise<CodigoBarras> {
     try {
-      console.log(`🏷️ Asignando código ${request.codigo} a ${request.tipo} ID: ${request.entidadId}`);
+      logger.debug(`Asignando codigo ${request.codigo} a ${request.tipo} ID: ${request.entidadId}`);
       const response = await apiClient.post(`${RUTAS_CODIGOS_BARRAS.BASE}/asignar`, request);
-      console.log(`✅ Código asignado exitosamente: ${response.data.codigo}`);
+      logger.debug(`Codigo asignado exitosamente: ${response.data.codigo}`);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error al asignar código:', error);
-      
-      if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para asignar códigos de barras.');
-      } else if (error.response?.status === 409) {
-        throw new Error('El código ya está en uso. Elige un código diferente.');
+      logger.error('Error al asignar codigo:', error);
+      if (error.response?.status === 409) {
+        throw new Error('El codigo ya esta en uso. Elige un codigo diferente.');
       }
-      
-      throw new Error(`Error al asignar código: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'asignar codigos de barras');
     }
   },
 
-  /**
-   * Eliminar código de barras
-   */
   async eliminarCodigo(codigoId: number): Promise<void> {
     try {
-      console.log(`🗑️ Eliminando código de barras ID: ${codigoId}`);
+      logger.debug(`Eliminando codigo de barras ID: ${codigoId}`);
       await apiClient.delete(`${RUTAS_CODIGOS_BARRAS.BASE}/${codigoId}`);
-      console.log(`✅ Código de barras eliminado exitosamente`);
+      logger.debug(`Codigo de barras eliminado exitosamente`);
     } catch (error: any) {
-      console.error('❌ Error al eliminar código:', error);
-      
-      if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para eliminar códigos de barras.');
-      } else if (error.response?.status === 404) {
-        throw new Error('No se encontró el código de barras a eliminar.');
+      logger.error('Error al eliminar codigo:', error);
+      if (error.response?.status === 404) {
+        throw new Error('No se encontro el codigo de barras a eliminar.');
       }
-      
-      throw new Error(`Error al eliminar código: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'eliminar codigos de barras');
     }
   },
 
-  /**
-   * Buscar por código de barras
-   */
   async buscarPorCodigo(codigo: string): Promise<any> {
     try {
-      console.log(`🔍 Buscando por código: ${codigo}`);
+      logger.debug(`Buscando por codigo: ${codigo}`);
       const response = await apiClient.get(`${RUTAS_CODIGOS_BARRAS.BASE}/buscar/${encodeURIComponent(codigo)}`);
-      console.log(`✅ Búsqueda completada`);
+      logger.debug(`Busqueda completada`);
       return response.data;
     } catch (error: any) {
-      console.error('❌ Error al buscar por código:', error);
-      
+      logger.error('Error al buscar por codigo:', error);
       if (error.response?.status === 404) {
-        throw new Error('No se encontró ningún producto o variante con ese código de barras.');
-      } else if (error.response?.status === 401) {
-        throw new Error('Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
-      } else if (error.response?.status === 403) {
-        throw new Error('No tienes permisos para buscar códigos de barras.');
+        throw new Error('No se encontro ningun producto o variante con ese codigo de barras.');
       }
-      
-      throw new Error(`Error al buscar código: ${error.message || 'Error desconocido'}`);
+      throwAuthErrorShort(error, 'buscar codigos de barras');
     }
   },
 

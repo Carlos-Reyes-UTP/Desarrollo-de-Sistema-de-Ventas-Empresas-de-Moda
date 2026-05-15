@@ -8,6 +8,10 @@
     "skipLibCheck": true,
 
     /* Bundler mode */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
@@ -24,5 +28,8 @@
     "noUncheckedSideEffectImports": true
   },
   "include": ["src"],
-  "exclude": ["node_modules/@material-tailwind/react/tsconfig.json"]
+  "exclude": [
+    "node_modules/@material-tailwind/react/tsconfig.json",
+    "src/shared/layout/_backup_pre_phase2"
+  ]
 }

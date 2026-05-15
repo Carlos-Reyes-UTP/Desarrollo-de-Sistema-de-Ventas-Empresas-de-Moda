@@ -1,26 +1,39 @@
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
-import type { RolNombre } from "./interfaces/enums";
-import DashboardAdmin from "./pages/DashboardAdmin";
-import DashboardAlmacenero from "./pages/DashboardAlmacenero";
-import CajeroSistemaVentas from "./pages/CajeroSistemaVentas";
-import GestionUsuarios from "./pages/GestionUsuarios";
-import Login from "./pages/Login";
-import PaginaNoEncontrada from "./pages/PaginaNoEncontrada";
-import Reportes from "./pages/Reportes";
-import GestionCategorias from "./components/categorias/GestionCategorias";
-import Layout from "./components/layout/Layout";
-import GestionColores from "./components/productos/GestionColores";
-import GestionProductos from "./components/productos/GestionProductos";
-import GestionTallas from "./components/productos/GestionTallas";
-import GestionProveedores from "./components/proveedores/GestionProveedores";
+import type { RolNombre } from "./types/enums";
+import DashboardAdminPage from "./pages/dashboard/DashboardAdminPage";
+import DashboardAlmaceneroPage from "./pages/dashboard/DashboardAlmaceneroPage";
+import PuntoDeVentaPage from "./pages/ventas/PuntoDeVentaPage";
+import VendedorPisoVentasPage from "./pages/ventas/VendedorPisoVentasPage";
+import AlmacenTableroPedidosPage from "./pages/almacen/AlmacenTableroPedidosPage";
+import GestionUsuariosPage from "./pages/usuarios/GestionUsuariosPage";
+import LoginPage from "./pages/auth/LoginPage";
+import PaginaNoEncontradaPage from "./pages/errores/PaginaNoEncontradaPage";
+import GestionCategoriasPage from "./pages/inventario/GestionCategoriasPage";
+import GestionProductosPage from "./pages/inventario/GestionProductosPage";
+import GestionProveedoresPage from "./pages/inventario/GestionProveedoresPage";
+import ReportesPage from "./pages/reportes/ReportesPage";
+import Layout from "./shared/layout/Layout";
+import { APP_PATHS } from "./shared/layout/navigationConfig";
 
 const ROLES_ADMIN_O_ALMACENERO: RolNombre[] = [
   "ROLE_ADMIN",
   "ROLE_ALMACENERO",
 ];
+const ROLES_DASHBOARD_ALMACENERO: RolNombre[] = ["ROLE_ALMACENERO"];
 const ROLES_CAJERO_O_ADMIN: RolNombre[] = ["ROLE_CAJERO", "ROLE_ADMIN"];
+
+/** Tablero de pedidos (almacén ↔ vendedor) — solo personal de almacén y admin */
+const ROLES_TABLERO_ALMACEN: RolNombre[] = [
+  "ROLE_ALMACENERO",
+  "ROLE_ADMIN",
+];
+
+/** Quién puede usar la pantalla y la API de solicitud desde piso de ventas */
+const ROLES_VENDEDOR_PISO: RolNombre[] = [
+  "ROLE_VENDEDOR",
+];
 
 const RedirectToDashboard = () => {
   const { usuario, tieneRol } = useAuth();
@@ -35,27 +48,31 @@ const RedirectToDashboard = () => {
     console.log(
       "RedirectToDashboard - Usuario es ADMIN, redirigiendo a /dashboard/admin"
     );
-    return <Navigate to="/dashboard/admin" />;
+    return <Navigate to={APP_PATHS.dashboardAdmin} />;
   }
 
   if (tieneRol("ROLE_ALMACENERO")) {
     console.log(
-      "RedirectToDashboard - Usuario es ALMACENERO, redirigiendo a /dashboard/almacenero"
+      "RedirectToDashboard - Usuario es ALMACENERO, redirigiendo al tablero de pedidos"
     );
-    return <Navigate to="/dashboard/almacenero" />;
+    return <Navigate to={APP_PATHS.almacenTablero} />;
+  }
+
+  if (tieneRol("ROLE_VENDEDOR")) {
+    return <Navigate to={APP_PATHS.vendedorPiso} />;
   }
 
   if (tieneRol("ROLE_CAJERO")) {
     console.log(
-      "RedirectToDashboard - Usuario es CAJERO, redirigiendo a /pages/CajeroSistemaVentas"
+      "RedirectToDashboard - Usuario es CAJERO, redirigiendo al punto de venta"
     );
-    return <Navigate to="/pages/CajeroSistemaVentas" />;
+    return <Navigate to={APP_PATHS.caja} />;
   }
 
   console.log(
     "RedirectToDashboard - Usuario sin rol reconocido, redirigiendo a /login"
   );
-  return <Navigate to="/login" />;
+  return <Navigate to={APP_PATHS.login} />;
 };
 
 interface RutaProtegidaProps {
@@ -84,7 +101,7 @@ const RutaProtegida = ({ children, rolRequerido }: RutaProtegidaProps) => {
 
   if (!usuario) {
     console.log("RutaProtegida - No hay usuario, redirigiendo a /login");
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to={APP_PATHS.login} state={{ from: location }} replace />;
   }
 
   if (rolRequerido && !tieneAlgunRol(rolRequerido)) {
@@ -134,101 +151,101 @@ function App() {
     <Routes>
       <Route path="/" element={<RedirectToDashboard />} />
       <Route
-        path="/login"
-        element={usuario && !cargando ? <Navigate to="/" replace /> : <Login />}
+        path={APP_PATHS.login}
+        element={usuario && !cargando ? <Navigate to="/" replace /> : <LoginPage />}
       />
 
       <Route
-        path="/dashboard/admin"
+        path={APP_PATHS.dashboardAdmin}
         element={
           <RutaProtegidaConLayout rolRequerido="ROLE_ADMIN">
-            <DashboardAdmin />
+            <DashboardAdminPage />
           </RutaProtegidaConLayout>
         }
       />
 
       <Route
-        path="/dashboard/almacenero"
+        path={APP_PATHS.dashboardAlmacenero}
         element={
-          <RutaProtegidaConLayout rolRequerido="ROLE_ALMACENERO">
-            <DashboardAlmacenero />
+          <RutaProtegidaConLayout rolRequerido={ROLES_DASHBOARD_ALMACENERO}>
+            <DashboardAlmaceneroPage />
           </RutaProtegidaConLayout>
         }
       />
 
       <Route
-        path="/pages/CajeroSistemaVentas"
+        path={APP_PATHS.almacenTablero}
+        element={
+          <RutaProtegidaConLayout rolRequerido={ROLES_TABLERO_ALMACEN}>
+            <AlmacenTableroPedidosPage />
+          </RutaProtegidaConLayout>
+        }
+      />
+
+      <Route
+        path={APP_PATHS.caja}
         element={
           <RutaProtegidaConLayout rolRequerido={ROLES_CAJERO_O_ADMIN}>
-            <CajeroSistemaVentas />
+            <PuntoDeVentaPage />
           </RutaProtegidaConLayout>
         }
       />
 
       <Route
-        path="/pages/gestion-usuarios"
+        path={APP_PATHS.vendedorPiso}
+        element={
+          <RutaProtegidaConLayout rolRequerido={ROLES_VENDEDOR_PISO}>
+            <VendedorPisoVentasPage />
+          </RutaProtegidaConLayout>
+        }
+      />
+
+      <Route
+        path={APP_PATHS.gestionUsuarios}
         element={
           <RutaProtegidaConLayout rolRequerido="ROLE_ADMIN">
-            <GestionUsuarios />
+            <GestionUsuariosPage />
           </RutaProtegidaConLayout>
         }
       />
 
       <Route
-        path="/pages/productos"
+        path={APP_PATHS.productos}
         element={
           <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
-            <GestionProductos />
+            <GestionProductosPage />
           </RutaProtegidaConLayout>
         }
       />
 
       <Route
-        path="/pages/colores"
+        path={APP_PATHS.proveedores}
         element={
           <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
-            <GestionColores />
+            <GestionProveedoresPage />
           </RutaProtegidaConLayout>
         }
       />
 
       <Route
-        path="/pages/tallas"
+        path={APP_PATHS.categorias}
         element={
           <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
-            <GestionTallas />
+            <GestionCategoriasPage />
           </RutaProtegidaConLayout>
         }
       />
 
       <Route
-        path="/pages/proveedores"
-        element={
-          <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
-            <GestionProveedores />
-          </RutaProtegidaConLayout>
-        }
-      />
-
-      <Route
-        path="/pages/categorias"
-        element={
-          <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
-            <GestionCategorias />
-          </RutaProtegidaConLayout>
-        }
-      />
-
-      <Route
-        path="/pages/reportes"
+        path={APP_PATHS.reportes}
         element={
           <RutaProtegidaConLayout rolRequerido="ROLE_ADMIN">
-            <Reportes />
+            <ReportesPage />
           </RutaProtegidaConLayout>
         }
       />
 
-      <Route path="*" element={<PaginaNoEncontrada />} />
+      <Route path="*" element={<PaginaNoEncontradaPage />} />
     </Routes>
   );
 }

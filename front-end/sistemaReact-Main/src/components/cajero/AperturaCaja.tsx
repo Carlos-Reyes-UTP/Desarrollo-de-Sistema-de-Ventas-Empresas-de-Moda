@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Printer, CheckCircle, Clock, User, Loader2, ArrowRight, TrendingUp } from 'lucide-react';
 import { CajaService, type AperturaCajaRequest } from '../../services/CajaService';
+import { APP_PATHS } from '../../shared/layout/navigationConfig';
 
 interface AperturaCajaProps {
   onAperturaCompleta: () => void;
@@ -130,7 +131,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
     setAperturaExitosa(false);
     setDatosApertura(null);
     setMontoApertura('');
-    navigate('/pages/CajeroSistemaVentas', { state: { view: 'ventas' }, replace: true });
+    navigate(APP_PATHS.caja, { state: { view: 'ventas' }, replace: true });
     onAperturaCompleta();
   };
 

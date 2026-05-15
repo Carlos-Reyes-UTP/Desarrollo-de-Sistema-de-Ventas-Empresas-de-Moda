@@ -1,6 +1,6 @@
 import { CreditCard, Smartphone, DollarSign, X, Loader2 } from 'lucide-react';
-import type { ProductoVenta } from '../../../interfaces/Producto';
-import type { ProductoVariante } from '../../../interfaces/ProductoVariante';
+import type { ProductoVenta } from '../../../types/Producto';
+import type { ProductoVariante } from '../../../types/ProductoVariante';
 import type { PrecioCalculado } from './types';
 
 interface CarritoSectionProps {

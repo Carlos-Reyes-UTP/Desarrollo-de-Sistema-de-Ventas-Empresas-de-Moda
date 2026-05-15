@@ -96,8 +96,8 @@ public class ReporteService {
     }
 
     // Obtener variantes agrupadas por color para un producto y talla específicos
-    public List<VariantesPorColorDTO> obtenerVariantesPorColor(Long idProducto, Long idTalla) {
-        return reporteRepository.findVariantesPorColorByProductoAndTalla(idProducto, idTalla);
+    public List<VariantesPorColorDTO> obtenerVariantesPorColor(Long idProducto, String nombreTalla) {
+        return reporteRepository.findVariantesPorColorByProductoAndTalla(idProducto, nombreTalla);
     }
 
     // Reportes por subcategoría (hijos de una categoría padre)

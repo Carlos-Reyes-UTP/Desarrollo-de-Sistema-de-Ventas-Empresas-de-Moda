@@ -1,6 +1,6 @@
 import { RUTAS_MAYORISTAS, RUTAS_CLIENTES } from '../config/apiConfig';
 import apiClient from '../config/apiClient';
-import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../interfaces/MayoristaDTO';
+import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../types/MayoristaDTO';
 
 export const MayoristaService = {
   /**

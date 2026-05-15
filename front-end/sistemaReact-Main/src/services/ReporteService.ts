@@ -9,7 +9,7 @@ import type {
   VentasPorPeriodo,
   TallaProducto,
   VariantesPorColor
-} from '../interfaces/ReporteVentas';
+} from '../types/ReporteVentas';
 
 export const ReporteService = {
   
@@ -267,10 +267,10 @@ export const ReporteService = {
   /**
    * Obtiene las variantes agrupadas por color para un producto y talla específicos
    */
-  getVariantesPorColor: async (idProducto: number, idTalla: number): Promise<VariantesPorColor[]> => {
+  getVariantesPorColor: async (idProducto: number, nombreTalla: string): Promise<VariantesPorColor[]> => {
     try {
       const response = await apiClient.get<VariantesPorColor[]>(
-        `${RUTAS_REPORTES.PRODUCTOS_MAS_VENDIDOS.replace('/productos-mas-vendidos', '/producto/variantes-por-color')}?idProducto=${idProducto}&idTalla=${idTalla}`
+        `${RUTAS_REPORTES.PRODUCTOS_MAS_VENDIDOS.replace('/productos-mas-vendidos', '/producto/variantes-por-color')}?idProducto=${idProducto}&nombreTalla=${encodeURIComponent(nombreTalla)}`
       );
       return response.data;
     } catch (error: any) {
@@ -328,7 +328,7 @@ export const ReporteService = {
         console.log('📅 Rangos de fechas para crecimiento:', rangos);
 
         // Importar VentaService para obtener todas las ventas
-        const { VentaService } = await import('./VentaServices');
+        const { VentaService } = await import('./VentaService');
         
         // Obtener todas las ventas y filtrarlas por fechas
         const todasLasVentas = await VentaService.obtenerTodasVentas();

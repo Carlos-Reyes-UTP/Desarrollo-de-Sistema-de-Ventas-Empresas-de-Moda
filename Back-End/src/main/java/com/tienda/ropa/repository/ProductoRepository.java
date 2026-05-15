@@ -18,6 +18,10 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByProveedor(Proveedores distribuidor);
     List<Producto> findByCodigoIdentificacion(String codigo);
     List<Producto> findByNombre(String nombre);
+
+    /** Búsqueda parcial por nombre (p. ej. vendedor en piso). */
+    List<Producto> findByNombreContainingIgnoreCaseOrderByNombreAsc(String nombre, Pageable pageable);
+
     Optional<Producto> findByCodigoBarras(String codigoBarras);
     boolean existsByCodigoBarras(String codigoBarras);
     

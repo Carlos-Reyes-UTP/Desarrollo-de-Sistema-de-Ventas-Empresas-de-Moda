@@ -24,6 +24,12 @@ public class VentaService {
     @Autowired
     private DetalleVentaRepository detalleVentaRepository;
 
+    @Autowired
+    private InventarioUbicacionService inventarioUbicacionService;
+
+    @Autowired
+    private ReposicionAutomaticaService reposicionAutomaticaService;
+
     public List<Venta> obtenerVentas() {
         return ventaRepository.findAll();
     }
@@ -34,6 +40,12 @@ public class VentaService {
 
     @Transactional
     public Venta registrarVenta(Venta venta) {
+        for (DetalleVenta detalle : venta.getDetalles()) {
+            Long idVariante = detalle.getProductoVariante().getIdProductoVariante();
+            inventarioUbicacionService.aplicarDeltaStockPrincipal(idVariante, -detalle.getCantidad());
+            reposicionAutomaticaService.evaluarTrasSalidaEnPrincipal(idVariante);
+        }
+
         BigDecimal totalVenta = BigDecimal.ZERO;
         for (DetalleVenta detalle : venta.getDetalles()) {
             totalVenta = totalVenta.add(detalle.getSubtotal());

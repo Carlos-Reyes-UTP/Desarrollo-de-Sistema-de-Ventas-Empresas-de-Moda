@@ -8,27 +8,30 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import com.tienda.ropa.service.UsuarioService;
 import com.tienda.ropa.util.JwtUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collection;
 
 @Component
 @AllArgsConstructor
 @Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtUtils jwtUtils;    @Override
+    private final JwtUtils jwtUtils;
+    private final UsuarioService usuarioService;
+
+    @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
                                     @NonNull HttpServletResponse response,
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
@@ -49,36 +52,35 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     DecodedJWT decodedJWT = jwtUtils.validateToken(jwtToken);
                     String username = jwtUtils.extractEmail(decodedJWT);
-                    String stringAuthorities = jwtUtils.getEspecificClaim(decodedJWT, "authorities").asString();
 
-                    // Agregar prefijo ROLE_ a cada autoridad si no lo tiene
-                    String authoritiesWithPrefix = stringAuthorities;
-                    if (stringAuthorities != null && !stringAuthorities.isEmpty()) {
-                        String[] authorityArray = stringAuthorities.split(",");
-                        StringBuilder sb = new StringBuilder();
-                        for (int i = 0; i < authorityArray.length; i++) {
-                            String auth = authorityArray[i].trim();
-                            if (!auth.startsWith("ROLE_")) {
-                                auth = "ROLE_" + auth;
-                            }
-                            if (i > 0) sb.append(",");
-                            sb.append(auth);
+                    // Cargar la entidad Usuario (implementa UserDetails) para que @AuthenticationPrincipal Usuario
+                    // funcione en VendedorController, SolicitudController, etc.
+                    UserDetails principal;
+                    try {
+                        principal = usuarioService.userDetailsService().loadUserByUsername(username);
+                    } catch (UsernameNotFoundException e) {
+                        log.warn("JWT válido pero usuario no encontrado: {}", username);
+                        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                        response.setContentType("application/json");
+                        response.getWriter().write("{\"error\":\"Usuario no encontrado\"}");
+                        return;
+                    } catch (RuntimeException e) {
+                        if (e.getMessage() != null && e.getMessage().contains("deshabilitado")) {
+                            log.warn("JWT válido pero usuario deshabilitado: {}", username);
+                            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"error\":\"Usuario deshabilitado\"}");
+                            return;
                         }
-                        authoritiesWithPrefix = sb.toString();
+                        throw e;
                     }
 
-                    log.info("JWT válido para usuario: " + username + " con autoridades: " + authoritiesWithPrefix);
+                    log.info("JWT válido para usuario: {} (principal tipo {})", username, principal.getClass().getSimpleName());
                     log.info("URI solicitada: " + request.getRequestURI());
 
-                    Collection<? extends GrantedAuthority> authorities = AuthorityUtils.commaSeparatedStringToAuthorityList(authoritiesWithPrefix);
-                    
-                    // IMPORTANTE: Para que @AuthenticationPrincipal funcione con UserDetails en los controladores,
-                    // el principal debe ser un objeto que implemente UserDetails, no solo un String.
-                    org.springframework.security.core.userdetails.User userDetails = 
-                        new org.springframework.security.core.userdetails.User(username, "", authorities);
-
                     SecurityContext context = SecurityContextHolder.getContext();
-                    Authentication authentication = new UsernamePasswordAuthenticationToken(userDetails, null, authorities);
+                    Authentication authentication = new UsernamePasswordAuthenticationToken(
+                            principal, null, principal.getAuthorities());
                     context.setAuthentication(authentication);
                     SecurityContextHolder.setContext(context);
                 } catch (JWTVerificationException e) {

@@ -315,33 +315,31 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      @Param("fechaFin") LocalDateTime fechaFin,
                      Pageable pageable);
 
-       // Consulta para obtener las tallas disponibles de un producto específico
+       // Tallas distintas (texto) presentes en variantes del producto
        @Query("SELECT new com.tienda.ropa.dto.TallaProductoDTO(" +
-                     "t.idTalla, " +
-                     "t.nombreTalla, " +
+                     "0L, " +
+                     "pv.talla, " +
                      "COUNT(pv.idProductoVariante)) " +
                      "FROM ProductoVariante pv " +
-                     "JOIN pv.talla t " +
-                     "WHERE pv.producto.id = :idProducto " +
-                     "GROUP BY t.idTalla, t.nombreTalla " +
-                     "ORDER BY t.nombreTalla")
+                     "WHERE pv.producto.idProducto = :idProducto " +
+                     "GROUP BY pv.talla " +
+                     "ORDER BY pv.talla")
        List<TallaProductoDTO> findTallasByProductoId(@Param("idProducto") Long idProducto);
 
-       // Consulta para obtener variantes agrupadas por color para un producto y talla específicos
+       // Variantes agrupadas por color (texto) para un producto y talla (texto)
        @Query("SELECT new com.tienda.ropa.dto.VariantesPorColorDTO(" +
-                     "c.idColor, " +
-                     "c.nombre, " +
-                     "c.codigoHex, " +
-                     "SUM(pv.cantidad), " +
+                     "0L, " +
+                     "pv.color, " +
+                     "'', " +
+                     "COALESCE(SUM(pv.cantidad), 0), " +
                      "COALESCE(SUM(dv.cantidad), 0), " +
                      "COALESCE(SUM(dv.precioUnitario * dv.cantidad), 0)) " +
                      "FROM ProductoVariante pv " +
-                     "JOIN pv.color c " +
                      "LEFT JOIN DetalleVenta dv ON dv.productoVariante.idProductoVariante = pv.idProductoVariante " +
-                     "WHERE pv.producto.id = :idProducto AND pv.talla.idTalla = :idTalla " +
-                     "GROUP BY c.idColor, c.nombre, c.codigoHex " +
-                     "ORDER BY c.nombre")
+                     "WHERE pv.producto.idProducto = :idProducto AND LOWER(pv.talla) = LOWER(:nombreTalla) " +
+                     "GROUP BY pv.color " +
+                     "ORDER BY pv.color")
        List<VariantesPorColorDTO> findVariantesPorColorByProductoAndTalla(
-                     @Param("idProducto") Long idProducto, 
-                     @Param("idTalla") Long idTalla);
+                     @Param("idProducto") Long idProducto,
+                     @Param("nombreTalla") String nombreTalla);
 }

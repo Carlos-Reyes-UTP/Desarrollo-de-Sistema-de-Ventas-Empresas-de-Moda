@@ -2,6 +2,13 @@
 
 :root {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* Acento suave para barra activa del menú (sin pintar toda la app) */
+  --accent: #334155;
+}
+
+/* Tablas: filas alternas muy sutiles sobre fondo blanco */
+.table-zebra tbody tr:nth-child(odd) {
+  background-color: rgb(249 250 251 / 0.85);
 }
 
 
@@ -61,6 +68,21 @@
 
 .animate-scaleOut {
   animation: scaleOut 0.3s ease-out forwards;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slideUpFade {
+  animation: slideUpFade 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 /* Scrollbar personalizado para el carrito de ventas */

@@ -1,11 +1,10 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import type { Usuario, Rol } from '../interfaces/Usuario';
-import type { CredencialesLogin, RespuestaAutenticacion } from '../interfaces/Usuario';
-import type { RolNombre } from '../interfaces/enums';
-import { RUTAS_AUTENTICACION } from '../config/apiConfig';
+import apiClient from '../config/apiClient';
+import type { Usuario, Rol } from '../types/Usuario';
+import type { CredencialesLogin, RespuestaAutenticacion } from '../types/Usuario';
+import type { RolNombre } from '../types/enums';
 import { setAuthToken } from '../config/apiClient';
 
 interface TokenDecodificado {
@@ -108,36 +107,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     };
 
     initializeAuth();
-  }, []);  // Configurar interceptor de respuesta para manejar 401
-  useEffect(() => {
-    const responseInterceptor = axios.interceptors.response.use(
-      response => response,
-      error => {
-        if (error.response?.status === 401) {
-          // Usar callback para evitar dependencias circulares
-          localStorage.removeItem('token');
-
-          // Actualizar estados usando callbacks
-          setToken(null);
-          setAuthToken(null);
-          setUsuario(null);
-
-          if (window.location.pathname !== '/login') {
-            // Redirigir después de un pequeño delay para evitar problemas de estado
-            setTimeout(() => {
-              window.location.href = '/login';
-            }, 100);
-          }
-        }
-        return Promise.reject(error);
-      }
-    );
-
-    // Cleanup al desmontar
-    return () => {
-      axios.interceptors.response.eject(responseInterceptor);
-    };
-  }, []); // Sin dependencias para evitar bucle infinito
+  }, []);
 
   // Efecto separado para sincronizar el token cuando cambie
   useEffect(() => {
@@ -147,8 +117,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       setError(null);
       console.log('🔄 Intentando iniciar sesión con:', { usuario: credenciales.usuario });
       
-      const response = await axios.post<RespuestaAutenticacion>(
-        RUTAS_AUTENTICACION.INICIAR_SESION,
+      const response = await apiClient.post<RespuestaAutenticacion>(
+        '/api/autenticacion/signin',
         credenciales
       );
 

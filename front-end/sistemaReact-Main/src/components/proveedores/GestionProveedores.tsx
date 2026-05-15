@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Search, Edit, Trash2, Save, Building2, Loader2, AlertCircle } from 'lucide-react';
-import type { Proveedor } from '../../interfaces/Proveedor';
-import { ProveedorService } from '../../services/ProveedorServices';
-import { ConfirmModal } from '../common';
+import type { Proveedor } from '../../types/Proveedor';
+import { ProveedorService } from '../../services/ProveedorService';
+import { ConfirmModal } from '@/shared/ui';
 
 const GestionProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -15,6 +15,7 @@ const GestionProveedores: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [buscandoProveedor, setBuscandoProveedor] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; proveedorId: number | null }>({ open: false, proveedorId: null });
+  const [ultimaCargaLista, setUltimaCargaLista] = useState<string | null>(null);
 
   // Formulario
   const [formData, setFormData] = useState({
@@ -37,6 +38,9 @@ const GestionProveedores: React.FC = () => {
       const data = await ProveedorService.obtenerTodosProveedores();
       setProveedores(data);
       setProveedoresOriginal(data);
+      setUltimaCargaLista(
+        new Date().toLocaleString("es-PE", { dateStyle: "short", timeStyle: "short" })
+      );
     } catch (err) {
       setError('Error al cargar proveedores');
       console.error(err);
@@ -221,22 +225,33 @@ const GestionProveedores: React.FC = () => {
   );
 
   return (
-    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn">
+    <div className="max-w-[1600px] mx-auto animate-fadeIn pb-8">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
           <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
             Gestión de proveedores
           </h1>
-          <p className="text-gray-500 text-sm max-w-md font-medium">
+          <p className="text-gray-500 text-sm max-w-lg font-medium">
             Administración centralizada de socios estratégicos y logística para DK-SYSTEM.
           </p>
+          {ultimaCargaLista && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+              <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 font-semibold text-gray-700 shadow-sm">
+                {proveedoresOriginal.length}{" "}
+                {proveedoresOriginal.length === 1 ? "proveedor registrado" : "proveedores registrados"}
+              </span>
+              <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-3 py-1 font-medium">
+                Datos cargados · {ultimaCargaLista}
+              </span>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-3">
           <button
             onClick={handleNuevo}
-            className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider"
+            className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider active:scale-[0.98]"
           >
             <Plus className="w-4 h-4" />
             Nuevo Proveedor
@@ -277,7 +292,7 @@ const GestionProveedores: React.FC = () => {
       {/* Main Table Content */}
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
+          <table className="w-full border-collapse table-zebra">
             <thead>
               <tr className="bg-white border-b border-gray-50">
                 <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
@@ -307,16 +322,44 @@ const GestionProveedores: React.FC = () => {
               )}
               {!loading && proveedores.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-8 py-20 text-center">
-                    <div className="flex flex-col items-center gap-2 opacity-30">
-                      <Building2 className="w-12 h-12" />
-                      <span className="text-xs font-bold uppercase tracking-widest">Sin resultados</span>
+                  <td colSpan={4} className="px-8 py-16 text-center bg-slate-50/50">
+                    <div className="flex flex-col items-center max-w-md mx-auto">
+                      <Building2 className="w-14 h-14 text-slate-300 mb-4" />
+                      <p className="text-base font-bold text-gray-900">
+                        {proveedoresOriginal.length === 0
+                          ? "Aún no hay proveedores"
+                          : "Sin resultados para esta búsqueda"}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        {proveedoresOriginal.length === 0
+                          ? "Registra el primero para vincularlo a productos y compras."
+                          : "Prueba con otro nombre o RUC, o borra el filtro para ver la lista completa."}
+                      </p>
+                      <div className="mt-6 flex flex-wrap justify-center gap-3">
+                        <button
+                          type="button"
+                          onClick={handleNuevo}
+                          className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98]"
+                        >
+                          <Plus className="w-4 h-4" />
+                          Nuevo proveedor
+                        </button>
+                        {proveedoresOriginal.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setSearchTerm("")}
+                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98]"
+                          >
+                            Limpiar búsqueda
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </td>
                 </tr>
               )}
               {proveedoresPaginados.map((proveedor) => (
-                <tr key={proveedor.idProveedor} className="hover:bg-[#fafafa] transition-colors group">
+                <tr key={proveedor.idProveedor} className="hover:bg-slate-100/60 transition-colors duration-150 group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-white shadow-lg">

@@ -15,6 +15,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -42,6 +43,8 @@ public class SecurityConfiguration {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 3. Reglas de Autorización de Rutas
                                                                                    // (Endpoints)
                 .authorizeHttpRequests(request -> request
+                        // Preflight CORS sin credenciales de rol (evita 403 en navegador antes del GET/POST real).
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // La regla MÁS IMPORTANTE: Permitir acceso público a los endpoints de
                         // autenticación.
                         // Debe ir primero para que no sea sobreescrita por reglas más restrictivas.
@@ -53,15 +56,27 @@ public class SecurityConfiguration {
                         // Permitir acceso a los nuevos endpoints de códigos de barras v1
                         .requestMatchers("/api/v1/codigosbarras/**").permitAll()
 
-                        // Proteger las rutas de cajero. Solo ADMIN y CAJERO pueden acceder.
-                        .requestMatchers("/api/cajero/**").hasAnyRole("ADMIN", "CAJERO")
+                        // Lectura del catálogo POS (productos/variantes): también vendedor de piso (el front
+                        // reutiliza estas rutas; la regla general de /api/cajero/** sigue sin incluir VENDEDOR).
+                        .requestMatchers(HttpMethod.GET, "/api/cajero/productos/**")
+                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "VENDEDOR")
+
+                        // Cajero (ventas, catálogo POS). ALMACENERO comparte flujos de producto/variantes con el front.
+                        .requestMatchers("/api/cajero/**").hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "VENDEDOR")
 
                         // Proteger las rutas de caja. ADMIN, CAJERO y ALMACENERO pueden acceder.
-                        .requestMatchers("/api/caja/**").hasAnyRole("ADMIN", "CAJERO", "ALMACENERO")
+                        .requestMatchers("/api/caja/**").hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "VENDEDOR")
 
-                        // Proteger las rutas de almacenero. Solo ADMIN y ALMACENERO pueden acceder.
-                        // Esto incluye productos, categorías, códigos de barras, etc.
-                        .requestMatchers("/api/almacenero/**").hasAnyRole("ADMIN", "ALMACENERO")
+                        // Búsqueda paginada de productos (misma query que usa ProductoService del front para varios roles).
+                        .requestMatchers(HttpMethod.GET, "/api/almacenero/productos/pagina")
+                                .hasAnyRole("ADMIN", "ALMACENERO", "VENDEDOR", "CAJERO")
+
+                        // Proteger las rutas de almacenero (inventario, productos, categorías, etc.)
+                        .requestMatchers("/api/almacenero/**").hasAnyRole("ADMIN", "ALMACENERO", "VENDEDOR")
+
+                        // Vendedor / admin: catálogo y solicitudes a almacén (mismo contrato API)
+                        .requestMatchers("/api/vendedor/**")
+                                .hasAnyRole("VENDEDOR", "ADMIN")
 
                         // CUALQUIER OTRA RUTA que no coincida con las anteriores requiere
                         // autenticación.

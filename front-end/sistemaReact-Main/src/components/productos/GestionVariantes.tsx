@@ -1,13 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, Plus, Edit, Trash2, Save, Package, Palette, Ruler, ShoppingBag, RefreshCw, AlertTriangle } from 'lucide-react';
-import type { Producto } from '../../interfaces/Producto';
-import type { ProductoVariante } from '../../interfaces/ProductoVariante';
-import type { Color } from '../../interfaces/Color';
-import type { Talla } from '../../interfaces/Talla';
+import type { Producto } from '../../types/Producto';
+import type { ProductoVariante } from '../../types/ProductoVariante';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
-import { ColorService } from '../../services/ColorService';
-import { TallaService } from '../../services/TallaService';
-import { AlertModal, ConfirmModal, ComboBox } from '../common';
+import {
+  collectTallaNamesFromVariantes,
+  collectColorNamesFromVariantes,
+  tallaDesdeNombre,
+  colorDesdeNombre,
+  mismoParTallaColor,
+  nombresUnicosOrdenados,
+} from '../../utils/varianteCatalogoHelpers';
+import { AlertModal, ConfirmModal } from '@/shared/ui';
+import { useAuth } from '@/context/AuthContext';
+import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
 
 interface GestionVariantesProps {
   producto: Producto;
@@ -15,28 +21,31 @@ interface GestionVariantesProps {
   onVariantesActualizadas: () => void;
 }
 
+const DL_TALLAS = 'gestion-variantes-tallas-dl';
+const DL_COLORES = 'gestion-variantes-colores-dl';
+
 const GestionVariantes: React.FC<GestionVariantesProps> = ({
   producto,
   onClose,
   onVariantesActualizadas
 }) => {
+  const { usuario } = useAuth();
   const [variantes, setVariantes] = useState<ProductoVariante[]>([]);
-  const [colores, setColores] = useState<Color[]>([]);
-  const [tallas, setTallas] = useState<Talla[]>([]);
+  const [sugerenciasTallas, setSugerenciasTallas] = useState<string[]>([]);
+  const [sugerenciasColores, setSugerenciasColores] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNuevaVariante, setShowNuevaVariante] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Formulario nueva variante
   const [formVariante, setFormVariante] = useState({
-    tallaId: '',
-    colorId: '',
+    nombreTalla: '',
+    nombreColor: '',
     cantidad: '',
     codigoIdentificacion: ''
   });
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [varianteAEliminar, setVarianteAEliminar] = useState<number | null>(null);
-  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
+  const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' | 'warning' }>({ open: false, message: '', variant: 'info' });
 
   const [isModalVisible, setIsModalVisible] = useState(false);
 
@@ -47,52 +56,70 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
 
   const handleClose = () => {
     setIsModalVisible(false);
-    setTimeout(onClose, 300); // Esperar a que la animación termine
-  }
+    setTimeout(onClose, 300);
+  };
 
   const cargarDatos = async () => {
     if (!producto.idProducto) return;
     try {
       setLoading(true);
       setError(null);
-      const [variantesData, coloresData, tallasData] = await Promise.all([
-        ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto),
-        ColorService.getAllColores(),
-        TallaService.getTallasOrdenadas()
-      ]);
+      const variantesData = await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto);
       const variantesUnicas = Array.from(new Map(variantesData.map(v => [v.idVariante, v])).values());
       const variantesOrdenadas = [...variantesUnicas].sort((a, b) => {
-        const compareTalla = a.talla.nombreTalla.localeCompare(b.talla.nombreTalla);
+        const compareTalla = (a.talla?.nombreTalla ?? '').localeCompare(b.talla?.nombreTalla ?? '');
         if (compareTalla !== 0) return compareTalla;
-        return a.color.nombre.localeCompare(b.color.nombre);
+        return (a.color?.nombre ?? '').localeCompare(b.color?.nombre ?? '');
       });
       setVariantes(variantesOrdenadas);
-      setColores(coloresData);
-      setTallas(tallasData);
-    } catch (err: any) {
-      setError('Error al cargar datos: ' + (err.message ?? 'Error de comunicación'));
+
+      const todas = await ProductoVarianteService.obtenerTodasLasVariantes(
+        resolveInventarioUserRole(usuario?.roles),
+        false
+      );
+      setSugerenciasTallas(collectTallaNamesFromVariantes(todas));
+      setSugerenciasColores(collectColorNamesFromVariantes(todas));
+    } catch (err: unknown) {
+      setError('Error al cargar datos: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
     } finally {
       setLoading(false);
     }
   };
 
+  const hexPreviewNuevoColor = useMemo(() => {
+    const n = formVariante.nombreColor.trim().toLowerCase();
+    if (!n) return '#FFFFFF';
+    const v = variantes.find(x => x.color.nombre.trim().toLowerCase() === n);
+    return v?.color.codigoHex ?? '#CCCCCC';
+  }, [variantes, formVariante.nombreColor]);
+
   const handleCrearVariante = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!producto.idProducto) return;
     try {
-      const talla = tallas.find(t => t.idTalla?.toString() === formVariante.tallaId);
-      const color = colores.find(c => c.idColor?.toString() === formVariante.colorId);
-      if (!talla || !color) throw new Error('Talla y color son requeridos');
-      const varianteExistente = variantes.find(v => v.talla.idTalla === talla.idTalla && v.color.idColor === color.idColor);
+      const nombreTalla = formVariante.nombreTalla.trim();
+      const nombreColor = formVariante.nombreColor.trim();
+      if (!nombreTalla || !nombreColor) throw new Error('Talla y color son requeridos');
+
+      const varianteExistente = variantes.find((v) =>
+        mismoParTallaColor(
+          { nombreTalla: v.talla.nombreTalla, nombreColor: v.color.nombre },
+          { nombreTalla, nombreColor }
+        )
+      );
       if (varianteExistente) {
-        setError(`Ya existe una variante con la talla "${talla.nombreTalla}" y color "${color.nombre}".`);
+        setError(`Ya existe una variante con la talla "${nombreTalla}" y color "${nombreColor}".`);
         return;
       }
-      const cantidad = parseInt(formVariante.cantidad);
+      const cantidad = parseInt(formVariante.cantidad, 10);
       if (isNaN(cantidad) || cantidad < 0) {
         setError('La cantidad debe ser un número entero no negativo');
         return;
       }
+
+      const talla = tallaDesdeNombre(nombreTalla);
+      const color = colorDesdeNombre(nombreColor);
+
       const nuevaVariante: Omit<ProductoVariante, 'idVariante'> = {
         producto,
         talla,
@@ -105,11 +132,13 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         const cT = a.talla.nombreTalla.localeCompare(b.talla.nombreTalla);
         return cT !== 0 ? cT : a.color.nombre.localeCompare(b.color.nombre);
       }));
-      setFormVariante({ tallaId: '', colorId: '', cantidad: '', codigoIdentificacion: '' });
+      setFormVariante({ nombreTalla: '', nombreColor: '', cantidad: '', codigoIdentificacion: '' });
       setShowNuevaVariante(false);
       setError(null);
+      setSugerenciasTallas((p) => nombresUnicosOrdenados([...p, nombreTalla]));
+      setSugerenciasColores((p) => nombresUnicosOrdenados([...p, nombreColor]));
       onVariantesActualizadas();
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Error al crear variante');
     }
   };
@@ -119,8 +148,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       const varianteActualizada = await ProductoVarianteService.actualizarCantidad(idVariante, nuevaCantidad);
       setVariantes(prev => prev.map(v => v.idVariante === idVariante ? varianteActualizada : v));
       onVariantesActualizadas();
-    } catch (err: any) {
-      setError('Error al actualizar cantidad: ' + (err.message ?? 'Error de comunicación'));
+    } catch (err: unknown) {
+      setError('Error al actualizar cantidad: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
       throw err;
     }
   };
@@ -136,8 +165,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       await ProductoVarianteService.eliminarVariante(varianteAEliminar);
       setVariantes(prev => prev.filter(v => v.idVariante !== varianteAEliminar));
       onVariantesActualizadas();
-    } catch (err: any) {
-      setError('Error al eliminar variante: ' + (err.message ?? 'Error de comunicación'));
+    } catch (err: unknown) {
+      setError('Error al eliminar variante: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
     } finally {
       setVarianteAEliminar(null);
       setConfirmModalOpen(false);
@@ -155,7 +184,6 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
     <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${isModalVisible ? 'animate-fadeIn' : 'animate-fadeOut'}`}>
       <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${isModalVisible ? 'animate-scaleIn' : 'animate-scaleOut'}`}>
 
-        {/* Header */}
         <div className="p-10 pb-6 border-b border-gray-100">
           <div className="mb-6 w-12 h-1 bg-black"></div>
           <div className="flex items-start justify-between">
@@ -172,8 +200,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                 <ShoppingBag className="w-4 h-4" />
                 Stock: {totalStock}
               </span>
-              <button 
-                onClick={handleClose} 
+              <button
+                onClick={handleClose}
                 className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all duration-200"
               >
                 <X className="w-6 h-6" />
@@ -227,6 +255,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                       variante={variante}
                       onActualizarCantidad={handleActualizarCantidad}
                       onEliminar={solicitarEliminarVariante}
+                      onAlert={(msg) => setAlertModal({ open: true, message: msg, variant: 'warning' })}
                       ocultarColumnaVariante={true}
                     />
                   ))}
@@ -246,8 +275,6 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         </div>
       </div>
 
-      {/* --- MODALES --- */}
-      {/* Modal Nueva Variante */}
       {showNuevaVariante && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-fadeIn">
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden animate-scaleIn">
@@ -256,60 +283,55 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
               <h3 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
                 Nueva Variante
               </h3>
-              <p className="text-gray-500 text-sm mb-10 font-medium">
-                Agregue una nueva variante del producto
+              <p className="text-gray-500 text-sm mb-6 font-medium">
+                Escribe o elige talla y color (sugerencias desde el inventario existente).
               </p>
 
               <form onSubmit={handleCrearVariante} className="space-y-6">
-                {/* Selector de Talla */}
                 <div>
-                  <ComboBox
-                    value={formVariante.tallaId}
-                    onChange={(value) => setFormVariante({ ...formVariante, tallaId: value })}
-                    options={[
-                      { value: '', label: 'Seleccionar talla' },
-                      ...tallas.map(talla => ({
-                        value: talla.idTalla?.toString() || '',
-                        label: talla.nombreTalla
-                      }))
-                    ]}
-                    label={
-                      <span className="flex items-center gap-2">
-                        <Ruler className="w-4 h-4" />
-                        Talla
-                        <span className="text-red-500">*</span>
-                      </span>
-                    }
-                    icon={<Ruler className="w-4 h-4" />}
-                    placeholder="Seleccionar talla"
+                  <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-2">
+                    <span className="flex items-center gap-2">
+                      <Ruler className="w-4 h-4" />
+                      Talla <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  <input
+                    list={DL_TALLAS}
+                    value={formVariante.nombreTalla}
+                    onChange={(e) => setFormVariante({ ...formVariante, nombreTalla: e.target.value })}
+                    placeholder="Ej: M, L, 32"
+                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    autoComplete="off"
                   />
+                  <datalist id={DL_TALLAS}>
+                    {sugerenciasTallas.map((t) => (
+                      <option key={t} value={t} />
+                    ))}
+                  </datalist>
                 </div>
 
-                {/* Selector de Color */}
                 <div>
-                  <ComboBox
-                    value={formVariante.colorId}
-                    onChange={(value) => setFormVariante({ ...formVariante, colorId: value })}
-                    options={[
-                      { value: '', label: 'Seleccionar color' },
-                      ...colores.map(color => ({
-                        value: color.idColor?.toString() || '',
-                        label: color.nombre
-                      }))
-                    ]}
-                    label={
-                      <span className="flex items-center gap-2">
-                        <Palette className="w-4 h-4" />
-                        Color
-                        <span className="text-red-500">*</span>
-                      </span>
-                    }
-                    icon={<Palette className="w-4 h-4" />}
-                    placeholder="Seleccionar color"
+                  <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-2">
+                    <span className="flex items-center gap-2">
+                      <Palette className="w-4 h-4" />
+                      Color <span className="text-red-500">*</span>
+                    </span>
+                  </label>
+                  <input
+                    list={DL_COLORES}
+                    value={formVariante.nombreColor}
+                    onChange={(e) => setFormVariante({ ...formVariante, nombreColor: e.target.value })}
+                    placeholder="Ej: Azul marino"
+                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    autoComplete="off"
                   />
+                  <datalist id={DL_COLORES}>
+                    {sugerenciasColores.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
                 </div>
 
-                {/* Cantidad */}
                 <div className="space-y-2">
                   <label htmlFor="cantidadInput" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
                     <span className="flex items-center gap-2">
@@ -330,7 +352,6 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                   />
                 </div>
 
-                {/* Código de Identificación (opcional) */}
                 <div className="space-y-2">
                   <label htmlFor="codigoIdentificacion" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
                     Código de Barras (opcional)
@@ -345,25 +366,18 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                   />
                 </div>
 
-                {/* Vista previa de la combinación */}
-                {formVariante.tallaId && formVariante.colorId && (
+                {formVariante.nombreTalla.trim() && formVariante.nombreColor.trim() && (
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-4">
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Vista previa:</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm font-bold text-black">
-                        {tallas.find(t => t.idTalla?.toString() === formVariante.tallaId)?.nombreTalla}
-                      </span>
+                      <span className="text-sm font-bold text-black">{formVariante.nombreTalla.trim()}</span>
                       <span className="text-gray-300">•</span>
                       <div className="flex items-center gap-2">
                         <div
                           className="w-5 h-5 rounded-lg border-2 border-gray-200"
-                          style={{
-                            backgroundColor: colores.find(c => c.idColor?.toString() === formVariante.colorId)?.codigoHex ?? '#FFFFFF'
-                          }}
-                        ></div>
-                        <span className="text-sm font-bold text-black">
-                          {colores.find(c => c.idColor?.toString() === formVariante.colorId)?.nombre}
-                        </span>
+                          style={{ backgroundColor: hexPreviewNuevoColor }}
+                        />
+                        <span className="text-sm font-bold text-black">{formVariante.nombreColor.trim()}</span>
                       </div>
                     </div>
                   </div>
@@ -374,7 +388,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     type="button"
                     onClick={() => {
                       setShowNuevaVariante(false);
-                      setFormVariante({ tallaId: '', colorId: '', cantidad: '', codigoIdentificacion: '' });
+                      setFormVariante({ nombreTalla: '', nombreColor: '', cantidad: '', codigoIdentificacion: '' });
                       setError(null);
                     }}
                     className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
@@ -394,7 +408,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
           </div>
         </div>
       )}
-      {/* Modal de confirmación para eliminar variantes */}
+
       <ConfirmModal
         open={confirmModalOpen}
         message="¿Estás seguro de que deseas eliminar esta variante? El stock se perderá."
@@ -404,11 +418,10 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         cancelText="Cancelar"
         variant="danger"
       />
-      {/* Alert Modal for quantity validation */}
       <AlertModal
         open={alertModal.open}
         message={alertModal.message}
-        variant={alertModal.variant}
+        variant={alertModal.variant === 'warning' ? 'info' : alertModal.variant}
         onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
       />
     </div>
@@ -419,8 +432,9 @@ const VarianteRow: React.FC<{
   variante: ProductoVariante;
   onActualizarCantidad: (id: number, cantidad: number) => void;
   onEliminar: (id: number) => void;
+  onAlert: (msg: string) => void;
   ocultarColumnaVariante?: boolean;
-}> = ({ variante, onActualizarCantidad, onEliminar, ocultarColumnaVariante }) => {
+}> = ({ variante, onActualizarCantidad, onEliminar, onAlert, ocultarColumnaVariante }) => {
   const [editandoCantidad, setEditandoCantidad] = useState(false);
   const [nuevaCantidad, setNuevaCantidad] = useState(variante.cantidad.toString());
   const [guardando, setGuardando] = useState(false);
@@ -431,9 +445,9 @@ const VarianteRow: React.FC<{
 
   const handleGuardarCantidad = async () => {
     if (!variante.idVariante || guardando) return;
-    const cantidadNumerica = parseInt(nuevaCantidad);
+    const cantidadNumerica = parseInt(nuevaCantidad, 10);
     if (isNaN(cantidadNumerica) || cantidadNumerica < 0) {
-      setAlertModal({ open: true, message: 'Por favor ingresa una cantidad válida.', variant: 'warning' });
+      onAlert('Por favor ingresa una cantidad válida.');
       setNuevaCantidad(variante.cantidad.toString());
       return;
     }
@@ -443,10 +457,9 @@ const VarianteRow: React.FC<{
     }
     try {
       setGuardando(true);
-      onActualizarCantidad(variante.idVariante, cantidadNumerica);
+      await onActualizarCantidad(variante.idVariante, cantidadNumerica);
       setEditandoCantidad(false);
-    } catch (error) {
-      console.error('Error al actualizar cantidad:', error);
+    } catch {
       setNuevaCantidad(variante.cantidad.toString());
     } finally {
       setGuardando(false);
@@ -459,13 +472,12 @@ const VarianteRow: React.FC<{
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleGuardarCantidad();
+    if (e.key === 'Enter') void handleGuardarCantidad();
     else if (e.key === 'Escape') handleCancelarEdicion();
   };
 
   return (
     <tr className="hover:bg-gray-50/70 transition-colors duration-200 group">
-      {/* Solo mostrar la columna Variante si no está oculta (por compatibilidad futura) */}
       {!ocultarColumnaVariante && (
         <td className="px-8 py-5 font-mono text-sm text-gray-700">{variante.codigoIdentificacion ?? 'N/A'}</td>
       )}
@@ -474,7 +486,7 @@ const VarianteRow: React.FC<{
       </td>
       <td className="px-8 py-5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg border-2 border-gray-200" style={{ backgroundColor: variante.color.codigoHex ?? '#FFFFFF' }}></div>
+          <div className="w-8 h-8 rounded-lg border-2 border-gray-200" style={{ backgroundColor: variante.color.codigoHex ?? '#FFFFFF' }} />
           <span className="font-bold text-sm text-black">{variante.color.nombre}</span>
         </div>
       </td>
@@ -504,6 +516,7 @@ const VarianteRow: React.FC<{
             }
             return (
               <button
+                type="button"
                 onClick={() => setEditandoCantidad(true)}
                 className={`inline-flex items-center justify-center gap-2 min-w-[80px] px-3 py-1.5 rounded-full font-bold cursor-pointer transition-transform duration-200 group-hover:scale-105 border-0 ${cantidadClass}`}
                 title="Clic para editar cantidad"
@@ -518,13 +531,13 @@ const VarianteRow: React.FC<{
       <td className="px-8 py-5 text-right">
         {editandoCantidad ? (
           <div className="flex items-center justify-end gap-2">
-            <button onClick={handleGuardarCantidad} disabled={guardando} className="p-2.5 rounded-xl text-black bg-gray-100 hover:bg-black hover:text-white disabled:opacity-50 transition-all" title="Guardar"><Save className="w-4 h-4" /></button>
-            <button onClick={handleCancelarEdicion} disabled={guardando} className="p-2.5 rounded-xl text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-all" title="Cancelar"><X className="w-4 h-4" /></button>
+            <button type="button" onClick={() => void handleGuardarCantidad()} disabled={guardando} className="p-2.5 rounded-xl text-black bg-gray-100 hover:bg-black hover:text-white disabled:opacity-50 transition-all" title="Guardar"><Save className="w-4 h-4" /></button>
+            <button type="button" onClick={handleCancelarEdicion} disabled={guardando} className="p-2.5 rounded-xl text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-all" title="Cancelar"><X className="w-4 h-4" /></button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-2">
-            <button onClick={() => setEditandoCantidad(true)} className="p-2.5 rounded-xl text-gray-400 hover:bg-black hover:text-white transition-all" title="Editar Cantidad"><Edit className="w-4 h-4" /></button>
-            <button onClick={() => onEliminar(variante.idVariante!)} className="p-2.5 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Eliminar Variante"><Trash2 className="w-4 h-4" /></button>
+            <button type="button" onClick={() => setEditandoCantidad(true)} className="p-2.5 rounded-xl text-gray-400 hover:bg-black hover:text-white transition-all" title="Editar Cantidad"><Edit className="w-4 h-4" /></button>
+            <button type="button" onClick={() => variante.idVariante && onEliminar(variante.idVariante)} className="p-2.5 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Eliminar Variante"><Trash2 className="w-4 h-4" /></button>
           </div>
         )}
       </td>

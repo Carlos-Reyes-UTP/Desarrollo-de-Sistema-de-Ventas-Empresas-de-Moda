@@ -12,11 +12,12 @@ import {
   ChevronDown,
   TreePine,
   Hash,
-  AlertCircle
+  AlertCircle,
+  GripVertical
 } from 'lucide-react';
-import type { CategoriaDTO } from '../../interfaces/CategoriaDTO';
-import { CategoriaService } from '../../services/CategoriaServices';
-import { ConfirmModal } from '../common';
+import type { CategoriaDTO } from '../../types/CategoriaDTO';
+import { CategoriaService } from '../../services/CategoriaService';
+import { ConfirmModal } from '@/shared/ui';
 
 interface ArbolCategoriaProps {
   categoria: CategoriaDTO;
@@ -39,36 +40,48 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
 }) => {
   const tieneSubcategorias = categoria.subcategorias && categoria.subcategorias.length > 0;
   const estaExpandida = categoriasExpandidas.has(categoria.id);
-  const indentacion = nivel * 32;
+  const indentacion = nivel * 24;
 
   return (
     <div className="w-full">
       <div 
-        className={`flex items-center justify-between p-4 hover:bg-[#fafafa] transition-colors group border-b border-gray-50`}
-        style={{ paddingLeft: `${indentacion + 16}px` }}
+        className={`flex items-center justify-between py-3 px-4 mb-2 rounded-2xl transition-all duration-300 group border ${
+          estaExpandida && tieneSubcategorias 
+            ? 'bg-white/90 backdrop-blur-md border-gray-200 shadow-sm' 
+            : 'bg-white/60 backdrop-blur-sm border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'
+        }`}
+        style={{ marginLeft: `${indentacion}px` }}
       >
-        <div className="flex items-center gap-4 flex-1">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <div className="p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
+               <GripVertical className="w-3.5 h-3.5 text-gray-300" />
+            </div>
+            
             {tieneSubcategorias ? (
               <button
                 onClick={() => toggleExpansion(categoria.id)}
-                className="w-6 h-6 flex items-center justify-center hover:bg-gray-100 rounded-lg transition-colors"
+                className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
+                  estaExpandida ? 'bg-black text-white rotate-0' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-black'
+                }`}
               >
                 {estaExpandida ? (
-                  <ChevronDown className="w-3 h-3 text-black" />
+                  <ChevronDown className="w-3.5 h-3.5" />
                 ) : (
-                  <ChevronRight className="w-3 h-3 text-black" />
+                  <ChevronRight className="w-3.5 h-3.5" />
                 )}
               </button>
             ) : (
-              <div className="w-6 h-6 flex items-center justify-center">
-                <div className="w-1 h-1 rounded-full bg-gray-300" />
+              <div className="w-7 h-7 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-gray-200" />
               </div>
             )}
             
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ${
-              estaExpandida && tieneSubcategorias ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'
-            } transition-all`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
+              estaExpandida && tieneSubcategorias 
+                ? 'bg-black text-white shadow-lg shadow-black/10' 
+                : 'bg-gray-50 text-gray-400 border border-gray-100'
+            }`}>
               {estaExpandida && tieneSubcategorias ? (
                 <FolderOpen className="w-4 h-4" />
               ) : (
@@ -77,34 +90,50 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
             </div>
           </div>
           
-          <div className="flex flex-col">
-            <span className="text-sm font-bold text-black leading-tight mb-0.5">
+          <div className="flex flex-col min-w-0">
+            <span className={`text-[15px] font-bold tracking-tight truncate transition-colors ${
+                estaExpandida && tieneSubcategorias ? 'text-black' : 'text-gray-900'
+            }`}>
               {categoria.nombre}
             </span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.1em]">
-              ID {categoria.id} • Nivel {nivel + 1} {tieneSubcategorias && `• ${categoria.subcategorias!.length} RAMAS`}
-            </span>
+            <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[9px] font-black text-gray-400 uppercase tracking-[0.1em]">
+                    ID {categoria.id}
+                </span>
+                <span className="w-1 h-1 rounded-full bg-gray-200" />
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.1em]">
+                    Nivel {nivel + 1}
+                </span>
+                {tieneSubcategorias && (
+                    <>
+                        <span className="w-1 h-1 rounded-full bg-gray-200" />
+                        <span className="text-[9px] font-extrabold text-gray-500 uppercase tracking-[0.1em]">
+                             {categoria.subcategorias!.length} Ramas
+                        </span>
+                    </>
+                )}
+            </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity pr-4">
+        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
           <button
             onClick={() => onCrearSubcategoria(categoria.id)}
-            className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent text-gray-400"
+            className="p-2.5 bg-white hover:bg-black hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-gray-400"
             title="Añadir Subrama"
           >
             <FolderPlus className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEditar(categoria)}
-            className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent text-gray-400"
+            className="p-2.5 bg-white hover:bg-black hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-gray-400"
             title="Editar"
           >
             <Edit className="w-4 h-4" />
           </button>
           <button
-            onClick={() => solicitarEliminar(categoria.id)}
-            className="p-2.5 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent text-red-400"
+            onClick={() => onEliminar(categoria.id)}
+            className="p-2.5 bg-white hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-red-400"
             title="Eliminar"
           >
             <Trash2 className="w-4 h-4" />
@@ -113,11 +142,11 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
       </div>
 
       {tieneSubcategorias && estaExpandida && (
-        <div className="relative">
-          {/* Vertical line for the tree structure */}
+        <div className="relative ml-3.5">
+          {/* vertical line visual for the tree */}
           <div 
-            className="absolute left-[36px] top-0 bottom-0 w-[1px] bg-gray-100" 
-            style={{ left: `${indentacion + 36}px` }}
+            className="absolute left-0 top-0 bottom-4 w-[1px] bg-gray-200 rounded-full" 
+            style={{ left: `${indentacion + 12}px` }}
           />
           {categoria.subcategorias!.map((subcategoria) => (
             <ArbolCategoria
@@ -331,7 +360,7 @@ const GestionCategorias: React.FC = () => {
   };
 
   return (
-    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn">
+    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent min-h-screen animate-fadeIn">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
@@ -354,137 +383,155 @@ const GestionCategorias: React.FC = () => {
         </div>
       </div>
 
-      {/* Primary Context Bar */}
-      <div className="bg-white rounded-[2rem] p-8 mb-8 shadow-sm border border-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8 items-end">
+      {/* Control & Search Deck (Glassmorphism as per AGENTE.md) */}
+      <div className="bg-white/80 backdrop-blur-md rounded-3xl p-4 mb-10 shadow-sm border border-gray-200 sticky top-4 z-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
           
-          {/* Search Box */}
-          <div className="lg:col-span-3">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">
-              Filtro Jerárquico
-            </label>
-            <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Nombre de categoría..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyPress}
-                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium"
-              />
-            </div>
+          {/* Search Module */}
+          <div className="lg:col-span-5 relative group">
+            <Search className="w-4 h-4 text-gray-400 absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-black transition-colors" />
+            <input
+              type="text"
+              placeholder="Buscar en la estructura..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyPress}
+              className="w-full pl-12 pr-6 py-4 bg-[#f8f8f8] border-transparent rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-bold text-black placeholder:text-gray-400 border border-gray-100/50"
+            />
           </div>
 
-          {/* Tree Controls */}
-          <div className="lg:col-span-2 flex gap-2">
+          {/* Visualization Controls */}
+          <div className="lg:col-span-4 flex gap-2">
             <button
               onClick={expandirTodas}
-              className="flex-1 h-[46px] flex items-center justify-center bg-black text-white rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-800 transition-all shadow-md"
+              className="flex-1 h-[56px] flex items-center justify-center bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-sm"
             >
-              <FolderOpen className="w-4 h-4 mr-2" />
-              Expandir Todo
+              <FolderOpen className="w-4 h-4 mr-2.5" />
+              Expandir
             </button>
             <button
               onClick={contraerTodas}
-              className="flex-1 h-[46px] flex items-center justify-center bg-gray-100 text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-200 hover:text-black transition-all"
+              className="flex-1 h-[56px] flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 hover:text-black transition-all"
             >
-              <Folder className="w-4 h-4 mr-2" />
-              Contraer Todo
+              <Folder className="w-4 h-4 mr-2.5" />
+              Contraer
             </button>
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="h-[46px] flex items-center justify-center bg-[#f8f8f8] rounded-xl px-4 text-gray-400">
-               <Hash className="w-4 h-4" />
-              <span className="ml-2 text-xs font-bold uppercase tracking-widest">{contarCategorias(categorias)} TOTAL</span>
+          {/* Stats Display */}
+          <div className="lg:col-span-3">
+            <div className="h-[56px] flex items-center justify-between bg-gray-50 border border-gray-200 rounded-2xl px-6 text-black">
+               <div className="flex items-center gap-3">
+                  <Hash className="w-4 h-4 text-gray-300" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total</span>
+               </div>
+               <span className="text-xl font-black tabular-nums">{contarCategorias(categorias)}</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Tree Container */}
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden min-h-[500px]">
+      {/* Main Structural Tree Display */}
+      <div className="relative">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-40 gap-3">
-             <div className="w-10 h-10 border-4 border-gray-100 border-t-black rounded-full animate-spin"></div>
-             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Sincronizando Taxonomía...</span>
+          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200 shadow-sm p-40">
+            <div className="flex flex-col items-center justify-center gap-6">
+                <div className="w-12 h-12 border-4 border-gray-100 border-t-black rounded-full animate-spin"></div>
+                <span className="text-[10px] font-black text-black uppercase tracking-[0.3em]">Sincronizando...</span>
+            </div>
           </div>
         ) : categoriasFiltradas.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-40 opacity-30 gap-3 text-center">
-            <TreePine className="w-16 h-16" />
-            <span className="text-xs font-bold uppercase tracking-widest">No se detectaron nodos</span>
+          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200 shadow-sm py-40 text-center flex flex-col items-center gap-6">
+            <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center">
+                <TreePine className="w-8 h-8 text-gray-200" />
+            </div>
+            <div className="space-y-2">
+                <h3 className="text-lg font-black text-black uppercase tracking-tight">Sin resultados</h3>
+                <p className="text-xs text-gray-400 font-medium">No se encontraron nodos para la búsqueda.</p>
+            </div>
           </div>
         ) : (
-          <div className="p-4">
-            {categoriasFiltradas.map((categoria) => (
-              <ArbolCategoria
-                key={categoria.id}
-                categoria={categoria}
-                onEditar={handleEditar}
-                onEliminar={solicitarEliminar}
-                onCrearSubcategoria={handleNuevaSubcategoria}
-                categoriasExpandidas={categoriasExpandidas}
-                toggleExpansion={toggleExpansion}
-              />
-            ))}
+          <div className="bg-white/40 backdrop-blur-sm rounded-[2.5rem] p-6 border border-gray-200">
+            <div className="space-y-2">
+                {categoriasFiltradas.map((categoria) => (
+                <ArbolCategoria
+                    key={categoria.id}
+                    categoria={categoria}
+                    onEditar={handleEditar}
+                    onEliminar={solicitarEliminar}
+                    onCrearSubcategoria={handleNuevaSubcategoria}
+                    categoriasExpandidas={categoriasExpandidas}
+                    toggleExpansion={toggleExpansion}
+                />
+                ))}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Redesigned Modal */}
+      {/* Modal Rediseñado (Strict Monochrome as per AGENTE.md) */}
       {showFormulario && (
-        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
-            <div className="p-10 text-left">
-              <div className="mb-6 w-12 h-1 bg-black"></div>
-              <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
-                {categoriaEditar 
-                  ? 'Editar Nodo' 
-                  : categoriaPadreId 
-                    ? 'Nueva Subcategoría' 
-                    : 'Nueva Categoría Raíz'}
-              </h2>
-              <p className="text-gray-500 text-sm mb-10 font-medium">
-                {categoriaPadreId ? 'Defina la especialización para la rama seleccionada.' : 'Defina una nueva categoría principal de productos.'}
-              </p>
+        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+          <div className={`bg-white rounded-[2.5rem] shadow-xl w-full max-w-lg relative overflow-hidden border border-gray-200 ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+            <div className="p-12">
+              <div className="flex justify-between items-start mb-10">
+                <div>
+                    <h2 className="text-[24px] font-black tracking-tighter text-black uppercase">
+                        {categoriaEditar 
+                        ? 'Editar Nodo' 
+                        : categoriaPadreId 
+                            ? 'Nueva Subrama' 
+                            : 'Categoría Raíz'}
+                    </h2>
+                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-2">
+                        Configuración de Estructura
+                    </p>
+                </div>
+                <button 
+                    onClick={cerrarModalConAnimacion}
+                    className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-gray-400"
+                >
+                    <Plus className="w-6 h-6 rotate-45" />
+                </button>
+              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-8">
+              <form onSubmit={handleSubmit} className="space-y-10">
                 {error && (
-                  <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
-                    {error}
+                  <div className="bg-red-50 p-5 rounded-2xl border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
                 
                 <div className="space-y-4">
-                  <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
-                    Nombre Identificador
+                  <label className="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">
+                      Nombre Identificador
                   </label>
                   <input
-                    type="text"
-                    value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
-                    placeholder="Ej: Calzado de Seguridad..."
-                    required
+                      type="text"
+                      autoFocus
+                      value={formData.nombre}
+                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                      className="w-full px-6 py-5 bg-[#f8f8f8] border-2 border-transparent rounded-2xl text-sm font-black text-black focus:bg-white focus:border-black transition-all outline-none"
+                      placeholder="Ej: Calzado Deportivo..."
+                      required
                   />
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 pt-4">
                   <button
                     type="button"
                     onClick={cerrarModalConAnimacion}
-                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                    className="flex-1 py-5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
+                    className="flex-1 py-5 bg-black hover:bg-gray-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2"
                   >
                     <Save className="w-4 h-4" />
-                    {categoriaEditar ? 'Actualizar' : 'Guardar'}
+                    <span>{categoriaEditar ? 'Actualizar' : 'Guardar'}</span>
                   </button>
                 </div>
               </form>

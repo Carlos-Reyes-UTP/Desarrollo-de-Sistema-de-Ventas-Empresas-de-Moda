@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { VentaService } from '../../services/VentaServices';
+import { VentaService } from '../../services/VentaService';
 import { CajaService, type CierreCajaRequest } from '../../services/CajaService';
 import { Printer, CheckCircle, Clock, User, Calculator, Loader2, ArrowRight, TrendingDown, AlertCircle } from 'lucide-react';
 import { obtenerDatosApertura, limpiarDatosApertura } from './AperturaCaja';
+import { APP_PATHS } from '../../shared/layout/navigationConfig';
 
 interface DiferenciasCierreCaja {
   diferenciasEfectivo: number;
@@ -114,7 +115,7 @@ const CierreCaja = () => {
           const dd = String(fechaActual.getDate()).padStart(2, '0');
           const fechaFiltro = `${yyyy}-${mm}-${dd}`;
 
-          let ventasDelDia: import('../../interfaces/Venta').Venta[] = [];
+          let ventasDelDia: import('../../types/Venta').Venta[] = [];
           try {
             const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaFiltro);
             ventasDelDia = Array.isArray(ventasResponse) ? ventasResponse : [];
@@ -241,7 +242,7 @@ const CierreCaja = () => {
 
   const finalizarCierre = () => {
     limpiarDatosApertura();
-    navigate('/pages/CajeroSistemaVentas', { state: { view: 'apertura' } });
+    navigate(APP_PATHS.caja, { state: { view: 'apertura' } });
   };
 
   const imprimirComprobante = () => {

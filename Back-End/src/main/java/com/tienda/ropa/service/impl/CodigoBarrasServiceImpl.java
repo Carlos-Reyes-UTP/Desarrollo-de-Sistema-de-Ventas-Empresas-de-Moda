@@ -65,8 +65,8 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
 
         // Generar código EAN-8 basado en el ID de la variante (si no existe)
         String codigoBarras;
-        if (variante.getCodigoBarrasVariante() != null && !variante.getCodigoBarrasVariante().isEmpty()) {
-            codigoBarras = variante.getCodigoBarrasVariante();
+        if (variante.getCodigoBarras() != null && !variante.getCodigoBarras().isEmpty()) {
+            codigoBarras = variante.getCodigoBarras();
         } else {
             // Utilizamos el formato 1VVVVVD donde V es el ID de variante y D es el dígito verificador
             String codigoBase = "1" + String.format("%06d", idVariante % 1000000);
@@ -74,13 +74,13 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
             codigoBarras = codigoBase + digitoVerificador;
 
             // Asignar el código a la variante
-            variante.setCodigoBarrasVariante(codigoBarras);
+            variante.setCodigoBarras(codigoBarras);
             productoVarianteRepository.save(variante);
         }        // NUEVA LÓGICA: Generar imagen con descripción completa del producto + variante
         String nombreProducto = variante.getProducto().getNombre();
         String codigoIdentificador = variante.getProducto().getCodigoIdentificacion();
-        String talla = variante.getTalla().getNombreTalla();
-        String color = variante.getColor().getNombre();
+        String talla = variante.getTalla();
+        String color = variante.getColor();
         String descripcionCompleta = String.format("%s [%s] - T/%s - %s", nombreProducto, codigoIdentificador, talla, color);
 
         // Generar imagen con código de barras y descripción completa
@@ -112,7 +112,7 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
         }
 
         // Verificar que el código no esté asignado a una variante
-        Optional<ProductoVariante> varianteExistente = productoVarianteRepository.findByCodigoBarrasVariante(codigo);
+        Optional<ProductoVariante> varianteExistente = productoVarianteRepository.findByCodigoBarras(codigo);
         if (varianteExistente.isPresent()) {
             throw new Exception("El código de barras ya está asignado a una variante de producto");
         }
@@ -147,13 +147,13 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
         }
 
         // Verificar que el código no esté asignado a otra variante
-        Optional<ProductoVariante> varianteExistente = productoVarianteRepository.findByCodigoBarrasVariante(codigo);
+        Optional<ProductoVariante> varianteExistente = productoVarianteRepository.findByCodigoBarras(codigo);
         if (varianteExistente.isPresent() && !varianteExistente.get().getIdProductoVariante().equals(idVariante)) {
             throw new Exception("El código de barras ya está asignado a otra variante de producto");
         }
 
         // Asignar el código a la variante
-        variante.setCodigoBarrasVariante(codigo);
+        variante.setCodigoBarras(codigo);
         return productoVarianteRepository.save(variante);
     }
 
@@ -190,7 +190,7 @@ public class CodigoBarrasServiceImpl implements CodigoBarrasService {
 
     @Override
     public ProductoVariante buscarVariantePorCodigoBarras(String codigo) throws Exception {
-        return productoVarianteRepository.findByCodigoBarrasVariante(codigo)
+        return productoVarianteRepository.findByCodigoBarras(codigo)
                 .orElseThrow(() -> new Exception("No se encontró una variante de producto con el código de barras: " + codigo));
     }
 
