@@ -753,7 +753,6 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
     }
   };  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    // Validación para campos de precio
     if (["precioUnitario", "precioCuarto", "precioMediaDocena", "precioDocena"].includes(name)) {
       if (value !== '' && parseFloat(value) < 0) {
         setErrorPrecio('No se permiten valores negativos en los precios.');
@@ -771,23 +770,18 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
       const pmd = parseFloat(nextPmd);
       const pd = parseFloat(nextPd);
 
-      const todosLlenos =
-        nextPu.trim() !== '' &&
-        nextPc.trim() !== '' &&
-        nextPmd.trim() !== '' &&
-        nextPd.trim() !== '' &&
-        Number.isFinite(pu) &&
-        Number.isFinite(pc) &&
-        Number.isFinite(pmd) &&
-        Number.isFinite(pd);
+      const errJer = validarJerarquiaPreciosProducto(
+        Number.isFinite(pu) ? pu : NaN,
+        Number.isFinite(pc) ? pc : NaN,
+        Number.isFinite(pmd) ? pmd : NaN,
+        Number.isFinite(pd) ? pd : NaN
+      );
 
-      if (todosLlenos) {
-        const errJer = validarJerarquiaPreciosProducto(pu, pc, pmd, pd);
-        if (errJer) {
-          setErrorPrecio(errJer);
-          return;
-        }
+      if (errJer) {
+        setErrorPrecio(errJer);
+        return;
       }
+
       setErrorPrecio(null);
       setFormData((prev) => ({ ...prev, [name]: value }));
       return;
@@ -1883,19 +1877,10 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
             {/* Pestaña: Precios */}
             {tabActiva === 'precios' && (
               <div className="bg-gray-50 rounded-[1.5rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-                <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-2 flex items-center gap-2">
+                <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-6 flex items-center gap-2">
                   <Tag className="w-4 h-4" />
                   Precios por volumen
                 </h3>
-                <p className="text-sm text-gray-500 mb-6 max-w-2xl">
-                  El precio unitario es el dato principal. Los totales para 3, 6 y 12 unidades no se marcan como obligatorios en la etiqueta, pero el servidor los exige al guardar. Deben cumplir la jerarquía: a más unidades, menor precio unitario equivalente.
-                </p>
-
-                  <div className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-                    <p className="text-sm text-gray-600">
-                      Al guardar se valida la misma regla que en base de datos (totales coherentes y descuento por volumen).
-                    </p>
-                  </div>
 
                   {errorPrecio && (
                     <div className="mb-4 p-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-800">
