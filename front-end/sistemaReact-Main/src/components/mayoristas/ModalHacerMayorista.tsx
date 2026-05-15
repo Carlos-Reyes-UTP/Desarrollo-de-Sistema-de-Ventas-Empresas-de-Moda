@@ -19,6 +19,7 @@ import { MayoristaService } from '../../services/MayoristaService';
 // Importar tipos
 import type { Cliente } from '../../types/Cliente';
 import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../../types/MayoristaDTO';
+import { AppModal, ConfirmModal } from '@/shared/ui';
 
 // Estilos CSS para las animaciones del modal
 const modalStyles = `
@@ -198,7 +199,12 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const [cerrandoModal, setCerrandoModal] = useState(false);
   
   // Estados para animaciones de botones
-  const [, setAnimacionBotonConvertir] = useState('');
+  const [animacionBotonConvertir, setAnimacionBotonConvertir] = useState('');
+
+  // Mensaje para el modal de confirmación de eliminación
+  const mensajeConfirmacionEliminar = clienteSeleccionado 
+    ? `¿Estás seguro de que deseas revocar el estatus de mayorista a ${clienteSeleccionado.nombreCliente}? Esta acción suspenderá sus beneficios actuales.`
+    : '¿Estás seguro de que deseas revocar el estatus de mayorista?';
 
   // Función para cerrar modal con animación
   const cerrarModalConAnimacion = () => {
@@ -636,186 +642,110 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   if (!isOpen) return null;
 
   // Renderizar pantalla de confirmación de éxito
-  const renderPantallaExito = () => {
-    console.log('🎉 Renderizando pantalla de éxito con código:', codigoMayorista);
-    
-    return (
-    <div className="text-center py-8">
-      <div className="mx-auto flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
-        <CheckCircle className="w-8 h-8 text-green-600" />
+  const renderPantallaExito = () => (
+    <div className="text-center py-10 px-4 animate-fadeIn">
+      <div className="mx-auto flex items-center justify-center w-20 h-20 bg-black rounded-[2rem] mb-8 shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+        <CheckCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        {modo === 'crear' ? '¡Nuevo mayorista creado exitosamente!' : '¡Cliente convertido a mayorista exitosamente!'}
+      <h3 className="text-2xl font-black text-black mb-3 tracking-tight">
+        {modo === 'crear' ? 'Registro Exitoso' : 'Conversión Exitosa'}
       </h3>
-      <p className="text-gray-600 mb-4">
+      <p className="text-gray-400 font-medium mb-10 max-w-xs mx-auto text-sm">
         {modo === 'crear' 
-          ? `${nuevoCliente.nombreCliente || 'El cliente'} ha sido registrado como mayorista`
-          : `${clienteSeleccionado?.nombreCliente} ahora es un cliente mayorista`
+          ? `El cliente ${nuevoCliente.nombreCliente} ha sido integrado al sistema mayorista.`
+          : `Los privilegios de mayorista para ${clienteSeleccionado?.nombreCliente} han sido activados.`
         }
       </p>
       
-      {/* Código del mayorista destacado */}
-      <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-lg p-6 mb-6 shadow-sm">
-        <div className="flex items-center justify-center mb-2">
-          <Crown className="w-5 h-5 text-green-600 mr-2" />
-          <span className="text-sm font-medium text-green-700">Código de Mayorista</span>
+      <div className="bg-[#f8f8f8] rounded-[2.5rem] p-8 mb-10 relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+          <Crown size={100} />
         </div>
-        <div className="text-2xl font-bold text-green-800 bg-white px-4 py-2 rounded-md border border-green-300 inline-block">
-          {codigoMayorista ?? 'N/A'}
+        <div className="relative z-10">
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <Crown className="w-4 h-4 text-black opacity-40" />
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">
+              Código de Membresía
+            </span>
+          </div>
+          <div className="text-4xl font-black text-black tracking-tighter">{codigoMayorista ?? 'N/A'}</div>
+          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest mt-4">Válido para todas las sucursales</p>
         </div>
-        <p className="text-xs text-green-600 mt-2">Guarde este código para futuras referencias</p>
       </div>
-      
-      <div className="flex justify-center">
-        <button
-          onClick={(e) => {
-            console.log('🎯 Usuario cerrando modal - ejecutando callback si existe');
-            // Agregar animación de éxito al botón
-            const button = e.currentTarget as HTMLButtonElement;
-            button.classList.add('animate-success-pulse');
-            setTimeout(() => button.classList.remove('animate-success-pulse'), 300);
-            
-            // Ejecutar callback con el mayorista antes de cerrar
-            if (onSuccess && mayoristaCreadoOConvertido) {
-              console.log('📞 Ejecutando callback onSuccess con:', mayoristaCreadoOConvertido);
-              onSuccess(mayoristaCreadoOConvertido);
-            }
-            
-            setTimeout(() => cerrarModalConAnimacion(), 200); // Pequeño delay para ver la animación
-          }}
-          className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center shadow-lg hover:shadow-xl"
-        >
-          <CheckCircle className="w-4 h-4 mr-2" />
-          Cerrar
-        </button>
-      </div>
-    </div>
-    );
-  };
 
-  // Renderizar pantalla de confirmación de eliminación
-  const renderPantallaEliminacion = () => (
-    <div className="text-center py-8">
-      <div className="mx-auto flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-        <Trash2 className="w-8 h-8 text-red-600" />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        ¡Mayorista eliminado exitosamente!
-      </h3>
-      <p className="text-gray-600 mb-4">
-        {clienteSeleccionado?.nombreCliente} ya no es un cliente mayorista
-      </p>
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <p className="text-sm text-red-700">
-          El estatus de mayorista ha sido removido correctamente
-        </p>
-      </div>
-      <div className="flex justify-center">
-        <button
-          onClick={(e) => {
-            // Agregar animación al botón
-            const button = e.currentTarget as HTMLButtonElement;
-            button.classList.add('animate-success-pulse');
-            setTimeout(() => button.classList.remove('animate-success-pulse'), 300);
-            
-            // Ejecutar callback con un objeto vacío para indicar eliminación
-            if (onSuccess) {
-              onSuccess({} as MayoristaDTO);
-            }
-            
-            setTimeout(() => cerrarModalConAnimacion(), 200); // Pequeño delay para ver la animación
-          }}
-          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-all duration-200 flex items-center shadow-lg hover:shadow-xl"
-        >
-          <CheckCircle className="w-4 h-4 mr-2" />
-          Cerrar
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          if (onSuccess && mayoristaCreadoOConvertido) {
+            onSuccess(mayoristaCreadoOConvertido);
+          }
+          cerrarModalConAnimacion();
+        }}
+        className="w-full py-5 bg-black text-white rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
+      >
+        <CheckCircle className="w-4 h-4" strokeWidth={3} />
+        <span>Finalizar Proceso</span>
+      </button>
     </div>
   );
 
-  // Renderizar modal de confirmación para eliminar mayorista
-  const renderModalConfirmacionEliminar = () => (
-    <div className="text-center py-8">
-      <div className="mx-auto flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
-        <AlertCircle className="w-8 h-8 text-red-600" />
+  const renderPantallaEliminacion = () => (
+    <div className="text-center py-10 px-4 animate-fadeIn">
+      <div className="mx-auto flex items-center justify-center w-20 h-20 bg-red-50 rounded-[2rem] mb-8">
+        <Trash2 className="w-10 h-10 text-red-500" strokeWidth={2.5} />
       </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        ¿Está seguro de eliminar el estatus de mayorista?
-      </h3>
-      <p className="text-gray-600 mb-6">
-        Esta acción eliminará el estatus de mayorista de <strong>{clienteSeleccionado?.nombreCliente}</strong>. 
-        El cliente volverá a ser un cliente regular y perderá todos los beneficios de mayorista.
+      <h3 className="text-2xl font-black text-black mb-3 tracking-tight">Estatus Revocado</h3>
+      <p className="text-gray-400 font-medium mb-10 max-w-xs mx-auto text-sm">
+        {clienteSeleccionado?.nombreCliente} ha dejado de ser mayorista y sus beneficios han sido suspendidos.
       </p>
-      
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-        <div className="flex items-start space-x-2">
-          <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-yellow-700">
-            <p className="font-medium mb-1">Advertencia:</p>
-            <p>Esta acción no se puede deshacer. El cliente tendrá que ser promovido a mayorista nuevamente si es necesario.</p>
-          </div>
-        </div>
+      <div className="bg-red-50/50 rounded-[2rem] p-6 mb-10 border border-red-100/50">
+        <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest">Sincronización de Base de Datos Completada</p>
       </div>
-      
-      <div className="flex justify-center space-x-4">
-        <button
-          onClick={() => setMostrarModalConfirmacionEliminar(false)}
-          disabled={eliminandoMayorista}
-          className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          Cancelar
-        </button>
-        <button
-          onClick={eliminarMayorista}
-          disabled={eliminandoMayorista}
-          className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors duration-200 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {eliminandoMayorista ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Eliminando...
-            </>
-          ) : (
-            <>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Sí, eliminar
-            </>
-          )}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={() => {
+          if (onSuccess) {
+            onSuccess({} as MayoristaDTO);
+          }
+          cerrarModalConAnimacion();
+        }}
+        className="w-full py-5 bg-black text-white rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
+      >
+        <CheckCircle className="w-4 h-4" strokeWidth={3} />
+        <span>Confirmar y Salir</span>
+      </button>
     </div>
   );
 
   // Renderizar toggle de modo
   const renderToggleModo = () => {
-    if (clientePreseleccionado || mostrarConfirmacionExito || mostrarConfirmacionEliminacion || mostrarModalConfirmacionEliminar) {
+    if (clientePreseleccionado || mostrarConfirmacionExito || mostrarConfirmacionEliminacion) {
       return null;
     }
 
     return (
-      <div className="px-6 py-4 bg-gray-50/80 border-b border-gray-200/50">
-        <div className="flex items-center justify-center space-x-1 bg-white rounded-lg p-1 shadow-sm">
+      <div className="px-8 py-5 bg-[#fafafa]/50 backdrop-blur-sm">
+        <div className="flex items-center justify-center bg-white/80 backdrop-blur-md rounded-2xl p-1.5 shadow-sm max-w-[400px] mx-auto">
           <button
             onClick={() => cambiarModo('buscar')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center space-x-2.5 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 ${
               modo === 'buscar'
-                ? 'bg-green-500 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                ? 'bg-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
+                : 'text-gray-400 hover:text-black hover:bg-gray-50'
             }`}
           >
-            <Search size={16} />
+            <Search size={14} strokeWidth={2.5} />
             <span>Buscar Cliente</span>
           </button>
           <button
             onClick={() => cambiarModo('crear')}
-            className={`flex items-center space-x-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${
+            className={`flex-1 flex items-center justify-center space-x-2.5 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 ${
               modo === 'crear'
-                ? 'bg-green-500 text-white shadow-sm'
-                : 'text-gray-600 hover:text-gray-800 hover:bg-gray-100'
+                ? 'bg-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
+                : 'text-gray-400 hover:text-black hover:bg-gray-50'
             }`}
           >
-            <UserPlus size={16} />
+            <UserPlus size={14} strokeWidth={2.5} />
             <span>Crear Nuevo</span>
           </button>
         </div>
@@ -828,12 +758,12 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     if (clientePreseleccionado) return null;
 
     return (
-      <div className="mb-6">
-        <label htmlFor="buscar-cliente" className="block text-sm font-medium text-gray-700 mb-2">
-          Buscar Cliente Existente
+      <div className="mb-8">
+        <label htmlFor="buscar-cliente" className="block text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-3 px-1">
+          Búsqueda de Identidad
         </label>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+        <div className="relative group">
+          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" size={18} />
           <input
             id="buscar-cliente"
             type="text"
@@ -851,13 +781,13 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 cerrarModalConAnimacion();
               }
             }}
-            placeholder="Buscar por nombre o número de documento..."
-            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white/80 backdrop-blur-sm transition-all duration-200"
+            placeholder="DNI, RUC o Nombre del Cliente..."
+            className="w-full pl-12 pr-12 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all duration-300 placeholder:text-gray-400"
             autoFocus
           />
           {buscandoClientes && (
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="animate-spin text-gray-400" size={20} />
+            <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
+              <Loader2 className="animate-spin text-black" size={18} />
             </div>
           )}
         </div>
@@ -870,33 +800,36 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     if (clientes.length === 0 || clienteSeleccionado) return null;
 
     return (
-      <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="text-sm font-medium text-gray-700">
-            {clientes.length} cliente{clientes.length !== 1 ? 's' : ''} encontrado{clientes.length !== 1 ? 's' : ''}
+      <div className="mb-8 bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden animate-fadeIn">
+        <div className="px-6 py-3 bg-gray-50/50 flex justify-between items-center">
+          <h3 className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+            Coincidencias ({clientes.length})
           </h3>
         </div>
-        <div className="max-h-60 overflow-y-auto">
+        <div className="max-h-56 overflow-y-auto">
           {clientes.map((cliente) => (
             <button
               key={cliente.idCliente}
               onClick={() => seleccionarCliente(cliente)}
-              className="w-full px-4 py-3 text-left hover:bg-green-50 border-b border-gray-100 last:border-b-0 transition-colors duration-150 group"
+              className="w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between group"
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200 transition-colors">
-                      <User className="w-4 h-4 text-green-600" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">{cliente.nombreCliente}</p>
-                    <p className="text-xs text-gray-500">{cliente.tipoCliente}: {cliente.numeroDocumento}</p>
+              <div className="flex items-center space-x-4">
+                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
+                  <User className="w-5 h-5 text-gray-400 group-hover:text-black transition-colors" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-black">{cliente.nombreCliente}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded uppercase">
+                      {cliente.tipoCliente}
+                    </span>
+                    <span className="text-[10px] font-mono text-gray-400">{cliente.numeroDocumento}</span>
                   </div>
                 </div>
-                <div className="text-xs text-gray-400">
-                  Seleccionar
+              </div>
+              <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-white" />
                 </div>
               </div>
             </button>
@@ -923,161 +856,143 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     if (modo !== 'crear') return null;
 
     return (
-      <div className="mb-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Crear Nuevo Cliente Mayorista</h3>
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg border border-gray-200 shadow-sm p-6">
-          
+      <div className="mb-8 animate-fadeIn">
+        <div className="space-y-6">
           {/* Documento del Cliente */}
-          <div className="mb-4">
-            <label htmlFor="documento-mayorista" className="block text-sm font-medium text-gray-700 mb-2">
-              Documento del Cliente <span className="text-red-500">*</span>
+          <div className="relative">
+            <label htmlFor="documento-mayorista" className="block text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-3 px-1">
+              Documentación Oficial
             </label>
-            <div className="flex">
+            <div className="flex gap-2">
               <select
                 value={tipoDocumento}
                 onChange={(e) => {
                   const nuevoTipo = e.target.value as 'DNI' | 'RUC';
                   setTipoDocumento(nuevoTipo);
-                  // Actualizar tipoCliente basado en el tipo de documento seleccionado
                   const nuevoTipoCliente = nuevoTipo === 'DNI' ? 'PERSONA' : 'EMPRESA';
                   manejarCambioNuevoCliente('tipoCliente', nuevoTipoCliente);
-                  // Limpiar número de documento y nombre al cambiar tipo
                   manejarCambioNuevoCliente('numeroDocumento', '');
                   manejarCambioNuevoCliente('nombreCliente', '');
                   setDatosEncontrados(false);
                   setError(null);
                 }}
-                className="px-3 py-3 border border-gray-300 border-r-0 rounded-l-lg bg-gray-50 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-24 px-4 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-xs font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all appearance-none cursor-pointer"
               >
                 <option value="DNI">DNI</option>
                 <option value="RUC">RUC</option>
               </select>
-              <input 
-                id="documento-mayorista" 
-                type="text" 
-                className={`flex-1 px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors ${
-                  nuevoCliente.numeroDocumento && 
-                  ((tipoDocumento === 'DNI' && (nuevoCliente.numeroDocumento.length !== 8 || !/^\d+$/.test(nuevoCliente.numeroDocumento))) || 
-                   (tipoDocumento === 'RUC' && (nuevoCliente.numeroDocumento.length !== 11 || !/^\d+$/.test(nuevoCliente.numeroDocumento)))) 
-                  ? 'border-red-300 focus:ring-red-500 focus:border-red-500 bg-red-50' 
-                  : ''
-                }`}
-                value={nuevoCliente.numeroDocumento} 
-                onChange={(e) => {
-                  const valor = e.target.value.replace(/\D/g, ''); // Solo números
-                  manejarCambioNuevoCliente('numeroDocumento', valor);
-                  // Limpiar nombre si se modifica el documento
-                  if (datosEncontrados) {
-                    manejarCambioNuevoCliente('nombreCliente', '');
-                    setDatosEncontrados(false);
+              <div className="relative flex-1">
+                <input 
+                  id="documento-mayorista" 
+                  type="text" 
+                  className={`w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all ${
+                    nuevoCliente.numeroDocumento && 
+                    ((tipoDocumento === 'DNI' && (nuevoCliente.numeroDocumento.length !== 8 || !/^\d+$/.test(nuevoCliente.numeroDocumento))) || 
+                     (tipoDocumento === 'RUC' && (nuevoCliente.numeroDocumento.length !== 11 || !/^\d+$/.test(nuevoCliente.numeroDocumento)))) 
+                    ? 'ring-2 ring-red-100 !bg-red-50/30' 
+                    : ''
+                  }`}
+                  value={nuevoCliente.numeroDocumento} 
+                  onChange={(e) => {
+                    const valor = e.target.value.replace(/\D/g, '');
+                    manejarCambioNuevoCliente('numeroDocumento', valor);
+                    if (datosEncontrados) {
+                      manejarCambioNuevoCliente('nombreCliente', '');
+                      setDatosEncontrados(false);
+                    }
+                  }}
+                  placeholder={tipoDocumento === 'DNI' ? "DNI (8 dígitos)" : "RUC (11 dígitos)"} 
+                  maxLength={tipoDocumento === 'DNI' ? 8 : 11}
+                />
+                <button
+                  type="button"
+                  onClick={() => buscarDatosExternos(tipoDocumento, nuevoCliente.numeroDocumento)}
+                  disabled={
+                    buscandoDatosExternos || 
+                    !nuevoCliente.numeroDocumento || 
+                    (tipoDocumento === 'DNI' && nuevoCliente.numeroDocumento.length !== 8) ||
+                    (tipoDocumento === 'RUC' && nuevoCliente.numeroDocumento.length !== 11)
                   }
-                }}
-                placeholder={tipoDocumento === 'DNI' ? "Ingrese DNI (8 dígitos)" : "Ingrese RUC (11 dígitos)"} 
-                maxLength={tipoDocumento === 'DNI' ? 8 : 11}
-              />
-              <button
-                type="button"
-                onClick={() => buscarDatosExternos(tipoDocumento, nuevoCliente.numeroDocumento)}
-                disabled={
-                  buscandoDatosExternos || 
-                  !nuevoCliente.numeroDocumento || 
-                  (tipoDocumento === 'DNI' && nuevoCliente.numeroDocumento.length !== 8) ||
-                  (tipoDocumento === 'RUC' && nuevoCliente.numeroDocumento.length !== 11)
-                }
-                className="px-4 py-3 bg-blue-500 text-white rounded-r-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed border border-blue-500 border-l-0 flex items-center space-x-2 transition-all duration-200"
-              >
-                {buscandoDatosExternos ? (
-                  <>
+                  className="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-[0.98]"
+                >
+                  {buscandoDatosExternos ? (
                     <Loader2 className="animate-spin" size={16} />
-                    <span className="hidden sm:inline">Buscando...</span>
-                  </>
-                ) : (
-                  <>
-                    <Search size={16} />
-                    <span className="hidden sm:inline">Buscar</span>
-                  </>
-                )}
-              </button>
+                  ) : (
+                    <Search size={16} strokeWidth={2.5} />
+                  )}
+                </button>
+              </div>
             </div>
             
-            {/* Validación y ayuda */}
-            {nuevoCliente.numeroDocumento && (
-              <div className="mt-1">
-                {((tipoDocumento === 'DNI' && (nuevoCliente.numeroDocumento.length !== 8 || !/^\d+$/.test(nuevoCliente.numeroDocumento))) || 
-                  (tipoDocumento === 'RUC' && (nuevoCliente.numeroDocumento.length !== 11 || !/^\d+$/.test(nuevoCliente.numeroDocumento)))) && (
-                  <p className="text-xs text-red-600">
-                    {tipoDocumento === 'DNI' 
-                      ? 'El DNI debe tener exactamente 8 dígitos numéricos' 
-                      : 'El RUC debe tener exactamente 11 dígitos numéricos'
-                    }
-                  </p>
-                )}
-              </div>
+            {nuevoCliente.numeroDocumento && ((tipoDocumento === 'DNI' && (nuevoCliente.numeroDocumento.length !== 8 || !/^\d+$/.test(nuevoCliente.numeroDocumento))) || 
+              (tipoDocumento === 'RUC' && (nuevoCliente.numeroDocumento.length !== 11 || !/^\d+$/.test(nuevoCliente.numeroDocumento)))) && (
+              <p className="mt-2 ml-4 text-[10px] font-bold text-red-500 uppercase tracking-wider">
+                Formato Inválido: requiere {tipoDocumento === 'DNI' ? '8' : '11'} dígitos
+              </p>
             )}
-            
-            <p className="text-xs text-gray-500 mt-1">
-              Seleccione el tipo de documento, ingrese el número y presione "Buscar" para obtener el nombre automáticamente
-            </p>
           </div>
-
           {/* Mensajes de estado de búsqueda */}
           {buscandoDatosExternos && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center space-x-2 text-blue-600">
+            <div className="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-pulse">
+              <div className="flex items-center gap-3 text-gray-400">
                 <Loader2 className="animate-spin" size={16} />
-                <span className="text-sm font-medium">
-                  Consultando {tipoDocumento === 'DNI' ? 'RENIEC' : 'SUNAT'}...
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                  Conectando con {tipoDocumento === 'DNI' ? 'RENIEC' : 'SUNAT'}...
                 </span>
               </div>
             </div>
           )}
 
           {datosEncontrados && (
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center space-x-2 text-green-600">
+            <div className="mb-6 p-4 bg-[#10b981]/5 rounded-2xl border border-[#10b981]/10 animate-fadeIn">
+              <div className="flex items-center gap-3 text-[#10b981]">
                 <CheckCircle size={16} />
-                <span className="text-sm font-medium">
-                  ¡Datos encontrados! Nombre obtenido automáticamente.
+                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
+                  Sincronización Exitosa
                 </span>
               </div>
             </div>
           )}
 
           {/* Nombre del cliente */}
-          <div className="mb-4">
-            <label htmlFor="nombre-cliente" className="block text-sm font-medium text-gray-700 mb-2">
-              Nombre {tipoDocumento === 'RUC' ? 'de la Empresa' : 'del Cliente'} <span className="text-red-500">*</span>
+          <div className="mb-8">
+            <label htmlFor="nombre-cliente" className="block text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-3 px-1">
+              Nombre o Razón Social
             </label>
-            <input
-              id="nombre-cliente"
-              type="text"
-              value={nuevoCliente.nombreCliente}
-              onChange={(e) => manejarCambioNuevoCliente('nombreCliente', e.target.value)}
-              placeholder={obtenerPlaceholderNombre()}
-              className={`w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 ${
-                datosEncontrados ? 'bg-green-50 border-green-300' : ''
-              }`}
-            />
+            <div className="relative group">
+              <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
+              <input
+                id="nombre-cliente"
+                type="text"
+                value={nuevoCliente.nombreCliente}
+                onChange={(e) => manejarCambioNuevoCliente('nombreCliente', e.target.value)}
+                placeholder={obtenerPlaceholderNombre()}
+                className={`w-full pl-12 pr-4 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all duration-300 ${
+                  datosEncontrados ? 'ring-2 ring-[#10b981]/10 !bg-[#10b981]/5' : ''
+                }`}
+              />
+            </div>
             {!datosEncontrados && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="mt-3 ml-4 text-[9px] font-bold text-gray-400 uppercase tracking-widest">
                 {nuevoCliente.numeroDocumento ? 
-                  'Si no se encontraron datos automáticamente, puede ingresar el nombre manualmente' :
-                  'Primero ingrese el número de documento y presione "Buscar"'
+                  'Habilitado para ingreso manual' :
+                  'Pendiente de validación de documento'
                 }
               </p>
             )}
           </div>
 
-          {/* Información adicional */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-start space-x-2">
-              <FileText className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-700">
-                <p className="font-medium mb-1">Proceso automático:</p>
-                <ul className="list-disc list-inside space-y-1 text-xs">
-                  <li>Se creará el cliente automáticamente como {tipoDocumento === 'DNI' ? 'persona natural' : 'empresa'}</li>
-                  <li>Se generará su código de mayorista inmediatamente</li>
-                </ul>
+          {/* Información adicional decorativa */}
+          <div className="bg-black/[0.02] rounded-[1.5rem] p-5">
+            <div className="flex items-start gap-4">
+              <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center flex-shrink-0">
+                <FileText className="w-4 h-4 text-black opacity-40" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-black uppercase tracking-wider mb-1">Automatización de Registro</p>
+                <p className="text-[10px] text-gray-400 leading-relaxed font-medium">
+                  Al confirmar, el sistema generará las credenciales de mayorista y vinculará los beneficios fiscales correspondientes de forma inmediata.
+                </p>
               </div>
             </div>
           </div>
@@ -1091,87 +1006,96 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     if (modo !== 'buscar' || !clienteSeleccionado) return null;
 
     return (
-      <div className="mb-6">
-        <p className="text-sm font-medium text-gray-700 mb-4">
-          {clientePreseleccionado ? 'Cliente a Convertir' : 'Cliente Seleccionado'}
-        </p>
+      <div className="mb-8 animate-fadeIn">
+        <label className="block text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase mb-4 px-1">
+          {clientePreseleccionado ? 'Objetivo de Conversión' : 'Ficha del Cliente'}
+        </label>
         
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 border border-gray-200/60 shadow-lg">
+        <div className="bg-[#f8f8f8] rounded-[2rem] p-8 relative overflow-hidden group">
+          {/* Fondo decorativo sutil */}
+          <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
+            <Crown size={120} strokeWidth={1} />
+          </div>
+
           {verificandoMayorista ? (
-            <div className="flex items-center justify-center py-4">
-              <Loader2 className="animate-spin text-green-500 mr-2" size={20} />
-              <span className="text-gray-600">Verificando estado del cliente...</span>
+            <div className="flex flex-col items-center justify-center py-6 gap-3">
+              <Loader2 className="animate-spin text-black" size={32} />
+              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Verificando estatus...</span>
             </div>
           ) : (
-            <>
-              {/* Información básica */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="flex items-center space-x-3">
-                  <User className="text-gray-500" size={20} />
-                  <div>
-                    <p className="text-sm text-gray-500">Nombre</p>
-                    <p className="font-medium text-gray-900">{clienteSeleccionado.nombreCliente}</p>
+            <div className="relative z-10">
+              {/* Información principal */}
+              <div className="flex items-start gap-6 mb-8">
+                <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center flex-shrink-0">
+                  <User className="w-8 h-8 text-black" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-xl font-black text-black leading-tight mb-2 truncate">
+                    {clienteSeleccionado.nombreCliente}
+                  </h4>
+                  <div className="flex flex-wrap gap-3">
+                    <div className="flex items-center gap-1.5 text-gray-500">
+                      <FileText size={14} className="opacity-40" />
+                      <span className="text-[10px] font-bold tracking-wider uppercase">{clienteSeleccionado.tipoCliente}:</span>
+                      <span className="text-[11px] font-mono font-medium">{clienteSeleccionado.numeroDocumento}</span>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center space-x-3">
-                  <FileText className="text-gray-500" size={20} />
-                  <div>
-                    <p className="text-sm text-gray-500">Documento</p>
-                    <p className="font-medium text-gray-900">
-                      {clienteSeleccionado.tipoCliente}: {clienteSeleccionado.numeroDocumento}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Mostrar código de mayorista si es mayorista */}
-                {esMayorista && codigoMayoristaCliente && (
-                  <div className="flex items-center space-x-3 md:col-span-2">
-                    <Crown className="text-green-600" size={20} />
+              </div>
+              
+              {/* Bloque de código si ya es mayorista */}
+              {esMayorista && (
+                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 mb-6 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-lg">
+                      <Crown size={18} className="text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-gray-500">Código de Mayorista</p>
-                      <p className="font-medium text-green-800 bg-green-100 px-2 py-1 rounded text-sm inline-block">
-                        {codigoMayoristaCliente}
+                      <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Identificador Mayorista</p>
+                      <p className="text-sm font-black text-black tracking-tight">
+                        {codigoMayoristaCliente || "SIN CÓDIGO"}
                       </p>
                     </div>
                   </div>
-                )}
-              </div>
+                  <div className="px-3 py-1 bg-gray-100 rounded-full text-[9px] font-bold tracking-wider uppercase text-gray-500">
+                    Vigente
+                  </div>
+                </div>
+              )}
 
-              {/* Estado del mayorista */}
-              <div className="border-t border-gray-200 pt-4">
+              {/* Estado y Acción */}
+              <div className="pt-2">
                 {esMayorista ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2 text-orange-600 bg-orange-50 p-3 rounded-lg">
-                      <AlertCircle size={20} />
-                      <span className="font-medium">Este cliente ya es mayorista</span>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3 text-[#f59e0b] bg-amber-50/50 px-5 py-3 rounded-2xl">
+                      <AlertCircle size={18} strokeWidth={2.5} />
+                      <span className="text-[10px] font-bold uppercase tracking-wider">Membresía activa registrada</span>
                     </div>
                     <button
                       onClick={mostrarConfirmacionEliminacionMayorista}
                       disabled={eliminandoMayorista || verificandoMayorista}
-                      className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-500/90 hover:bg-red-600 backdrop-blur-sm text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                      className="w-full group/btn flex items-center justify-center gap-3 px-6 py-4 bg-white border border-red-100 hover:bg-red-500 text-red-500 hover:text-white rounded-[1.5rem] transition-all duration-300 disabled:opacity-50 active:scale-[0.98]"
                     >
                       {eliminandoMayorista ? (
-                        <>
-                          <Loader2 className="animate-spin" size={16} />
-                          <span>Eliminando...</span>
-                        </>
+                        <Loader2 className="animate-spin" size={18} />
                       ) : (
                         <>
-                          <Trash2 size={16} />
-                          <span>Eliminar Estatus de Mayorista</span>
+                          <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                          <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Revocar Privilegios</span>
                         </>
                       )}
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center space-x-2 text-green-600 bg-green-50 p-3 rounded-lg">
-                    <CheckCircle size={20} />
-                    <span className="font-medium">Cliente listo para ser promovido a mayorista</span>
+                  <div className="flex items-center gap-4 bg-[#10b981]/5 px-6 py-4 rounded-2xl">
+                    <div className="w-8 h-8 bg-[#10b981] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
+                      <CheckCircle size={16} className="text-white" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-[#10b981]">Criterios de promoción cumplidos</span>
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>
@@ -1182,30 +1106,20 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const renderMensajes = () => (
     <>
       {error && (
-        <div className="mb-4 p-4 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-lg shadow-sm">
-          <div className="flex items-center space-x-2 text-red-600">
-            <AlertCircle size={20} />
-            <span className="font-medium">{error}</span>
+        <div className="mb-6 p-5 bg-red-50/50 backdrop-blur-sm rounded-2xl animate-shake">
+          <div className="flex items-center gap-3 text-red-500">
+            <AlertCircle size={18} strokeWidth={2.5} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">{error}</span>
           </div>
         </div>
       )}
 
       {exito && !mostrarConfirmacionExito && (
-        <div className="mb-4 p-4 bg-green-50/80 backdrop-blur-sm border border-green-200/50 rounded-lg shadow-sm">
-          <div className="flex items-center space-x-2 text-green-600 mb-2">
-            <CheckCircle size={20} />
-            <span className="font-medium">{exito}</span>
+        <div className="mb-6 p-5 bg-green-50/50 backdrop-blur-sm rounded-2xl animate-fadeIn">
+          <div className="flex items-center gap-3 text-green-600">
+            <CheckCircle size={18} strokeWidth={2.5} />
+            <span className="text-[10px] font-bold uppercase tracking-wider">{exito}</span>
           </div>
-          {codigoMayorista && (
-            <div className="mt-3 p-3 bg-white border border-green-300 rounded-md">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-700">Código de Mayorista:</span>
-                <span className="text-lg font-bold text-green-800 bg-green-100 px-3 py-1 rounded">
-                  {codigoMayorista}
-                </span>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </>
@@ -1213,10 +1127,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
   // Renderizar botones de acción
   const renderBotonesAccion = () => (
-    <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200/50 bg-white/30 backdrop-blur-sm rounded-lg p-4 mt-6">
+    <div className="flex gap-4 p-2">
       <button
         onClick={cerrarModalConAnimacion}
-        className="px-6 py-3 border border-gray-300/70 bg-white/70 backdrop-blur-sm text-gray-700 rounded-lg hover:bg-white/90 transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+        className="flex-1 py-4 bg-[#f8f8f8] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 hover:text-black hover:bg-gray-100 transition-all active:scale-[0.98]"
         disabled={convirtiendoMayorista || eliminandoMayorista || creandoMayorista}
       >
         Cancelar
@@ -1227,17 +1141,14 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         <button
           onClick={convertirAMayorista}
           disabled={!clienteSeleccionado || esMayorista || convirtiendoMayorista || eliminandoMayorista || !!exito}
-          className="px-6 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl backdrop-blur-sm"
+          className={`flex-[1.5] py-4 bg-black text-white rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97] ${animacionBotonConvertir}`}
         >
           {convirtiendoMayorista ? (
-            <>
-              <Loader2 className="animate-spin" size={18} />
-              <span>Convirtiendo...</span>
-            </>
+            <Loader2 className="animate-spin" size={16} />
           ) : (
             <>
-              <Crown size={18} />
-              <span>Hacer Mayorista</span>
+              <Crown size={16} strokeWidth={2.5} />
+              <span>Elevar a Mayorista</span>
             </>
           )}
         </button>
@@ -1248,17 +1159,14 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         <button
           onClick={crearNuevoMayorista}
           disabled={!nuevoCliente.nombreCliente || !nuevoCliente.numeroDocumento || creandoMayorista || !!exito}
-          className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 shadow-lg hover:shadow-xl backdrop-blur-sm"
+          className="flex-[1.5] py-4 bg-black text-white rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97]"
         >
           {creandoMayorista ? (
-            <>
-              <Loader2 className="animate-spin" size={18} />
-              <span>Creando...</span>
-            </>
+            <Loader2 className="animate-spin" size={16} />
           ) : (
             <>
-              <UserPlus size={18} />
-              <span>Crear Mayorista</span>
+              <UserPlus size={16} strokeWidth={2.5} />
+              <span>Registrar Mayorista</span>
             </>
           )}
         </button>
@@ -1266,70 +1174,58 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     </div>
   );
 
+  const mostrarFooterAcciones =
+    !mostrarConfirmacionExito && !mostrarConfirmacionEliminacion;
+
   // Renderizar contenido principal del modal
   const renderContenidoPrincipal = () => {
-    console.log('🔄 Renderizando contenido principal:', {
-      mostrarConfirmacionExito,
-      mostrarConfirmacionEliminacion,
-      mostrarModalConfirmacionEliminar,
-      codigoMayorista,
-      exito
-    });
-    
-    if (mostrarModalConfirmacionEliminar) {
-      console.log('⚠️ Mostrando modal de confirmación de eliminación');
-      return renderModalConfirmacionEliminar();
-    }
     
     if (mostrarConfirmacionExito) {
-      console.log('✅ Mostrando pantalla de éxito');
       return renderPantallaExito();
     }
     
     if (mostrarConfirmacionEliminacion) {
-      console.log('🗑️ Mostrando pantalla de eliminación');
       return renderPantallaEliminacion();
     }
-
-    console.log('📝 Mostrando formulario principal');
     return (
-      <>
+      <div className="px-2">
         {renderModoBuscar()}
         {renderFormularioNuevoCliente()}
         {renderInfoClienteSeleccionado()}
         {renderMensajes()}
-        {renderBotonesAccion()}
-      </>
+      </div>
     );
   };
 
   return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-      <div className={`bg-white/95 backdrop-blur-md rounded-xl shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
-        
-        {/* Header */}
-        <div className="bg-gradient-to-r from-green-500/90 to-green-600/90 backdrop-blur-sm px-6 py-4 flex justify-between items-center border-b border-white/10">
-          <div className="flex items-center space-x-3">
-            <Crown className="text-white drop-shadow-md" size={24} />
-            <h2 className="text-xl font-bold text-white drop-shadow-sm">Gestionar Cliente Mayorista</h2>
-          </div>
-          <button
-            onClick={cerrarModalConAnimacion}
-            className="text-white hover:text-gray-200 hover:bg-black hover:bg-opacity-20 rounded-full p-2 transition-all duration-200"
-          >
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Toggle de Modo */}
-        {renderToggleModo()}
-
-        {/* Contenido */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)] bg-gradient-to-br from-white/50 to-gray-50/50 backdrop-blur-sm">
+    <>
+      <AppModal
+        open={isOpen}
+        closing={cerrandoModal}
+        onClose={cerrarModalConAnimacion}
+        title="Gestión de Membresías"
+        subtitle="Conversión y Registro de Clientes Mayoristas"
+        icon={<Crown className="w-5 h-5 text-white" />}
+        maxWidth="2xl"
+        belowHeader={renderToggleModo()}
+        footer={mostrarFooterAcciones ? renderBotonesAccion() : undefined}
+        zIndex={150}
+      >
+        <div className="py-2">
           {renderContenidoPrincipal()}
         </div>
-      </div>
-    </div>
+      </AppModal>
+      <ConfirmModal
+        open={mostrarModalConfirmacionEliminar}
+        title="Revocar Estatus Mayorista"
+        message={mensajeConfirmacionEliminar}
+        onConfirm={eliminarMayorista}
+        onCancel={() => setMostrarModalConfirmacionEliminar(false)}
+        confirmText="Confirmar Revocación"
+        cancelText="Descartar"
+        variant="danger"
+      />
+    </>
   );
 };
 

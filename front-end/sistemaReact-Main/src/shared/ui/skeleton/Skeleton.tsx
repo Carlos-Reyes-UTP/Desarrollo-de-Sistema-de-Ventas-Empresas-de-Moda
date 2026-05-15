@@ -5,9 +5,9 @@ export interface SkeletonProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 const variantClasses: Record<NonNullable<SkeletonProps['variant']>, string> = {
-  default: 'bg-gray-200',
-  muted: 'bg-gray-100',
-  dark: 'bg-white/10',
+  default: 'skeleton-shimmer',
+  muted: 'skeleton-shimmer-muted',
+  dark: 'skeleton-shimmer-dark',
 };
 
 export const Skeleton: React.FC<SkeletonProps> = ({
@@ -16,7 +16,7 @@ export const Skeleton: React.FC<SkeletonProps> = ({
   ...props
 }) => (
   <div
-    className={`animate-pulse rounded-lg ${variantClasses[variant]} ${className}`}
+    className={`overflow-hidden rounded-lg ${variantClasses[variant]} ${className}`}
     aria-hidden
     {...props}
   />

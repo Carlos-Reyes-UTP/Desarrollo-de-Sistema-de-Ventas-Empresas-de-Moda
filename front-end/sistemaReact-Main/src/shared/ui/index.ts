@@ -1,5 +1,7 @@
 export { default as ConfirmModal } from './ConfirmModal';
 export { default as AlertModal } from './AlertModal';
+export { default as AppModal } from './AppModal';
+export type { AppModalProps, AppModalMaxWidth } from './AppModal';
 export { default as ComboBox } from './ComboBox';
 export { Card } from './Card';
 export type { ConfirmModalProps } from './ConfirmModal';

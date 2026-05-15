@@ -54,7 +54,7 @@ const ConfirmModal = ({
       onClick={onCancel}
     >
       <div
-        className={`bg-white rounded-[2.5rem] border border-gray-100 shadow-2xl transform transition-all duration-300 overflow-hidden ${
+        className={`bg-white rounded-[2.5rem] shadow-2xl transform transition-all duration-300 overflow-hidden ${
           isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
@@ -78,7 +78,7 @@ const ConfirmModal = ({
         <div className="px-8 pb-8 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all"
+            className="flex-1 py-4 bg-[#f8f8f8] rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all"
           >
             {cancelText}
           </button>
