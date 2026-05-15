@@ -1,9 +1,6 @@
 package com.tienda.ropa.service;
 
-import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,19 +33,12 @@ public class UbicacionAlmacenService {
      * (en minúsculas para comparar con LOWER(nombre)).
      */
     private static final List<String> RESERVADAS_PISO_LOWER = List.of(
-            "principal",
             "almacén",
             "almacen",
             "bodega",
             "depósito",
             "deposito"
     );
-
-    /**
-     * Nombres reservados que se excluyen como origen de traslado: solo Principal
-     * (no movemos mercadería desde la tienda). Almacén SÍ es origen válido.
-     */
-    private static final List<String> RESERVADAS_ORIGEN_LOWER = List.of("principal");
 
     private final UbicacionRepository ubicacionRepository;
     private final InventarioUbicacionRepository inventarioUbicacionRepository;
@@ -76,8 +66,7 @@ public class UbicacionAlmacenService {
     }
 
     /**
-     * Sugerencias para traslado desde almacén hacia pisos: por defecto Almacén + Principal (merge por variante, prioriza Almacén).
-     * Si {@code soloAlmacen} es true, solo filas con stock en la ubicación Almacén (sin mezclar Principal).
+     * Sugerencias para traslado desde almacén hacia pisos: solo filas con stock en la ubicación Almacén.
      */
     @Transactional(readOnly = true)
     public List<StockUbicacionDTO> buscarStockOrigenDistribucion(String q, int limit, boolean soloAlmacen) {
@@ -85,13 +74,7 @@ public class UbicacionAlmacenService {
         Ubicacion almacen = inventarioUbicacionService.ubicacionAlmacen();
         long idAlmacen = almacen.getIdUbicacion();
 
-        List<Long> ids;
-        if (soloAlmacen) {
-            ids = List.of(idAlmacen);
-        } else {
-            Ubicacion principal = inventarioUbicacionService.ubicacionPrincipal();
-            ids = List.of(idAlmacen, principal.getIdUbicacion());
-        }
+        List<Long> ids = List.of(idAlmacen);
 
         String trimmed = q == null ? "" : q.trim();
         boolean sinFiltro = trimmed.isEmpty();
@@ -106,18 +89,8 @@ public class UbicacionAlmacenService {
 
         List<InventarioUbicacion> raw = inventarioUbicacionRepository.findStockOrigenDistribucion(
                 ids, sinFiltro, trimmed, pageable);
-        if (!soloAlmacen) {
-            raw.sort(Comparator.comparing((InventarioUbicacion i) ->
-                    i.getUbicacion().getIdUbicacion().equals(idAlmacen) ? 0 : 1));
-        }
 
-        Map<Long, InventarioUbicacion> porVariante = new LinkedHashMap<>();
-        for (InventarioUbicacion row : raw) {
-            Long idVar = row.getVariante().getIdProductoVariante();
-            porVariante.putIfAbsent(idVar, row);
-        }
-
-        return porVariante.values().stream()
+        return raw.stream()
                 .limit(safeLimit)
                 .map(UbicacionAlmacenService::toStockDTO)
                 .toList();
@@ -127,14 +100,13 @@ public class UbicacionAlmacenService {
         if (idDestino == null) {
             throw new IllegalArgumentException("La ubicación destino es obligatoria");
         }
-        return ubicacionRepository.findOrigenesPosibles(idDestino, RESERVADAS_ORIGEN_LOWER).stream()
+        return ubicacionRepository.findOrigenesPosibles(idDestino, List.of()).stream()
                 .map(UbicacionAlmacenService::toDTO)
                 .toList();
     }
 
     /**
-     * Stock con cantidad positiva para distribuir a pisos: primero Almacén; si una variante
-     * solo tiene stock en Principal (típico tras migración V7), se incluye esa fila.
+     * Stock con cantidad positiva para distribuir a pisos: solo Almacén.
      */
     @Transactional(readOnly = true)
     public StockDesdeAlmacenDTO stockDesdeAlmacen() {

@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InventarioUbicacionService {
 
-    public static final String UBICACION_PRINCIPAL_NOMBRE = "Principal";
     public static final String UBICACION_ALMACEN_NOMBRE = "Almacén";
 
     /**
@@ -33,11 +32,6 @@ public class InventarioUbicacionService {
     private final InventarioUbicacionRepository inventarioUbicacionRepository;
     private final UbicacionRepository ubicacionRepository;
     private final ProductoVarianteRepository productoVarianteRepository;
-
-    public Ubicacion ubicacionPrincipal() {
-        return ubicacionRepository.findByNombreIgnoreCase(UBICACION_PRINCIPAL_NOMBRE)
-                .orElseThrow(() -> new IllegalStateException("No existe la ubicación '" + UBICACION_PRINCIPAL_NOMBRE + "'"));
-    }
 
     public Ubicacion ubicacionAlmacen() {
         for (String nombre : NOMBRES_ALMACEN_CANDIDATOS) {
@@ -95,28 +89,8 @@ public class InventarioUbicacionService {
     }
 
     @Transactional
-    public InventarioUbicacion obtenerOCrearFilaPrincipal(ProductoVariante variante) {
-        return obtenerOCrearFila(variante, ubicacionPrincipal());
-    }
-
-    @Transactional
     public InventarioUbicacion obtenerOCrearFilaAlmacen(ProductoVariante variante) {
         return obtenerOCrearFila(variante, ubicacionAlmacen());
-    }
-
-    /**
-     * Garantiza fila en Principal y asigna {@code stockInicial} solo si estaba en cero.
-     * Mantiene compatibilidad con código previo (no se usa para nuevas variantes,
-     * que ahora reciben stock inicial en Almacén).
-     */
-    @Transactional
-    public void asegurarFilaPrincipalConStock(ProductoVariante variante, int stockInicial) {
-        InventarioUbicacion row = obtenerOCrearFilaPrincipal(variante);
-        if (row.getStockActual() == null || row.getStockActual() == 0) {
-            row.setStockActual(Math.max(0, stockInicial));
-            inventarioUbicacionRepository.save(row);
-        }
-        sincronizarCantidadVariante(variante.getIdProductoVariante());
     }
 
     /**
@@ -132,11 +106,6 @@ public class InventarioUbicacionService {
             inventarioUbicacionRepository.save(row);
         }
         sincronizarCantidadVariante(variante.getIdProductoVariante());
-    }
-
-    @Transactional
-    public void establecerStockPrincipal(Long idVariante, int stockAbsoluto) {
-        establecerStockEnUbicacion(idVariante, ubicacionPrincipal(), stockAbsoluto);
     }
 
     /**
@@ -187,12 +156,6 @@ public class InventarioUbicacionService {
         return encontrada;
     }
 
-    @Transactional
-    public void aplicarDeltaStockPrincipal(Long idVariante, int delta) {
-        aplicarDeltaEnUbicacion(idVariante, ubicacionPrincipal(), delta,
-                "Stock insuficiente en ubicación principal");
-    }
-
     /**
      * Aplica un delta sobre la fila ({@code variante}, {@code ubicacion}). Lanza
      * {@link IllegalArgumentException} si el delta dejaría el stock negativo.
@@ -228,7 +191,7 @@ public class InventarioUbicacionService {
     }
 
     /**
-     * Stock físico solo en la ubicación Almacén (no incluye Principal ni otros pisos).
+     * Stock físico solo en la ubicación Almacén (no incluye pisos/áreas).
      */
     @Transactional(readOnly = true)
     public int stockEnAlmacen(Long idVariante) {

@@ -684,7 +684,7 @@ const { isReady, isAuthenticated } = useAuthReady();
       const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
       console.log('Venta registrada exitosamente:', ventaRegistrada);
 
-      // El stock se descuenta en el mismo backend al registrar la venta (ubicación Principal + reposición si aplica).
+      // El stock se descuenta en el mismo backend al registrar la venta (ubicación de tienda + reposición si aplica).
 
       // Actualizar el stock local de las variantes
       const variantesActualizadas = variantesCargadas.map(v => {

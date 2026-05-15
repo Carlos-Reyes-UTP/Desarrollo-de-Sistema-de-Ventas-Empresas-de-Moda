@@ -21,7 +21,7 @@ import com.tienda.ropa.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Tras una salida de stock en la ubicación de tienda (Principal), evalúa mínimos
+ * Tras una salida de stock en una ubicación de tienda (piso/área), evalúa mínimos
  * y genera solicitudes de reposición para el almacén (sin intervención del cajero).
  */
 @Service
@@ -40,14 +40,8 @@ public class ReposicionAutomaticaService {
     private final DetalleSolicitudRepository detalleSolicitudRepository;
     private final SolicitudService solicitudService;
 
-    @Transactional
-    public void evaluarTrasSalidaEnPrincipal(Long idVariante) {
-        Ubicacion principal = ubicacionPrincipal();
-        evaluarTrasSalidaEnUbicacion(idVariante, principal.getIdUbicacion());
-    }
-
     /**
-     * Tras una salida de stock en una ubicación de tienda (piso/área o Principal), evalúa mínimos
+     * Tras una salida de stock en una ubicación de tienda (piso/área), evalúa mínimos
      * y genera solicitudes de reposición desde Almacén hacia esa misma ubicación.
      */
     @Transactional
@@ -90,21 +84,15 @@ public class ReposicionAutomaticaService {
         solicitudService.crear(dto, sistema.getId());
     }
 
-    private Ubicacion ubicacionPrincipal() {
-        return ubicacionRepository.findByNombreIgnoreCase(InventarioUbicacionService.UBICACION_PRINCIPAL_NOMBRE)
-                .orElseThrow(() -> new IllegalStateException(
-                        "No existe la ubicación '" + InventarioUbicacionService.UBICACION_PRINCIPAL_NOMBRE + "'"));
-    }
-
-    private Optional<Ubicacion> ubicacionOrigenReposicion(Ubicacion principal) {
+    private Optional<Ubicacion> ubicacionOrigenReposicion(Ubicacion destino) {
         for (String nombre : NOMBRES_ALMACEN_CANDIDATOS) {
             Optional<Ubicacion> u = ubicacionRepository.findByNombreIgnoreCase(nombre);
-            if (u.isPresent() && !u.get().getIdUbicacion().equals(principal.getIdUbicacion())) {
+            if (u.isPresent() && !u.get().getIdUbicacion().equals(destino.getIdUbicacion())) {
                 return u;
             }
         }
         return ubicacionRepository.findAll().stream()
-                .filter(u -> !u.getIdUbicacion().equals(principal.getIdUbicacion()))
+                .filter(u -> !u.getIdUbicacion().equals(destino.getIdUbicacion()))
                 .findFirst();
     }
 

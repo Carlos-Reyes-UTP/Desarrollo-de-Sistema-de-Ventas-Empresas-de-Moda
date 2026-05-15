@@ -202,7 +202,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
           ) : pisos.length === 0 ? (
             <p className="text-sm text-gray-500">
               No hay pisos registrados. Agrega filas en <code>ubicacion</code> con un nombre distinto
-              de <strong>Principal</strong> y <strong>Almacén</strong>.
+              de <strong>Almacén</strong>.
             </p>
           ) : (
             <ul className="space-y-1.5">

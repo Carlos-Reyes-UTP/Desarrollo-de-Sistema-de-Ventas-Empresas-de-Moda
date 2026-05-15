@@ -6,7 +6,7 @@ import type { StockUbicacion, Ubicacion } from "@/types/Almacen";
 
 interface MoverMercaderiaModalProps {
   abierto: boolean;
-  /** Primero elige destino; luego sugerencias con stock en Almacén o Principal (prioriza Almacén por variante). */
+  /** Primero elige destino; luego sugerencias con stock en Almacén. */
   modoDestinoLibre?: boolean;
   /** Listado de variantes solo con stock en esta ubicación (botón en fila de área); el destino del traslado se elige en el paso 1. */
   ubicacionOrigenStock?: Ubicacion | null;
@@ -322,7 +322,7 @@ const MoverMercaderiaModal = ({
 
   const mensajeSinStock = ubicacionOrigenStock
     ? "No hay stock disponible en esta área para mover."
-    : "No hay stock disponible en Almacén ni Principal para mover.";
+    : "No hay stock disponible en Almacén para mover.";
 
   if (!abierto) {
     return null;
@@ -348,8 +348,7 @@ const MoverMercaderiaModal = ({
                 ) : (
                   <>
                     Elige el piso o área de destino. Las sugerencias incluyen stock en{" "}
-                    <span className="font-bold text-gray-900">Almacén</span> y en{" "}
-                    <span className="font-bold text-gray-900">Principal</span>; por variante se prioriza
+                    <span className="font-bold text-gray-900">Almacén</span>; por variante se prioriza
                     Almacén y cada línea indica el origen.
                   </>
                 )}
@@ -369,7 +368,7 @@ const MoverMercaderiaModal = ({
                   ) : (
                     <>
                       Origen por línea:{" "}
-                      <span className="font-bold text-gray-900">Almacén o Principal</span> (según la sugerencia
+                      <span className="font-bold text-gray-900">Almacén</span> (según la sugerencia
                       elegida; se muestra en cada fila).
                     </>
                   )}
@@ -498,7 +497,7 @@ const MoverMercaderiaModal = ({
                   <p className="mt-2 text-xs text-gray-500 font-medium">
                     {ubicacionOrigenStock
                       ? "Escribe para filtrar o elige entre las primeras variantes con stock en el área."
-                      : "Escribe para filtrar o elige entre las primeras sugerencias (Almacén y Principal)."}
+                      : "Escribe para filtrar o elige entre las primeras sugerencias de Almacén."}
                   </p>
                 )}
               </div>

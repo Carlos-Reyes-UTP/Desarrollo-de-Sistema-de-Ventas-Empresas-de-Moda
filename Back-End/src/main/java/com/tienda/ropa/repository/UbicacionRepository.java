@@ -15,7 +15,7 @@ public interface UbicacionRepository extends JpaRepository<Ubicacion, Long> {
 
     /**
      * Pisos disponibles para el módulo almacenero: nombres distintos excluyendo
-     * las ubicaciones reservadas (Principal / Almacén y variantes ortográficas).
+     * las ubicaciones reservadas (Almacén y variantes ortográficas).
      * El backend pasa la lista en minúsculas para comparar con LOWER(nombre).
      */
     @Query("SELECT DISTINCT u.nombre FROM Ubicacion u " +
@@ -45,9 +45,7 @@ public interface UbicacionRepository extends JpaRepository<Ubicacion, Long> {
     List<AreaStockResumenDTO> resumenStockPorPiso(@Param("nombrePiso") String nombrePiso);
 
     /**
-     * Ubicaciones candidatas como origen de un traslado: todas excepto el destino
-     * y excluyendo la ubicación reservada Principal (no se mueve mercadería desde
-     * la tienda hacia el almacén con este flujo).
+     * Ubicaciones candidatas como origen de un traslado: todas excepto el destino.
      */
     @Query("SELECT u FROM Ubicacion u " +
             "WHERE u.idUbicacion <> :idDestino " +

@@ -43,7 +43,7 @@ public interface InventarioUbicacionRepository extends JpaRepository<InventarioU
     List<InventarioUbicacion> findStockPositivoByUbicacion(@Param("idUbicacion") Long idUbicacion);
 
     /**
-     * Stock en Almacén y/o Principal para el modal de traslado; opcional filtro de texto sobre producto/variante.
+     * Stock en Almacén para el modal de traslado; opcional filtro de texto sobre producto/variante.
      */
     @Query("SELECT i FROM InventarioUbicacion i "
             + "JOIN FETCH i.variante v JOIN FETCH v.producto p "

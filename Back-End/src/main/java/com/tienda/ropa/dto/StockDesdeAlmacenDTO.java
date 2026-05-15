@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * Stock disponible para enviar a pisos: por variante se prioriza fila en Almacén;
- * si no hay stock allí (p. ej. datos migrados en V7 solo en Principal), se usa la fila en Principal.
+ * Solo desde Almacén.
  * Cada {@link StockUbicacionDTO} conserva su {@code idUbicacion} real para el POST de traslado.
  */
 public record StockDesdeAlmacenDTO(
