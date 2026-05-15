@@ -489,10 +489,7 @@ const VarianteRow: React.FC<{
         <span className="font-bold text-sm text-black">{variante.talla.nombreTalla}</span>
       </td>
       <td className="px-8 py-5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg border-2 border-gray-200" style={{ backgroundColor: variante.color.codigoHex ?? '#FFFFFF' }} />
-          <span className="font-bold text-sm text-black">{variante.color.nombre}</span>
-        </div>
+        <span className="font-bold text-sm text-black">{variante.color.nombre}</span>
       </td>
       <td className="px-8 py-5 text-center">
         {editandoCantidad ? (

@@ -1795,15 +1795,7 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                               {variante.nombreTalla || 'N/A'}
                             </td>
                             <td className="py-3 px-4">
-                              <div className="flex items-center gap-2">
-                                <div 
-                                  className="w-4 h-4 rounded-full border border-gray-300" 
-                                  style={{ 
-                                    backgroundColor: '#CCCCCC'
-                                  }} 
-                                />
-                                {variante.nombreColor || 'N/A'}
-                              </div>
+                              {variante.nombreColor || 'N/A'}
                             </td>
                             <td className="py-3 px-4 text-center">
                               <input
@@ -1914,29 +1906,6 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
 
                       <div>
                         <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-                          Precio por cuarto (3 u.)
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-3 text-gray-500">S/</span>
-                          <input
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            name="precioCuarto"
-                            value={formData.precioCuarto}
-                            onChange={handleInputChange}
-                            className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
-                          />
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">
-                          Precio por 3 unidades (1/4 docena)
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div>
-                        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
                           Precio por media docena (6 u.)
                         </label>
                         <div className="relative">
@@ -1953,6 +1922,29 @@ const FormularioProductoUnificado: React.FC<FormularioProductoUnificadoProps> = 
                         </div>
                         <p className="mt-1 text-xs text-gray-500">
                           Precio por 6 unidades (1/2 docena)
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div>
+                        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                          Precio por cuarto (3 u.)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-3 text-gray-500">S/</span>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            name="precioCuarto"
+                            value={formData.precioCuarto}
+                            onChange={handleInputChange}
+                            className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
+                          />
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Precio por 3 unidades (1/4 docena)
                         </p>
                       </div>
 
