@@ -45,9 +45,10 @@ interface SidebarMenuProps {
   cambiarVista: (vista: string) => void;
   usuario: Usuario | null;
   cerrarSesion: () => void;
+  cajeroDark?: boolean;
 }
 
-const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: SidebarMenuProps) => {
+const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroDark = false }: SidebarMenuProps) => {
   const [openAccordion, setOpenAccordion] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
@@ -130,22 +131,22 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
     <>
       {/* Rail escritorio (fase 2): hueco real en el flex del Layout; mismo botón y mismo drawer */}
       <aside
-        className={`relative z-[30] hidden h-screen w-16 shrink-0 flex-col items-center border-r border-gray-200/90 bg-white/95 py-4 shadow-sm backdrop-blur-sm transition-opacity duration-200 ease-out md:flex ${isDrawerOpen ? "pointer-events-none opacity-40" : "opacity-100"
+        className={`relative z-[30] hidden h-screen w-16 shrink-0 flex-col items-center border-r py-4 shadow-sm backdrop-blur-sm transition-opacity duration-200 ease-out md:flex ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface)]" : "border-gray-200/90 bg-white/95"} ${isDrawerOpen ? "pointer-events-none opacity-40" : "opacity-100"
           }`}
         aria-label="Navegación principal"
       >
         <button
           type="button"
           onClick={openDrawer}
-          className="group flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-white shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 hover:bg-gray-50"
+          className={`group flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface-elevated)] hover:bg-[var(--caj-input)]" : "border-gray-100 bg-white hover:bg-gray-50"}`}
         >
-          <Menu className="h-6 w-6 text-gray-400 transition-colors group-hover:text-black" />
+          <Menu className={`h-6 w-6 transition-colors ${cajeroDark ? "text-[var(--caj-text-muted)] group-hover:text-[var(--caj-text)]" : "text-gray-400 group-hover:text-black"}`} />
         </button>
       </aside>
 
       {/* Barra superior móvil: siempre montada; evita parpadeo al abrir/cerrar el drawer */}
       <div
-        className={`fixed top-0 left-0 right-0 z-[40] border-b border-gray-100 bg-white shadow-sm transition-opacity duration-200 ease-out md:hidden ${isDrawerOpen ? "pointer-events-none opacity-0" : "opacity-100"
+        className={`fixed top-0 left-0 right-0 z-[40] border-b shadow-sm transition-opacity duration-200 ease-out md:hidden ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface)]" : "border-gray-100 bg-white"} ${isDrawerOpen ? "pointer-events-none opacity-0" : "opacity-100"
           }`}
         aria-hidden={isDrawerOpen}
       >
@@ -153,15 +154,15 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
           <button
             type="button"
             onClick={openDrawer}
-            className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-gray-50 shadow-sm transition-all duration-200 hover:bg-gray-100"
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm transition-all duration-200 ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface-elevated)] hover:bg-[var(--caj-input)]" : "border-gray-200 bg-gray-50 hover:bg-gray-100"}`}
           >
-            <Menu className="h-5 w-5 text-gray-800" />
+            <Menu className={`h-5 w-5 ${cajeroDark ? "text-[var(--caj-text)]" : "text-gray-800"}`} />
           </button>
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black">
               <span className="text-[10px] font-bold text-white">DK</span>
             </div>
-            <h2 className="text-sm font-bold tracking-widest text-gray-900">DK-SYSTEM</h2>
+            <h2 className={`text-sm font-bold tracking-widest ${cajeroDark ? "text-[var(--caj-text)]" : "text-gray-900"}`}>DK-SYSTEM</h2>
           </div>
         </div>
       </div>

@@ -22,6 +22,7 @@ import {
   type VendedorAlmacenActualizacion,
 } from "../../components/vendedor-piso/VendedorPisoPedidosDock";
 import { SearchResultSkeleton } from "@/shared/ui";
+import { BorderBeam } from "border-beam";
 
 function esPeticionCancelada(error: unknown): boolean {
   if (axios.isCancel(error)) return true;
@@ -77,6 +78,7 @@ const VendedorPisoVentasPage = () => {
   const [pedidos, setPedidos] = useState<VendedorSolicitudResumen[]>([]);
   const [pedidosRefrescandoManual, setPedidosRefrescandoManual] = useState(false);
   const [infoAlmacen, setInfoAlmacen] = useState<string | null>(null);
+  const [estaEnfocado, setEstaEnfocado] = useState(false);
 
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -336,36 +338,48 @@ const VendedorPisoVentasPage = () => {
         </header>
 
         <section className="space-y-4">
-          <div className="relative overflow-hidden rounded-[2rem] bg-white shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 transition-all focus-within:shadow-[0_8px_30px_rgb(0,0,0,0.08)] focus-within:border-gray-200">
-            <input
-              type="search"
-              inputMode="search"
-              autoComplete="off"
-              placeholder="SKU, código de barras, nombre, talla o color"
-              value={codigo}
-              onChange={(e) => setCodigo(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  void ejecutarBusqueda(codigo);
-                }
-              }}
-              className="w-full bg-transparent py-5 pl-6 pr-16 text-base text-black placeholder:text-gray-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/10 rounded-[2rem]"
-            />
-            <button
-              type="button"
-              onClick={() => setScannerAbierto(true)}
-              className="absolute right-3 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-[1.25rem] bg-black text-white shadow-md transition-transform hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2"
-              aria-label="Escanear código"
+          <div className="relative group animate-fadeIn">
+            <BorderBeam
+              size="md"
+              colorVariant="colorful"
+              duration={1.96}
+              className="rounded-[2.5rem]"
             >
-              <ScanLine className="h-[22px] w-[22px]" strokeWidth={2} />
-            </button>
+              <div className={`relative overflow-hidden rounded-[2.5rem] bg-white transition-all duration-500 ${estaEnfocado || buscando ? 'shadow-[0_15px_40px_rgba(0,0,0,0.08)] scale-[1.01]' : 'shadow-[0_4px_20px_rgba(0,0,0,0.03)]'}`}>
+                <input
+                  type="search"
+                  inputMode="search"
+                  autoComplete="off"
+                  placeholder="SKU, código de barras, nombre..."
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  onFocus={() => setEstaEnfocado(true)}
+                  onBlur={() => setEstaEnfocado(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void ejecutarBusqueda(codigo);
+                    }
+                  }}
+                  className="w-full bg-transparent py-6 pl-8 pr-16 text-sm font-bold text-black placeholder:text-gray-400 focus:outline-none placeholder:font-medium tracking-tight"
+                />
+                <button
+                  type="button"
+                  onClick={() => setScannerAbierto(true)}
+                  className={`absolute right-3 top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-[1.8rem] text-white shadow-[0_8px_20px_rgba(0,0,0,0.15)] transition-all hover:scale-105 active:scale-95 ${estaEnfocado || buscando ? 'bg-black' : 'bg-black/80'}`}
+                  aria-label="Escanear código"
+                >
+                  <ScanLine className="h-5 w-5" strokeWidth={2.5} />
+                </button>
+              </div>
+            </BorderBeam>
           </div>
-          <div className="flex gap-3">
+          
+          <div className="flex gap-3 animate-fadeIn" style={{ animationDelay: '100ms' }}>
             <button
               type="button"
               onClick={() => void ejecutarBusqueda(codigo)}
-              className="flex-1 rounded-[1.5rem] border border-gray-200 bg-white py-4 text-sm font-bold text-black shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20 focus-visible:ring-offset-2"
+              className="flex-1 rounded-[1.8rem] bg-white py-4 text-[11px] font-black uppercase tracking-[0.2em] text-black shadow-[0_4px_15px_rgba(0,0,0,0.03)] transition-all hover:bg-black hover:text-white hover:shadow-[0_10px_25px_rgba(0,0,0,0.1)] active:scale-[0.98]"
             >
               Buscar Producto
             </button>
@@ -374,7 +388,7 @@ const VendedorPisoVentasPage = () => {
         </section>
 
         {coincidencias.length > 0 && !buscando && (
-          <section className="rounded-3xl border border-gray-200 bg-white/80 p-4 shadow-sm backdrop-blur-md">
+          <section className="rounded-3xl bg-white/80 p-4 shadow-[0_8px_30px_rgba(0,0,0,0.04)] backdrop-blur-md animate-fadeIn">
             <p className="mb-3 text-xs font-bold uppercase tracking-widest text-gray-500">
               Varias variantes coinciden — elige una
             </p>
@@ -384,7 +398,7 @@ const VendedorPisoVentasPage = () => {
                   <button
                     type="button"
                     onClick={() => void seleccionarVarianteLista(row.idProductoVariante)}
-                    className="flex w-full items-center justify-between rounded-2xl border border-gray-100 bg-[#fafafa] px-4 py-3 text-left transition-all hover:border-gray-300 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
+                    className="flex w-full items-center justify-between rounded-2xl bg-[#fafafa] px-4 py-3 text-left transition-all hover:bg-white hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/15"
                   >
                     <div className="min-w-0 flex-1">
                       <span className="font-semibold text-black">{row.nombreProducto}</span>
@@ -419,7 +433,7 @@ const VendedorPisoVentasPage = () => {
         )}
 
         {catalogo && !buscando && (
-          <section className="space-y-6 rounded-[2.5rem] border border-gray-100 bg-white p-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all">
+          <section className="space-y-6 rounded-[2.5rem] bg-white p-6 shadow-[0_15px_50px_rgba(0,0,0,0.05)] animate-fadeIn transition-all">
             <div className="flex items-center gap-4">
               <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[1.5rem] bg-indigo-50 text-indigo-600">
                 <Package className="h-8 w-8" strokeWidth={1.5} />
@@ -483,7 +497,7 @@ const VendedorPisoVentasPage = () => {
             </div>
 
             {idVariante != null && (
-              <div className="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/50 px-5 py-4">
+              <div className="rounded-[1.5rem] bg-emerald-50/50 px-5 py-4">
                 <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-900/60">
                   Stock disponible (sistema)
                 </p>

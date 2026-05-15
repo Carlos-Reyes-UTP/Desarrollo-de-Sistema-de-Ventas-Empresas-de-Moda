@@ -6,6 +6,7 @@ import { CajaService, type CierreCajaRequest } from '../../services/CajaService'
 import { Printer, CheckCircle, Clock, User, Calculator, Loader2, ArrowRight, TrendingDown, AlertCircle } from 'lucide-react';
 import { obtenerDatosApertura, limpiarDatosApertura } from './AperturaCaja';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
+import { CajeroThemeToggle } from './CajeroThemeToggle';
 
 interface DiferenciasCierreCaja {
   diferenciasEfectivo: number;
@@ -258,24 +259,27 @@ const CierreCaja = () => {
   if (cierreExitoso && datosCierre) {
     const discrepancia = datosCierre.diferencias.discrepanciaCaja;
     return (
-      <div className="p-10 max-w-[900px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left font-sans">
-        <div className="mb-10">
-          <h1 className="text-[2.25rem] font-bold tracking-tight text-black leading-none mb-2">CIERRE DE CAJA</h1>
-          <p className="text-gray-400 text-sm font-medium uppercase tracking-[0.1em]">Final de turno — Resumen de la caja del día</p>
+      <div className="p-10 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">CIERRE DE CAJA</h1>
+          <p className="caj-label text-sm font-medium uppercase tracking-[0.1em]">Final de turno — Resumen de la caja del día</p>
+          </div>
+          <CajeroThemeToggle />
         </div>
 
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-8">
+        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-8">
           {/* Banner */}
           <div className="bg-black px-10 py-8 flex items-center gap-6">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="h-6 w-6 text-black" />
+            <div className="w-12 h-12 caj-card rounded-2xl flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="h-6 w-6 caj-heading" />
             </div>
             <div>
               <h2 className="text-[11px] font-bold tracking-[0.4em] text-white uppercase mb-1">¡Turno finalizado!</h2>
               <p className="text-gray-400 text-[11px] font-medium uppercase tracking-widest">La caja ha sido cerrada correctamente</p>
             </div>
             <div className="ml-auto">
-              <span className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest ${discrepancia === 0 ? 'bg-white text-black' : discrepancia > 0 ? 'bg-gray-600 text-white' : 'bg-gray-700 text-white'}`}>
+              <span className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest ${discrepancia === 0 ? 'caj-card caj-heading' : discrepancia > 0 ? 'bg-gray-600 text-white' : 'bg-gray-700 text-white'}`}>
                 {discrepancia === 0 ? 'CAJA CUADRADA' : discrepancia > 0 ? 'HAY SOBRANTE' : 'HAY FALTANTE'}
               </span>
             </div>
@@ -283,31 +287,31 @@ const CierreCaja = () => {
 
           {/* Summary Grid */}
           <div className="p-10 grid grid-cols-2 gap-6">
-            <div className="bg-[#fafafa] rounded-[2rem] p-7 border border-gray-50">
+            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Cajero</span>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
                   <User className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-[14px] font-bold text-black uppercase tracking-tight">{datosCierre.usuario}</span>
+                <span className="text-[14px] font-bold caj-heading uppercase tracking-tight">{datosCierre.usuario}</span>
               </div>
             </div>
 
-            <div className="bg-[#fafafa] rounded-[2rem] p-7 border border-gray-50">
+            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Ventas realizadas</span>
-              <span className="text-[28px] font-extrabold text-black tracking-tighter">S/{datosCierre.totalVentas.toFixed(2)}</span>
+              <span className="text-[28px] font-extrabold caj-heading tracking-tighter">S/{datosCierre.totalVentas.toFixed(2)}</span>
             </div>
 
-            <div className="bg-[#fafafa] rounded-[2rem] p-7 border border-gray-50">
+            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Efectivo Esperado</span>
-              <span className="text-[24px] font-extrabold text-black tracking-tighter">S/{datosCierre.diferencias.efectivoEsperado.toFixed(2)}</span>
+              <span className="text-[24px] font-extrabold caj-heading tracking-tighter">S/{datosCierre.diferencias.efectivoEsperado.toFixed(2)}</span>
             </div>
 
-            <div className={`rounded-[2rem] p-7 border transition-all ${discrepancia === 0 ? 'bg-[#fcfcfc] border-black shadow-sm' : 'bg-[#fafafa] border-gray-50'}`}>
+            <div className={`rounded-[2rem] p-7 border transition-all ${discrepancia === 0 ? 'bg-[#fcfcfc] border-black shadow-sm' : 'caj-page border-gray-50'}`}>
               <span className={`block text-[10px] font-bold uppercase tracking-[0.3em] mb-3 ${discrepancia === 0 ? 'text-gray-400' : 'text-gray-300'}`}>Diferencia de dinero</span>
-              <span className={`text-[28px] font-extrabold tracking-tighter text-black`}>
+              <span className={`text-[28px] font-extrabold tracking-tighter caj-heading`}>
                 {discrepancia === 0 ? (
-                  <span className="flex items-center gap-2"><CheckCircle className="h-7 w-7 text-black" /> Cuadrada</span>
+                  <span className="flex items-center gap-2"><CheckCircle className="h-7 w-7 caj-heading" /> Cuadrada</span>
                 ) : `S/${Math.abs(discrepancia).toFixed(2)}`}
               </span>
               {discrepancia !== 0 && (
@@ -320,7 +324,7 @@ const CierreCaja = () => {
           <div className="px-10 pb-10 flex gap-4">
             <button
               onClick={imprimirComprobante}
-              className="flex items-center gap-3 px-7 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] text-gray-600 hover:bg-gray-100 transition-all"
+              className="flex items-center gap-3 px-7 py-4 caj-input border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] text-gray-600 hover:bg-gray-100 transition-all"
             >
               <Printer size={16} />
               Imprimir recibo
@@ -343,16 +347,19 @@ const CierreCaja = () => {
   const hayConteo = efectivoContado || tarjetaContado || yapeContado;
 
   return (
-    <div className="p-10 max-w-[1100px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left font-sans">
+    <div className="p-10 max-w-[1100px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
-          <h1 className="text-[2.25rem] font-bold tracking-tight text-black leading-none mb-2">CIERRE DE CAJA</h1>
-          <p className="text-gray-400 text-sm font-medium uppercase tracking-[0.08em]">Resumen del día — Ingrese el dinero contado</p>
+          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">CIERRE DE CAJA</h1>
+          <p className="caj-label text-sm font-medium uppercase tracking-[0.08em]">Resumen del día — Ingrese el dinero contado</p>
         </div>
-        <div className="px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Terminal</span>
-          <span className="text-xs font-bold text-black uppercase">Caja Principal 01</span>
+        <div className="flex items-center gap-3">
+          <CajeroThemeToggle />
+        <div className="px-6 py-3 caj-card border caj-border rounded-2xl shadow-sm">
+          <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-1">Terminal</span>
+          <span className="text-xs font-bold caj-heading uppercase">Caja Principal 01</span>
+        </div>
         </div>
       </div>
 
@@ -369,12 +376,12 @@ const CierreCaja = () => {
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* ─ SECCIÓN A: INFORMACIÓN GENERAL ─────────────────────────────────── */}
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
             <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
               <User className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-[12px] font-bold tracking-[0.3em] text-black uppercase">Datos del Cajero</h2>
+            <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Datos del Cajero</h2>
           </div>
 
           <div className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -386,7 +393,7 @@ const CierreCaja = () => {
                   <User size={16} className="text-gray-300" />
                 </div>
                 <input type="text" value={usuario?.usuario ?? 'Usuario actual'} readOnly
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black tracking-wider focus:outline-none shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading tracking-wider focus:outline-none shadow-inner" />
               </div>
             </div>
 
@@ -400,7 +407,7 @@ const CierreCaja = () => {
                 <input id="fecha-apertura" type="text" value={fechaApertura}
                   onChange={(e) => setFechaApertura(e.target.value)}
                   placeholder="dd/mm/yyyy — hh:mm:ss" required
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black font-mono tracking-wider focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading font-mono tracking-wider focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
               </div>
             </div>
 
@@ -414,20 +421,20 @@ const CierreCaja = () => {
                   <Clock size={16} className="text-gray-300" />
                 </div>
                 <input id="fecha-cierre" type="text" value={fechaCierre} readOnly
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black font-mono tracking-wider focus:outline-none shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading font-mono tracking-wider focus:outline-none shadow-inner" />
               </div>
             </div>
           </div>
         </div>
 
         {/* ─ SECCIÓN B: RESUMEN DE VENTAS ────────────────────────────────────── */}
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
             <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
               <Calculator className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-[12px] font-bold tracking-[0.3em] text-black uppercase">Ventas del turno</h2>
-            <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest bg-[#fafafa] px-4 py-2 rounded-xl border border-gray-100">Calculado automáticamente</span>
+            <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Ventas del turno</h2>
+            <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest caj-page px-4 py-2 rounded-xl border border-gray-100">Calculado automáticamente</span>
           </div>
 
           <div className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -438,7 +445,7 @@ const CierreCaja = () => {
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="monto-inicial" type="number" min="0" step="0.01" placeholder="0.00" value={montoInicial}
                   onChange={(e) => setMontoInicial(e.target.value)} required
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-base font-bold text-black focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
               </div>
             </div>
 
@@ -448,7 +455,7 @@ const CierreCaja = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="total-ventas" type="text" value={totalVentas.toFixed(2)} readOnly
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-base font-bold text-black focus:outline-none shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
             </div>
 
@@ -458,7 +465,7 @@ const CierreCaja = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="efectivo-ventas" type="text" value={efectivoVentas.toFixed(2)} readOnly
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-base font-bold text-black focus:outline-none shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
             </div>
 
@@ -468,7 +475,7 @@ const CierreCaja = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="tarjeta-ventas" type="text" value={tarjetaVentas.toFixed(2)} readOnly
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-base font-bold text-black focus:outline-none shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
             </div>
 
@@ -478,20 +485,20 @@ const CierreCaja = () => {
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="yape-ventas" type="text" value={yapeVentas.toFixed(2)} readOnly
-                  className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-base font-bold text-black focus:outline-none shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
             </div>
           </div>
         </div>
 
         {/* ─ SECCIÓN C: CONTEO FÍSICO ────────────────────────────────────────── */}
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
             <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
               <TrendingDown className="h-5 w-5 text-white" />
             </div>
-            <h2 className="text-[12px] font-bold tracking-[0.3em] text-black uppercase">Dinero contado</h2>
-            <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest bg-[#fafafa] px-4 py-2 rounded-xl border border-gray-100">Completar manualmente</span>
+            <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Dinero contado</h2>
+            <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest caj-page px-4 py-2 rounded-xl border border-gray-100">Completar manualmente</span>
           </div>
 
           <div className="p-10 grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -502,7 +509,7 @@ const CierreCaja = () => {
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="efectivo-contado" type="number" step="0.01" min="0" value={efectivoContado}
                   onChange={(e) => setEfectivoContado(e.target.value)} placeholder="0.00" required
-                  className="w-full pl-12 pr-5 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-lg font-extrabold text-black placeholder:text-gray-200 focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:text-gray-200 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
               </div>
             </div>
 
@@ -513,7 +520,7 @@ const CierreCaja = () => {
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="tarjeta-contado" type="number" step="0.01" min="0" value={tarjetaContado}
                   onChange={(e) => setTarjetaContado(e.target.value)} placeholder="0.00" required
-                  className="w-full pl-12 pr-5 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-lg font-extrabold text-black placeholder:text-gray-200 focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:text-gray-200 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
               </div>
             </div>
 
@@ -524,7 +531,7 @@ const CierreCaja = () => {
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
                 <input id="yape-contado" type="number" step="0.01" min="0" value={yapeContado}
                   onChange={(e) => setYapeContado(e.target.value)} placeholder="0.00" required
-                  className="w-full pl-12 pr-5 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-lg font-extrabold text-black placeholder:text-gray-200 focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:text-gray-200 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
               </div>
             </div>
           </div>
@@ -532,15 +539,15 @@ const CierreCaja = () => {
 
         {/* ─ SECCIÓN D: PREVIEW DISCREPANCIA ────────────────────────────────── */}
         {hayConteo && (
-          <div className={`rounded-[3rem] border overflow-hidden transition-all duration-500 ${discrepanciaPreview === 0 ? 'bg-[#fcfcfc] border-black shadow-lg translate-y-[-4px]' : 'bg-white border-gray-100'}`}>
+          <div className={`rounded-[3rem] border overflow-hidden transition-all duration-500 ${discrepanciaPreview === 0 ? 'bg-[#fcfcfc] border-black shadow-lg translate-y-[-4px]' : 'caj-card border-gray-100'}`}>
             <div className="px-10 py-8 flex items-center justify-between">
               <div>
                 <span className={`block text-[10px] font-bold uppercase tracking-[0.3em] mb-3 text-gray-400`}>
                   Diferencia de dinero
                 </span>
-                <span className={`text-[36px] font-extrabold tracking-tighter leading-none text-black`}>
+                <span className={`text-[36px] font-extrabold tracking-tighter leading-none caj-heading`}>
                   {discrepanciaPreview === 0 ? (
-                    <span className="flex items-center gap-3"><CheckCircle className="h-8 w-8 text-black" /> CAJA CUADRADA</span>
+                    <span className="flex items-center gap-3"><CheckCircle className="h-8 w-8 caj-heading" /> CAJA CUADRADA</span>
                   ) : `S/${Math.abs(discrepanciaPreview).toFixed(2)}`}
                 </span>
                 {discrepanciaPreview !== 0 && (
@@ -549,7 +556,7 @@ const CierreCaja = () => {
                   </span>
                 )}
               </div>
-              <div className={`px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 ${discrepanciaPreview === 0 ? 'bg-black text-white' : 'bg-[#fafafa] text-gray-600 border border-gray-100'}`}>
+              <div className={`px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 ${discrepanciaPreview === 0 ? 'bg-black text-white' : 'caj-page text-gray-600 border border-gray-100'}`}>
                 {discrepanciaPreview === 0 ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
                 {discrepanciaPreview === 0 ? 'Correcto' : 'Revisar'}
               </div>
@@ -558,9 +565,9 @@ const CierreCaja = () => {
         )}
 
         {/* ─ SECCIÓN E: OBSERVACIONES ────────────────────────────────────────── */}
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
+        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-gray-50">
-            <h2 className="text-[12px] font-bold tracking-[0.3em] text-black uppercase">Observaciones</h2>
+            <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Observaciones</h2>
             <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-1">Opcional — algún comentario adicional</p>
           </div>
           <div className="p-10">
@@ -570,7 +577,7 @@ const CierreCaja = () => {
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
               placeholder="Ingrese cualquier observación sobre el cierre de caja..."
-              className="w-full px-7 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-medium text-black placeholder:text-gray-300 focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all resize-none shadow-inner leading-relaxed"
+              className="w-full px-7 py-5 caj-input border-none rounded-[1.5rem] text-sm font-medium caj-heading placeholder:text-gray-300 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all resize-none shadow-inner leading-relaxed"
             />
           </div>
         </div>
@@ -581,7 +588,7 @@ const CierreCaja = () => {
           disabled={cargando || !efectivoContado.trim() || !tarjetaContado.trim() || !yapeContado.trim()}
           className="w-full py-6 bg-black text-white rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] hover:bg-gray-800 transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
         >
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+          <div className="absolute inset-0 caj-card/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           {cargando ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle className="w-5 h-5" />}
           <span className="relative z-10">{cargando ? 'CERRANDO...' : 'CERRAR CAJA'}</span>
         </button>

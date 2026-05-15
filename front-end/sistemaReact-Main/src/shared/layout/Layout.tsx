@@ -6,10 +6,15 @@ import { useAuth } from "../../context/AuthContext";
 import { resolveRouteView } from "./navigationConfig";
 
 import MeshGradientBackground from "../ui/MeshGradientBackground";
+import { APP_PATHS } from "./navigationConfig";
+import { useCajeroTheme } from "../../context/CajeroThemeContext";
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const location = useLocation();
   const { usuario, cerrarSesion, tieneRol } = useAuth();
+  const { isDark } = useCajeroTheme();
+  const esRutaCaja = location.pathname.includes(APP_PATHS.caja);
+  const cajeroDark = esRutaCaja && isDark;
 
   const vistaDesdeRuta = resolveRouteView({
     pathname: location.pathname,
@@ -28,12 +33,16 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   const esVendedorPisoKiosk = vistaActual === "vendedor-piso";
 
   return (
-    <div className="flex h-screen bg-[#fafafa] lg:bg-[#fafafa]/5 overflow-hidden relative">
-      <MeshGradientBackground
-        soloPuntero={
-          vistaActual === "vendedor-piso" || vistaActual === "almacen-tablero"
-        }
-      />
+    <div
+      className={`flex h-screen overflow-hidden relative caj-layout-bg ${cajeroDark ? "cajero-dark" : "bg-[#fafafa] lg:bg-[#fafafa]/5"}`}
+    >
+      {!cajeroDark && (
+        <MeshGradientBackground
+          soloPuntero={
+            vistaActual === "vendedor-piso" || vistaActual === "almacen-tablero"
+          }
+        />
+      )}
       {esVendedorPisoKiosk ? (
         <VendedorPisoLayoutChrome usuario={usuario} cerrarSesion={cerrarSesion} />
       ) : (
@@ -42,6 +51,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
           cambiarVista={setVistaActual}
           usuario={usuario}
           cerrarSesion={cerrarSesion}
+          cajeroDark={cajeroDark}
         />
       )}
       <div

@@ -14,7 +14,9 @@ import {
   Filter,
   ChevronDown,
   Shield,
-  Lock
+  Lock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UsuarioService } from '@/services/UsuarioService';
@@ -674,35 +676,95 @@ const GestionUsuariosPage = () => {
                 </div>
 
                 {(!modoEdicion || cambiarPassword) && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-4">
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contraseña</label>
-                      <div className="relative">
-                        <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input
-                          type={mostrarPassword ? 'text' : 'password'}
-                          name="password"
-                          value={formUsuario.password}
-                          onChange={manejarCambioForm}
-                          className="w-full pl-11 pr-4 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold border-transparent"
-                          required
-                        />
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Campo Contraseña */}
+                      <div className="space-y-4">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contraseña</label>
+                        <div className="relative">
+                          <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <input
+                            type={mostrarPassword ? 'text' : 'password'}
+                            name="password"
+                            value={formUsuario.password}
+                            onChange={manejarCambioForm}
+                            className="w-full pl-11 pr-12 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold border-transparent focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                            placeholder="••••••••"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMostrarPassword(!mostrarPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                          >
+                            {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Campo Confirmación */}
+                      <div className="space-y-4">
+                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Confirmación</label>
+                        <div className="relative">
+                          <Shield className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <input
+                            type={mostrarConfirmPassword ? 'text' : 'password'}
+                            name="confirmPassword"
+                            value={formUsuario.confirmPassword}
+                            onChange={manejarCambioForm}
+                            className={`w-full pl-11 pr-12 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold border-transparent focus:bg-white focus:ring-2 transition-all ${
+                              formUsuario.confirmPassword 
+                                ? formUsuario.password === formUsuario.confirmPassword 
+                                  ? 'focus:ring-[#10b981]/20 border-[#10b981]/30' 
+                                  : 'focus:ring-red-100 border-red-200'
+                                : 'focus:ring-gray-100'
+                            }`}
+                            placeholder="••••••••"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMostrarConfirmPassword(!mostrarConfirmPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                          >
+                            {mostrarConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-4">
-                      <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Confirmación</label>
-                       <div className="relative">
-                        <Shield className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
-                        <input
-                          type={mostrarConfirmPassword ? 'text' : 'password'}
-                          name="confirmPassword"
-                          value={formUsuario.confirmPassword}
-                          onChange={manejarCambioForm}
-                          className="w-full pl-11 pr-4 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold border-transparent"
-                          required
-                        />
+
+                    {/* Validaciones UX de Contraseña */}
+                    {formUsuario.password && (
+                      <div className="bg-[#fcfcfc] border border-gray-100 rounded-2xl p-6 space-y-4 animate-fadeIn">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Requisitos de Seguridad</h4>
+                          {formUsuario.password === formUsuario.confirmPassword && formUsuario.confirmPassword && (
+                            <div className="flex items-center gap-1.5 text-[#10b981] animate-bounce">
+                              <CheckCircle size={12} />
+                              <span className="text-[9px] font-bold uppercase tracking-wider">Las contraseñas coinciden</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-y-3 gap-x-6">
+                          {[
+                            { label: 'Mínimo 8 caracteres', check: formUsuario.password.length >= 8 },
+                            { label: 'Mayúsculas y Minúsculas', check: /[a-z]/.test(formUsuario.password) && /[A-Z]/.test(formUsuario.password) },
+                            { label: 'Al menos un número', check: /\d/.test(formUsuario.password) },
+                            { label: 'Símbolo (!@#$%^&*)', check: /[!@#$%^&*()]/.test(formUsuario.password) }
+                          ].map((req, i) => (
+                            <div key={i} className="flex items-center gap-2.5">
+                              <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-500 ${req.check ? 'bg-[#10b981] scale-110' : 'bg-gray-100'}`}>
+                                <CheckCircle size={10} className={req.check ? 'text-white' : 'text-gray-300'} />
+                              </div>
+                              <span className={`text-[10px] font-bold uppercase tracking-tight transition-colors ${req.check ? 'text-black' : 'text-gray-400'}`}>
+                                {req.label}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -765,12 +827,19 @@ const GestionUsuariosPage = () => {
                 <div className="relative">
                   <Lock className="w-4 h-4 text-gray-300 absolute left-5 top-1/2 -translate-y-1/2" />
                   <input
-                    type="password"
+                    type={mostrarPassword ? 'text' : 'password'}
                     value={passwordActual}
                     onChange={(e) => setPasswordActual(e.target.value)}
-                    className="w-full pl-12 pr-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner"
+                    className="w-full pl-12 pr-12 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner"
                     placeholder="Ingrese su contraseña..."
                   />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarPassword(!mostrarPassword)}
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                  >
+                    {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
                 {errorPasswordActual && (
                   <span className="text-[10px] font-bold text-red-500 uppercase tracking-widest block">{errorPasswordActual}</span>

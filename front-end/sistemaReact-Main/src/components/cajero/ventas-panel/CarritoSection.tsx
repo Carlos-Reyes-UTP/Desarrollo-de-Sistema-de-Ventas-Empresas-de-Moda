@@ -68,31 +68,31 @@ export const CarritoSection = ({
   ];
 
   return (
-    <div className="lg:col-span-5 bg-white rounded-[2rem] shadow-2xl border border-gray-100 flex flex-col h-[900px] overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-50 flex items-center justify-between bg-white">
+    <div className="lg:col-span-5 caj-card rounded-[2rem] shadow-2xl border flex flex-col h-[900px] overflow-hidden carrito-scroll">
+      <div className="px-6 py-4 border-b caj-border-subtle flex items-center justify-between caj-card">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
             <CreditCard className="h-5 w-5 text-white" />
           </div>
-          <h2 className="text-[12px] font-bold tracking-[0.3em] text-black uppercase">Lista de compras</h2>
+          <h2 className="caj-heading text-[12px] font-bold tracking-[0.3em] uppercase">Lista de compras</h2>
         </div>
         <button 
           onClick={resetearFormulario}
-          className="text-[10px] font-bold text-gray-300 hover:text-red-500 uppercase tracking-[0.2em] transition-colors bg-[#fafafa] px-4 py-2 rounded-xl border border-gray-100"
+          className="caj-text-faint text-[10px] font-bold hover:text-red-500 uppercase tracking-[0.2em] transition-colors caj-page px-4 py-2 rounded-xl border caj-border"
         >
           Limpiar lista
         </button>
       </div>
       
       {/* Lista Scrollable */}
-      <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar bg-[#fcfcfc]/50">
+      <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar carrito-scroll caj-surface-muted/50">
         {productosSeleccionadosVenta.length > 0 ? (
           <div className="space-y-2">
             {productosSeleccionadosVenta.map((item, index) => (
-              <div key={`${item.idProductoVariante}-${index}`} className="group bg-white border border-gray-100 rounded-xl p-2 transition-all duration-300 hover:shadow-sm hover:border-gray-200">
+              <div key={`${item.idProductoVariante}-${index}`} className="group caj-card border rounded-xl p-2 transition-all duration-300 hover:shadow-sm">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-[10px] font-bold text-black uppercase tracking-tight leading-tight truncate">{item.descripcion}</h4>
+                    <h4 className="caj-heading text-[10px] font-bold uppercase tracking-tight leading-tight truncate">{item.descripcion}</h4>
                     <div className="flex items-center gap-2 mt-0.5">
                        <span className="text-[8px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50 px-1.5 py-0.5 rounded border border-gray-100">
                           {item.color}
@@ -103,24 +103,24 @@ export const CarritoSection = ({
                     </div>
                   </div>
 
-                  <div className="flex items-center bg-[#f8f8f8] border border-gray-100 rounded-lg p-0.5 shadow-inner scale-90">
+                  <div className="caj-segment flex items-center border rounded-lg p-0.5 shadow-inner scale-90">
                     <button 
                       onClick={() => handleActualizarCantidadEnVenta(item.idProductoVariante, item.cantidad - 1)}
-                      className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-black hover:bg-white hover:shadow-sm rounded transition-all font-bold"
+                      className="w-6 h-6 flex items-center justify-center caj-segment-inactive caj-pagination-btn rounded transition-all font-bold"
                     >
                       -
                     </button>
-                    <span className="w-6 text-center text-[10px] font-extrabold text-black">{item.cantidad}</span>
+                    <span className="caj-heading w-6 text-center text-[10px] font-extrabold">{item.cantidad}</span>
                     <button 
                       onClick={() => handleActualizarCantidadEnVenta(item.idProductoVariante, item.cantidad + 1)}
-                      className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-black hover:bg-white hover:shadow-sm rounded transition-all font-bold"
+                      className="w-6 h-6 flex items-center justify-center caj-segment-inactive caj-pagination-btn rounded transition-all font-bold"
                     >
                       +
                     </button>
                   </div>
 
                   <div className="text-right min-w-[70px]">
-                     <span className="text-[12px] font-extrabold text-black tracking-tight">
+                     <span className="caj-heading text-[12px] font-extrabold tracking-tight">
                        S/{(item.precio * item.cantidad).toFixed(2)}
                      </span>
                      <span className="block text-[8px] font-bold text-gray-300 uppercase tracking-widest leading-none">
@@ -160,14 +160,14 @@ export const CarritoSection = ({
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-8 border border-gray-100">
               <DollarSign className="h-10 w-10 text-gray-100" />
             </div>
-            <h3 className="text-[13px] font-bold text-black uppercase tracking-[0.3em] mb-3">Lista vacía</h3>
-            <p className="text-gray-300 text-xs font-medium max-w-[200px] leading-relaxed">Selecciona productos del catálogo para empezar a vender.</p>
+            <h3 className="caj-heading text-[13px] font-bold uppercase tracking-[0.3em] mb-3">Lista vacía</h3>
+            <p className="caj-text-faint text-xs font-medium max-w-[200px] leading-relaxed">Selecciona productos del catálogo para empezar a vender.</p>
           </div>
         )}
       </div>
       
       {/* Totals & Checkout */}
-      <div className="px-6 py-6 bg-white border-t border-gray-100 space-y-4 relative z-20">
+      <div className="px-6 py-6 caj-card border-t caj-border space-y-4 relative z-20">
         <div className="space-y-6">
           <label className="block text-[10px] font-bold tracking-[0.35em] text-gray-300 uppercase pl-1">Método de pago</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -175,7 +175,7 @@ export const CarritoSection = ({
               <button 
                 key={method.id}
                 onClick={() => setMetodoPago(method.id)}
-                className={`flex flex-col items-center justify-center py-5 rounded-[1.5rem] border transition-all relative overflow-hidden group ${metodoPago === method.id ? 'bg-black border-black text-white shadow-[0_20px_40px_rgba(0,0,0,0.15)] scale-[1.05]' : 'bg-[#f8f8f8] border-transparent text-gray-400 hover:bg-gray-100'}`}
+                className={`flex flex-col items-center justify-center py-5 rounded-[1.5rem] border transition-all relative overflow-hidden group ${metodoPago === method.id ? 'caj-segment-active shadow-[0_20px_40px_rgba(0,0,0,0.15)] scale-[1.05]' : 'caj-segment caj-segment-inactive border-transparent'}`}
               >
                 <div className={`mb-2.5 transition-transform group-hover:scale-110 ${metodoPago === method.id ? 'text-white' : 'text-gray-300'}`}>
                   {method.icon(metodoPago === method.id)}
@@ -202,17 +202,17 @@ export const CarritoSection = ({
           </div>
           <div className="flex justify-between items-center pt-4 border-t border-gray-100">
             <div className="flex flex-col">
-               <span className="text-[12px] font-bold text-black uppercase tracking-[0.4em] mb-1">TOTAL A COBRAR</span>
-               <span className="text-[10px] font-bold text-gray-300 uppercase tracking-widest">Monto total con IGV</span>
+               <span className="caj-heading text-[12px] font-bold uppercase tracking-[0.4em] mb-1">TOTAL A COBRAR</span>
+               <span className="caj-text-faint text-[10px] font-bold uppercase tracking-widest">Monto total con IGV</span>
             </div>
-            <span className="text-[42px] font-extrabold text-black tracking-tighter leading-none">S/{totalGeneralVenta.toFixed(2)}</span>
+            <span className="caj-heading text-[42px] font-extrabold tracking-tighter leading-none">S/{totalGeneralVenta.toFixed(2)}</span>
           </div>
         </div>
         
         <button 
           onClick={handleProcesarVentaFinal}
           disabled={productosSeleccionadosVenta.length === 0 || cargandoProcesoVenta || !metodoPago}
-          className="w-full py-6 bg-black text-white rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] hover:bg-gray-800 transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
+          className="w-full py-6 caj-btn-primary rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
         >
           <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           {cargandoProcesoVenta ? <Loader2 className="animate-spin h-5 w-5" /> : <CreditCard className="w-5 h-5 group-hover:rotate-12 transition-transform" />}

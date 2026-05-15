@@ -7,40 +7,36 @@ interface NotificationToastProps {
   variant: 'error' | 'info' | 'success';
   onClose: () => void;
   topClassName: string;
-  /** Cierra automáticamente tras N ms (útil para éxito / info breve). */
   autoDismissMs?: number;
 }
 
 const STYLES = {
   error: {
     container:
-      'bg-red-50 bg-opacity-95 border border-red-200 text-red-800',
-    iconContainer: 'bg-red-100',
+      'caj-toast-error bg-red-50 bg-opacity-95 border border-red-200 text-red-800',
+    iconContainer: 'caj-toast-icon-wrap bg-red-100',
     icon: 'text-red-600',
     title: 'text-red-900',
     message: 'text-red-700',
-    close:
-      'text-red-400 hover:text-red-600 hover:bg-red-100',
+    close: 'text-red-400 hover:text-red-600 hover:bg-red-100',
   },
   info: {
     container:
-      'bg-blue-50 bg-opacity-95 border border-blue-200 text-blue-800',
-    iconContainer: 'bg-blue-100',
+      'caj-toast-info bg-blue-50 bg-opacity-95 border border-blue-200 text-blue-800',
+    iconContainer: 'caj-toast-icon-wrap bg-blue-100',
     icon: 'text-blue-600',
     title: 'text-blue-900',
     message: 'text-blue-700',
-    close:
-      'text-blue-400 hover:text-blue-600 hover:bg-blue-100',
+    close: 'text-blue-400 hover:text-blue-600 hover:bg-blue-100',
   },
   success: {
     container:
-      'bg-emerald-50 bg-opacity-95 border border-emerald-200 text-emerald-900',
-    iconContainer: 'bg-emerald-100',
+      'caj-toast-success bg-emerald-50 bg-opacity-95 border border-emerald-200 text-emerald-900',
+    iconContainer: 'caj-toast-icon-wrap bg-emerald-100',
     icon: 'text-emerald-600',
     title: 'text-emerald-950',
     message: 'text-emerald-800',
-    close:
-      'text-emerald-400 hover:text-emerald-700 hover:bg-emerald-100',
+    close: 'text-emerald-400 hover:text-emerald-700 hover:bg-emerald-100',
   },
 } as const;
 
@@ -92,4 +88,3 @@ export const NotificationToast = ({
     </div>
   );
 };
-

@@ -22,10 +22,9 @@ export const QrPaymentModal = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm w-full max-w-sm overflow-hidden animate-scaleIn">
+    <div className="caj-modal-overlay fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
+      <div className="caj-modal-panel rounded-[3rem] shadow-sm w-full max-w-sm overflow-hidden animate-scaleIn border">
 
-        {/* Header */}
         <div className="bg-black px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -41,38 +40,35 @@ export const QrPaymentModal = ({
           </button>
         </div>
 
-        {/* Total */}
         <div className="px-8 pt-7 pb-2 text-center">
-          <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-1">Total a pagar</span>
-          <span className="text-[38px] font-extrabold text-black tracking-tighter leading-none">S/{total.toFixed(2)}</span>
+          <span className="caj-text-faint block text-[10px] font-bold uppercase tracking-[0.3em] mb-1">Total a pagar</span>
+          <span className="caj-heading text-[38px] font-extrabold tracking-tighter leading-none">S/{total.toFixed(2)}</span>
         </div>
 
-        {/* QR Code */}
         <div className="px-8 py-5">
-          <div className="bg-[#fafafa] rounded-[2rem] p-5 border border-gray-100">
+          <div className="caj-page rounded-[2rem] p-5 border caj-border">
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrUrl)}`}
               alt="Código QR de pago"
               className="w-full h-auto rounded-xl"
             />
           </div>
-          <p className="text-center text-[11px] text-gray-400 font-medium mt-4">
-            Abre la aplicación <span className="text-black font-bold">{tipo}</span> y escanea el código
+          <p className="text-center text-[11px] caj-text-muted font-medium mt-4">
+            Abre la aplicación <span className="caj-heading font-bold">{tipo}</span> y escanea el código
           </p>
         </div>
 
-        {/* Actions */}
         <div className="px-8 pb-8 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all"
+            className="flex-1 py-4 caj-surface-muted border caj-border rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] caj-text-muted hover:opacity-80 transition-all"
           >
             Cancelar
           </button>
           <button
             onClick={onConfirm}
             disabled={loading}
-            className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 py-4 caj-btn-primary rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <Loader2 className="animate-spin w-4 h-4" />

@@ -5,6 +5,7 @@ import { Printer, CheckCircle, Clock, User, Loader2, ArrowRight, TrendingUp } fr
 import { CajaService, type AperturaCajaRequest } from '../../services/CajaService';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
 import { Skeleton } from '@/shared/ui';
+import { CajeroThemeToggle } from './CajeroThemeToggle';
 
 interface AperturaCajaProps {
   onAperturaCompleta: () => void;
@@ -138,10 +139,10 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
 
   if (verificandoCaja) {
     return (
-      <div className="p-10 max-w-[900px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left font-sans">
+      <div className="p-10 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
         <Skeleton className="mb-2 h-10 w-72" />
         <Skeleton className="mb-10 h-4 w-96 max-w-full" variant="muted" />
-        <div className="overflow-hidden rounded-[3rem] border border-gray-100 bg-white shadow-sm">
+        <div className="overflow-hidden rounded-[3rem] border border-gray-100 caj-card shadow-sm">
           <div className="border-b border-gray-50 px-10 py-8">
             <Skeleton className="h-4 w-48" />
           </div>
@@ -159,56 +160,59 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
   // ── VISTA DE ÉXITO ────────────────────────────────────────────────────────────
   if (aperturaExitosa && datosApertura) {
     return (
-      <div className="p-10 max-w-[900px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left font-sans">
+      <div className="p-10 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-[2.25rem] font-bold tracking-tight text-black leading-none mb-2">CAJA ACTIVA</h1>
-          <p className="text-gray-400 text-sm font-medium uppercase tracking-[0.1em]">Sesión de turno en curso — Detalles del inicio</p>
+        <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">CAJA ACTIVA</h1>
+          <p className="caj-label text-sm font-medium uppercase tracking-[0.1em]">Sesión de turno en curso — Detalles del inicio</p>
+          </div>
+          <CajeroThemeToggle />
         </div>
 
         {/* Success Card */}
-        <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-8">
+        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-8">
           {/* Confirmation Banner */}
           <div className="bg-black px-10 py-8 flex items-center gap-6">
-            <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="h-6 w-6 text-black" />
+            <div className="w-12 h-12 caj-card rounded-2xl flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="h-6 w-6 caj-heading" />
             </div>
             <div>
               <h2 className="text-[11px] font-bold tracking-[0.4em] text-white uppercase mb-1">Caja Verificada</h2>
               <p className="text-gray-400 text-[11px] font-medium uppercase tracking-widest">Actualmente operando con normalidad</p>
             </div>
             <div className="ml-auto flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
+              <div className="w-2 h-2 rounded-full caj-card animate-pulse"></div>
               <h3 className="text-lg font-bold text-white uppercase tracking-[0.25em]">¡Caja abierta con éxito!</h3>
             </div>
           </div>
 
           {/* Details Grid */}
           <div className="p-10 grid grid-cols-2 gap-6">
-            <div className="bg-[#fafafa] rounded-[2rem] p-7 border border-gray-50">
+            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Cajero de turno</span>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
                   <User className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-[15px] font-bold text-black uppercase tracking-tight">{datosApertura.usuario}</span>
+                <span className="text-[15px] font-bold caj-heading uppercase tracking-tight">{datosApertura.usuario}</span>
               </div>
             </div>
 
-            <div className="bg-[#fafafa] rounded-[2rem] p-7 border border-gray-50">
+            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Fecha y Hora de Inicio</span>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
                   <Clock className="h-4 w-4 text-white" />
                 </div>
-                <span className="text-[13px] font-bold text-black font-mono tracking-tight">{datosApertura.fechaHora}</span>
+                <span className="text-[13px] font-bold caj-heading font-mono tracking-tight">{datosApertura.fechaHora}</span>
               </div>
             </div>
 
             <div className="col-span-2 bg-[#fcfcfc] border border-gray-100 rounded-[2rem] p-8 flex items-center justify-between shadow-sm">
               <div>
                 <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">Monto inicial en caja</span>
-                <span className="text-[42px] font-extrabold text-black tracking-tighter leading-none">S/{datosApertura.monto.toFixed(2)}</span>
+                <span className="text-[42px] font-extrabold caj-heading tracking-tighter leading-none">S/{datosApertura.monto.toFixed(2)}</span>
               </div>
               <div className="text-right">
                 <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mb-3">N° de Operación</span>
@@ -221,7 +225,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
           <div className="px-10 pb-10 flex gap-4">
             <button
               onClick={imprimirComprobante}
-              className="flex items-center gap-3 px-7 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] text-gray-600 hover:bg-gray-100 transition-all"
+              className="flex items-center gap-3 px-7 py-4 caj-input border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] text-gray-600 hover:bg-gray-100 transition-all"
             >
               <Printer size={16} />
               Imprimir recibo
@@ -237,10 +241,10 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
         </div>
 
         {/* Note */}
-        <div className="px-8 py-5 bg-white border border-gray-100 rounded-[2rem] flex items-start gap-4">
+        <div className="px-8 py-5 caj-card border border-gray-100 rounded-[2rem] flex items-start gap-4">
           <div className="w-1.5 h-1.5 rounded-full bg-black mt-2 flex-shrink-0"></div>
           <p className="text-[11px] font-medium text-gray-400 leading-relaxed">
-            Conserve el comprobante de apertura hasta el <span className="text-black font-bold">cierre de caja</span>. Este documento será necesario para cuadrar las operaciones del día.
+            Conserve el comprobante de apertura hasta el <span className="caj-heading font-bold">cierre de caja</span>. Este documento será necesario para cuadrar las operaciones del día.
           </p>
         </div>
       </div>
@@ -249,16 +253,19 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
 
   // ── VISTA DE FORMULARIO ───────────────────────────────────────────────────────
   return (
-    <div className="p-10 max-w-[900px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left font-sans">
+    <div className="p-10 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
         <div>
-          <h1 className="text-[2.25rem] font-bold tracking-tight text-black leading-none mb-2">APERTURA DE CAJA</h1>
-          <p className="text-gray-400 text-sm font-medium uppercase tracking-[0.08em]">Inicio de turno — Ingrese el monto con el que arranca la caja</p>
+          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">APERTURA DE CAJA</h1>
+          <p className="caj-label text-sm font-medium uppercase tracking-[0.08em]">Inicio de turno — Ingrese el monto con el que arranca la caja</p>
         </div>
-        <div className="px-6 py-3 bg-white border border-gray-100 rounded-2xl shadow-sm">
-          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Caja</span>
-          <span className="text-xs font-bold text-black uppercase">Caja Principal 01</span>
+        <div className="flex items-center gap-3">
+          <CajeroThemeToggle />
+        <div className="px-6 py-3 caj-card border caj-border rounded-2xl shadow-sm">
+          <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-1">Caja</span>
+          <span className="text-xs font-bold caj-heading uppercase">Caja Principal 01</span>
+        </div>
         </div>
       </div>
 
@@ -274,13 +281,13 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
       )}
 
       {/* Main Card */}
-      <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
+      <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
         {/* Card Header */}
         <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
           <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
             <TrendingUp className="h-5 w-5 text-white" />
           </div>
-          <h2 className="text-[12px] font-bold tracking-[0.3em] text-black uppercase">Información de inicio</h2>
+          <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Información de inicio</h2>
         </div>
 
         <form onSubmit={handleSubmit} className="p-10 space-y-8">
@@ -295,7 +302,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
                 type="text"
                 value={usuario?.usuario ?? 'Usuario desconocido'}
                 readOnly
-                className="w-full pl-14 pr-5 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black tracking-wider focus:outline-none shadow-inner"
+                className="w-full pl-14 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading tracking-wider focus:outline-none shadow-inner"
               />
             </div>
           </div>
@@ -311,7 +318,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
                 type="text"
                 value={fechaHoraApertura}
                 readOnly
-                className="w-full pl-14 pr-16 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black font-mono tracking-wider focus:outline-none shadow-inner"
+                className="w-full pl-14 pr-16 py-5 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading font-mono tracking-wider focus:outline-none shadow-inner"
               />
               <div className="absolute inset-y-0 right-0 pr-6 flex items-center gap-2">
                 <div className="w-2 h-2 bg-black rounded-full animate-pulse"></div>
@@ -333,7 +340,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
                 min="0"
                 step="0.01"
                 placeholder="0.00"
-                className="w-full pl-16 pr-6 py-5 bg-[#f8f8f8] border-none rounded-[1.5rem] text-[22px] font-extrabold text-black placeholder:text-gray-200 focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner tracking-tight"
+                className="w-full pl-16 pr-6 py-5 caj-input border-none rounded-[1.5rem] text-[22px] font-extrabold caj-heading placeholder:text-gray-200 focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all shadow-inner tracking-tight"
                 value={montoApertura}
                 onChange={(e) => setMontoApertura(e.target.value)}
                 required
@@ -350,7 +357,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
             disabled={cargando || !montoApertura || parseFloat(montoApertura) <= 0}
             className="w-full py-6 bg-black text-white rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] hover:bg-gray-800 transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
           >
-            <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute inset-0 caj-card/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
             {cargando ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle className="w-5 h-5" />}
             <span className="relative z-10">{cargando ? 'ABRIENDO...' : 'ABRIR CAJA'}</span>
           </button>
@@ -358,10 +365,10 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
       </div>
 
       {/* Info Footer */}
-      <div className="mt-8 px-8 py-5 bg-white border border-gray-100 rounded-[2rem] flex items-start gap-4">
+      <div className="mt-8 px-8 py-5 caj-card border border-gray-100 rounded-[2rem] flex items-start gap-4">
         <div className="w-1.5 h-1.5 rounded-full bg-black mt-2 flex-shrink-0"></div>
         <p className="text-[11px] font-medium text-gray-400 leading-relaxed">
-          Verifique que el monto coincida exactamente con el efectivo físico en caja. Este valor será el <span className="text-black font-bold">monto base</span> para el cuadre al cierre del turno.
+          Verifique que el monto coincida exactamente con el efectivo físico en caja. Este valor será el <span className="caj-heading font-bold">monto base</span> para el cuadre al cierre del turno.
         </p>
       </div>
     </div>
