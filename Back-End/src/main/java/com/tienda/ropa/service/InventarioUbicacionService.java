@@ -158,6 +158,35 @@ public class InventarioUbicacionService {
         sincronizarCantidadVariante(idVariante);
     }
 
+    /**
+     * Retorna la ubicaci&oacute;n &uacute;nica (no Almac&eacute;n) donde la variante tiene registro
+     * en {@code inventario_ubicacion}, independientemente del stock. &Uacute;til para determinar
+     * el destino de una solicitud de reposici&oacute;n manual (VENTA).
+     *
+     * @throws IllegalStateException si no hay registro o hay m&uacute;ltiples.
+     */
+    public Ubicacion ubicacionDeVarianteOLanzar(Long idVariante) {
+        List<InventarioUbicacion> filas = inventarioUbicacionRepository
+                .findByVariante_IdProductoVariante(idVariante);
+        Ubicacion almacen = ubicacionAlmacen();
+        Ubicacion encontrada = null;
+        for (InventarioUbicacion f : filas) {
+            if (f.getUbicacion() == null) continue;
+            if (f.getUbicacion().getIdUbicacion().equals(almacen.getIdUbicacion())) continue;
+            if (encontrada != null) {
+                throw new IllegalStateException(
+                    "La variante " + idVariante + " tiene registro en m&uacute;ltiples &aacute;reas: "
+                    + encontrada.getNombre() + " y " + f.getUbicacion().getNombre());
+            }
+            encontrada = f.getUbicacion();
+        }
+        if (encontrada == null) {
+            throw new IllegalStateException(
+                "La variante " + idVariante + " no tiene un &aacute;rea asignada (sin registro en inventario_ubicacion fuera de Almac&eacute;n)");
+        }
+        return encontrada;
+    }
+
     @Transactional
     public void aplicarDeltaStockPrincipal(Long idVariante, int delta) {
         aplicarDeltaEnUbicacion(idVariante, ubicacionPrincipal(), delta,

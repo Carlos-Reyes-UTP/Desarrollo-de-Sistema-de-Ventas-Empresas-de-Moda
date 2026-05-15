@@ -91,6 +91,11 @@ public class VendedorService {
             } else {
                 List<VendedorVarianteCoincidenciaDTO> opciones = filasVariante.stream()
                         .map(this::mapearCoincidenciaVariante)
+                        .map(dto -> new VendedorVarianteCoincidenciaDTO(
+                                dto.idProductoVariante(), dto.idProducto(),
+                                dto.nombreProducto(), dto.talla(), dto.color(),
+                                dto.sku(), dto.codigoBarras(), dto.precioUnitario(),
+                                inventarioUbicacionService.stockEnAlmacen(dto.idProductoVariante())))
                         .toList();
                 return new VendedorCatalogoBusquedaDTO(true, opciones, null);
             }
@@ -168,7 +173,7 @@ public class VendedorService {
         List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProducto(idProducto);
         List<VendedorVarianteStockDTO> filas = new ArrayList<>();
         for (ProductoVariante pv : variantes) {
-            int stockAlmacen = inventarioUbicacionService.stockTotalVariante(pv.getIdProductoVariante());
+            int stockAlmacen = inventarioUbicacionService.stockEnAlmacen(pv.getIdProductoVariante());
             filas.add(new VendedorVarianteStockDTO(
                     pv.getIdProductoVariante(),
                     pv.getTalla(),
@@ -197,15 +202,14 @@ public class VendedorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad debe ser mayor a cero");
         }
 
-        int stockAlmacen = inventarioUbicacionService.stockTotalVariante(req.idVariante());
+        int stockAlmacen = inventarioUbicacionService.stockEnAlmacen(req.idVariante());
         if (req.cantidad() > stockAlmacen) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "La cantidad supera el stock disponible en el sistema (" + stockAlmacen + ")");
+                    "La cantidad supera el stock disponible en Almacén (" + stockAlmacen + ")");
         }
 
         Ubicacion almacen = inventarioUbicacionService.ubicacionAlmacen();
-        Ubicacion principal = inventarioUbicacionService.ubicacionPrincipal();
 
         TipoSolicitud tipo = TipoSolicitud.REPOSICION;
         if (req.tipoSolicitud() != null && !req.tipoSolicitud().isBlank()) {
@@ -217,10 +221,18 @@ public class VendedorService {
             }
         }
 
+        Ubicacion destino;
+        try {
+            destino = inventarioUbicacionService.ubicacionDeVarianteOLanzar(req.idVariante());
+        } catch (IllegalStateException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "El producto no tiene un área asignada. Primero mueva stock al área desde Almacén.");
+        }
+
         CrearSolicitudDTO dto = new CrearSolicitudDTO(
                 tipo.name(),
                 almacen.getIdUbicacion(),
-                principal.getIdUbicacion(),
+                destino.getIdUbicacion(),
                 List.of(new DetalleSolicitudLineaDTO(req.idVariante(), req.cantidad())));
 
         return solicitudService.crear(dto, idUsuario);

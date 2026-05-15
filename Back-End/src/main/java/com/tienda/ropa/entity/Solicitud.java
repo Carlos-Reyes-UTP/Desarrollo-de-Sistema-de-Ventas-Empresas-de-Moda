@@ -1,5 +1,6 @@
 package com.tienda.ropa.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -26,6 +27,7 @@ import java.util.List;
 @NoArgsConstructor
 @Entity
 @Table(name = "solicitud")
+@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Solicitud {
 
     @Id

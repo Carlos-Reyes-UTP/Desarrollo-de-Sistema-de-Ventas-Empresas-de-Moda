@@ -47,10 +47,9 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   const [varianteAEliminar, setVarianteAEliminar] = useState<number | null>(null);
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' | 'warning' }>({ open: false, message: '', variant: 'info' });
 
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isModalVisible, setIsModalVisible] = useState(true);
 
   useEffect(() => {
-    setIsModalVisible(true);
     cargarDatos();
   }, [producto.idProducto]);
 
