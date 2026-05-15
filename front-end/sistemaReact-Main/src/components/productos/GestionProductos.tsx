@@ -409,7 +409,7 @@ const GestionProductos: React.FC = () => {
               className={`relative cursor-pointer ${selectedCategoriaPrincipal ? 'bg-black text-white' : 'bg-[#f8f8f8] text-gray-900'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">
-                {selectedCategoriaPrincipal || "Departamentos"}
+                {selectedCategoriaPrincipal || "Todas las categorías"}
               </span>
 
               {selectedCategoriaPrincipal ? (
