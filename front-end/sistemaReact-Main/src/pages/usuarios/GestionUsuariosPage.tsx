@@ -282,15 +282,30 @@ const GestionUsuariosPage = () => {
   
   const manejarCambioForm = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormUsuario(prev => ({ ...prev, [name]: checked }));
-    } else {
-      setFormUsuario(prev => ({ ...prev, [name]: value }));
-      if (name === 'usuario') {
-        setUsuarioDisponible(null);
-        setVerificandoUsuario(false);
+    
+    // Actualizar el estado del formulario primero
+    setFormUsuario(prev => {
+      const nuevoForm = { ...prev, [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value };
+      
+      // Validación instantánea de contraseñas
+      if (name === 'password' || name === 'confirmPassword') {
+        if (nuevoForm.password === nuevoForm.confirmPassword && nuevoForm.confirmPassword !== '') {
+          setError(null);
+        } else if (nuevoForm.confirmPassword !== '' && nuevoForm.password.startsWith(nuevoForm.confirmPassword) === false && nuevoForm.password !== nuevoForm.confirmPassword) {
+          // Si ya no coinciden en absoluto (no es solo que esté incompleta), mostrar error
+          setError('Las contraseñas no coinciden');
+        } else if (nuevoForm.confirmPassword !== '' && nuevoForm.confirmPassword.length >= nuevoForm.password.length && nuevoForm.password !== nuevoForm.confirmPassword) {
+          // Si tiene la misma longitud o más y no coinciden
+          setError('Las contraseñas no coinciden');
+        }
       }
+      
+      return nuevoForm;
+    });
+
+    if (name === 'usuario') {
+      setUsuarioDisponible(null);
+      setVerificandoUsuario(false);
     }
   };
   
