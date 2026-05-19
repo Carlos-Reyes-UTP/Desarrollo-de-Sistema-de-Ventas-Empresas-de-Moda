@@ -35,3 +35,8 @@ export interface AlmacenTicketConsolidado extends AlmacenSolicitud {
 }
 
 export type MotivoRechazoApi = "SIN_STOCK_FISICO" | "PRENDA_DEFECTUOSA";
+
+export interface AlmacenAtenderLoteResult {
+  atendidos: number[];
+  rechazados: number[];
+}

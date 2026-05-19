@@ -1,6 +1,6 @@
 import apiClient from "../config/apiClient";
 import { RUTAS_ALMACENERO_SOLICITUDES } from "../config/apiConfig";
-import type { AlmacenSolicitud, ItemSolicitudAlmacen, MotivoRechazoApi } from "../types/AlmacenSolicitudes";
+import type { AlmacenAtenderLoteResult, AlmacenSolicitud, ItemSolicitudAlmacen, MotivoRechazoApi } from "../types/AlmacenSolicitudes";
 import { num } from "../utils/num";
 
 function normalizarLinea(raw: unknown): ItemSolicitudAlmacen {
@@ -68,16 +68,23 @@ export const AlmacenSolicitudesApi = {
     await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.ATENDER(idSolicitud));
   },
 
-  atenderLote: async (idsSolicitud: number[]): Promise<void> => {
+  atenderLote: async (idsSolicitud: number[]): Promise<AlmacenAtenderLoteResult> => {
     const unicos = [...new Set(idsSolicitud.filter((id) => id > 0))];
-    if (unicos.length === 0) return;
+    if (unicos.length === 0) return { atendidos: [], rechazados: [] };
     if (unicos.length === 1) {
-      await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.ATENDER(unicos[0]));
-      return;
+      const res = await apiClient.post<{ estado?: string }>(
+        RUTAS_ALMACENERO_SOLICITUDES.ATENDER(unicos[0]),
+      );
+      const rechazado = res.data?.estado === "CANCELADO";
+      return rechazado
+        ? { atendidos: [], rechazados: unicos }
+        : { atendidos: unicos, rechazados: [] };
     }
-    await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.ATENDER_LOTE, {
-      idsSolicitud: unicos,
-    });
+    const res = await apiClient.post<AlmacenAtenderLoteResult>(
+      RUTAS_ALMACENERO_SOLICITUDES.ATENDER_LOTE,
+      { idsSolicitud: unicos },
+    );
+    return res.data ?? { atendidos: unicos, rechazados: [] };
   },
 
   rechazar: async (idSolicitud: number, motivo: MotivoRechazoApi): Promise<void> => {

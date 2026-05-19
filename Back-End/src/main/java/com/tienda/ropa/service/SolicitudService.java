@@ -1,5 +1,6 @@
 package com.tienda.ropa.service;
 
+import com.tienda.ropa.dto.AlmacenAtenderLoteResultDTO;
 import com.tienda.ropa.dto.AlmacenSolicitudCardDTO;
 import com.tienda.ropa.dto.CrearSolicitudDTO;
 import com.tienda.ropa.entity.MotivoRechazoSolicitud;
@@ -22,8 +23,8 @@ public interface SolicitudService {
 
     Solicitud atenderSolicitud(Long idSolicitud, Usuario usuario);
 
-    /** Atiende varias solicitudes en una transacción (ids sin duplicar). */
-    void atenderSolicitudesLote(List<Long> idsSolicitud, Usuario usuario);
+    /** Atiende varias solicitudes en una transacción (ids sin duplicar). Devuelve cuáles se atendieron y cuáles se rechazaron por falta de stock. */
+    AlmacenAtenderLoteResultDTO atenderSolicitudesLote(List<Long> idsSolicitud, Usuario usuario);
 
     Solicitud rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, Usuario usuario);
 }

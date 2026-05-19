@@ -489,19 +489,20 @@ public class VendedorService {
             if (detalles.isEmpty()) {
                 continue;
             }
-            DetalleSolicitud d = detalles.get(0);
-            ProductoVariante v = d.getVariante();
-            Producto p = v.getProducto();
-            resultado.add(new VendedorSolicitudResumenDTO(
-                    s.getIdSolicitud(),
-                    s.getTipoSolicitud().name(),
-                    s.getEstado().name(),
-                    s.getFechaCreacion(),
-                    d.getCantidad(),
-                    v.getIdProductoVariante(),
-                    p.getNombre(),
-                    v.getTalla(),
-                    v.getColor()));
+            for (DetalleSolicitud d : detalles) {
+                ProductoVariante v = d.getVariante();
+                Producto p = v.getProducto();
+                resultado.add(new VendedorSolicitudResumenDTO(
+                        s.getIdSolicitud(),
+                        s.getTipoSolicitud().name(),
+                        s.getEstado().name(),
+                        s.getFechaCreacion(),
+                        d.getCantidad(),
+                        v.getIdProductoVariante(),
+                        p.getNombre(),
+                        v.getTalla(),
+                        v.getColor()));
+            }
         }
         return resultado;
     }

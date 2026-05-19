@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.tienda.ropa.dto.AlmacenAtenderLoteResultDTO;
 import com.tienda.ropa.dto.AlmacenSolicitudCardDTO;
 import com.tienda.ropa.dto.AlmacenSolicitudLineaDTO;
 import com.tienda.ropa.dto.CrearSolicitudDTO;
@@ -286,14 +287,22 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     @Transactional
-    public void atenderSolicitudesLote(List<Long> idsSolicitud, Usuario usuario) {
+    public AlmacenAtenderLoteResultDTO atenderSolicitudesLote(List<Long> idsSolicitud, Usuario usuario) {
         if (idsSolicitud == null || idsSolicitud.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe indicar al menos un id de solicitud");
         }
         List<Long> unicos = idsSolicitud.stream().distinct().toList();
+        List<Long> atendidos = new ArrayList<>();
+        List<Long> rechazados = new ArrayList<>();
         for (Long id : unicos) {
-            atenderSolicitud(id, usuario);
+            Solicitud resultado = atenderSolicitud(id, usuario);
+            if (resultado.getEstado() == EstadoSolicitud.ATENDIDO) {
+                atendidos.add(id);
+            } else {
+                rechazados.add(id);
+            }
         }
+        return new AlmacenAtenderLoteResultDTO(atendidos, rechazados);
     }
 
     @Override

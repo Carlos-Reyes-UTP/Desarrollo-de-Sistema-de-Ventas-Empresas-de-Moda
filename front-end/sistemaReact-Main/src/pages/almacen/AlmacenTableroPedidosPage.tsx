@@ -172,8 +172,16 @@ export default function AlmacenTableroPedidosPage() {
     despachoLockRef.current = true;
     setProcesandoId(seleccionId);
     try {
-      await AlmacenSolicitudesApi.atenderLote(ids);
-      setError(null);
+      const resultado = await AlmacenSolicitudesApi.atenderLote(ids);
+      if (resultado.rechazados.length > 0 && resultado.atendidos.length > 0) {
+        setError(
+          `${resultado.atendidos.length} despachado(s), ${resultado.rechazados.length} rechazado(s) por falta de stock`
+        );
+      } else if (resultado.rechazados.length > 0 && resultado.atendidos.length === 0) {
+        setError("Rechazado por falta de stock físico");
+      } else {
+        setError(null);
+      }
       await cargar();
       setSeleccionId(null);
     } catch (e: unknown) {
