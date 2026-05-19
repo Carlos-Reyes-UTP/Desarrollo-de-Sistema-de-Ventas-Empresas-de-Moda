@@ -53,4 +53,12 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
             WHERE s.idSolicitud = :id
             """)
     Optional<Solicitud> findByIdWithUbicaciones(@Param("id") Long id);
+
+    @Query("SELECT s FROM Solicitud s LEFT JOIN FETCH s.usuario WHERE s.idSolicitud = :id")
+    Optional<Solicitud> findByIdWithUsuario(@Param("id") Long id);
+
+    List<Solicitud> findByEstadoAndTipoSolicitudAndFechaCreacionBefore(
+            EstadoSolicitud estado,
+            com.tienda.ropa.entity.TipoSolicitud tipoSolicitud,
+            Instant fechaLimite);
 }

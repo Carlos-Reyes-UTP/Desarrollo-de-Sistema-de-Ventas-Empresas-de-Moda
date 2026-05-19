@@ -16,6 +16,7 @@ import {
 } from '../../utils/varianteCatalogoHelpers';
 import { validarJerarquiaPreciosProducto } from '../../utils/validarPreciosProducto';
 import { getErrorMessage, getStatusCode } from '@/utils/errorUtils';
+import { extractApiErrorMessage } from '@/utils/handleApiError';
 import { AlertModal } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
@@ -651,14 +652,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       handleClose();
     } catch (err: unknown) {
       console.error('Error al guardar producto:', err);
-      const status = getStatusCode(err);
-      if (status === 401) {
-        setError('Error de autorización: Tu sesión ha expirado. Inicia sesión nuevamente.');
-      } else if (status === 403) {
-        setError('Error de permisos: No tienes autorización para realizar esta acción.');
-      } else {
-        setError(getErrorMessage(err, 'Error al guardar el producto'));
-      }
+      setError(extractApiErrorMessage(err, getErrorMessage(err, 'Error al guardar el producto')));
     } finally {
       setLoading(false);
     }

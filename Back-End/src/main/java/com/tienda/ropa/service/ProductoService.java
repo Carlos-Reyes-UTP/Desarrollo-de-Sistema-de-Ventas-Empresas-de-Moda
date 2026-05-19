@@ -48,6 +48,14 @@ public class ProductoService {
 
     @Transactional
     public Producto agregarProducto(Producto producto) {
+        if (producto.getCodigoIdentificacion() != null
+                && !producto.getCodigoIdentificacion().isBlank()
+                && productoRepository.existsByCodigoIdentificacion(producto.getCodigoIdentificacion().trim())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.CONFLICT,
+                    "Ya existe un producto con el código de identificación: "
+                            + producto.getCodigoIdentificacion().trim());
+        }
         // Validar y configurar las categorías correctamente
         configurarCategorias(producto);
         
@@ -209,9 +217,10 @@ public class ProductoService {
                 if (idArea == null) {
                     return org.springframework.data.domain.Page.empty(pageable);
                 }
+                // Catálogo completo: el stock por sector puede ser 0 sin ocultar el producto.
                 page = sinBusqueda
-                        ? productoRepository.findProductosConStockEnSectorAlmacen(idArea, pageable)
-                        : productoRepository.findProductosConStockEnSectorAlmacenConBusqueda(idArea, termino, pageable);
+                        ? productoRepository.findProductosPaginadosSinBusqueda(pageable)
+                        : productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
                 Long idAreaFinal = idArea;
                 enriquecerStock(page, ids -> productoRepository.findStockAlmacenByProductoIdsAndAreaCatalogo(ids, idAreaFinal));
             }

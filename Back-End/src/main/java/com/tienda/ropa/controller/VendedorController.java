@@ -18,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -104,6 +105,17 @@ public class VendedorController {
             }
         }
         return vendedorService.listarMisSolicitudes(usuario.getId(), desdeEfectivo, hastaEfectivo);
+    }
+
+    @DeleteMapping("/solicitudes/{idSolicitud}")
+    public ResponseEntity<Void> cancelarMiSolicitud(
+            @PathVariable Long idSolicitud,
+            @AuthenticationPrincipal Usuario usuario) {
+        if (usuario == null || usuario.getId() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        vendedorService.cancelarMiSolicitudPendiente(idSolicitud, usuario.getId());
+        return ResponseEntity.noContent().build();
     }
 
     /**

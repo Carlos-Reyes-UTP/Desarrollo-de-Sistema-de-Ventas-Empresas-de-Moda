@@ -208,6 +208,8 @@ export const RUTAS_VENDEDOR = {
   SOLICITUDES: `${API_BASE_URL}/api/vendedor/solicitudes`,
   SOLICITUDES_LOTE: `${API_BASE_URL}/api/vendedor/solicitudes/lote`,
   MIS_SOLICITUDES: `${API_BASE_URL}/api/vendedor/solicitudes/mias`,
+  CANCELAR_SOLICITUD: (idSolicitud: number) =>
+    `${API_BASE_URL}/api/vendedor/solicitudes/${idSolicitud}`,
   /** Lista de pisos/áreas disponibles como destino de solicitud */
   UBICACIONES: `${API_BASE_URL}/api/vendedor/ubicaciones`,
 };

@@ -48,6 +48,7 @@ public class SolicitudServiceImpl implements SolicitudService {
     private final ProductoVarianteRepository productoVarianteRepository;
     private final TrasladoInventarioService trasladoInventarioService;
     private final InventarioContextService inventarioContextService;
+    private final InventarioService inventarioService;
 
     @Override
     @Transactional
@@ -257,6 +258,18 @@ public class SolicitudServiceImpl implements SolicitudService {
                 if (v == null || v.getIdProductoVariante() == null || cant == null || cant <= 0) {
                     continue;
                 }
+                int stockOrigen = inventarioService.stockEnUbicacionArea(
+                        v.getIdProductoVariante(), origen.getIdUbicacionArea());
+                if (stockOrigen < cant) {
+                    return rechazarSolicitud(idSolicitud, MotivoRechazoSolicitud.SIN_STOCK_FISICO, usuario);
+                }
+            }
+            for (DetalleSolicitud d : detalles) {
+                ProductoVariante v = d.getVariante();
+                Integer cant = d.getCantidad();
+                if (v == null || v.getIdProductoVariante() == null || cant == null || cant <= 0) {
+                    continue;
+                }
                 trasladoInventarioService.mover(new TrasladoInventarioDTO(
                         v.getIdProductoVariante(),
                         origen.getIdUbicacionArea(),
@@ -292,9 +305,12 @@ public class SolicitudServiceImpl implements SolicitudService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud ya no está pendiente");
         }
         validarAccesoSolicitud(usuario, s);
+        // Reserva blanda: solo cuenta solicitudes PENDIENTE; al cancelar se libera sin mover stock físico.
         s.setEstado(EstadoSolicitud.CANCELADO);
         s.setMotivoRechazo(motivo);
-        return solicitudRepository.save(s);
+        solicitudRepository.save(s);
+        solicitudRepository.flush();
+        return s;
     }
 
     @Override
@@ -316,6 +332,20 @@ public class SolicitudServiceImpl implements SolicitudService {
                 UbicacionArea destino = s.getUbicacionAreaDestino();
                 if (origen == null || destino == null) {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud no tiene ubicación-área origen/destino");
+                }
+                for (DetalleSolicitud d : detalles) {
+                    ProductoVariante v = d.getVariante();
+                    Integer cant = d.getCantidad();
+                    if (v == null || v.getIdProductoVariante() == null || cant == null || cant <= 0) {
+                        continue;
+                    }
+                    int stockOrigen = inventarioService.stockEnUbicacionArea(
+                            v.getIdProductoVariante(), origen.getIdUbicacionArea());
+                    if (stockOrigen < cant) {
+                        s.setEstado(EstadoSolicitud.CANCELADO);
+                        s.setMotivoRechazo(MotivoRechazoSolicitud.SIN_STOCK_FISICO);
+                        return solicitudRepository.save(s);
+                    }
                 }
                 for (DetalleSolicitud d : detalles) {
                     ProductoVariante v = d.getVariante();

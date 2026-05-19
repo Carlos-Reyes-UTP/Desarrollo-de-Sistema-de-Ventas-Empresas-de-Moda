@@ -80,6 +80,8 @@ const GestionProductos: React.FC = () => {
   const categoriaPrincipalRef = useRef<HTMLDivElement>(null);
   const subcategoriaRef = useRef<HTMLDivElement>(null);
   const datosInicialesCargadosRef = useRef(false);
+  const busquedaDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const omitirDebounceBusquedaRef = useRef(true);
 
 
 
@@ -199,6 +201,30 @@ const GestionProductos: React.FC = () => {
     setPage(0);
     void cargarFiltrosYDatos(0, searchTerm);
   }, [sectorParaApi]);
+
+  // Búsqueda en tiempo real (al escribir o borrar, sin Enter ni blur).
+  useEffect(() => {
+    if (!datosInicialesCargadosRef.current) return;
+    if (omitirDebounceBusquedaRef.current) {
+      omitirDebounceBusquedaRef.current = false;
+      return;
+    }
+
+    if (busquedaDebounceRef.current) {
+      clearTimeout(busquedaDebounceRef.current);
+    }
+
+    busquedaDebounceRef.current = setTimeout(() => {
+      setPage(0);
+      void cargarFiltrosYDatos(0, searchTerm);
+    }, 300);
+
+    return () => {
+      if (busquedaDebounceRef.current) {
+        clearTimeout(busquedaDebounceRef.current);
+      }
+    };
+  }, [searchTerm, cargarFiltrosYDatos]);
 
   const cargarDatos = useCallback(() => {
     cargarFiltrosYDatos(page, searchTerm);
@@ -460,7 +486,14 @@ const GestionProductos: React.FC = () => {
                 placeholder="Nombre o Código..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleBuscar()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (busquedaDebounceRef.current) {
+                      clearTimeout(busquedaDebounceRef.current);
+                    }
+                    handleBuscar();
+                  }
+                }}
                 className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium"
               />
             </div>

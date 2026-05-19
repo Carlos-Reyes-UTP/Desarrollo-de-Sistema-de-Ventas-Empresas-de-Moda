@@ -9,6 +9,7 @@ import org.springframework.web.server.ResponseStatusException;
 import com.tienda.ropa.entity.Inventario;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.UbicacionArea;
+import com.tienda.ropa.repository.DetalleSolicitudRepository;
 import com.tienda.ropa.repository.InventarioRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.UbicacionAreaRepository;
@@ -35,6 +36,7 @@ public class InventarioService {
     private final InventarioRepository inventarioRepository;
     private final UbicacionAreaRepository ubicacionAreaRepository;
     private final ProductoVarianteRepository productoVarianteRepository;
+    private final DetalleSolicitudRepository detalleSolicitudRepository;
 
     public static String etiquetaUbicacionArea(UbicacionArea ua) {
         if (ua == null || ua.getUbicacion() == null) {
@@ -142,6 +144,91 @@ public class InventarioService {
                 .filter(ua -> ua.getArea() != null && idAreaCatalogo.equals(ua.getArea().getIdArea()))
                 .mapToInt(ua -> stockEnUbicacionArea(idVariante, ua.getIdUbicacionArea()))
                 .sum();
+    }
+
+    @Transactional(readOnly = true)
+    public int cantidadReservadaPendienteVentaEnLinea(Long idVariante, UbicacionArea destino) {
+        if (destino == null || destino.getArea() == null || destino.getArea().getIdArea() == null) {
+            return 0;
+        }
+        return detalleSolicitudRepository.sumCantidadReservadaPendienteVentaEnLinea(
+                idVariante, destino.getArea().getIdArea());
+    }
+
+    @Transactional(readOnly = true)
+    public int cantidadReservadaPendienteVentaTotal(Long idVariante) {
+        return detalleSolicitudRepository.sumCantidadReservadaPendienteVentaTotal(idVariante);
+    }
+
+    @Transactional(readOnly = true)
+    public int stockDisponibleEnAlmacenDeLinea(Long idVariante, UbicacionArea destino) {
+        int fisico = stockEnAlmacenDeLinea(idVariante, destino);
+        int reservado = cantidadReservadaPendienteVentaEnLinea(idVariante, destino);
+        return Math.max(0, fisico - reservado);
+    }
+
+    /**
+     * Bloquea filas de inventario en almacén (misma línea que destino) para serializar reservas concurrentes.
+     */
+    @Transactional
+    public void bloquearFilasAlmacenLinea(Long idVariante, UbicacionArea destino) {
+        if (destino == null || destino.getArea() == null || destino.getArea().getIdArea() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "El área destino no tiene línea de catálogo válida.");
+        }
+        inventarioRepository.findFilasAlmacenLineaForUpdate(
+                idVariante, destino.getArea().getIdArea(), NOMBRES_ALMACEN_LOWER);
+    }
+
+    /**
+     * Valida que la cantidad solicitada no supere el stock disponible (físico − reservas blandas).
+     */
+    @Transactional
+    public void validarDisponibleParaSolicitudVenta(Long idVariante, int cantidadSolicitada, UbicacionArea destino) {
+        if (cantidadSolicitada <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad debe ser mayor a cero");
+        }
+        bloquearFilasAlmacenLinea(idVariante, destino);
+        int fisico = stockEnAlmacenDeLinea(idVariante, destino);
+        int reservado = cantidadReservadaPendienteVentaEnLinea(idVariante, destino);
+        int disponible = Math.max(0, fisico - reservado);
+        if (cantidadSolicitada > disponible) {
+            String linea = destino.getArea() != null ? destino.getArea().getNombre() : "la línea";
+            String mensaje = construirMensajeStockInsuficienteVenta(
+                    idVariante, destino, linea, disponible, fisico, reservado);
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, mensaje);
+        }
+    }
+
+    private String construirMensajeStockInsuficienteVenta(
+            Long idVariante,
+            UbicacionArea destino,
+            String linea,
+            int disponible,
+            int fisico,
+            int reservado) {
+        String base = "La cantidad supera el stock disponible en Almacén · " + linea
+                + " (disponible: " + disponible
+                + ", físico: " + fisico
+                + ", reservado en pedidos: " + reservado + ").";
+
+        if (fisico > 0 || reservado > 0) {
+            if (reservado > 0 && disponible == 0) {
+                return base + " Hay otras solicitudes pendientes ocupando el stock; espera a que las atiendan o rechacen.";
+            }
+            return base;
+        }
+
+        int enPisoDestino = destino.getIdUbicacionArea() != null
+                ? stockEnUbicacionArea(idVariante, destino.getIdUbicacionArea())
+                : 0;
+        if (enPisoDestino > 0) {
+            return base + " Hay " + enPisoDestino + " uds. en "
+                    + etiquetaUbicacionArea(destino)
+                    + " (posible despacho anterior). El almacén no tiene stock para un nuevo pedido: repón en Inventario o traslada desde el piso.";
+        }
+
+        return base + " No hay unidades en almacén para esta línea. Si rechazaste un pedido pendiente, la reserva ya se liberó; registra stock en Inventario.";
     }
 
     public boolean esUbicacionAlmacen(UbicacionArea ua) {

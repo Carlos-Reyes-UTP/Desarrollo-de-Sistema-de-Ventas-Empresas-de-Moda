@@ -17,6 +17,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByCategoria(Categoria categoria);
     List<Producto> findByProveedor(Proveedores distribuidor);
     List<Producto> findByCodigoIdentificacion(String codigo);
+    boolean existsByCodigoIdentificacion(String codigoIdentificacion);
     List<Producto> findByNombre(String nombre);
 
     /** Búsqueda parcial por nombre (p. ej. vendedor en piso). */
@@ -77,7 +78,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     @Query("SELECT DISTINCT p FROM Producto p "
             + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
-            + "WHERE pv.producto = p AND i.ubicacionArea.idUbicacionArea = :idUbicacionArea AND i.stock > 0) "
+            + "WHERE pv.producto = p AND i.ubicacionArea.idUbicacionArea = :idUbicacionArea) "
             + "ORDER BY p.idProducto DESC")
     Page<Producto> findProductosConStockEnUbicacionArea(
             @Param("idUbicacionArea") Long idUbicacionArea,
@@ -86,7 +87,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Query("SELECT DISTINCT p FROM Producto p "
             + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
             + "JOIN i.ubicacionArea ua JOIN ua.area a JOIN ua.ubicacion u "
-            + "WHERE pv.producto = p AND i.stock > 0 "
+            + "WHERE pv.producto = p "
             + "AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen') AND a.idArea = :idAreaCatalogo) "
             + "ORDER BY p.idProducto DESC")
     Page<Producto> findProductosConStockEnSectorAlmacen(
@@ -95,7 +96,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     @Query("SELECT DISTINCT p FROM Producto p "
             + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
-            + "WHERE pv.producto = p AND i.ubicacionArea.idUbicacionArea = :idUbicacionArea AND i.stock > 0) "
+            + "WHERE pv.producto = p AND i.ubicacionArea.idUbicacionArea = :idUbicacionArea) "
             + "AND (LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
             + "OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
             + "OR LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :busqueda, '%'))) "
@@ -108,7 +109,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Query("SELECT DISTINCT p FROM Producto p "
             + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
             + "JOIN i.ubicacionArea ua JOIN ua.area a JOIN ua.ubicacion u "
-            + "WHERE pv.producto = p AND i.stock > 0 "
+            + "WHERE pv.producto = p "
             + "AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen') AND a.idArea = :idAreaCatalogo) "
             + "AND (LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
             + "OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%')) "

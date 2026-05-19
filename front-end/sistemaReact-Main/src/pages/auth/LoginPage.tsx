@@ -11,13 +11,15 @@ const LoginPage = () => {
   const [mostrarClave, setMostrarClave] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recordarme, setRecordarme] = useState(false);
-  const { iniciarSesion, cargando, error: authError } = useAuth();
+  const [iniciando, setIniciando] = useState(false);
+  const { iniciarSesion, error: authError } = useAuth();
   const navegar = useNavigate();
 
   // Actualizamos el estado de error local si cambia en el contexto de autenticación
   useEffect(() => {
     if (authError) {
       setError(authError);
+      setIniciando(false);
     }
   }, [authError]);
 
@@ -36,33 +38,69 @@ const LoginPage = () => {
     }
 
     try {
+      setIniciando(true);
       console.log('Intentando iniciar sesión con:', { usuario });
       const exito = await iniciarSesion({ usuario, clave });
       
       if (exito) {
         console.log('Inicio de sesión exitoso, redirigiendo...');
         navegar('/');
-      } else if (!authError) {
+      } else {
         // Si iniciarSesion devuelve false pero no hay error en authError
         setError('Credenciales incorrectas. Por favor, intente nuevamente.');
+        setIniciando(false);
       }
     } catch (err: any) {
       console.error('Error en el manejo de inicio de sesión:', err);
       setError('Error al intentar iniciar sesión. Inténtelo más tarde.');
+      setIniciando(false);
     }
   };
 
   return (
     <div className="flex min-h-screen w-full bg-[#fafafa] font-sans text-gray-900 overflow-x-hidden">
-      {/* Elemento decorativo Top Nav que no se sobrepone al contenido de forma obstructiva */}
-
+      <style>{`
+        @keyframes floatAmbient1 {
+          0%, 100% {
+            transform: translate(0, 0) rotate(0deg) scale(1) skewY(-20deg);
+          }
+          33% {
+            transform: translate(4%, 3%) rotate(2deg) scale(1.03) skewY(-19deg);
+          }
+          66% {
+            transform: translate(-3%, -2%) rotate(-2deg) scale(0.97) skewY(-21deg);
+          }
+        }
+        @keyframes floatAmbient2 {
+          0%, 100% {
+            transform: translate(0, 0) scale(1);
+          }
+          50% {
+            transform: translate(-5%, 6%) scale(1.06);
+          }
+        }
+        .animate-float1 {
+          animation: floatAmbient1 24s infinite ease-in-out;
+        }
+        .animate-float2 {
+          animation: floatAmbient2 30s infinite ease-in-out;
+        }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover, 
+        input:-webkit-autofill:focus, 
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 30px #f2f2f2 inset !important;
+          -webkit-text-fill-color: #111827 !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+      `}</style>
 
       {/* Panel izquierdo - Diseño minimalista oscuro */}
       <div className="hidden md:flex md:w-1/2 bg-[#0a0a0a] text-white flex-col justify-end p-16 relative">
         {/* Fondo sutil con gradientes abstractos */}
         <div className="absolute inset-0 opacity-40 overflow-hidden pointer-events-none">
-          <div className="absolute top-[-20%] left-[-10%] w-[150%] h-[150%] bg-gradient-to-br from-[#1a1a1a] via-[#0a0a0a] to-black rounded-full blur-3xl transform -skew-y-[20deg]"></div>
-          <div className="absolute bottom-[0%] left-[20%] w-[100%] h-[100%] bg-gradient-to-tl from-[#222] to-transparent rounded-full blur-[100px] opacity-30"></div>
+          <div className="absolute top-[-20%] left-[-10%] w-[150%] h-[150%] bg-gradient-to-br from-[#1a1a1a] via-[#0a0a0a] to-black rounded-full blur-3xl transform animate-float1"></div>
+          <div className="absolute bottom-[0%] left-[20%] w-[100%] h-[100%] bg-gradient-to-tl from-[#222] to-transparent rounded-full blur-[100px] opacity-30 animate-float2"></div>
         </div>
         
           <div className="flex items-center mb-12">
@@ -116,8 +154,8 @@ const LoginPage = () => {
       {/* Panel derecho - Formulario de login moderno minimalista */}
 
 
-      <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-8 bg-[#fafafa] relative min-h-screen">
-        <div className="max-w-[420px] w-full pt-20 pb-16">
+      <div className="w-full md:w-1/2 flex flex-col items-center justify-center p-6 md:p-8 bg-[#fafafa] relative min-h-screen">
+        <div className="max-w-[420px] w-full pt-6 md:pt-20 pb-16">
           <div className="mb-6 w-12 h-[3px] bg-black"></div>
           
           <h1 className="text-[2.25rem] leading-tight font-bold tracking-tight text-black mb-3">
@@ -204,11 +242,16 @@ const LoginPage = () => {
 
             <button
               type="submit"
-              disabled={cargando}
-              className="w-full mt-2 py-[1.125rem] px-8 bg-black hover:bg-gray-900 active:transform active:scale-[0.99] transition-all text-white font-bold tracking-[0.2em] font-sans text-xs uppercase rounded-full flex items-center justify-between group disabled:bg-gray-300 disabled:cursor-not-allowed disabled:transform-none"
+              disabled={iniciando}
+              className="w-full mt-2 py-[1.125rem] px-8 bg-black hover:bg-gray-900 active:transform active:scale-[0.99] transition-all text-white font-bold tracking-[0.2em] font-sans text-xs uppercase rounded-full flex items-center justify-between group disabled:bg-black disabled:cursor-not-allowed disabled:transform-none"
             >
-              <span className="pl-1">{cargando ? 'INICIANDO...' : 'INICIAR SESIÓN'}</span>
-              {!cargando && (
+              <span className="pl-1">{iniciando ? 'PROCESANDO...' : 'INICIAR SESIÓN'}</span>
+              {iniciando ? (
+                <svg className="animate-spin h-[18px] w-[18px] text-white mr-1" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+              ) : (
                 <svg className="w-[18px] h-[18px] mr-1 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                 </svg>
@@ -218,12 +261,7 @@ const LoginPage = () => {
 
 
           
-          <div className="mt-8 text-center text-gray-400 text-xs space-y-1">
-             <p className="text-gray-500">
-               Demo: {USUARIOS_DEMO.supervisor}, {USUARIOS_DEMO.almacenero1}… — clave <span className="font-mono">Prueba123!</span>
-             </p>
-             <p className="md:hidden">Backend: <span className="font-mono text-gray-500">http://localhost:8080</span></p>
-          </div>
+
         </div>
 
         {/* Footer links en la esquina inferior derecha */}

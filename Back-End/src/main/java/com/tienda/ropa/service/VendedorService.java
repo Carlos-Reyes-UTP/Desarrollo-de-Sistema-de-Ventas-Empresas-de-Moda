@@ -16,6 +16,7 @@ import com.tienda.ropa.entity.DetalleSolicitud;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Solicitud;
+import com.tienda.ropa.entity.EstadoSolicitud;
 import com.tienda.ropa.entity.TipoSolicitud;
 import com.tienda.ropa.entity.Inventario;
 import com.tienda.ropa.entity.UbicacionArea;
@@ -211,27 +212,46 @@ public class VendedorService {
         Map<Long, List<Inventario>> porVariante = inventarios.stream()
                 .collect(Collectors.groupingBy(i -> i.getVariante().getIdProductoVariante()));
 
-        List<VendedorVarianteStockDTO> filas = new ArrayList<>();
+        Map<Long, UbicacionArea> destinoPorVariante = new LinkedHashMap<>();
+        Map<Long, Integer> stockFisicoPorVariante = new LinkedHashMap<>();
         for (ProductoVariante pv : variantes) {
             Long idPV = pv.getIdProductoVariante();
             List<Inventario> invPV = porVariante.getOrDefault(idPV, List.of());
-
-            int stockAlmacen = invPV.stream()
+            List<Inventario> noAlmacen = invPV.stream()
+                    .filter(i -> i.getUbicacionArea() != null
+                            && !inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))
+                    .toList();
+            if (noAlmacen.size() == 1) {
+                destinoPorVariante.put(idPV, noAlmacen.get(0).getUbicacionArea());
+            }
+            int stockAlmacenVariante = invPV.stream()
                     .filter(i -> i.getUbicacionArea() != null
                             && inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))
                     .mapToInt(i -> i.getStock() != null ? i.getStock() : 0)
                     .sum();
+            stockFisicoPorVariante.put(idPV, stockAlmacenVariante);
+        }
+
+        Map<Long, Integer> reservadoPorVariante = cargarReservadoPorVariante(idsVariante, destinoPorVariante);
+
+        List<VendedorVarianteStockDTO> filas = new ArrayList<>();
+        for (ProductoVariante pv : variantes) {
+            Long idPV = pv.getIdProductoVariante();
+            int stockAlmacen = stockFisicoPorVariante.getOrDefault(idPV, 0);
+            int stockReservado = reservadoPorVariante.getOrDefault(idPV, 0);
+            int stockDisponible = Math.max(0, stockAlmacen - stockReservado);
 
             Long idUbicacionAreaDestino = null;
             String nombreUbicacion = null;
-            List<Inventario> noAlmacen = invPV.stream()
-                    .filter(i -> i.getUbicacionArea() != null
-                            && !inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))
-                    .collect(Collectors.toList());
-            if (noAlmacen.size() == 1) {
-                UbicacionArea ua = noAlmacen.get(0).getUbicacionArea();
-                idUbicacionAreaDestino = ua.getIdUbicacionArea();
-                nombreUbicacion = InventarioService.etiquetaUbicacionArea(ua);
+            UbicacionArea destino = destinoPorVariante.get(idPV);
+            if (destino != null) {
+                idUbicacionAreaDestino = destino.getIdUbicacionArea();
+                nombreUbicacion = InventarioService.etiquetaUbicacionArea(destino);
+                if (destino.getArea() != null && destino.getArea().getIdArea() != null) {
+                    stockAlmacen = inventarioService.stockEnAlmacenDeLinea(idPV, destino);
+                    stockReservado = reservadoPorVariante.getOrDefault(idPV, 0);
+                    stockDisponible = Math.max(0, stockAlmacen - stockReservado);
+                }
             }
 
             filas.add(new VendedorVarianteStockDTO(
@@ -240,14 +260,47 @@ public class VendedorService {
                     pv.getColor(),
                     pv.getCodigoBarras(),
                     stockAlmacen,
+                    stockReservado,
+                    stockDisponible,
                     idUbicacionAreaDestino,
                     nombreUbicacion));
         }
 
-        int stockTotal = filas.stream().mapToInt(VendedorVarianteStockDTO::stockAlmacen).sum();
+        int stockTotal = filas.stream().mapToInt(VendedorVarianteStockDTO::stockDisponible).sum();
         VendedorProductoResumenDTO resumen = new VendedorProductoResumenDTO(
                 idProducto, producto.getNombre(), producto.getPrecioUnitario(), stockTotal);
         return new VendedorCatalogoPorCodigoDTO(resumen, idVariantePreseleccionada, filas);
+    }
+
+    private Map<Long, Integer> cargarReservadoPorVariante(
+            List<Long> idsVariante, Map<Long, UbicacionArea> destinoPorVariante) {
+        Map<Long, Integer> reservado = new LinkedHashMap<>();
+        if (idsVariante.isEmpty()) {
+            return reservado;
+        }
+        Map<Long, List<Long>> variantesPorArea = new LinkedHashMap<>();
+        List<Long> sinDestino = new ArrayList<>();
+        for (Long idVariante : idsVariante) {
+            UbicacionArea destino = destinoPorVariante.get(idVariante);
+            if (destino != null && destino.getArea() != null && destino.getArea().getIdArea() != null) {
+                Long idArea = destino.getArea().getIdArea();
+                variantesPorArea.computeIfAbsent(idArea, k -> new ArrayList<>()).add(idVariante);
+            } else {
+                sinDestino.add(idVariante);
+            }
+        }
+        for (Map.Entry<Long, List<Long>> entry : variantesPorArea.entrySet()) {
+            for (Object[] row : detalleSolicitudRepository.sumReservadoPendienteVentaPorVariantesEnLinea(
+                    entry.getValue(), entry.getKey())) {
+                reservado.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
+            }
+        }
+        if (!sinDestino.isEmpty()) {
+            for (Object[] row : detalleSolicitudRepository.sumReservadoPendienteVentaPorVariantesTotal(sinDestino)) {
+                reservado.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
+            }
+        }
+        return reservado;
     }
 
     @Transactional
@@ -296,12 +349,16 @@ public class VendedorService {
         destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(destino.getIdUbicacionArea())
                 .orElse(destino);
 
-        int stockLinea = inventarioService.stockEnAlmacenDeLinea(req.idVariante(), destino);
-        if (req.cantidad() > stockLinea) {
-            String linea = destino.getArea() != null ? destino.getArea().getNombre() : "la línea";
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "La cantidad supera el stock en Almacén · " + linea + " (" + stockLinea + ")");
+        if (tipo == TipoSolicitud.VENTA) {
+            inventarioService.validarDisponibleParaSolicitudVenta(req.idVariante(), req.cantidad(), destino);
+        } else {
+            int stockLinea = inventarioService.stockEnAlmacenDeLinea(req.idVariante(), destino);
+            if (req.cantidad() > stockLinea) {
+                String linea = destino.getArea() != null ? destino.getArea().getNombre() : "la línea";
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "La cantidad supera el stock en Almacén · " + linea + " (" + stockLinea + ")");
+            }
         }
 
         UbicacionArea origenAlmacen = inventarioService.resolverOrigenAlmacenConStock(
@@ -357,6 +414,11 @@ public class VendedorService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El área destino no puede ser un sector de Almacen");
             }
 
+            for (Map.Entry<Long, Integer> linea : entry.getValue().entrySet()) {
+                inventarioService.validarDisponibleParaSolicitudVenta(
+                        linea.getKey(), linea.getValue(), destino);
+            }
+
             List<DetalleSolicitudLineaDTO> lineas = new ArrayList<>();
             int cantidadMaximaItem = 0;
             Long idVarianteMayorCantidad = null;
@@ -364,14 +426,6 @@ public class VendedorService {
                 ProductoVariante variante = productoVarianteService.obtenerVariantePorId(linea.getKey())
                         .orElseThrow(() -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND, "Variante no encontrada: " + linea.getKey()));
-                int stockLinea = inventarioService.stockEnAlmacenDeLinea(linea.getKey(), destino);
-                if (linea.getValue() > stockLinea) {
-                    String nombreLinea = destino.getArea() != null ? destino.getArea().getNombre() : "la línea";
-                    throw new ResponseStatusException(
-                            HttpStatus.BAD_REQUEST,
-                            "La cantidad supera el stock en Almacén · " + nombreLinea
-                                    + " (" + stockLinea + ") para variante " + linea.getKey());
-                }
                 if (linea.getValue() > cantidadMaximaItem) {
                     cantidadMaximaItem = linea.getValue();
                     idVarianteMayorCantidad = linea.getKey();
@@ -450,5 +504,21 @@ public class VendedorService {
                     v.getColor()));
         }
         return resultado;
+    }
+
+    @Transactional
+    public void cancelarMiSolicitudPendiente(Long idSolicitud, Long idUsuario) {
+        Solicitud s = solicitudRepository.findByIdWithUsuario(idSolicitud)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
+        if (s.getUsuario() == null || s.getUsuario().getId() == null || !s.getUsuario().getId().equals(idUsuario)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes cancelar esta solicitud");
+        }
+        if (s.getEstado() != EstadoSolicitud.PENDIENTE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Solo se pueden cancelar solicitudes pendientes");
+        }
+        s.setEstado(EstadoSolicitud.CANCELADO);
+        s.setMotivoRechazo(null);
+        solicitudRepository.save(s);
+        solicitudRepository.flush();
     }
 }

@@ -50,6 +50,11 @@ function normalizarVariante(raw: unknown): VendedorVarianteStock {
     color: typeof o.color === "string" ? o.color : "",
     codigoBarras: typeof cb === "string" ? cb : cb == null ? null : String(cb),
     stockAlmacen: num(o.stockAlmacen, 0),
+    stockReservado: num(o.stockReservado, 0),
+    stockDisponible: num(
+      o.stockDisponible,
+      Math.max(0, num(o.stockAlmacen, 0) - num(o.stockReservado, 0))
+    ),
     idUbicacionAreaDestino:
       idDest != null && idDest !== "" ? num(idDest, NaN) || null : null,
     nombreUbicacion:
@@ -176,6 +181,10 @@ export const VendedorService = {
     });
     const arr = Array.isArray(response.data) ? response.data : [];
     return arr.map(normalizarSolicitudResumen);
+  },
+
+  cancelarSolicitud: async (idSolicitud: number): Promise<void> => {
+    await apiClient.delete(RUTAS_VENDEDOR.CANCELAR_SOLICITUD(idSolicitud));
   },
 
   /**

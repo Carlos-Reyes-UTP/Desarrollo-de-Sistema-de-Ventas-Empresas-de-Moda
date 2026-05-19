@@ -10,7 +10,12 @@ export interface VendedorVarianteStock {
   talla: string;
   color: string;
   codigoBarras: string | null;
+  /** Stock físico en almacén. */
   stockAlmacen: number;
+  /** Unidades en solicitudes VENTA pendientes de otros vendedores. */
+  stockReservado: number;
+  /** stockAlmacen − stockReservado (mínimo 0). */
+  stockDisponible: number;
   /** Área destino ya conocida. null = producto nuevo sin área asignada aún. */
   idUbicacionAreaDestino: number | null;
   /** Nombre legible del área destino. null si no está asignada. */

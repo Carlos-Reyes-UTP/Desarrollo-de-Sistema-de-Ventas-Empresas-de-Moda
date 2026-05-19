@@ -34,21 +34,28 @@ import {
   mensajeErrorBusquedaCatalogo,
 } from "@/utils/apiErrors";
 
+function stockDisponibleVariante(v: VendedorVarianteStock): number {
+  if (typeof v.stockDisponible === "number") {
+    return Math.max(0, v.stockDisponible);
+  }
+  return Math.max(0, v.stockAlmacen - (v.stockReservado ?? 0));
+}
+
 function elegirVarianteInicial(data: VendedorCatalogoPorCodigo): number | null {
   const pre = data.idVariantePreseleccionada;
   if (pre != null) {
     const v = data.variantes.find((x) => x.idProductoVariante === pre);
-    if (v && v.stockAlmacen > 0) {
+    if (v && stockDisponibleVariante(v) > 0) {
       return pre;
     }
   }
-  const primera = data.variantes.find((x) => x.stockAlmacen > 0);
+  const primera = data.variantes.find((x) => stockDisponibleVariante(x) > 0);
   return primera?.idProductoVariante ?? null;
 }
 
 const VendedorPisoVentasPage = () => {
   const { usuario } = useAuth();
-  const { agregar } = useBandeja();
+  const { agregar, items: bandejaItems } = useBandeja();
   const [codigo, setCodigo] = useState("");
   const [buscando, setBuscando] = useState(false);
   const [catalogo, setCatalogo] = useState<VendedorCatalogoPorCodigo | null>(
@@ -85,6 +92,7 @@ const VendedorPisoVentasPage = () => {
   const [sheetAbierto, setSheetAbierto] = useState(false);
   const [pedidos, setPedidos] = useState<VendedorSolicitudResumen[]>([]);
   const [pedidosRefrescandoManual, setPedidosRefrescandoManual] = useState(false);
+  const [cancelandoSolicitudId, setCancelandoSolicitudId] = useState<number | null>(null);
   const [estaEnfocado, setEstaEnfocado] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -141,7 +149,19 @@ const VendedorPisoVentasPage = () => {
     );
   }, [catalogo, idVariante]);
 
-  const stockAlmacen = varianteSeleccionada?.stockAlmacen ?? 0;
+  const enBandejaVariante = useMemo(() => {
+    if (idVariante == null || idUbicacionAreaDestino == null) return 0;
+    const key = `${idVariante}-${idUbicacionAreaDestino}`;
+    return bandejaItems.find((i) => i.key === key)?.cantidad ?? 0;
+  }, [bandejaItems, idVariante, idUbicacionAreaDestino]);
+
+  const stockDisponible = useMemo(() => {
+    const base = varianteSeleccionada ? stockDisponibleVariante(varianteSeleccionada) : 0;
+    return Math.max(0, base - enBandejaVariante);
+  }, [varianteSeleccionada, enBandejaVariante]);
+
+  const stockReservado = varianteSeleccionada?.stockReservado ?? 0;
+  const stockFisico = varianteSeleccionada?.stockAlmacen ?? 0;
 
   const cargarPedidos = useCallback(async (opts?: { manual?: boolean }) => {
     if (opts?.manual) {
@@ -158,23 +178,6 @@ const VendedorPisoVentasPage = () => {
       }
     }
   }, []);
-
-  const onNuevaRespuestaAlmacen = useCallback((items: VendedorAlmacenActualizacion[]) => {
-    items.forEach((item) => {
-      agregarToast({
-        tipo: item.estado === "ATENDIDO" ? "success" : "error",
-        titulo: item.estado === "ATENDIDO" ? "Pedido Listo en Almacén" : "Pedido Rechazado",
-        mensaje: item.estado === "ATENDIDO" 
-          ? "El almacén preparó el producto y ya está disponible para retirar."
-          : "El almacén canceló la solicitud. Revisa los detalles en el historial.",
-        producto: item.nombreProducto,
-        color: item.color,
-        talla: item.talla,
-        cantidad: item.cantidad,
-        autoDismissMs: 8000,
-      });
-    });
-  }, [agregarToast]);
 
   useEffect(() => {
     void cargarPedidos();
@@ -253,6 +256,51 @@ const VendedorPisoVentasPage = () => {
     [aplicarCatalogo, setErrorToast]
   );
 
+  const cancelarPedido = useCallback(
+    async (idSolicitud: number) => {
+      setCancelandoSolicitudId(idSolicitud);
+      try {
+        await VendedorService.cancelarSolicitud(idSolicitud);
+        await cargarPedidos();
+        agregarToast({
+          tipo: "success",
+          titulo: "Pedido cancelado",
+          mensaje: "La reserva se liberó. Vuelve a buscar el producto para ver el stock actualizado en almacén.",
+          autoDismissMs: 5000,
+        });
+        if (codigo.trim().length >= 2) {
+          void ejecutarBusqueda(codigo);
+        }
+      } catch {
+        setErrorToast("No se pudo cancelar el pedido. Intenta de nuevo.");
+      } finally {
+        setCancelandoSolicitudId(null);
+      }
+    },
+    [agregarToast, cargarPedidos, codigo, ejecutarBusqueda, setErrorToast]
+  );
+
+  const onNuevaRespuestaAlmacen = useCallback((items: VendedorAlmacenActualizacion[]) => {
+    const huboCancelacion = items.some((item) => item.estado === "CANCELADO");
+    items.forEach((item) => {
+      agregarToast({
+        tipo: item.estado === "ATENDIDO" ? "success" : "error",
+        titulo: item.estado === "ATENDIDO" ? "Pedido Listo en Almacén" : "Pedido Rechazado",
+        mensaje: item.estado === "ATENDIDO"
+          ? "El almacén preparó el producto y ya está disponible para retirar en el piso."
+          : "La reserva de ese pedido se liberó. Si el almacén ya había despachado antes, el stock puede estar en el piso y no en almacén.",
+        producto: item.nombreProducto,
+        color: item.color,
+        talla: item.talla,
+        cantidad: item.cantidad,
+        autoDismissMs: 8000,
+      });
+    });
+    if (huboCancelacion && codigo.trim().length >= 2) {
+      void ejecutarBusqueda(codigo);
+    }
+  }, [agregarToast, codigo, ejecutarBusqueda]);
+
   const seleccionarVarianteLista = useCallback(
     async (idVariante: number) => {
       const seq = ++busquedaSeqRef.current;
@@ -313,13 +361,13 @@ const VendedorPisoVentasPage = () => {
   }, [codigo, ejecutarBusqueda]);
 
   useEffect(() => {
-    if (stockAlmacen > 0 && cantidad > stockAlmacen) {
-      setCantidad(stockAlmacen);
+    if (stockDisponible > 0 && cantidad > stockDisponible) {
+      setCantidad(stockDisponible);
     }
-    if (stockAlmacen === 0 && cantidad !== 1) {
+    if (stockDisponible === 0 && cantidad !== 1) {
       setCantidad(1);
     }
-  }, [stockAlmacen, cantidad]);
+  }, [stockDisponible, cantidad]);
 
   /** Selecciona una variante y auto-detecta su área destino desde el cat\u00e1logo. */
   const handleSeleccionarVariante = useCallback((v: VendedorVarianteStock) => {
@@ -345,14 +393,14 @@ const VendedorPisoVentasPage = () => {
   /** Agrega el ítem actual a la bandeja en memoria (no llama a la API). */
   const agregarALista = () => {
     if (!idVariante || !catalogo || !idUbicacionAreaDestino || !nombreUbicacionDestino) return;
-    if (stockAlmacen <= 0) {
+    if (stockDisponible <= 0) {
       setErrorToast("Este producto no tiene stock disponible en almacén.");
       return;
     }
     const variante = catalogo.variantes.find((v) => v.idProductoVariante === idVariante);
     agregar({
       idVariante,
-      cantidad: Math.min(cantidad, stockAlmacen),
+      cantidad: Math.min(cantidad, stockDisponible),
       idUbicacionAreaDestino,
       nombreProducto: catalogo.producto.nombre,
       talla: variante?.talla ?? "",
@@ -367,7 +415,7 @@ const VendedorPisoVentasPage = () => {
       producto: catalogo.producto.nombre,
       color: variante?.color ?? "",
       talla: variante?.talla ?? "",
-      cantidad: Math.min(cantidad, stockAlmacen),
+      cantidad: Math.min(cantidad, stockDisponible),
       autoDismissMs: 4000,
     });
     
@@ -582,7 +630,8 @@ const VendedorPisoVentasPage = () => {
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {catalogo.variantes.map((v) => {
-                        const disabled = v.stockAlmacen <= 0;
+                        const disp = stockDisponibleVariante(v);
+                        const disabled = disp <= 0;
                         const sel = idVariante === v.idProductoVariante;
                         return (
                           <button
@@ -604,8 +653,13 @@ const VendedorPisoVentasPage = () => {
                               {v.color}
                             </span>
                             <span className={`mt-2 text-[10px] font-black tabular-nums ${disabled ? "text-gray-400" : sel ? "text-white" : "text-emerald-600"}`}>
-                              {v.stockAlmacen > 0 ? `${v.stockAlmacen} DISP. ALMACÉN` : "AGOTADO"}
+                              {disp > 0 ? `${disp} DISPONIBLE` : "AGOTADO"}
                             </span>
+                            {v.stockReservado > 0 && disp > 0 ? (
+                              <span className={`text-[9px] font-semibold ${sel ? "text-white/50" : "text-amber-600"}`}>
+                                {v.stockReservado} en pedidos
+                              </span>
+                            ) : null}
                           </button>
                         );
                       })}
@@ -619,7 +673,8 @@ const VendedorPisoVentasPage = () => {
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
                         Cantidad a Solicitar
                       </p>
-                      {stockAlmacen > 0 ? (
+                      {stockDisponible > 0 ? (
+                        <>
                         <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-[2rem]">
                           <button
                             type="button"
@@ -634,14 +689,22 @@ const VendedorPisoVentasPage = () => {
                           <button
                             type="button"
                             onClick={() =>
-                              setCantidad((c) => Math.min(stockAlmacen, c + 1))
+                              setCantidad((c) => Math.min(stockDisponible, c + 1))
                             }
-                            disabled={cantidad >= stockAlmacen}
+                            disabled={cantidad >= stockDisponible}
                             className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white text-xl font-black shadow-sm transition-all hover:bg-gray-100 active:scale-95 disabled:opacity-30"
                           >
                             <Plus className="h-6 w-6" strokeWidth={3} />
                           </button>
                         </div>
+                        {(stockReservado > 0 || enBandejaVariante > 0) && (
+                          <p className="text-[10px] font-semibold text-gray-500 px-1">
+                            {stockFisico} físico
+                            {stockReservado > 0 ? ` · ${stockReservado} en pedidos` : ""}
+                            {enBandejaVariante > 0 ? ` · ${enBandejaVariante} en tu lista` : ""}
+                          </p>
+                        )}
+                        </>
                       ) : (
                         <div className="rounded-[1.5rem] bg-red-50 p-4">
                           <p className="text-xs font-bold text-red-600">Sin stock disponible en almacén.</p>
@@ -656,7 +719,7 @@ const VendedorPisoVentasPage = () => {
                        </div>
                        <button
                         type="button"
-                        disabled={stockAlmacen <= 0 || !idUbicacionAreaDestino}
+                        disabled={stockDisponible <= 0 || !idUbicacionAreaDestino}
                         onClick={agregarALista}
                         className="flex w-full items-center justify-center gap-2 rounded-[1.8rem] bg-black py-5 text-sm font-black uppercase tracking-widest text-white shadow-2xl transition-all hover:bg-gray-900 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -687,6 +750,8 @@ const VendedorPisoVentasPage = () => {
         onRefresh={() => void cargarPedidos({ manual: true })}
         refrescando={pedidosRefrescandoManual}
         onNuevaRespuestaAlmacen={onNuevaRespuestaAlmacen}
+        onCancelarPedido={cancelarPedido}
+        cancelandoSolicitudId={cancelandoSolicitudId}
       />
 
       <BandejaSolicitudSheet

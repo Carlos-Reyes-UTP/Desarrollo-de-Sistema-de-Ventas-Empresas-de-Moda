@@ -24,6 +24,8 @@ interface VendedorPisoPedidosDockProps {
   /** Solo true cuando el usuario pulsa «Actualizar» (no en el polling en segundo plano). */
   refrescando?: boolean;
   onNuevaRespuestaAlmacen?: (items: VendedorAlmacenActualizacion[]) => void;
+  onCancelarPedido?: (idSolicitud: number) => void | Promise<void>;
+  cancelandoSolicitudId?: number | null;
 }
 
 const etiquetaEstado = (estado: string): { label: string; dot: string } => {
@@ -60,6 +62,8 @@ export const VendedorPisoPedidosDock = ({
   onRefresh,
   refrescando = false,
   onNuevaRespuestaAlmacen,
+  onCancelarPedido,
+  cancelandoSolicitudId = null,
 }: VendedorPisoPedidosDockProps) => {
   const [abierto, setAbierto] = useState(false);
   const [hasNewResponse, setHasNewResponse] = useState(false);
@@ -353,6 +357,16 @@ export const VendedorPisoPedidosDock = ({
                       >
                         {label}
                       </p>
+                      {p.estado === "PENDIENTE" && onCancelarPedido ? (
+                        <button
+                          type="button"
+                          onClick={() => void onCancelarPedido(p.idSolicitud)}
+                          disabled={cancelandoSolicitudId === p.idSolicitud}
+                          className="mt-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600 transition hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                        >
+                          {cancelandoSolicitudId === p.idSolicitud ? "Cancelando…" : "Cancelar pedido"}
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 </li>

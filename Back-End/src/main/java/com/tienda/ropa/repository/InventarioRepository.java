@@ -5,8 +5,11 @@ import java.util.Optional;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 import com.tienda.ropa.entity.Inventario;
 import com.tienda.ropa.entity.ProductoVariante;
@@ -76,4 +79,15 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     @Query("SELECT COUNT(DISTINCT i.variante.idProductoVariante) FROM Inventario i "
             + "WHERE i.ubicacionArea.idUbicacionArea = :idUbicacionArea AND COALESCE(i.stock, 0) > 0")
     int countVariantesConStockByUbicacionArea(@Param("idUbicacionArea") Long idUbicacionArea);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Inventario i "
+            + "JOIN i.ubicacionArea ua JOIN ua.ubicacion u JOIN ua.area a "
+            + "WHERE i.variante.idProductoVariante = :idVariante "
+            + "AND LOWER(TRIM(u.nombre)) IN :nombresAlmacenLower "
+            + "AND a.idArea = :idAreaCatalogo")
+    List<Inventario> findFilasAlmacenLineaForUpdate(
+            @Param("idVariante") Long idVariante,
+            @Param("idAreaCatalogo") Long idAreaCatalogo,
+            @Param("nombresAlmacenLower") List<String> nombresAlmacenLower);
 }
