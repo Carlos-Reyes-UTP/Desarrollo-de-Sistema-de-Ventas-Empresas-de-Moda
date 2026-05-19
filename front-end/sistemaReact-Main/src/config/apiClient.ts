@@ -87,11 +87,24 @@ apiClient.interceptors.response.use(
       const { status } = error.response;
 
       if (status === 401) {
-        localStorage.removeItem('token');
-        setAuthToken(null);
-        const path = window.location.pathname;
-        if (path !== '/login' && !path.endsWith('/login')) {
-          window.location.assign(`${window.location.origin}/login`);
+        // Solo cerrar sesión si el 401 viene realmente de un token inválido/expirado.
+        // Cualquier otro 401 (endpoint sin handler, error puntual) se propaga sin expulsar.
+        const data = error.response?.data as { error?: string; message?: string } | string | undefined;
+        const textoError =
+          typeof data === 'string'
+            ? data
+            : `${data?.error ?? ''} ${data?.message ?? ''}`;
+        const tokenInvalido = /token|jwt|expirad|sesi[oó]n|usuario (no encontrado|deshabilitado)/i.test(
+          textoError ?? ''
+        );
+
+        if (tokenInvalido) {
+          localStorage.removeItem('token');
+          setAuthToken(null);
+          const path = window.location.pathname;
+          if (path !== '/login' && !path.endsWith('/login')) {
+            window.location.assign(`${window.location.origin}/login`);
+          }
         }
         return Promise.reject(error);
       }

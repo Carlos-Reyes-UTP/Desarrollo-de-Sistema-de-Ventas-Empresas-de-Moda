@@ -10,5 +10,13 @@ public record AlmacenSolicitudCardDTO(
         Long idUsuario,
         String nombreVendedor,
         String codigoLote,
+        Long idUbicacionAreaOrigen,
+        String pisoOrigen,
+        String sectorOrigen,
+        String etiquetaOrigen,
+        Long idUbicacionAreaDestino,
+        String pisoDestino,
+        String sectorDestino,
+        String etiquetaDestino,
         List<AlmacenSolicitudLineaDTO> lineas
 ) {}

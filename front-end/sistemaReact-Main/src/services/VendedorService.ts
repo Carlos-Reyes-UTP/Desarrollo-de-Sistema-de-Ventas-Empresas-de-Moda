@@ -117,11 +117,11 @@ export const VendedorService = {
     signal?: AbortSignal
   ): Promise<VendedorCatalogoBusqueda> => {
     const t = termino.trim();
-    const useQuery = t.length > 60;
-    const url = useQuery
-      ? `${RUTAS_VENDEDOR.CATALOGO_QUERY(t)}`
-      : RUTAS_VENDEDOR.CATALOGO_POR_CODIGO(t);
-    const response = await apiClient.get<unknown>(url, { signal });
+    // Siempre query ?termino= para evitar conflictos de ruta (ej. buscar "vendedor" en /api/vendedor/...).
+    const response = await apiClient.get<unknown>(
+      RUTAS_VENDEDOR.CATALOGO_QUERY(t),
+      { signal }
+    );
     return normalizarBusqueda(response.data);
   },
 

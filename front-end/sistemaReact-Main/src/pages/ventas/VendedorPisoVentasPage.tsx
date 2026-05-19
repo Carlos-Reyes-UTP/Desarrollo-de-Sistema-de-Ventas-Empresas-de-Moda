@@ -16,7 +16,6 @@ import type {
   VendedorVarianteCoincidencia,
   VendedorVarianteStock,
 } from "../../types/Vendedor";
-import { NotificationToast } from "../../components/cajero/ventas-panel/NotificationToast";
 import { BarcodeScannerModal } from "../../components/vendedor-piso/BarcodeScannerModal";
 import { BandejaSolicitudSheet } from "../../components/vendedor-piso/BandejaSolicitudSheet";
 import { BandejaFAB } from "../../components/vendedor-piso/BandejaFAB";
@@ -24,9 +23,16 @@ import {
   VendedorPisoPedidosDock,
   type VendedorAlmacenActualizacion,
 } from "../../components/vendedor-piso/VendedorPisoPedidosDock";
+import {
+  VendedorToastStack,
+  type VendedorToastInfo,
+} from "../../components/vendedor-piso/VendedorToastStack";
 import { SearchResultSkeleton } from "@/shared/ui";
 import { BorderBeam } from "border-beam";
-import { esPeticionCancelada, mensajeErrorApi } from "@/utils/apiErrors";
+import {
+  esPeticionCancelada,
+  mensajeErrorBusquedaCatalogo,
+} from "@/utils/apiErrors";
 
 function elegirVarianteInicial(data: VendedorCatalogoPorCodigo): number | null {
   const pre = data.idVariantePreseleccionada;
@@ -53,13 +59,32 @@ const VendedorPisoVentasPage = () => {
   );
   const [idVariante, setIdVariante] = useState<number | null>(null);
   const [cantidad, setCantidad] = useState(1);
-  const [errorToast, setErrorToast] = useState<string | null>(null);
-  const [exitoToast, setExitoToast] = useState(false);
+  const [toasts, setToasts] = useState<VendedorToastInfo[]>([]);
+
+  const agregarToast = useCallback((toast: Omit<VendedorToastInfo, "id">) => {
+    const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    setToasts((prev) => [...prev, { ...toast, id }]);
+  }, []);
+
+  const eliminarToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
+
+  const setErrorToast = useCallback((msg: string | null) => {
+    if (msg) {
+      agregarToast({
+        tipo: "error",
+        titulo: "Atención",
+        mensaje: msg,
+        autoDismissMs: 5000,
+      });
+    }
+  }, [agregarToast]);
+
   const [scannerAbierto, setScannerAbierto] = useState(false);
   const [sheetAbierto, setSheetAbierto] = useState(false);
   const [pedidos, setPedidos] = useState<VendedorSolicitudResumen[]>([]);
   const [pedidosRefrescandoManual, setPedidosRefrescandoManual] = useState(false);
-  const [infoAlmacen, setInfoAlmacen] = useState<string | null>(null);
   const [estaEnfocado, setEstaEnfocado] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
@@ -135,21 +160,21 @@ const VendedorPisoVentasPage = () => {
   }, []);
 
   const onNuevaRespuestaAlmacen = useCallback((items: VendedorAlmacenActualizacion[]) => {
-    if (items.length === 0) return;
-    if (items.length === 1) {
-      const [x] = items;
-      setInfoAlmacen(
-        x.estado === "ATENDIDO"
-          ? `Tu pedido está listo: ${x.nombreProducto}.`
-          : `Sin entrega para: ${x.nombreProducto}. Revisa el motivo en el panel.`
-      );
-      return;
-    }
-    const listos = items.filter((i) => i.estado === "ATENDIDO").length;
-    setInfoAlmacen(
-      `${items.length} solicitudes con novedad (${listos} listas, ${items.length - listos} rechazadas). Abre el panel inferior para ver el detalle.`
-    );
-  }, []);
+    items.forEach((item) => {
+      agregarToast({
+        tipo: item.estado === "ATENDIDO" ? "success" : "error",
+        titulo: item.estado === "ATENDIDO" ? "Pedido Listo en Almacén" : "Pedido Rechazado",
+        mensaje: item.estado === "ATENDIDO" 
+          ? "El almacén preparó el producto y ya está disponible para retirar."
+          : "El almacén canceló la solicitud. Revisa los detalles en el historial.",
+        producto: item.nombreProducto,
+        color: item.color,
+        talla: item.talla,
+        cantidad: item.cantidad,
+        autoDismissMs: 8000,
+      });
+    });
+  }, [agregarToast]);
 
   useEffect(() => {
     void cargarPedidos();
@@ -218,14 +243,14 @@ const VendedorPisoVentasPage = () => {
         setCatalogo(null);
         setCoincidencias([]);
         setIdVariante(null);
-        setErrorToast(mensajeErrorApi(e));
+        setErrorToast(mensajeErrorBusquedaCatalogo(e));
       } finally {
         if (seq === busquedaSeqRef.current) {
           setBuscando(false);
         }
       }
     },
-    [aplicarCatalogo]
+    [aplicarCatalogo, setErrorToast]
   );
 
   const seleccionarVarianteLista = useCallback(
@@ -253,14 +278,14 @@ const VendedorPisoVentasPage = () => {
         if (seq !== busquedaSeqRef.current) {
           return;
         }
-        setErrorToast(mensajeErrorApi(e));
+        setErrorToast(mensajeErrorBusquedaCatalogo(e));
       } finally {
         if (seq === busquedaSeqRef.current) {
           setBuscando(false);
         }
       }
     },
-    [aplicarCatalogo]
+    [aplicarCatalogo, setErrorToast]
   );
 
   useEffect(() => {
@@ -335,7 +360,16 @@ const VendedorPisoVentasPage = () => {
       nombreUbicacion: nombreUbicacionDestino,
     });
     // Toast de éxito
-    setExitoToast(true);
+    agregarToast({
+      tipo: "success",
+      titulo: "Agregado a la Lista",
+      mensaje: "El producto se añadió a la bandeja de envíos pendientes.",
+      producto: catalogo.producto.nombre,
+      color: variante?.color ?? "",
+      talla: variante?.talla ?? "",
+      cantidad: Math.min(cantidad, stockAlmacen),
+      autoDismissMs: 4000,
+    });
     
     // Solo reseteamos la variante y cantidad para permitir elegir otra del MISMO producto
     setIdVariante(null);
@@ -352,35 +386,7 @@ const VendedorPisoVentasPage = () => {
 
   return (
     <div className="relative min-h-[calc(100dvh-8.5rem)] bg-[#f8f9fa] pb-36 pt-2">
-      {infoAlmacen && (
-        <NotificationToast
-          title="Respuesta de almacén"
-          message={infoAlmacen}
-          variant="info"
-          topClassName="top-16"
-          autoDismissMs={7500}
-          onClose={() => setInfoAlmacen(null)}
-        />
-      )}
-      {errorToast && (
-        <NotificationToast
-          title="Atención"
-          message={errorToast}
-          variant="error"
-          topClassName="top-16"
-          onClose={() => setErrorToast(null)}
-        />
-      )}
-      {exitoToast && (
-        <NotificationToast
-          title="Agregado"
-          message="Producto añadido a la lista. Puedes seguir buscando."
-          variant="success"
-          topClassName="top-16"
-          autoDismissMs={2500}
-          onClose={() => setExitoToast(false)}
-        />
-      )}
+      <VendedorToastStack toasts={toasts} onDismiss={eliminarToast} />
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
         <div className="flex flex-col md:flex-row md:items-start gap-8 lg:gap-16">
@@ -688,7 +694,12 @@ const VendedorPisoVentasPage = () => {
         onClose={() => setSheetAbierto(false)}
         onEnvioCompleto={() => {
           void cargarPedidos();
-          setExitoToast(false);
+          agregarToast({
+            tipo: "success",
+            titulo: "Solicitudes Enviadas",
+            mensaje: "Todos los pedidos pendientes fueron enviados al almacén con éxito.",
+            autoDismissMs: 4500,
+          });
         }}
       />
 

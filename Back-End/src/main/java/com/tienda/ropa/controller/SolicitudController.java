@@ -37,8 +37,10 @@ public class SolicitudController {
     }
 
     @GetMapping("/cola")
-    public List<AlmacenSolicitudCardDTO> colaPendientes() {
-        return solicitudService.listarColaPendientes();
+    public List<AlmacenSolicitudCardDTO> colaPendientes(
+            @AuthenticationPrincipal Usuario usuario,
+            @RequestParam(required = false) String sector) {
+        return solicitudService.listarColaPendientes(usuario, sector);
     }
 
     @PostMapping
@@ -62,22 +64,27 @@ public class SolicitudController {
     }
 
     @PostMapping("/{id}/atender")
-    public Solicitud atender(@PathVariable Long id) {
-        return solicitudService.atenderSolicitud(id);
+    public Solicitud atender(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Usuario usuario) {
+        return solicitudService.atenderSolicitud(id, usuario);
     }
 
     /** Despacha un lote completo en una sola operación (evita llamadas duplicadas desde el front). */
     @PostMapping("/atender-lote")
-    public ResponseEntity<Void> atenderLote(@RequestBody AlmacenAtenderLoteRequest body) {
-        solicitudService.atenderSolicitudesLote(body.idsSolicitud());
+    public ResponseEntity<Void> atenderLote(
+            @RequestBody AlmacenAtenderLoteRequest body,
+            @AuthenticationPrincipal Usuario usuario) {
+        solicitudService.atenderSolicitudesLote(body.idsSolicitud(), usuario);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/rechazar")
     public Solicitud rechazar(
             @PathVariable Long id,
-            @Valid @RequestBody AlmacenRechazarSolicitudRequest body) {
+            @Valid @RequestBody AlmacenRechazarSolicitudRequest body,
+            @AuthenticationPrincipal Usuario usuario) {
         MotivoRechazoSolicitud motivo = MotivoRechazoSolicitud.valueOf(body.motivo().trim().toUpperCase());
-        return solicitudService.rechazarSolicitud(id, motivo);
+        return solicitudService.rechazarSolicitud(id, motivo, usuario);
     }
 }

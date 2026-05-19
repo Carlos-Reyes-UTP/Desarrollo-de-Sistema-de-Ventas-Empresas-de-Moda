@@ -4,6 +4,7 @@ import com.tienda.ropa.dto.AlmacenSolicitudCardDTO;
 import com.tienda.ropa.dto.CrearSolicitudDTO;
 import com.tienda.ropa.entity.MotivoRechazoSolicitud;
 import com.tienda.ropa.entity.Solicitud;
+import com.tienda.ropa.entity.Usuario;
 
 import java.util.List;
 
@@ -17,12 +18,12 @@ public interface SolicitudService {
 
     Solicitud cambiarEstado(Long idSolicitud, String nuevoEstado);
 
-    List<AlmacenSolicitudCardDTO> listarColaPendientes();
+    List<AlmacenSolicitudCardDTO> listarColaPendientes(Usuario usuario, String sectorOpcional);
 
-    Solicitud atenderSolicitud(Long idSolicitud);
+    Solicitud atenderSolicitud(Long idSolicitud, Usuario usuario);
 
     /** Atiende varias solicitudes en una transacción (ids sin duplicar). */
-    void atenderSolicitudesLote(List<Long> idsSolicitud);
+    void atenderSolicitudesLote(List<Long> idsSolicitud, Usuario usuario);
 
-    Solicitud rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo);
+    Solicitud rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, Usuario usuario);
 }

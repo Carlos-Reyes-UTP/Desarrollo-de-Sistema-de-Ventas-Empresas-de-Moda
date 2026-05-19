@@ -30,13 +30,34 @@ function normalizarSolicitud(raw: unknown): AlmacenSolicitud {
     idUsuario,
     nombreVendedor: typeof o.nombreVendedor === "string" ? o.nombreVendedor : "",
     codigoLote: typeof o.codigoLote === "string" ? o.codigoLote : null,
+    idUbicacionAreaOrigen: (() => {
+      if (o.idUbicacionAreaOrigen == null) return null;
+      const n = num(o.idUbicacionAreaOrigen, 0);
+      return n > 0 ? n : null;
+    })(),
+    pisoOrigen: typeof o.pisoOrigen === "string" ? o.pisoOrigen : null,
+    sectorOrigen: typeof o.sectorOrigen === "string" ? o.sectorOrigen : null,
+    etiquetaOrigen: typeof o.etiquetaOrigen === "string" ? o.etiquetaOrigen : null,
+    idUbicacionAreaDestino: (() => {
+      if (o.idUbicacionAreaDestino == null) return null;
+      const n = num(o.idUbicacionAreaDestino, 0);
+      return n > 0 ? n : null;
+    })(),
+    pisoDestino: typeof o.pisoDestino === "string" ? o.pisoDestino : null,
+    sectorDestino: typeof o.sectorDestino === "string" ? o.sectorDestino : null,
+    etiquetaDestino: typeof o.etiquetaDestino === "string" ? o.etiquetaDestino : null,
     lineas,
   };
 }
 
 export const AlmacenSolicitudesApi = {
-  cola: async (signal?: AbortSignal): Promise<AlmacenSolicitud[]> => {
+  cola: async (sector?: string, signal?: AbortSignal): Promise<AlmacenSolicitud[]> => {
+    const params: Record<string, string> = {};
+    if (sector != null && sector.trim() !== "") {
+      params.sector = sector.trim();
+    }
     const res = await apiClient.get<unknown[]>(RUTAS_ALMACENERO_SOLICITUDES.COLA, {
+      params: Object.keys(params).length > 0 ? params : undefined,
       signal,
     });
     const arr = Array.isArray(res.data) ? res.data : [];

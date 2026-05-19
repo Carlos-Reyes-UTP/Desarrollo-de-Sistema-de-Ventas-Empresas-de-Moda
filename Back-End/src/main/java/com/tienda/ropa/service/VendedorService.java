@@ -259,16 +259,6 @@ public class VendedorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad debe ser mayor a cero");
         }
 
-        int stockAlmacen = inventarioService.stockEnAlmacen(req.idVariante());
-        if (req.cantidad() > stockAlmacen) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "La cantidad supera el stock disponible en Almacén (" + stockAlmacen + ")");
-        }
-
-        UbicacionArea origenAlmacen = inventarioService.resolverOrigenAlmacenConStock(
-                req.idVariante(), req.cantidad());
-
         TipoSolicitud tipo = TipoSolicitud.VENTA;
         if (req.tipoSolicitud() != null && !req.tipoSolicitud().isBlank()) {
             try {
@@ -283,7 +273,7 @@ public class VendedorService {
         // luego intentar inferirla desde el inventario existente.
         UbicacionArea destino;
         if (req.idUbicacionAreaDestino() != null) {
-            destino = ubicacionAreaRepository.findById(req.idUbicacionAreaDestino())
+            destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(req.idUbicacionAreaDestino())
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.BAD_REQUEST, "El área destino seleccionada no existe"));
             if (inventarioService.esUbicacionAlmacen(destino)) {
@@ -303,6 +293,19 @@ public class VendedorService {
                         "Selecciona el área destino donde se enviará el producto.");
             }
         }
+        destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(destino.getIdUbicacionArea())
+                .orElse(destino);
+
+        int stockLinea = inventarioService.stockEnAlmacenDeLinea(req.idVariante(), destino);
+        if (req.cantidad() > stockLinea) {
+            String linea = destino.getArea() != null ? destino.getArea().getNombre() : "la línea";
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "La cantidad supera el stock en Almacén · " + linea + " (" + stockLinea + ")");
+        }
+
+        UbicacionArea origenAlmacen = inventarioService.resolverOrigenAlmacenConStock(
+                req.idVariante(), req.cantidad(), destino);
 
         CrearSolicitudDTO dto = new CrearSolicitudDTO(
                 tipo.name(),
@@ -339,13 +342,6 @@ public class VendedorService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                         "Cada ítem debe indicar el área destino (idUbicacionAreaDestino)");
             }
-            int stockAlmacen = inventarioService.stockEnAlmacen(item.idVariante());
-            if (item.cantidad() > stockAlmacen) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST,
-                        "La cantidad supera el stock en Almacén (" + stockAlmacen + ") para variante "
-                                + item.idVariante());
-            }
             porDestino
                     .computeIfAbsent(item.idUbicacionAreaDestino(), k -> new LinkedHashMap<>())
                     .merge(item.idVariante(), item.cantidad(), Integer::sum);
@@ -354,7 +350,7 @@ public class VendedorService {
         List<Long> idsCreados = new ArrayList<>();
         for (Map.Entry<Long, Map<Long, Integer>> entry : porDestino.entrySet()) {
             Long idDestino = entry.getKey();
-            UbicacionArea destino = ubicacionAreaRepository.findById(idDestino)
+            UbicacionArea destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(idDestino)
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.BAD_REQUEST, "El área destino seleccionada no existe: " + idDestino));
             if (inventarioService.esUbicacionAlmacen(destino)) {
@@ -362,21 +358,33 @@ public class VendedorService {
             }
 
             List<DetalleSolicitudLineaDTO> lineas = new ArrayList<>();
+            int cantidadMaximaItem = 0;
+            Long idVarianteMayorCantidad = null;
             for (Map.Entry<Long, Integer> linea : entry.getValue().entrySet()) {
                 ProductoVariante variante = productoVarianteService.obtenerVariantePorId(linea.getKey())
                         .orElseThrow(() -> new ResponseStatusException(
                                 HttpStatus.NOT_FOUND, "Variante no encontrada: " + linea.getKey()));
+                int stockLinea = inventarioService.stockEnAlmacenDeLinea(linea.getKey(), destino);
+                if (linea.getValue() > stockLinea) {
+                    String nombreLinea = destino.getArea() != null ? destino.getArea().getNombre() : "la línea";
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST,
+                            "La cantidad supera el stock en Almacén · " + nombreLinea
+                                    + " (" + stockLinea + ") para variante " + linea.getKey());
+                }
+                if (linea.getValue() > cantidadMaximaItem) {
+                    cantidadMaximaItem = linea.getValue();
+                    idVarianteMayorCantidad = linea.getKey();
+                }
                 inventarioService.obtenerOCrearFila(variante, destino);
                 lineas.add(new DetalleSolicitudLineaDTO(linea.getKey(), linea.getValue()));
             }
 
-            Long idVarianteRef = entry.getValue().keySet().stream().findFirst().orElse(null);
-            int cantidadRef = entry.getValue().values().stream().mapToInt(Integer::intValue).sum();
-            if (idVarianteRef == null) {
+            if (idVarianteMayorCantidad == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Solicitud sin variantes");
             }
             UbicacionArea origenAlmacen = inventarioService.resolverOrigenAlmacenConStock(
-                    idVarianteRef, Math.max(1, cantidadRef));
+                    idVarianteMayorCantidad, Math.max(1, cantidadMaximaItem), destino);
 
             CrearSolicitudDTO dto = new CrearSolicitudDTO(
                     TipoSolicitud.VENTA.name(),

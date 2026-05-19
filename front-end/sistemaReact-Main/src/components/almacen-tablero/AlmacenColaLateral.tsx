@@ -94,6 +94,9 @@ export function AlmacenColaLateral({
                   vendedor={t.nombreVendedor}
                   itemsCount={t.itemsCount}
                   tipoSolicitud={t.tipoSolicitud}
+                  origen={t.origen}
+                  destino={t.destino}
+                  destinosAdicionales={t.destinosAdicionales}
                   fechaMasAntigua={t.fechaMasAntigua}
                   seleccionado={seleccionado}
                   pulsando={cardPulsando}

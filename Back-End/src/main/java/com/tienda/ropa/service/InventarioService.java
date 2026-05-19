@@ -1,8 +1,10 @@
 package com.tienda.ropa.service;
 
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.tienda.ropa.entity.Inventario;
 import com.tienda.ropa.entity.ProductoVariante;
@@ -66,7 +68,9 @@ public class InventarioService {
 
     /**
      * Origen de solicitud desde almacén: prioriza el sector con stock suficiente; si no hay, el de mayor stock.
+     * @deprecated Preferir {@link #resolverOrigenAlmacenConStock(Long, int, UbicacionArea)} alineado al destino.
      */
+    @Deprecated
     @Transactional(readOnly = true)
     public UbicacionArea resolverOrigenAlmacenConStock(Long idVariante, int cantidadMinima) {
         List<UbicacionArea> areas = listarUbicacionesAreaAlmacen();
@@ -86,6 +90,58 @@ public class InventarioService {
             }
         }
         return conMayorStock;
+    }
+
+    /**
+     * Origen en almacén de la misma línea que el destino (mismo id_area del catálogo).
+     */
+    @Transactional(readOnly = true)
+    public UbicacionArea resolverOrigenAlmacenConStock(Long idVariante, int cantidadMinima, UbicacionArea destino) {
+        if (destino == null || destino.getArea() == null || destino.getArea().getIdArea() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El área destino no tiene línea de catálogo válida.");
+        }
+        Long idAreaCatalogo = destino.getArea().getIdArea();
+        String nombreLinea = destino.getArea().getNombre();
+        List<UbicacionArea> candidatas = listarUbicacionesAreaAlmacen().stream()
+                .filter(ua -> ua.getArea() != null && idAreaCatalogo.equals(ua.getArea().getIdArea()))
+                .toList();
+        if (candidatas.isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No hay sector de Almacén configurado para la línea " + nombreLinea + ".");
+        }
+        UbicacionArea conMayorStock = candidatas.get(0);
+        int mayor = -1;
+        for (UbicacionArea ua : candidatas) {
+            int stock = stockEnUbicacionArea(idVariante, ua.getIdUbicacionArea());
+            if (cantidadMinima > 0 && stock >= cantidadMinima) {
+                return ua;
+            }
+            if (stock > mayor) {
+                mayor = stock;
+                conMayorStock = ua;
+            }
+        }
+        if (cantidadMinima > 0 && mayor < cantidadMinima) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "No hay stock suficiente en Almacén · " + nombreLinea
+                            + " (disponible: " + Math.max(0, mayor) + ", solicitado: " + cantidadMinima + ").");
+        }
+        return conMayorStock;
+    }
+
+    /** Stock en sectores de almacén de la misma línea que el destino. */
+    @Transactional(readOnly = true)
+    public int stockEnAlmacenDeLinea(Long idVariante, UbicacionArea destino) {
+        if (destino == null || destino.getArea() == null || destino.getArea().getIdArea() == null) {
+            return 0;
+        }
+        Long idAreaCatalogo = destino.getArea().getIdArea();
+        return listarUbicacionesAreaAlmacen().stream()
+                .filter(ua -> ua.getArea() != null && idAreaCatalogo.equals(ua.getArea().getIdArea()))
+                .mapToInt(ua -> stockEnUbicacionArea(idVariante, ua.getIdUbicacionArea()))
+                .sum();
     }
 
     public boolean esUbicacionAlmacen(UbicacionArea ua) {

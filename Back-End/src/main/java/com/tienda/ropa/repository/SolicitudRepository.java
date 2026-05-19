@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
 
@@ -28,4 +29,28 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
             ORDER BY s.fechaCreacion ASC
             """)
     List<Solicitud> findColaPendientesConDetalles(@Param("estado") EstadoSolicitud estado);
+
+    @Query("""
+            SELECT DISTINCT s FROM Solicitud s
+            LEFT JOIN FETCH s.usuario
+            JOIN FETCH s.ubicacionAreaOrigen orig JOIN FETCH orig.ubicacion JOIN FETCH orig.area
+            JOIN FETCH s.ubicacionAreaDestino dest JOIN FETCH dest.ubicacion JOIN FETCH dest.area
+            LEFT JOIN FETCH s.detalles det
+            LEFT JOIN FETCH det.variante v
+            LEFT JOIN FETCH v.producto p
+            WHERE s.estado = :estado
+              AND orig.area.idArea = :idAreaCatalogo
+            ORDER BY s.fechaCreacion ASC
+            """)
+    List<Solicitud> findColaPendientesConDetallesPorAreaOrigen(
+            @Param("estado") EstadoSolicitud estado,
+            @Param("idAreaCatalogo") Long idAreaCatalogo);
+
+    @Query("""
+            SELECT s FROM Solicitud s
+            JOIN FETCH s.ubicacionAreaOrigen orig JOIN FETCH orig.ubicacion JOIN FETCH orig.area
+            JOIN FETCH s.ubicacionAreaDestino dest
+            WHERE s.idSolicitud = :id
+            """)
+    Optional<Solicitud> findByIdWithUbicaciones(@Param("id") Long id);
 }

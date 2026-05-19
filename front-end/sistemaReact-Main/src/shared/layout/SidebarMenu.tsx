@@ -316,12 +316,12 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
                     <Accordion open={openAccordion === 3} className="border-none mt-2">
                       <ListItem className="p-0" selected={openAccordion === 3}>
                         <AccordionHeader onClick={() => handleAccordionOpen(3)} className="border-none p-0">
-                          <div className={`w-full flex items-center py-2.5 px-4 rounded-xl transition-all duration-200 active:scale-[0.99] ${openAccordion === 3 ? "bg-gray-100/50 text-black font-semibold" : "text-[#9ca3af] hover:bg-gray-200/30 hover:text-black"}`}>
+                          <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] ${openAccordion === 3 ? "bg-white/5 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}>
                             <div className="mr-3.5 flex-shrink-0">
-                              <Box className="h-[18px] w-[18px]" strokeWidth={2.5} />
+                              <Box className={`h-[20px] w-[20px] ${openAccordion === 3 ? "text-white" : "text-gray-500"}`} strokeWidth={2} />
                             </div>
-                            <span className="text-[13.5px] items-center flex-1 text-left tracking-tight">Control Inventario</span>
-                            <ChevronDown className={`h-3 w-3 transition-transform ${openAccordion === 3 ? "rotate-180" : ""}`} strokeWidth={3} />
+                            <span className="text-[14px] font-medium flex-1 text-left tracking-tight">Control Inventario</span>
+                            <ChevronDown className={`h-4 w-4 transition-transform ${openAccordion === 3 ? "rotate-180" : ""}`} strokeWidth={2.5} />
                           </div>
                         </AccordionHeader>
                       </ListItem>

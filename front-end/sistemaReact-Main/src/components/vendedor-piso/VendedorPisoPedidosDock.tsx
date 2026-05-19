@@ -1,11 +1,21 @@
-import { Bell, ChevronDown, Loader2, RefreshCw, X } from "lucide-react";
+import { Bell, ChevronDown, Loader2, RefreshCw, X, Settings, Volume2, VolumeX } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BorderBeam } from "border-beam";
 import type { VendedorSolicitudResumen } from "../../types/Vendedor";
+import {
+  getSoundTheme,
+  setSoundTheme,
+  playSoundByTheme,
+  type SoundTheme,
+} from "../almacen-tablero/almacenTableroSound";
 
 export interface VendedorAlmacenActualizacion {
+  idSolicitud: number;
   nombreProducto: string;
   estado: "ATENDIDO" | "CANCELADO";
+  color?: string;
+  talla?: string;
+  cantidad?: number;
 }
 
 interface VendedorPisoPedidosDockProps {
@@ -19,7 +29,7 @@ interface VendedorPisoPedidosDockProps {
 const etiquetaEstado = (estado: string): { label: string; dot: string } => {
   switch (estado) {
     case "PENDIENTE":
-      return { label: "Pendiente", dot: "bg-amber-400" };
+      return { label: "Pendiente", dot: "bg-amber-400 animate-pulse" };
     case "ATENDIDO":
       return { label: "Listo", dot: "bg-emerald-500" };
     case "CANCELADO":
@@ -33,41 +43,6 @@ const etiquetaTipo = (tipo: string): string => {
   if (tipo === "VENTA") return "Piso de ventas";
   if (tipo === "REPOSICION") return "Reposición auto";
   return tipo;
-};
-
-interface WindowWithAudio extends Window {
-  webkitAudioContext?: typeof AudioContext;
-}
-
-const playNotificationSound = () => {
-  try {
-    const AudioCtx = window.AudioContext || (window as WindowWithAudio).webkitAudioContext;
-    if (!AudioCtx) return;
-
-    const audioCtx = new AudioCtx();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-
-    oscillator.type = "sine";
-    oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(1318.51, audioCtx.currentTime + 0.1);
-
-    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-    gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.05);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.3);
-
-    setTimeout(() => {
-      audioCtx.close().catch(() => undefined);
-    }, 500);
-  } catch (e) {
-    console.error("Audio context error:", e);
-  }
 };
 
 function formatearHora(iso: string): string {
@@ -88,6 +63,9 @@ export const VendedorPisoPedidosDock = ({
 }: VendedorPisoPedidosDockProps) => {
   const [abierto, setAbierto] = useState(false);
   const [hasNewResponse, setHasNewResponse] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
+  const [temaSonido, setTemaSonido] = useState<SoundTheme>(() => getSoundTheme("vendedor"));
+
   const prevPedidosRef = useRef(pedidos);
   const abiertoRef = useRef(abierto);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -110,8 +88,12 @@ export const VendedorPisoPedidosDock = ({
           (pedido.estado === "ATENDIDO" || pedido.estado === "CANCELADO")
         ) {
           updates.push({
+            idSolicitud: pedido.idSolicitud,
             nombreProducto: pedido.nombreProducto,
             estado: pedido.estado as "ATENDIDO" | "CANCELADO",
+            color: pedido.color,
+            talla: pedido.talla,
+            cantidad: pedido.cantidad,
           });
         }
       });
@@ -123,7 +105,11 @@ export const VendedorPisoPedidosDock = ({
       return undefined;
     }
 
-    playNotificationSound();
+    // Play synthesis chime according to the seller's active theme
+    const activeTheme = getSoundTheme("vendedor");
+    void playSoundByTheme(activeTheme);
+
+    // Bubble enriched update objects to parent stack
     onNuevaRespuestaAlmacen?.(updates);
 
     if (!abiertoRef.current) {
@@ -192,11 +178,17 @@ export const VendedorPisoPedidosDock = ({
     [ordenados]
   );
 
-  const cerrar = useCallback(() => setAbierto(false), []);
+  const cerrar = useCallback(() => {
+    setAbierto(false);
+    setShowConfig(false);
+  }, []);
 
   const toggle = useCallback(() => {
     setAbierto((v) => !v);
-  }, []);
+    if (abierto) {
+      setShowConfig(false);
+    }
+  }, [abierto]);
 
   const handleRefrescar = useCallback(() => {
     void onRefresh();
@@ -209,9 +201,9 @@ export const VendedorPisoPedidosDock = ({
       role="dialog"
       aria-modal="false"
       aria-labelledby="vendedor-pedidos-titulo"
-      className="relative max-h-[45vh] w-full max-w-sm md:max-w-md overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur-md animate-slideUpFade"
+      className="relative max-h-[48vh] w-full max-w-sm md:max-w-md overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur-md animate-slideUpFade flex flex-col"
     >
-      <div className="relative z-10 flex items-center justify-between gap-2 border-b border-gray-100 bg-white/50 px-3 py-2.5 backdrop-blur-sm sm:px-4">
+      <div className="relative z-10 flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white/50 px-3 py-2.5 backdrop-blur-sm sm:px-4">
         <div className="min-w-0 flex-1">
           <span id="vendedor-pedidos-titulo" className="text-xs font-bold uppercase tracking-widest text-gray-900">
             Pedidos de hoy
@@ -237,6 +229,19 @@ export const VendedorPisoPedidosDock = ({
             )}
             <span className="hidden sm:inline">Actualizar</span>
           </button>
+          
+          {/* BOTÓN CONFIGURACIÓN SONIDO */}
+          <button
+            type="button"
+            onClick={() => setShowConfig(!showConfig)}
+            className={`rounded-xl p-2 transition-all active:scale-95 ${
+              showConfig ? "bg-black text-white" : "text-gray-500 hover:bg-gray-100 hover:text-black"
+            }`}
+            aria-label="Configuración de sonido de notificaciones"
+          >
+            <Settings className="h-4 w-4" />
+          </button>
+
           <button
             type="button"
             onClick={cerrar}
@@ -247,7 +252,49 @@ export const VendedorPisoPedidosDock = ({
           </button>
         </div>
       </div>
-      <div className="relative z-10 max-h-[38vh] overflow-y-auto px-2 py-2">
+
+      {/* PANEL DE AUDIO GLASSMORPHIC */}
+      {showConfig && (
+        <div className="relative z-10 shrink-0 border-b border-gray-100 bg-gray-50/50 p-3.5 animate-fadeIn">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+              Tema de Sonido
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+            {([
+              { id: "boutique", label: "Boutique", icon: <Volume2 className="h-3.5 w-3.5" /> },
+              { id: "crystal", label: "Crystal", icon: <Volume2 className="h-3.5 w-3.5" /> },
+              { id: "double", label: "Doble Beep", icon: <Volume2 className="h-3.5 w-3.5" /> },
+              { id: "kiosk", label: "Clásico", icon: <Volume2 className="h-3.5 w-3.5" /> },
+              { id: "mute", label: "Silencio", icon: <VolumeX className="h-3.5 w-3.5" /> }
+            ] as { id: SoundTheme; label: string; icon: React.ReactNode }[]).map((theme) => {
+              const active = temaSonido === theme.id;
+              return (
+                <button
+                  key={theme.id}
+                  type="button"
+                  onClick={() => {
+                    setSoundTheme("vendedor", theme.id);
+                    setTemaSonido(theme.id);
+                    void playSoundByTheme(theme.id);
+                  }}
+                  className={`flex items-center gap-1.5 justify-center px-2 py-2 rounded-xl border text-[11px] font-bold transition-all active:scale-[0.98] ${
+                    active
+                      ? "bg-black border-black text-white shadow-sm"
+                      : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50"
+                  }`}
+                >
+                  {theme.icon}
+                  <span>{theme.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="relative z-10 flex-1 overflow-y-auto px-2 py-2">
         {ordenados.length === 0 ? (
           <p className="px-3 py-6 text-center text-sm text-gray-500">
             Aún no hay solicitudes hoy. Cuando envíes una, aparecerá aquí.
@@ -257,11 +304,19 @@ export const VendedorPisoPedidosDock = ({
             {ordenados.map((p, idx) => {
               const { label, dot } = etiquetaEstado(p.estado);
               const hora = formatearHora(p.fechaCreacion);
+              const esNovedad = p.estado === "ATENDIDO" || p.estado === "CANCELADO";
+              
               return (
                 <li
                   key={p.idSolicitud}
                   style={{ animationDelay: `${Math.min(idx, 8) * 35}ms` }}
-                  className="rounded-2xl border border-gray-100 bg-[#fafafa]/80 px-3 py-3 backdrop-blur-sm animate-fadeIn"
+                  className={`rounded-2xl border px-3 py-3 backdrop-blur-sm transition-all duration-300 animate-fadeIn ${
+                    esNovedad 
+                      ? p.estado === "ATENDIDO" 
+                        ? "border-emerald-200 bg-emerald-50/20 shadow-[0_4px_15px_rgba(16,185,129,0.04)]" 
+                        : "border-red-200 bg-red-50/20 shadow-[0_4px_15px_rgba(239,68,68,0.04)]"
+                      : "border-gray-100 bg-[#fafafa]/80"
+                  }`}
                 >
                   <div className="flex items-start gap-2">
                     <span
@@ -329,7 +384,7 @@ export const VendedorPisoPedidosDock = ({
         <Bell className="h-6 w-6 shrink-0" strokeWidth={2} />
         {abierto ? <ChevronDown className="h-4 w-4 shrink-0 opacity-80" aria-hidden /> : null}
         {ordenados.length > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-black">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-black animate-bounce-in">
             {pendientes > 0 ? (pendientes > 9 ? "9+" : pendientes) : ordenados.length > 9 ? "9+" : ordenados.length}
           </span>
         )}

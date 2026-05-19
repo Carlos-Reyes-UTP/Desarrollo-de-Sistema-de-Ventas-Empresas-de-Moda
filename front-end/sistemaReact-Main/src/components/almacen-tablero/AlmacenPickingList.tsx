@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, Package, User, Trash2, RefreshCw } from "lucide-react";
 import type { AlmacenTicketConsolidado } from "../../types/AlmacenSolicitudes";
+import { AlmacenSolicitudRuta } from "./AlmacenSolicitudRuta";
+import {
+  resumenDestinoDeSolicitud,
+  resumenOrigenDeSolicitud,
+} from "../../utils/solicitudUbicacion";
 
 interface AlmacenPickingListProps {
   ticket: AlmacenTicketConsolidado;
@@ -99,6 +104,12 @@ export function AlmacenPickingList({
             <Trash2 className="w-5 h-5" />
           </button>
         </div>
+
+        <AlmacenSolicitudRuta
+          origen={resumenOrigenDeSolicitud(ticket)}
+          destino={resumenDestinoDeSolicitud(ticket)}
+          destinosAdicionales={ticket.destinosEnLote}
+        />
 
         {ticket.codigoLote && (
           <div className="bg-gray-100/50 rounded-2xl p-4 flex items-center gap-3 border border-gray-100">

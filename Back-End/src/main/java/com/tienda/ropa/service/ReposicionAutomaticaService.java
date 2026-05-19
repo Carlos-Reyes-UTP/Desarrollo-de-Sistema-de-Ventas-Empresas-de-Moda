@@ -32,6 +32,8 @@ import com.tienda.ropa.repository.DetalleSolicitudRepository;
 
 import com.tienda.ropa.repository.InventarioRepository;
 
+import com.tienda.ropa.repository.UbicacionAreaRepository;
+
 import com.tienda.ropa.repository.UsuarioRepository;
 
 
@@ -64,6 +66,8 @@ public class ReposicionAutomaticaService {
 
     private final InventarioService inventarioService;
 
+    private final UbicacionAreaRepository ubicacionAreaRepository;
+
     private final UsuarioRepository usuarioRepository;
 
     private final DetalleSolicitudRepository detalleSolicitudRepository;
@@ -91,6 +95,10 @@ public class ReposicionAutomaticaService {
         Inventario fila = filaOpt.get();
 
         UbicacionArea destino = fila.getUbicacionArea();
+        if (destino != null && destino.getIdUbicacionArea() != null) {
+            destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(destino.getIdUbicacionArea())
+                    .orElse(destino);
+        }
 
         if (destino == null || inventarioService.esUbicacionAlmacen(destino)) {
 
@@ -118,7 +126,7 @@ public class ReposicionAutomaticaService {
 
         int cantidad = calcularCantidadReposicion(fila);
 
-        UbicacionArea origen = inventarioService.resolverOrigenAlmacenConStock(idVariante, cantidad);
+        UbicacionArea origen = inventarioService.resolverOrigenAlmacenConStock(idVariante, cantidad, destino);
 
         if (origen.getIdUbicacionArea().equals(destino.getIdUbicacionArea())) {
 

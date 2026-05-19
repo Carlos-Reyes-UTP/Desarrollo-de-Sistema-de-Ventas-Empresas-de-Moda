@@ -1,4 +1,10 @@
 import type { AlmacenSolicitud } from "../../types/AlmacenSolicitudes";
+import type { UbicacionSolicitudResumen } from "./AlmacenSolicitudRuta";
+import {
+  destinosUnicosEnLote,
+  resumenDestinoDeSolicitud,
+  resumenOrigenDeSolicitud,
+} from "../../utils/solicitudUbicacion";
 
 export interface GrupoTicket {
   idPrincipal: number;
@@ -8,6 +14,9 @@ export interface GrupoTicket {
   itemsCount: number;
   fechaMasAntigua: string;
   tipoSolicitud: string;
+  origen: UbicacionSolicitudResumen;
+  destino: UbicacionSolicitudResumen;
+  destinosAdicionales: UbicacionSolicitudResumen[];
   urgencia: "baja" | "media" | "alta";
 }
 
@@ -32,6 +41,9 @@ export function agruparTickets(cards: AlmacenSolicitud[]): GrupoTicket[] {
         itemsCount: 0,
         fechaMasAntigua: c.fechaCreacion,
         tipoSolicitud: c.tipoSolicitud,
+        origen: resumenOrigenDeSolicitud(c),
+        destino: resumenDestinoDeSolicitud(c),
+        destinosAdicionales: [],
         urgencia: "baja",
       };
     } else {
@@ -43,10 +55,17 @@ export function agruparTickets(cards: AlmacenSolicitud[]): GrupoTicket[] {
     }
   });
   return Object.values(grupos)
-    .map((g) => ({
-      ...g,
-      urgencia: calcularUrgencia(g.fechaMasAntigua),
-    }))
+    .map((g) => {
+      const cardsGrupo = cards.filter((c) => g.idsSolicitud.includes(c.idSolicitud));
+      const destinos = destinosUnicosEnLote(cardsGrupo);
+      const [primario, ...resto] = destinos;
+      return {
+        ...g,
+        destino: primario ?? g.destino,
+        destinosAdicionales: resto,
+        urgencia: calcularUrgencia(g.fechaMasAntigua),
+      };
+    })
     .sort(
       (a, b) =>
         new Date(a.fechaMasAntigua).getTime() - new Date(b.fechaMasAntigua).getTime()

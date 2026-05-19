@@ -2,6 +2,7 @@ package com.tienda.ropa.config;
 
 import com.tienda.ropa.config.filter.JwtAuthenticationFilter;
 import com.tienda.ropa.service.UsuarioService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -88,6 +89,14 @@ public class SecurityConfiguration {
                 // 4. Gestión de Sesión: STATELESS (sin estado), ya que cada petición se valida
                 // con el token JWT.
                 .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write(
+                                    "{\"message\":\"No tienes permiso para esta acción\"}");
+                        }))
 
                 // 5. Proveedor de Autenticación: Usa nuestro servicio de usuario y el
                 // codificador de contraseñas.

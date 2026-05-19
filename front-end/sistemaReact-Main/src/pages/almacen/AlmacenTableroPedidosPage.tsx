@@ -1,11 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Inbox, Volume2, VolumeX, RefreshCw, Settings, ChevronLeft } from "lucide-react";
+import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
+import { SECTOR_ALMACEN_GENERAL } from "@/shared/constants/sectoresAlmacen";
+import { Inbox, VolumeX, RefreshCw, Settings, ChevronLeft } from "lucide-react";
 import { AlmacenColaLateral } from "../../components/almacen-tablero/AlmacenColaLateral";
 import { AlmacenPickingList } from "../../components/almacen-tablero/AlmacenPickingList";
 import { RechazoPedidoModal } from "../../components/almacen-tablero/RechazoPedidoModal";
 import {
   playKioskChime,
   setSilence15Min,
+  getSoundTheme,
+  setSoundTheme,
+  playSoundByTheme,
+  type SoundTheme,
 } from "../../components/almacen-tablero/almacenTableroSound";
 import {
   idsSolicitudEnMismoGrupo,
@@ -14,6 +20,7 @@ import {
 import { AlmacenSolicitudesApi } from "../../services/AlmacenSolicitudesService";
 import type { AlmacenSolicitud, AlmacenTicketConsolidado, MotivoRechazoApi } from "../../types/AlmacenSolicitudes";
 import { mensajeErrorApi } from "../../utils/apiErrors";
+import { destinosUnicosEnLote } from "../../utils/solicitudUbicacion";
 
 const POLL_MS = 3000;
 const PULSE_MS = 8000;
@@ -23,6 +30,8 @@ function esVenta(c: AlmacenSolicitud): boolean {
 }
 
 export default function AlmacenTableroPedidosPage() {
+  const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
+  const [sectorFiltro, setSectorFiltro] = useState(SECTOR_ALMACEN_GENERAL);
   const [cards, setCards] = useState<AlmacenSolicitud[]>([]);
   const [seleccionId, setSeleccionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +41,25 @@ export default function AlmacenTableroPedidosPage() {
   const [rechazoCargando, setRechazoCargando] = useState(false);
   const [activeTab, setActiveTab] = useState<"ventas" | "repos">("ventas");
   const [showSettings, setShowSettings] = useState(false);
+  const [temaSonido, setTemaSonido] = useState<SoundTheme>(() => getSoundTheme("almacen"));
 
   const prevVentaIdsRef = useRef<Set<number>>(new Set());
   const inicializadoRef = useRef(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const despachoLockRef = useRef(false);
+
+  const sectorParaCola = useMemo(() => {
+    if (!accesoAreaAlmacen?.esAlmaceneroGeneral) {
+      return undefined;
+    }
+    return sectorFiltro === SECTOR_ALMACEN_GENERAL ? undefined : sectorFiltro;
+  }, [accesoAreaAlmacen, sectorFiltro]);
+
+  useEffect(() => {
+    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
+      setSectorFiltro(SECTOR_ALMACEN_GENERAL);
+    }
+  }, [accesoAreaAlmacen?.esAlmaceneroGeneral]);
 
   const aplicarNuevasVentas = useCallback((lista: AlmacenSolicitud[]) => {
     const ventaIds = new Set<number>();
@@ -71,14 +94,14 @@ export default function AlmacenTableroPedidosPage() {
 
   const cargar = useCallback(async () => {
     try {
-      const data = await AlmacenSolicitudesApi.cola();
+      const data = await AlmacenSolicitudesApi.cola(sectorParaCola);
       setError(null);
       aplicarNuevasVentas(data);
       setCards(data);
     } catch (e: unknown) {
       setError(mensajeErrorApi(e));
     }
-  }, [aplicarNuevasVentas]);
+  }, [aplicarNuevasVentas, sectorParaCola]);
 
   useEffect(() => {
     void cargar();
@@ -124,10 +147,16 @@ export default function AlmacenTableroPedidosPage() {
         c.codigoLote === seleccionada.codigoLote &&
         c.idUsuario === seleccionada.idUsuario
     );
+    const destinos = destinosUnicosEnLote(loteItems);
+    const [primario, ...restoDestinos] = destinos;
     return {
       ...seleccionada,
+      pisoDestino: primario?.piso ?? seleccionada.pisoDestino,
+      sectorDestino: primario?.area ?? seleccionada.sectorDestino,
+      etiquetaDestino: primario?.etiqueta ?? seleccionada.etiquetaDestino,
       lineas: loteItems.flatMap((c) => c.lineas),
       idsEnLote: loteItems.map((c) => c.idSolicitud),
+      destinosEnLote: restoDestinos.length > 0 ? restoDestinos : undefined,
     };
   }, [cards, seleccionada]);
 
@@ -224,33 +253,66 @@ export default function AlmacenTableroPedidosPage() {
 
             {showSettings && (
               <div
-                className="absolute right-0 mt-2 w-56 bg-white rounded-2xl shadow-2xl border border-gray-100 z-[100] p-2 animate-fadeIn"
+                className="absolute right-0 mt-2 w-72 bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-100 z-[100] p-4 animate-slideUpFade"
                 role="menu"
               >
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">
+                    Configuración de Alertas
+                  </span>
+                </div>
+                
                 <button
                   type="button"
-                  role="menuitem"
                   onClick={() => {
                     setSilence15Min();
                     setShowSettings(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-xs font-bold text-gray-600 transition-all"
+                  className="w-full flex items-center gap-2.5 px-4 py-3 mb-4 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-bold text-amber-900 transition-all active:scale-[0.98]"
                 >
-                  <VolumeX className="w-4 h-4" />
-                  Silencio 15 min
+                  <VolumeX className="w-4 h-4 shrink-0 text-amber-600" />
+                  <span>Silenciar por 15 Minutos</span>
                 </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    void playKioskChime();
-                    setShowSettings(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 text-xs font-bold text-gray-600 transition-all"
-                >
-                  <Volume2 className="w-4 h-4" />
-                  Probar sonido
-                </button>
+
+                <div className="space-y-1.5">
+                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block px-1 mb-1">
+                    Tema del Timbre
+                  </span>
+                  
+                  {([
+                    { id: "boutique", label: "Boutique Chime", desc: "Acorde elegante y suave" },
+                    { id: "crystal", label: "Crystal Ping", desc: "Tono cristalino agudo" },
+                    { id: "double", label: "Doble Beep", desc: "Dos tonos rápidos y limpios" },
+                    { id: "kiosk", label: "Kiosk Clásico", desc: "Tres tonos clásicos de Dakani" },
+                    { id: "mute", label: "Silenciado", desc: "Sin alertas de sonido" }
+                  ] as { id: SoundTheme; label: string; desc: string }[]).map((theme) => {
+                    const active = temaSonido === theme.id;
+                    return (
+                      <button
+                        key={theme.id}
+                        type="button"
+                        onClick={() => {
+                          setSoundTheme("almacen", theme.id);
+                          setTemaSonido(theme.id);
+                          void playSoundByTheme(theme.id);
+                        }}
+                        className={`w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl border text-xs transition-all active:scale-[0.99] ${
+                          active
+                            ? "bg-black border-black text-white shadow-md font-bold"
+                            : "bg-gray-50/50 hover:bg-gray-100/80 border-gray-100 text-gray-700"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <p className={`font-semibold ${active ? "text-white" : "text-black"}`}>{theme.label}</p>
+                          <p className={`text-[10px] mt-0.5 ${active ? "text-white/70" : "text-gray-400"}`}>{theme.desc}</p>
+                        </div>
+                        {active && (
+                          <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -288,6 +350,32 @@ export default function AlmacenTableroPedidosPage() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             onSelect={setSeleccionId}
+            encabezadoExtra={
+              accesoAreaAlmacen?.esAlmaceneroGeneral ? (
+                <div className="flex flex-wrap gap-2 p-4 border-b border-gray-100 shrink-0">
+                  {accesoAreaAlmacen.sectoresVisibles.map((sector) => (
+                    <button
+                      key={sector}
+                      type="button"
+                      onClick={() => setSectorFiltro(sector)}
+                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                        sectorFiltro === sector
+                          ? "bg-black text-white shadow-md"
+                          : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
+                      }`}
+                    >
+                      {sector}
+                    </button>
+                  ))}
+                </div>
+              ) : accesoAreaAlmacen?.etiquetaAreaAsignada ? (
+                <div className="px-4 py-3 border-b border-gray-100 shrink-0">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                    Cola · {accesoAreaAlmacen.etiquetaAreaAsignada}
+                  </p>
+                </div>
+              ) : null
+            }
           />
         </aside>
 

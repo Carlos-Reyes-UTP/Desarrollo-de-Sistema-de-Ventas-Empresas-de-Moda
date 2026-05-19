@@ -14,15 +14,19 @@ import com.tienda.ropa.dto.AlmacenSolicitudLineaDTO;
 import com.tienda.ropa.dto.CrearSolicitudDTO;
 import com.tienda.ropa.dto.DetalleSolicitudLineaDTO;
 import com.tienda.ropa.dto.TrasladoInventarioDTO;
+import com.tienda.ropa.entity.Area;
 import com.tienda.ropa.entity.DetalleSolicitud;
 import com.tienda.ropa.entity.EstadoSolicitud;
 import com.tienda.ropa.entity.MotivoRechazoSolicitud;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.entity.Role;
 import com.tienda.ropa.entity.Solicitud;
 import com.tienda.ropa.entity.TipoSolicitud;
 import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Usuario;
+import com.tienda.ropa.service.InventarioContextService;
+import com.tienda.ropa.service.InventarioService;
 import com.tienda.ropa.repository.DetalleSolicitudRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.SolicitudRepository;
@@ -43,6 +47,7 @@ public class SolicitudServiceImpl implements SolicitudService {
     private final UsuarioRepository usuarioRepository;
     private final ProductoVarianteRepository productoVarianteRepository;
     private final TrasladoInventarioService trasladoInventarioService;
+    private final InventarioContextService inventarioContextService;
 
     @Override
     @Transactional
@@ -99,9 +104,57 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<AlmacenSolicitudCardDTO> listarColaPendientes() {
-        List<Solicitud> lista = solicitudRepository.findColaPendientesConDetalles(EstadoSolicitud.PENDIENTE);
+    public List<AlmacenSolicitudCardDTO> listarColaPendientes(Usuario usuario, String sectorOpcional) {
+        Long idAreaFiltro = resolverIdAreaCatalogoCola(usuario, sectorOpcional);
+        List<Solicitud> lista;
+        if (idAreaFiltro != null) {
+            lista = solicitudRepository.findColaPendientesConDetallesPorAreaOrigen(
+                    EstadoSolicitud.PENDIENTE, idAreaFiltro);
+        } else {
+            lista = solicitudRepository.findColaPendientesConDetalles(EstadoSolicitud.PENDIENTE);
+        }
         return lista.stream().map(this::toCard).collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    private Long resolverIdAreaCatalogoCola(Usuario usuario, String sectorOpcional) {
+        if (usuario == null) {
+            return null;
+        }
+        if (inventarioContextService.esAlmaceneroDeLinea(usuario)) {
+            UbicacionArea asignada = usuario.getAreaAsignado();
+            if (asignada == null || asignada.getArea() == null || asignada.getArea().getIdArea() == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "El almacenero no tiene área de almacén asignada. Contacte al administrador.");
+            }
+            return asignada.getArea().getIdArea();
+        }
+        if (inventarioContextService.esAlmaceneroGeneral(usuario)) {
+            if (sectorOpcional == null || sectorOpcional.isBlank()
+                    || InventarioContextService.NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorOpcional.trim())) {
+                return null;
+            }
+            Long idArea = inventarioContextService.idAreaCatalogoPorNombre(sectorOpcional.trim());
+            if (idArea == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "Sector no válido: " + sectorOpcional);
+            }
+            return idArea;
+        }
+        Role rol = inventarioContextService.rolPrincipalInventario(usuario);
+        if (rol == Role.ADMIN || rol == Role.SUPERVISOR_ALMACEN) {
+            if (sectorOpcional != null && !sectorOpcional.isBlank()
+                    && !InventarioContextService.NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorOpcional.trim())) {
+                Long idArea = inventarioContextService.idAreaCatalogoPorNombre(sectorOpcional.trim());
+                if (idArea == null) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "Sector no válido: " + sectorOpcional);
+                }
+                return idArea;
+            }
+            return null;
+        }
+        return null;
     }
 
     private AlmacenSolicitudCardDTO toCard(Solicitud s) {
@@ -109,6 +162,20 @@ public class SolicitudServiceImpl implements SolicitudService {
         String nombreVendedor = s.getUsuario() != null ? s.getUsuario().getUsuario() : "Sistema";
         List<DetalleSolicitud> detalles = s.getDetalles() != null ? s.getDetalles() : List.of();
         List<AlmacenSolicitudLineaDTO> lineas = detalles.stream().map(this::toLinea).toList();
+        UbicacionArea origen = s.getUbicacionAreaOrigen();
+        UbicacionArea destino = s.getUbicacionAreaDestino();
+        Long idOrigen = origen != null ? origen.getIdUbicacionArea() : null;
+        Long idDestino = destino != null ? destino.getIdUbicacionArea() : null;
+        Area areaOrigen = origen != null ? origen.getArea() : null;
+        Area areaDestino = destino != null ? destino.getArea() : null;
+        String pisoOrigen = origen != null && origen.getUbicacion() != null
+                ? origen.getUbicacion().getNombre() : null;
+        String pisoDestino = destino != null && destino.getUbicacion() != null
+                ? destino.getUbicacion().getNombre() : null;
+        String sectorOrigen = areaOrigen != null ? areaOrigen.getNombre() : null;
+        String sectorDestino = areaDestino != null ? areaDestino.getNombre() : null;
+        String etiquetaOrigen = origen != null ? InventarioService.etiquetaUbicacionArea(origen) : null;
+        String etiquetaDestino = destino != null ? InventarioService.etiquetaUbicacionArea(destino) : null;
         return new AlmacenSolicitudCardDTO(
                 s.getIdSolicitud(),
                 s.getTipoSolicitud().name(),
@@ -116,7 +183,42 @@ public class SolicitudServiceImpl implements SolicitudService {
                 idUsuario,
                 nombreVendedor,
                 s.getCodigoLote(),
+                idOrigen,
+                pisoOrigen,
+                sectorOrigen,
+                etiquetaOrigen,
+                idDestino,
+                pisoDestino,
+                sectorDestino,
+                etiquetaDestino,
                 lineas);
+    }
+
+    private void validarAccesoSolicitud(Usuario usuario, Solicitud s) {
+        if (usuario == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado");
+        }
+        if (!inventarioContextService.esAlmaceneroDeLinea(usuario)) {
+            return;
+        }
+        UbicacionArea asignada = usuario.getAreaAsignado();
+        if (asignada == null || asignada.getArea() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "El almacenero no tiene área asignada para atender solicitudes.");
+        }
+        Long idAreaCatalogo = asignada.getArea().getIdArea();
+        UbicacionArea origen = s.getUbicacionAreaOrigen();
+        if (origen == null || origen.getArea() == null
+                || !idAreaCatalogo.equals(origen.getArea().getIdArea())) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "No puede atender solicitudes de otra línea ("
+                            + (origen != null && origen.getArea() != null
+                                    ? origen.getArea().getNombre()
+                                    : "desconocida")
+                            + ").");
+        }
     }
 
     private AlmacenSolicitudLineaDTO toLinea(DetalleSolicitud d) {
@@ -131,12 +233,13 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     @Transactional
-    public Solicitud atenderSolicitud(Long idSolicitud) {
-        Solicitud s = solicitudRepository.findById(idSolicitud)
+    public Solicitud atenderSolicitud(Long idSolicitud, Usuario usuario) {
+        Solicitud s = solicitudRepository.findByIdWithUbicaciones(idSolicitud)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
         if (s.getEstado() != EstadoSolicitud.PENDIENTE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud ya no está pendiente");
         }
+        validarAccesoSolicitud(usuario, s);
 
         // Si el almacenero atiende la solicitud, se asume que el stock se mueve físicamente
         // desde la ubicación origen hacia la destino (venta/reposición).
@@ -159,7 +262,7 @@ public class SolicitudServiceImpl implements SolicitudService {
                         origen.getIdUbicacionArea(),
                         destino.getIdUbicacionArea(),
                         cant
-                ), null);
+                ), usuario);
             }
         }
 
@@ -170,24 +273,25 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     @Transactional
-    public void atenderSolicitudesLote(List<Long> idsSolicitud) {
+    public void atenderSolicitudesLote(List<Long> idsSolicitud, Usuario usuario) {
         if (idsSolicitud == null || idsSolicitud.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe indicar al menos un id de solicitud");
         }
         List<Long> unicos = idsSolicitud.stream().distinct().toList();
         for (Long id : unicos) {
-            atenderSolicitud(id);
+            atenderSolicitud(id, usuario);
         }
     }
 
     @Override
     @Transactional
-    public Solicitud rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo) {
-        Solicitud s = solicitudRepository.findById(idSolicitud)
+    public Solicitud rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, Usuario usuario) {
+        Solicitud s = solicitudRepository.findByIdWithUbicaciones(idSolicitud)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
         if (s.getEstado() != EstadoSolicitud.PENDIENTE) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud ya no está pendiente");
         }
+        validarAccesoSolicitud(usuario, s);
         s.setEstado(EstadoSolicitud.CANCELADO);
         s.setMotivoRechazo(motivo);
         return solicitudRepository.save(s);

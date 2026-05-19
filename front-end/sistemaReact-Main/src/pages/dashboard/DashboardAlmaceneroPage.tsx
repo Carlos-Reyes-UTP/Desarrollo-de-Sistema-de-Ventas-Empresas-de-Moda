@@ -15,6 +15,8 @@ import {
 } from 'recharts';
 import { AlmacenSolicitudesApi } from '@/services/AlmacenSolicitudesService';
 import type { AlmacenSolicitud } from '@/types/AlmacenSolicitudes';
+import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
+import { SECTOR_ALMACEN_GENERAL } from '@/shared/constants/sectoresAlmacen';
 import { useAuth } from '@/context/AuthContext';
 import { useAuthReady } from '@/hooks/useAuthReady';
 import { AuthLoadingScreen } from '@/shared/auth/AuthLoadingScreen';
@@ -57,7 +59,22 @@ const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<
 const DashboardAlmaceneroPage = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
   const { usuario } = useAuth();
+  const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
+  const [sectorFiltro, setSectorFiltro] = useState(SECTOR_ALMACEN_GENERAL);
   const navigate = useNavigate();
+
+  const sectorParaCola = useMemo(() => {
+    if (!accesoAreaAlmacen?.esAlmaceneroGeneral) {
+      return undefined;
+    }
+    return sectorFiltro === SECTOR_ALMACEN_GENERAL ? undefined : sectorFiltro;
+  }, [accesoAreaAlmacen, sectorFiltro]);
+
+  useEffect(() => {
+    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
+      setSectorFiltro(SECTOR_ALMACEN_GENERAL);
+    }
+  }, [accesoAreaAlmacen?.esAlmaceneroGeneral]);
 
   // Estados para datos reales del API - TODOS LOS HOOKS PRIMERO
   const [productosData, setProductosData] = useState<ProductoStats>({
@@ -89,7 +106,7 @@ const DashboardAlmaceneroPage = () => {
 
   const cargarCola = useCallback(async () => {
     try {
-      const data = await AlmacenSolicitudesApi.cola();
+      const data = await AlmacenSolicitudesApi.cola(sectorParaCola);
       // Sonido si hay nuevas ventas
       const ventaIds = new Set<number>();
       for (const c of data) {
@@ -110,7 +127,7 @@ const DashboardAlmaceneroPage = () => {
     } catch (e) {
       console.error("Error cargando cola:", e);
     }
-  }, []);
+  }, [sectorParaCola]);
 
   useEffect(() => {
     cargarCola();
