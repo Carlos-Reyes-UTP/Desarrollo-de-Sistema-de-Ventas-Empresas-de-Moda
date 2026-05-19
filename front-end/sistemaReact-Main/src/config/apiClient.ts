@@ -1,14 +1,7 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { API_BASE_URL as BASE_URL_CONSTANTE } from './apiConfig';
-
-// Interfaz para token decodificado
-interface TokenDecodificado {
-  sub: string;
-  authorities?: string[] | string;
-  exp: number;
-  [key: string]: any;
-}
+import type { TokenDecodificado } from '../types/TokenDecodificado';
 
 // Crear una instancia personalizada de axios
 const apiClient = axios.create({
@@ -21,18 +14,25 @@ const apiClient = axios.create({
   timeout: 15000, // 15 segundos
 });
 
-// Variable para almacenar el token actual
-let currentToken: string | null = null;
+// Variable para almacenar el token actual, pre-hidratada desde localStorage en el cliente
+let currentToken: string | null = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
-// Función para actualizar el token
+// Función para actualizar el token y sincronizar con localStorage
 export const setAuthToken = (token: string | null) => {
   currentToken = token;
+  if (typeof window !== 'undefined') {
+    if (token) {
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('token');
+    }
+  }
 };
 
 // Función para verificar si el token está próximo a expirar
 export const isTokenExpiringSoon = (): boolean => {
   try {
-    const token = currentToken || localStorage.getItem('token');
+    const token = currentToken;
     if (!token) return true;
     
     const decodificado = jwtDecode<TokenDecodificado>(token);
@@ -59,7 +59,7 @@ export const isTokenExpiringSoon = (): boolean => {
 // Interceptor para añadir el token JWT a las cabeceras
 apiClient.interceptors.request.use(
   (config) => {
-    const token = currentToken || localStorage.getItem('token');
+    const token = currentToken;
     
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;

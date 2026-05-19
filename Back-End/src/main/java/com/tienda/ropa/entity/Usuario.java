@@ -42,6 +42,10 @@ public class Usuario implements UserDetails {
     @Column(name = "activo")
     private boolean activo;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_ubicacion_area_asignada")
+    private UbicacionArea areaAsignado;
+
     @ManyToMany(fetch = FetchType.EAGER, targetEntity = Rol.class, cascade = CascadeType.ALL)
     @JoinTable(name = "usuario_rol",
     joinColumns = @JoinColumn(name = "id_usuario"),

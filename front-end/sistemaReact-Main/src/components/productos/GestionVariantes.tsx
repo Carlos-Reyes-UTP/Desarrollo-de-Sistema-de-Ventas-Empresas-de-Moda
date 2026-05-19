@@ -65,7 +65,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       setError(null);
       const variantesData = await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto);
       const variantesUnicas = Array.from(new Map(variantesData.map(v => [v.idVariante, v])).values());
-      const variantesOrdenadas = [...variantesUnicas].sort((a, b) => {
+      const variantesOrdenadas = variantesUnicas.toSorted((a, b) => {
         const compareTalla = (a.talla?.nombreTalla ?? '').localeCompare(b.talla?.nombreTalla ?? '');
         if (compareTalla !== 0) return compareTalla;
         return (a.color?.nombre ?? '').localeCompare(b.color?.nombre ?? '');
@@ -127,7 +127,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         codigoBarrasVariante: formVariante.codigoIdentificacion
       };
       const varianteCreada = await ProductoVarianteService.crearVariante(nuevaVariante);
-      setVariantes(prev => [...prev, varianteCreada].sort((a, b) => {
+      setVariantes(prev => [...prev, varianteCreada].toSorted((a, b) => {
         const cT = a.talla.nombreTalla.localeCompare(b.talla.nombreTalla);
         return cT !== 0 ? cT : a.color.nombre.localeCompare(b.color.nombre);
       }));
@@ -449,7 +449,7 @@ const VarianteRow: React.FC<{
 }> = ({ variante, onActualizarCantidad, onEliminar, onAlert, ocultarColumnaVariante }) => {
   const stockAlmacen = variante.stockAlmacen ?? variante.cantidad;
   const [editandoCantidad, setEditandoCantidad] = useState(false);
-  const [nuevaCantidad, setNuevaCantidad] = useState(stockAlmacen.toString());
+  const [nuevaCantidad, setNuevaCantidad] = useState(() => stockAlmacen.toString());
   const [guardando, setGuardando] = useState(false);
 
   useEffect(() => {

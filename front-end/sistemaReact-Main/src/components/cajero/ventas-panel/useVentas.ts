@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useAuthReady } from '../../../hooks/useAuthReady';
-import { useAuth } from '../../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { ClienteService } from '../../../services/ClienteService';
 import { VentaService } from '../../../services/VentaService';
 import { ProductoService } from '../../../services/ProductoService';
@@ -12,8 +12,11 @@ import type { Cliente } from '../../../types/Cliente';
 import type { VentaInput } from '../../../types/Venta';
 import type { DetalleVentaInput } from '../../../types/DetalleVenta';
 import { getErrorMessage } from '../../../utils/errorUtils';
+import { logger } from '../../../utils/logger';
 import { imprimirBoletaVenta } from './printBoleta';
 import type { DatosVentaBoleta, PrecioCalculado } from './types';
+import { FACTOR_IGV } from '../../../shared/constants/impuestos';
+import { METODO_PAGO_ID, METODOS_PAGO_QR } from '../../../shared/constants/metodosPago';
 
 export const useVentas = () => {
 const { isReady, isAuthenticated } = useAuthReady();
@@ -78,7 +81,7 @@ const { isReady, isAuthenticated } = useAuthReady();
         setMensajeInfoVista(null);
       }
     } catch (err: unknown) {
-      console.error('Error al cargar variantes paginadas:', err);
+      logger.error('Error al cargar variantes paginadas:', err);
       setErrorGlobal(getErrorMessage(err, 'No se pudieron cargar los productos.'));
       setMensajeInfoVista(null);
     } finally {
@@ -123,27 +126,19 @@ const { isReady, isAuthenticated } = useAuthReady();
   // Efecto para recalcular precios del carrito cuando cambia el estado de mayorista
   useEffect(() => {
     if (productosSeleccionadosVenta.length > 0) {
-      console.log('[INFO] Recalculando precios del carrito - Cliente mayorista:', esMayorista);
+      logger.info('Recalculando precios del carrito - cliente mayorista:', esMayorista);
       
       setProductosSeleccionadosVenta(prev => prev.map(item => {
-        // Obtener la variante con precios completos
         const varianteCompleta = variantesConPreciosCompletos.get(item.idProductoVariante);
         
         if (varianteCompleta) {
-          // Calcular nuevo precio según el estado de mayorista
           const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteCompleta, item.cantidad);
-          
-          return {
-            ...item,
-            precio: nuevoPrecio,
-            total: item.cantidad * nuevoPrecio
-          };
+          return { ...item, precio: nuevoPrecio, total: item.cantidad * nuevoPrecio };
         }
-        
         return item;
       }));
     }
-  }, [esMayorista]); // Se ejecuta cuando cambia el estado de mayorista
+  }, [esMayorista]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // --------------------------------------------------------------------------------------------
   // C. MANEJADORES DE LÓGICA DE PRODUCTOS Y VENTA
@@ -230,7 +225,6 @@ const { isReady, isAuthenticated } = useAuthReady();
     const terminoBusqueda = busqueda.trim();
     if (terminoBusqueda === '') {
       setMensajeInfoVista(null);
-      // Recargar la primera página sin filtros
       cargarVariantesPaginadas(0);
       return;
     }
@@ -239,12 +233,9 @@ const { isReady, isAuthenticated } = useAuthReady();
       setCargandoBusquedaAccion(true);
       setErrorGlobal(null);
       setMensajeInfoVista(`Buscando "${terminoBusqueda}" en base de datos...`);
-
-      // Hacer la búsqueda directa en el servidor
       await cargarVariantesPaginadas(0, terminoBusqueda);
-      
     } catch (err: unknown) {
-      console.error('Error en handleBuscarEnServicio:', err);
+      logger.error('Error en handleBuscarEnServicio:', err);
       setErrorGlobal(getErrorMessage(err, 'Error al buscar en la base de datos.'));
       setMensajeInfoVista(null);
     } finally {
@@ -260,11 +251,8 @@ const { isReady, isAuthenticated } = useAuthReady();
       setMensajeInfoVista(`Procesando código "${codigoScaneado}"...`);
       
       const codigoLimpio = codigoScaneado.trim();
-      
-      // Disparar búsqueda al BACKEND por este código específico
       const resultado = await ProductoVarianteService.obtenerVariantesPaginadas(0, 5, codigoLimpio);
       
-      // Buscar coincidencia exacta en los resultados del servidor
       const varianteEncontrada = resultado.content.find(v => 
         v.codigoBarrasVariante === codigoLimpio || 
         (v.producto && (v.producto.codigoIdentificacion === codigoLimpio || v.producto.codigoBarras === codigoLimpio))
@@ -285,10 +273,8 @@ const { isReady, isAuthenticated } = useAuthReady();
         setMensajeInfoVista(null);
       }
     } catch (err: unknown) {
-      console.error('Error en handleBuscarPorCodigoExacto:', err);
-      setErrorGlobal(
-        getErrorMessage(err, `Error al procesar código "${codigoScaneado}".`)
-      );
+      logger.error('Error en handleBuscarPorCodigoExacto:', err);
+      setErrorGlobal(getErrorMessage(err, `Error al procesar código "${codigoScaneado}".`));
       setMensajeInfoVista(null);
     } finally {
       setCargandoBusquedaAccion(false);
@@ -299,22 +285,18 @@ const { isReady, isAuthenticated } = useAuthReady();
   const verificarEsMayorista = async (numeroDocumento: string) => {
     setVerificandoMayorista(true);
     try {
-      console.log('[DEBUG] Verificando si el cliente es mayorista:', numeroDocumento);
-      console.log('[DEBUG] Rol del usuario actual:', usuario?.roles?.[0]?.nombreRol);
-      
+      logger.debug('Verificando si el cliente es mayorista:', numeroDocumento);
       const userRole = usuario?.roles?.[0]?.nombreRol;
       const resultado = await MayoristaService.esMayorista(numeroDocumento, userRole);
       setEsMayorista(resultado);
       
       if (resultado) {
-        console.log('[INFO] Cliente es MAYORISTA - Aplicando precios de docena');
+        logger.info('Cliente MAYORISTA detectado - Aplicando precios de docena');
         setMensajeInfoVista('Cliente mayorista detectado - Precios especiales aplicados');
         setTimeout(() => setMensajeInfoVista(null), 4000);
-      } else {
-        console.log('[INFO] Cliente regular - Precios normales');
       }
     } catch (error) {
-      console.warn('Error al verificar mayorista:', error);
+      logger.warn('Error al verificar mayorista:', error);
       setEsMayorista(false);
     } finally {
       setVerificandoMayorista(false);
@@ -419,26 +401,19 @@ const { isReady, isAuthenticated } = useAuthReady();
           const userRole = usuario?.roles?.[0]?.nombreRol;
           productoCompleto = await ProductoService.getProductoById(variante.producto.idProducto, userRole);
           
-          // Crear una nueva variante con los precios completos del producto
-          varianteConPreciosCompletos = {
-            ...variante,
-            producto: productoCompleto
-          };
-          
-          // Guardar la variante con precios completos en el estado
+          varianteConPreciosCompletos = { ...variante, producto: productoCompleto };
           setVariantesConPreciosCompletos(prev => new Map(prev.set(idVariante, varianteConPreciosCompletos)));
           
-          console.log('[DEBUG] Producto completo obtenido con precios de volumen:', {
+          logger.debug('Producto completo obtenido con precios de volumen:', {
             producto: productoCompleto.nombre,
             precioUnitario: productoCompleto.precioUnitario,
             precioCuarto: productoCompleto.precioCuarto,
             precioMediaDocena: productoCompleto.precioMediaDocena,
-            precioDocena: productoCompleto.precioDocena
+            precioDocena: productoCompleto.precioDocena,
           });
         }
       } catch (error) {
-        console.warn('No se pudo obtener el producto completo, usando datos existentes:', error);
-        // Continuamos con los datos que ya tenemos
+        logger.warn('No se pudo obtener el producto completo, usando datos existentes:', error);
       }
       
       // Verificar nuevamente si ya existe en el carrito (por si cambió durante la carga del producto)
@@ -560,15 +535,11 @@ const { isReady, isAuthenticated } = useAuthReady();
     ));
   };
 
-  const totalConIgvIncluido = productosSeleccionadosVenta.reduce((acc, item) => {
-    // Para el cálculo del total, usamos el precio ya calculado y guardado en el item
-    // que ya incluye los descuentos por volumen aplicados cuando se agregó al carrito
-    return acc + item.total;
-  }, 0);
-  // Los precios ya incluyen IGV, por lo que extraemos el IGV del total
-  const subtotalVenta = totalConIgvIncluido / 1.18; // Monto sin IGV
-  const igvVenta = totalConIgvIncluido - subtotalVenta; // IGV extraído (18% del subtotal)
-  const totalGeneralVenta = totalConIgvIncluido; // Total original (ya incluye IGV)
+  const totalConIgvIncluido = productosSeleccionadosVenta.reduce((acc, item) => acc + item.total, 0);
+  // Los precios ya incluyen IGV — extraemos el componente neto y el IGV
+  const subtotalVenta = totalConIgvIncluido / FACTOR_IGV;
+  const igvVenta = totalConIgvIncluido - subtotalVenta;
+  const totalGeneralVenta = totalConIgvIncluido;
 
   // --------------------------------------------------------------------------------------------
   // D. MANEJADORES DE LÓGICA DE PAGO Y FINALIZACIÓN
@@ -593,12 +564,12 @@ const { isReady, isAuthenticated } = useAuthReady();
 
     setCargandoProcesoVenta(true);
 
-    if (metodoPago === 'yape' || metodoPago === 'plin') {
+    if (METODOS_PAGO_QR.includes(metodoPago)) {
       const qrContent = `TipoPago: ${metodoPago.toUpperCase()}\nMonto: S/${totalGeneralVenta.toFixed(2)}\nCliente: ${cliente}\nReferencia: VTA-${Date.now()}`;
       setQrDataModal({ url: qrContent, tipo: metodoPago.toUpperCase() });
       setMostrarModalQR(true);
-      setCargandoProcesoVenta(false); 
-    } else { 
+      setCargandoProcesoVenta(false);
+    } else {
       await ejecutarFinalizacionVenta();
     }
   };
@@ -611,9 +582,8 @@ const { isReady, isAuthenticated } = useAuthReady();
     try {
       // Obtener el usuario actual desde el backend (ya no necesitamos el ID del token)
       const usuarioActual = await VentaService.obtenerUsuarioActual();
-      console.log('Usuario actual obtenido:', usuarioActual);
+      logger.debug('Usuario actual obtenido:', usuarioActual.usuario);
       
-      // Primero verificamos si el cliente ya está registrado
       let clienteId = clienteSeleccionado?.idCliente;
       
       // Si no hay cliente seleccionado pero tenemos nombre, intentamos crear uno nuevo
@@ -677,12 +647,9 @@ const { isReady, isAuthenticated } = useAuthReady();
         detalles: detallesVenta
       };
       
-      console.log('Enviando datos de venta final al backend:', ventaParaEnviar);
-      console.log('Usuario actual que realizará la venta:', usuarioActual);
-      
-      // Registrar la venta usando el servicio
+      logger.debug('Enviando venta al backend:', { cliente, metodoPago, totalGeneralVenta });
       const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
-      console.log('Venta registrada exitosamente:', ventaRegistrada);
+      logger.info('Venta registrada exitosamente. ID:', ventaRegistrada);
 
       // El stock se descuenta en el mismo backend al registrar la venta (ubicación de tienda + reposición si aplica).
 
@@ -730,10 +697,8 @@ const { isReady, isAuthenticated } = useAuthReady();
       resetearFormulario();
       
     } catch (err: unknown) {
-      console.error('Error al ejecutar finalización de venta:', err);
-      setErrorGlobal(
-        getErrorMessage(err, 'Error crítico al registrar la venta. Contacte a soporte.')
-      );
+      logger.error('Error al ejecutar finalización de venta:', err);
+      setErrorGlobal(getErrorMessage(err, 'Error crítico al registrar la venta. Contacte a soporte.'));
     } finally {
       setCargandoProcesoVenta(false);
     }
@@ -767,13 +732,8 @@ const { isReady, isAuthenticated } = useAuthReady();
   
   // Función auxiliar para obtener el ID de método de pago basado en el string
   const obtenerIdMetodoPago = (metodo: string): number => {
-    switch (metodo) {
-      case 'efectivo': return 1;
-      case 'tarjeta': return 2;
-      case 'yape': return 3;
-      case 'plin': return 4;
-      default: return 1; // Efectivo por defecto
-    }
+    const key = metodo.toUpperCase() as keyof typeof METODO_PAGO_ID;
+    return METODO_PAGO_ID[key] ?? METODO_PAGO_ID.EFECTIVO;
   };
   const handleImprimirBoleta = () => {
     if (!datosVentaParaBoleta) return;

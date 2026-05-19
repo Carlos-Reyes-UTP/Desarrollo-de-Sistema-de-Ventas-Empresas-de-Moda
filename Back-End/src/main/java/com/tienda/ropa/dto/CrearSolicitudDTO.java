@@ -4,7 +4,8 @@ import java.util.List;
 
 public record CrearSolicitudDTO(
         String tipoSolicitud,
-        Long idUbicacionOrigen,
-        Long idUbicacionDestino,
-        List<DetalleSolicitudLineaDTO> detalles
+        Long idUbicacionAreaOrigen,
+        Long idUbicacionAreaDestino,
+        List<DetalleSolicitudLineaDTO> detalles,
+        String codigoLote
 ) {}

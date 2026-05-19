@@ -2,19 +2,20 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent }
 import { ArrowRight, Loader2, PackageSearch, X } from "lucide-react";
 import axios from "axios";
 import { AlmacenService } from "@/services/AlmacenService";
-import type { StockUbicacion, Ubicacion } from "@/types/Almacen";
+import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
+import type { StockUbicacion, UbicacionArea } from "@/types/Almacen";
 
 interface MoverMercaderiaModalProps {
   abierto: boolean;
-  /** Primero elige destino; luego sugerencias con stock en Almacén. */
+  /** Primero elige destino; luego sugerencias con stock en Almacen. */
   modoDestinoLibre?: boolean;
   /** Listado de variantes solo con stock en esta ubicación (botón en fila de área); el destino del traslado se elige en el paso 1. */
-  ubicacionOrigenStock?: Ubicacion | null;
+  ubicacionOrigenStock?: UbicacionArea | null;
   onCerrar: () => void;
   onExito: () => void;
 }
 
-const formatoUbicacion = (u: Pick<Ubicacion, "nombre" | "area">) =>
+const formatoUbicacion = (u: Pick<UbicacionArea, "nombre" | "area">) =>
   u.area ? `${u.nombre} · ${u.area}` : u.nombre;
 
 const origenEtiqueta = (v: StockUbicacion) =>
@@ -30,8 +31,8 @@ const MoverMercaderiaModal = ({
   onCerrar,
   onExito,
 }: MoverMercaderiaModalProps) => {
-  const [destinoEfectivo, setDestinoEfectivo] = useState<Ubicacion | null>(null);
-  const [destinosDisponibles, setDestinosDisponibles] = useState<Ubicacion[]>([]);
+  const [destinoEfectivo, setDestinoEfectivo] = useState<UbicacionArea | null>(null);
+  const [destinosDisponibles, setDestinosDisponibles] = useState<UbicacionArea[]>([]);
   const [idDestinoPaso1, setIdDestinoPaso1] = useState<number | "">("");
   const [cargandoDestinos, setCargandoDestinos] = useState(false);
 
@@ -49,6 +50,7 @@ const MoverMercaderiaModal = ({
   const [error, setError] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
+  const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(abierto);
 
   const requierePasoDestino = modoDestinoLibre || !!ubicacionOrigenStock;
 
@@ -79,27 +81,35 @@ const MoverMercaderiaModal = ({
     if (ubicacionOrigenStock) {
       setDestinoEfectivo(null);
       setCargandoDestinos(true);
+      if (accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo) {
+        const lista = accesoAreaAlmacen.destinosTraslado.filter(
+          (u) => u.idUbicacionArea !== ubicacionOrigenStock.idUbicacionArea
+        );
+        setDestinosDisponibles(lista);
+        setCargandoDestinos(false);
+        return;
+      }
       Promise.all([
         AlmacenService.listarPisos().then((pisos) =>
-          Promise.all(pisos.map((p) => AlmacenService.listarAreasDePiso(p).catch(() => [] as Ubicacion[])))
+          Promise.all(pisos.map((p) => AlmacenService.listarAreasDePiso(p).catch(() => [] as UbicacionArea[])))
         ),
         AlmacenService.stockDesdeAlmacen().catch(() => null),
       ])
         .then(([chunks, stockAlm]) => {
-          let lista: Ubicacion[] = chunks.flat();
+          let lista: UbicacionArea[] = chunks.flat();
           if (stockAlm) {
-            const etiqueta = stockAlm.nombreUbicacion ?? "Almacén";
+            const etiqueta = stockAlm.etiquetaAlmacen ?? "Almacen";
             const partes = etiqueta.split(" · ");
-            const uAlm: Ubicacion = {
-              idUbicacion: stockAlm.idUbicacionOrigen,
-              nombre: partes[0]?.trim() || "Almacén",
+            const uAlm: UbicacionArea = {
+              idUbicacionArea: stockAlm.idUbicacionAreaOrigen,
+              nombre: partes[0]?.trim() || "Almacen",
               area: partes.length > 1 ? partes.slice(1).join(" · ").trim() || null : null,
               descripcion: null,
             };
-            const ids = new Set(lista.map((u) => u.idUbicacion));
-            if (!ids.has(uAlm.idUbicacion)) lista = [uAlm, ...lista];
+            const ids = new Set(lista.map((u) => u.idUbicacionArea));
+            if (!ids.has(uAlm.idUbicacionArea)) lista = [uAlm, ...lista];
           }
-          lista = lista.filter((u) => u.idUbicacion !== ubicacionOrigenStock.idUbicacion);
+          lista = lista.filter((u) => u.idUbicacionArea !== ubicacionOrigenStock.idUbicacionArea);
           setDestinosDisponibles(lista);
         })
         .catch((err) => {
@@ -114,11 +124,16 @@ const MoverMercaderiaModal = ({
     if (modoDestinoLibre) {
       setDestinoEfectivo(null);
       setCargandoDestinos(true);
+      if (accesoAreaAlmacen?.esAlmaceneroGeneral || accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo) {
+        setDestinosDisponibles(accesoAreaAlmacen.destinosTraslado);
+        setCargandoDestinos(false);
+        return;
+      }
       AlmacenService.listarPisos()
         .then((pisos) =>
           Promise.all(
             pisos.map((p) =>
-              AlmacenService.listarAreasDePiso(p).catch(() => [] as Ubicacion[])
+              AlmacenService.listarAreasDePiso(p).catch(() => [] as UbicacionArea[])
             )
           )
         )
@@ -132,7 +147,7 @@ const MoverMercaderiaModal = ({
         })
         .finally(() => setCargandoDestinos(false));
     }
-  }, [abierto, modoDestinoLibre, ubicacionOrigenStock, resetFormularioTraslado]);
+  }, [abierto, modoDestinoLibre, ubicacionOrigenStock, resetFormularioTraslado, accesoAreaAlmacen]);
 
   useEffect(() => {
     if (!abierto || !ubicacionOrigenStock) {
@@ -141,7 +156,7 @@ const MoverMercaderiaModal = ({
     }
     let cancelled = false;
     setCargandoStockArea(true);
-    AlmacenService.stockPorUbicacion(ubicacionOrigenStock.idUbicacion)
+    AlmacenService.stockPorUbicacionArea(ubicacionOrigenStock.idUbicacionArea)
       .then((data) => {
         if (!cancelled) setStockAreaCompleto(Array.isArray(data) ? data : []);
       })
@@ -158,7 +173,7 @@ const MoverMercaderiaModal = ({
     return () => {
       cancelled = true;
     };
-  }, [abierto, ubicacionOrigenStock?.idUbicacion]);
+  }, [abierto, ubicacionOrigenStock?.idUbicacionArea]);
 
   useEffect(() => {
     if (!abierto || !destinoEfectivo || ubicacionOrigenStock) {
@@ -172,7 +187,16 @@ const MoverMercaderiaModal = ({
       abortRef.current = ctrl;
       setCargandoSugerencias(true);
       setError(null);
-      AlmacenService.buscarStockOrigenTraslado(textoBusqueda, 30, ctrl.signal, false)
+      const sectorBusqueda = accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo
+        ? accesoAreaAlmacen.sectoresVisibles[0]
+        : destinoEfectivo?.area ?? undefined;
+      AlmacenService.buscarStockOrigenTraslado(
+        textoBusqueda,
+        30,
+        ctrl.signal,
+        true,
+        sectorBusqueda
+      )
         .then((data) => {
           setSugerencias(Array.isArray(data) ? data : []);
           setIndiceResaltado(0);
@@ -195,7 +219,7 @@ const MoverMercaderiaModal = ({
       window.clearTimeout(t);
       abortRef.current?.abort();
     };
-  }, [abierto, destinoEfectivo?.idUbicacion, ubicacionOrigenStock, textoBusqueda]);
+  }, [abierto, destinoEfectivo?.idUbicacionArea, ubicacionOrigenStock, textoBusqueda, accesoAreaAlmacen]);
 
   useEffect(() => {
     if (!abierto || !destinoEfectivo || !ubicacionOrigenStock) {
@@ -222,7 +246,7 @@ const MoverMercaderiaModal = ({
     }, delayMs);
 
     return () => window.clearTimeout(t);
-  }, [abierto, destinoEfectivo?.idUbicacion, ubicacionOrigenStock, textoBusqueda, stockAreaCompleto]);
+  }, [abierto, destinoEfectivo?.idUbicacionArea, ubicacionOrigenStock, textoBusqueda, stockAreaCompleto]);
 
   useEffect(() => {
     if (textoBusqueda !== (filaSeleccionada ? etiquetaProducto(filaSeleccionada) : "")) {
@@ -234,7 +258,7 @@ const MoverMercaderiaModal = ({
 
   const puedeEnviar =
     !!destinoEfectivo &&
-    !!filaSeleccionada?.idUbicacion &&
+    !!filaSeleccionada?.idUbicacionArea &&
     !!filaSeleccionada.idVariante &&
     cantidad > 0 &&
     cantidad <= stockMaximo &&
@@ -245,7 +269,7 @@ const MoverMercaderiaModal = ({
 
   const confirmarDestinoPaso1 = () => {
     if (idDestinoPaso1 === "") return;
-    const elegido = destinosDisponibles.find((u) => u.idUbicacion === idDestinoPaso1);
+    const elegido = destinosDisponibles.find((u) => u.idUbicacionArea === idDestinoPaso1);
     if (!elegido) return;
     setDestinoEfectivo(elegido);
     resetFormularioTraslado();
@@ -271,8 +295,8 @@ const MoverMercaderiaModal = ({
     try {
       await AlmacenService.moverMercaderia({
         idVariante: filaSeleccionada.idVariante,
-        idUbicacionOrigen: filaSeleccionada.idUbicacion,
-        idUbicacionDestino: destinoEfectivo.idUbicacion,
+        idUbicacionAreaOrigen: filaSeleccionada.idUbicacionArea,
+        idUbicacionAreaDestino: destinoEfectivo.idUbicacionArea,
         cantidad,
       });
       onExito();
@@ -322,7 +346,7 @@ const MoverMercaderiaModal = ({
 
   const mensajeSinStock = ubicacionOrigenStock
     ? "No hay stock disponible en esta área para mover."
-    : "No hay stock disponible en Almacén para mover.";
+    : "No hay stock disponible en Almacen para mover.";
 
   if (!abierto) {
     return null;
@@ -348,8 +372,8 @@ const MoverMercaderiaModal = ({
                 ) : (
                   <>
                     Elige el piso o área de destino. Las sugerencias incluyen stock en{" "}
-                    <span className="font-bold text-gray-900">Almacén</span>; por variante se prioriza
-                    Almacén y cada línea indica el origen.
+                    <span className="font-bold text-gray-900">Almacen</span>; por variante se prioriza
+                    Almacen y cada línea indica el origen (Damas, Caballeros, Niños).
                   </>
                 )}
               </p>
@@ -368,7 +392,7 @@ const MoverMercaderiaModal = ({
                   ) : (
                     <>
                       Origen por línea:{" "}
-                      <span className="font-bold text-gray-900">Almacén</span> (según la sugerencia
+                      <span className="font-bold text-gray-900">Almacen</span> (según la sugerencia
                       elegida; se muestra en cada fila).
                     </>
                   )}
@@ -417,7 +441,7 @@ const MoverMercaderiaModal = ({
                 >
                   <option value="">Seleccione un destino</option>
                   {destinosDisponibles.map((u) => (
-                    <option key={u.idUbicacion} value={u.idUbicacion}>
+                    <option key={u.idUbicacionArea} value={u.idUbicacionArea}>
                       {formatoUbicacion(u)}
                     </option>
                   ))}
@@ -462,7 +486,7 @@ const MoverMercaderiaModal = ({
                     className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
                   >
                     {sugerencias.map((fila, idx) => (
-                      <li key={`${fila.idVariante}-${fila.idUbicacion}`} role="option" aria-selected={idx === indiceResaltado}>
+                      <li key={`${fila.idVariante}-${fila.idUbicacionArea}`} role="option" aria-selected={idx === indiceResaltado}>
                         <button
                           type="button"
                           className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 ${
@@ -497,7 +521,7 @@ const MoverMercaderiaModal = ({
                   <p className="mt-2 text-xs text-gray-500 font-medium">
                     {ubicacionOrigenStock
                       ? "Escribe para filtrar o elige entre las primeras variantes con stock en el área."
-                      : "Escribe para filtrar o elige entre las primeras sugerencias de Almacén."}
+                      : "Escribe para filtrar o elige entre las primeras sugerencias de Almacen."}
                   </p>
                 )}
               </div>

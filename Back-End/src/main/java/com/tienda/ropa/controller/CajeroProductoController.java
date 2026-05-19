@@ -17,8 +17,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.entity.Ubicacion;
-import com.tienda.ropa.service.InventarioUbicacionService;
+import com.tienda.ropa.entity.UbicacionArea;
+import com.tienda.ropa.service.InventarioService;
 import com.tienda.ropa.service.ProductoService;
 import com.tienda.ropa.service.ProductoVarianteService;
 import com.tienda.ropa.service.ReposicionAutomaticaService;
@@ -34,7 +34,7 @@ public class CajeroProductoController {
     private ProductoVarianteService productoVarianteService;
 
     @Autowired
-    private InventarioUbicacionService inventarioUbicacionService;
+    private InventarioService inventarioService;
 
     @Autowired
     private ReposicionAutomaticaService reposicionAutomaticaService;
@@ -125,7 +125,7 @@ public class CajeroProductoController {
     // Obtener variantes de un producto específico
     @GetMapping("/variantes/producto/{idProducto}")
     public List<ProductoVariante> obtenerVariantesPorProducto(@PathVariable Long idProducto) {
-        return productoVarianteService.obtenerVariantesPorProducto(idProducto);
+        return productoVarianteService.obtenerVariantesPorProducto(idProducto, null);
     }
 
     // Actualizar cantidad de una variante (para ventas)
@@ -141,19 +141,21 @@ public class CajeroProductoController {
         }
 
         ProductoVariante variante = varianteOpt.get();
-        int stock = inventarioUbicacionService.stockTotalVariante(id);
+        int stock = inventarioService.stockTotalVariante(id);
 
         if (stock < cantidad) {
             return ResponseEntity.badRequest().build(); // No hay suficiente stock
         }
 
-    Ubicacion ubicacionVenta = inventarioUbicacionService.resolverUbicacionUnicaDeVenta(id);
-    inventarioUbicacionService.aplicarDeltaEnUbicacion(
+    UbicacionArea ubicacionAreaVenta = inventarioService.resolverUbicacionAreaUnicaDeVenta(id);
+    inventarioService.aplicarDeltaEnUbicacionArea(
         id,
-        ubicacionVenta,
+        ubicacionAreaVenta,
         -cantidad,
-        "Stock insuficiente en la ubicación de venta: " + ubicacionVenta.getNombre());
-    reposicionAutomaticaService.evaluarTrasSalidaEnUbicacion(id, ubicacionVenta.getIdUbicacion());
+        "Stock insuficiente en la ubicación de venta: "
+                + InventarioService.etiquetaUbicacionArea(ubicacionAreaVenta));
+    reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
+            id, ubicacionAreaVenta.getIdUbicacionArea());
         ProductoVariante varianteActualizada = productoVarianteService.obtenerVariantePorId(id).orElse(variante);
         return ResponseEntity.ok(varianteActualizada);
     }

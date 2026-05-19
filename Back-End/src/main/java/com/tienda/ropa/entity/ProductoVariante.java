@@ -60,5 +60,5 @@ public class ProductoVariante {
 
     @JsonIgnore
     @OneToMany(mappedBy = "variante", fetch = FetchType.LAZY)
-    private List<InventarioUbicacion> inventariosUbicacion = new ArrayList<>();
+    private List<Inventario> inventarios = new ArrayList<>();
 }

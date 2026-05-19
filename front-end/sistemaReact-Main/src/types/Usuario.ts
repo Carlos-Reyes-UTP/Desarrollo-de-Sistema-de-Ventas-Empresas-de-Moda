@@ -12,6 +12,8 @@ export interface UsuarioBackend {
   password?: string;
   activo?: boolean;
   roles?: string[] | Set<string> | Record<string, unknown>; // Flexible para manejar diferentes formatos
+  idUbicacionAreaAsignada?: number | null;
+  etiquetaAreaAsignada?: string | null;
 }
 
 export interface Usuario {
@@ -20,6 +22,8 @@ export interface Usuario {
   password?: string;
   activo?: boolean;
   roles?: Rol[];
+  idUbicacionAreaAsignada?: number | null;
+  etiquetaAreaAsignada?: string | null;
 }
 
 export interface CredencialesLogin {
@@ -41,4 +45,5 @@ export interface ActualizarUsuarioDTO {
   clave?: string; // Opcional para actualizaciones
   activo: boolean;
   roles?: string[]; // Array de strings con los nombres de roles
+  idUbicacionAreaAsignada?: number | null;
 }

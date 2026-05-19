@@ -59,20 +59,23 @@ public class SecurityConfiguration {
                         // Lectura del catálogo POS (productos/variantes): también vendedor de piso (el front
                         // reutiliza estas rutas; la regla general de /api/cajero/** sigue sin incluir VENDEDOR).
                         .requestMatchers(HttpMethod.GET, "/api/cajero/productos/**")
-                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "VENDEDOR")
+                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
 
                         // Cajero (ventas, catálogo POS). ALMACENERO comparte flujos de producto/variantes con el front.
-                        .requestMatchers("/api/cajero/**").hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "VENDEDOR")
+                        .requestMatchers("/api/cajero/**")
+                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
 
                         // Proteger las rutas de caja. ADMIN, CAJERO y ALMACENERO pueden acceder.
-                        .requestMatchers("/api/caja/**").hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "VENDEDOR")
+                        .requestMatchers("/api/caja/**")
+                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
 
                         // Búsqueda paginada de productos (misma query que usa ProductoService del front para varios roles).
                         .requestMatchers(HttpMethod.GET, "/api/almacenero/productos/pagina")
-                                .hasAnyRole("ADMIN", "ALMACENERO", "VENDEDOR", "CAJERO")
+                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR", "CAJERO")
 
                         // Proteger las rutas de almacenero (inventario, productos, categorías, etc.)
-                        .requestMatchers("/api/almacenero/**").hasAnyRole("ADMIN", "ALMACENERO", "VENDEDOR")
+                        .requestMatchers("/api/almacenero/**")
+                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
 
                         // Vendedor / admin: catálogo y solicitudes a almacén (mismo contrato API)
                         .requestMatchers("/api/vendedor/**")

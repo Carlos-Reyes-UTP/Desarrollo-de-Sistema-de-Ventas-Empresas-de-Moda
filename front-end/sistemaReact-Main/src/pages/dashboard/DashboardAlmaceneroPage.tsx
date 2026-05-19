@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Package,
@@ -13,8 +13,8 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
   Tooltip, Label
 } from 'recharts';
-import { AlmacenSolicitudesApi } from '@/services/almacenSolicitudesService';
-import type { AlmacenSolicitudCard } from '@/types/AlmacenCola';
+import { AlmacenSolicitudesApi } from '@/services/AlmacenSolicitudesService';
+import type { AlmacenSolicitud } from '@/types/AlmacenSolicitudes';
 import { useAuth } from '@/context/AuthContext';
 import { useAuthReady } from '@/hooks/useAuthReady';
 import { AuthLoadingScreen } from '@/shared/auth/AuthLoadingScreen';
@@ -22,6 +22,7 @@ import { MetricCardsSkeleton, ChartSkeleton } from '@/shared/ui';
 import { APP_PATHS } from '@/shared/layout/navigationConfig';
 import { DashboardService } from '@/services/DashboardService';
 import { playKioskChime } from '@/components/almacen-tablero/almacenTableroSound';
+import { scrollbarStyles } from '@/styles/scrollbarStyles';
 import type {
   ProductoStats,
   CategoriaDistribucion,
@@ -29,32 +30,28 @@ import type {
   ProductoInventario
 } from '@/types/DashboardStats';
 
-// Estilos para la barra de desplazamiento personalizada
-const scrollbarStyles = `
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #c5c5c5;
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #a0a0a0;
-  }
-`;
 
-// Paleta de colores Retail Fashion (Muted/Pastel) para gráficas
+// Paleta de colores Retail Fashion
 const CATEGORY_COLORS = ['#1E293B', '#C084FC', '#FDBA74', '#6366f1', '#a855f7', '#64748b'];
 const STATUS_COLORS = {
   normal: '#34D399',
   bajo: '#FBBF24',
   critico: '#FB7185',
   agotado: '#A8A29E'
+};
+
+const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ name: string, value: number }> }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-2xl shadow-xl">
+        <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{payload[0].name}</p>
+        <p className="text-indigo-400 text-sm font-black">
+          {payload[0].value} <span className="text-white/40 font-bold text-[9px] uppercase ml-1">Unidades</span>
+        </p>
+      </div>
+    );
+  }
+  return null;
 };
 
 const DashboardAlmaceneroPage = () => {
@@ -83,18 +80,23 @@ const DashboardAlmaceneroPage = () => {
   const [errorSync, setErrorSync] = useState<string | null>(null);
 
   // Estados para la Cola de Pedidos (Operaciones)
-  const [, setCards] = useState<AlmacenSolicitudCard[]>([]);
+  const [, setCards] = useState<AlmacenSolicitud[]>([]);
   const prevVentaIdsRef = useRef<Set<number>>(new Set());
   const inicializadoRef = useRef(false);
 
   // Helper para cola
-  const esVenta = (c: AlmacenSolicitudCard) => c.tipoSolicitud === "VENTA";
+  const esVenta = (c: AlmacenSolicitud) => c.tipoSolicitud === "VENTA";
 
   const cargarCola = useCallback(async () => {
     try {
       const data = await AlmacenSolicitudesApi.cola();
       // Sonido si hay nuevas ventas
-      const ventaIds = new Set(data.filter(esVenta).map(c => c.idSolicitud));
+      const ventaIds = new Set<number>();
+      for (const c of data) {
+        if (esVenta(c)) {
+          ventaIds.add(c.idSolicitud);
+        }
+      }
       if (inicializadoRef.current) {
         const nuevos = [...ventaIds].filter(id => !prevVentaIdsRef.current.has(id));
         if (nuevos.length > 0) {
@@ -196,6 +198,10 @@ const DashboardAlmaceneroPage = () => {
     }
   }, [isReady, isAuthenticated, cargarDatosDashboard]);
 
+  const productosCriticos = useMemo(() => {
+    return inventarioReciente.filter(p => p.estado === 'critico');
+  }, [inventarioReciente]);
+
   if (authLoading || !isReady) {
     return <AuthLoadingScreen message="Cargando panel de almacén..." />;
   }
@@ -224,19 +230,9 @@ const DashboardAlmaceneroPage = () => {
     );
   };
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ name: string, value: number }> }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-2xl shadow-xl">
-          <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{payload[0].name}</p>
-          <p className="text-indigo-400 text-sm font-black">
-            {payload[0].value} <span className="text-white/40 font-bold text-[9px] uppercase ml-1">Unidades</span>
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+
+
+
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
@@ -503,13 +499,13 @@ const DashboardAlmaceneroPage = () => {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-black text-black">Alertas</h3>
                 <span className="h-5 px-2 bg-rose-100 text-rose-600 text-[10px] font-black rounded-full flex items-center">
-                  {inventarioReciente.filter(p => p.estado === 'critico').length} CRÍTICAS
+                  {productosCriticos.length} CRÍTICAS
                 </span>
               </div>
 
-              {inventarioReciente.filter(p => p.estado === 'critico').length > 0 ? (
+              {productosCriticos.length > 0 ? (
                 <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {inventarioReciente.filter(p => p.estado === 'critico').map(producto => (
+                  {productosCriticos.map(producto => (
                     <div key={producto.idProducto} className="p-3 rounded-2xl bg-gray-50 border border-transparent hover:border-rose-100 hover:bg-rose-50/30 transition-all flex items-center justify-between group">
                       <div className="flex items-center gap-3 min-w-0">
                         <div className="h-8 w-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">

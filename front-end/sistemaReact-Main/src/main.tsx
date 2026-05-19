@@ -4,10 +4,10 @@ import { BrowserRouter } from 'react-router-dom'
 import { Toaster } from 'sileo'
 import 'sileo/styles.css'
 import App from './App'
-import { AuthProvider } from './context/AuthContext'
+import { AuthProvider } from '@/context/AuthContext'
 import { CajeroThemeProvider } from './context/CajeroThemeContext'
 import './index.css'
-import './mobile-navbar.css'
+import './styles/mobile-navbar.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

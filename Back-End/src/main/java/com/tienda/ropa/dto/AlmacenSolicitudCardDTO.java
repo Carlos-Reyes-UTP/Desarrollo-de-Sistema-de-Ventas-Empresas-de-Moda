@@ -9,5 +9,6 @@ public record AlmacenSolicitudCardDTO(
         Instant fechaCreacion,
         Long idUsuario,
         String nombreVendedor,
+        String codigoLote,
         List<AlmacenSolicitudLineaDTO> lineas
 ) {}

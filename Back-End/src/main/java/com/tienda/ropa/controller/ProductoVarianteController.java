@@ -2,10 +2,14 @@ package com.tienda.ropa.controller;
 
 import com.tienda.ropa.dto.MigrarVariantesRequest;
 import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.entity.UbicacionArea;
+import com.tienda.ropa.entity.Usuario;
+import com.tienda.ropa.service.InventarioContextService;
 import com.tienda.ropa.service.ProductoVarianteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +24,9 @@ public class ProductoVarianteController {
     @Autowired
     private ProductoVarianteService productoVarianteService;
 
+    @Autowired
+    private InventarioContextService inventarioContextService;
+
     /**
      * Listado completo de variantes (sugerencias de talla/color en formularios, inventario).
      * Ruta explícita para no colisionar con {@code GET /{id}}.
@@ -30,8 +37,12 @@ public class ProductoVarianteController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductoVariante> crearVariante(@RequestBody ProductoVariante productoVariante) {
-        ProductoVariante nuevaVariante = productoVarianteService.crearVariante(productoVariante);
+    public ResponseEntity<ProductoVariante> crearVariante(
+            @RequestBody ProductoVariante productoVariante,
+            @RequestParam(required = false) Long idUbicacionArea,
+            @AuthenticationPrincipal Usuario usuario) {
+        UbicacionArea area = inventarioContextService.resolverAreaParaAltaStock(usuario, idUbicacionArea);
+        ProductoVariante nuevaVariante = productoVarianteService.crearVariante(productoVariante, area);
         return new ResponseEntity<>(nuevaVariante, HttpStatus.CREATED);
     }
 
@@ -50,8 +61,19 @@ public class ProductoVarianteController {
     }
 
     @GetMapping("/producto/{idProducto}")
-    public ResponseEntity<List<ProductoVariante>> obtenerVariantesPorProducto(@PathVariable Long idProducto) {
-        List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProducto(idProducto);
+    public ResponseEntity<List<ProductoVariante>> obtenerVariantesPorProducto(
+            @PathVariable Long idProducto,
+            @RequestParam(required = false) Long idUbicacionArea,
+            @AuthenticationPrincipal Usuario usuario) {
+        Long idAreaLectura = idUbicacionArea;
+        if (idAreaLectura == null
+                && usuario != null
+                && inventarioContextService.esAlmaceneroDeLinea(usuario)
+                && usuario.getAreaAsignado() != null) {
+            idAreaLectura = usuario.getAreaAsignado().getIdUbicacionArea();
+        }
+        List<ProductoVariante> variantes =
+                productoVarianteService.obtenerVariantesPorProducto(idProducto, idAreaLectura);
         return ResponseEntity.ok(variantes);
     }
 
@@ -84,11 +106,15 @@ public class ProductoVarianteController {
     @PatchMapping("/{id}/cantidad")
     public ResponseEntity<ProductoVariante> actualizarCantidad(
             @PathVariable("id") Long idVariante,
-            @RequestParam Integer cantidad) {
+            @RequestParam Integer cantidad,
+            @RequestParam(required = false) Long idUbicacionArea,
+            @AuthenticationPrincipal Usuario usuario) {
         if (cantidad < 0) {
             return ResponseEntity.badRequest().build();
         }
-        ProductoVariante varianteActualizada = productoVarianteService.actualizarCantidad(idVariante, cantidad);
+        UbicacionArea area = inventarioContextService.resolverAreaParaAltaStock(usuario, idUbicacionArea);
+        ProductoVariante varianteActualizada =
+                productoVarianteService.actualizarCantidad(idVariante, cantidad, area);
         return ResponseEntity.ok(varianteActualizada);
     }
 
@@ -119,9 +145,12 @@ public class ProductoVarianteController {
     public ResponseEntity<List<ProductoVariante>> migrarProductoAVariantes(
             @PathVariable Long idProducto,
             @RequestBody MigrarVariantesRequest body,
-            @RequestParam(defaultValue = "false") boolean distribucionPorcentual) {
+            @RequestParam(defaultValue = "false") boolean distribucionPorcentual,
+            @RequestParam(required = false) Long idUbicacionArea,
+            @AuthenticationPrincipal Usuario usuario) {
+        UbicacionArea area = inventarioContextService.resolverAreaParaAltaStock(usuario, idUbicacionArea);
         List<ProductoVariante> variantes = productoVarianteService.migrarProductoAVariantes(
-                idProducto, body.tallas(), body.colores(), distribucionPorcentual);
+                idProducto, body.tallas(), body.colores(), distribucionPorcentual, area);
         return ResponseEntity.ok(variantes);
     }
 }

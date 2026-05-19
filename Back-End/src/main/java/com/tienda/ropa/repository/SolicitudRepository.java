@@ -19,10 +19,10 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
     @Query("""
             SELECT DISTINCT s FROM Solicitud s
             LEFT JOIN FETCH s.usuario
-            JOIN FETCH s.ubicacionOrigen
-            JOIN FETCH s.ubicacionDestino
-            LEFT JOIN FETCH s.detalles d
-            LEFT JOIN FETCH d.variante v
+            JOIN FETCH s.ubicacionAreaOrigen orig JOIN FETCH orig.ubicacion JOIN FETCH orig.area
+            JOIN FETCH s.ubicacionAreaDestino dest JOIN FETCH dest.ubicacion JOIN FETCH dest.area
+            LEFT JOIN FETCH s.detalles det
+            LEFT JOIN FETCH det.variante v
             LEFT JOIN FETCH v.producto p
             WHERE s.estado = :estado
             ORDER BY s.fechaCreacion ASC

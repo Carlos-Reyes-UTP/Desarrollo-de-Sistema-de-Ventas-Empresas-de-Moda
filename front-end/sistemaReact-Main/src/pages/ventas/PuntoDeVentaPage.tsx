@@ -7,16 +7,16 @@ import { useAuth } from '@/context/AuthContext';
 import { resolveCajeroView } from '@/shared/layout/navigationConfig';
 
 const PuntoDeVentaPage = () => {
-  const location = useLocation();
+  const { state } = useLocation();
   const { tieneRol } = useAuth();
 
   const [vistaActual, setVistaActual] = useState(() =>
-    resolveCajeroView(location.state?.view, tieneRol)
+    resolveCajeroView(state?.view, tieneRol)
   );
 
   useEffect(() => {
-    setVistaActual(resolveCajeroView(location.state?.view, tieneRol));
-  }, [location.state, tieneRol]);
+    setVistaActual(resolveCajeroView(state?.view, tieneRol));
+  }, [state, tieneRol]);
 
   const renderContenido = () => {
     switch (vistaActual) {

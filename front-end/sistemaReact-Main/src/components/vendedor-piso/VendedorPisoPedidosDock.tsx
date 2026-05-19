@@ -30,8 +30,8 @@ const etiquetaEstado = (estado: string): { label: string; dot: string } => {
 };
 
 const etiquetaTipo = (tipo: string): string => {
-  if (tipo === "VENTA") return "Piso";
-  if (tipo === "REPOSICION") return "Vitrina";
+  if (tipo === "VENTA") return "Piso de ventas";
+  if (tipo === "REPOSICION") return "Reposición auto";
   return tipo;
 };
 
@@ -181,7 +181,7 @@ export const VendedorPisoPedidosDock = ({
 
   const ordenados = useMemo(
     () =>
-      [...pedidos].sort(
+      pedidos.toSorted(
         (a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime()
       ),
     [pedidos]
@@ -209,7 +209,7 @@ export const VendedorPisoPedidosDock = ({
       role="dialog"
       aria-modal="false"
       aria-labelledby="vendedor-pedidos-titulo"
-      className="relative max-h-[45vh] w-full max-w-sm overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur-md animate-slideUpFade"
+      className="relative max-h-[45vh] w-full max-w-sm md:max-w-md overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur-md animate-slideUpFade"
     >
       <div className="relative z-10 flex items-center justify-between gap-2 border-b border-gray-100 bg-white/50 px-3 py-2.5 backdrop-blur-sm sm:px-4">
         <div className="min-w-0 flex-1">

@@ -1,11 +1,10 @@
 package com.tienda.ropa.dto;
 
 /**
- * Vista plana de una fila {@code ubicacion} para el módulo almacenero.
- * {@code area} y {@code descripcion} pueden venir nulos.
+ * Vista de un par piso + área ({@code ubicacion_area}) para el módulo almacenero.
  */
 public record UbicacionDTO(
-        Long idUbicacion,
+        Long idUbicacionArea,
         String nombre,
         String area,
         String descripcion

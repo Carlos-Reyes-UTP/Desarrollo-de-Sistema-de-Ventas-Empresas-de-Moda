@@ -5,8 +5,80 @@ import type {
   StockDesdeAlmacen,
   StockUbicacion,
   TrasladoInventarioPayload,
-  Ubicacion,
+  UbicacionArea,
 } from "../types/Almacen";
+import { num } from "../utils/num";
+
+function normalizarUbicacionArea(raw: unknown): UbicacionArea {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    idUbicacionArea: num(o.idUbicacionArea ?? o.idUbicacion, 0),
+    nombre: typeof o.nombre === "string" ? o.nombre : "",
+    area: typeof o.area === "string" ? o.area : o.area == null ? null : String(o.area),
+    descripcion:
+      typeof o.descripcion === "string"
+        ? o.descripcion
+        : o.descripcion == null
+          ? null
+          : String(o.descripcion),
+  };
+}
+
+function normalizarAreaStockResumen(raw: unknown): AreaStockResumen {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    idUbicacionArea: num(o.idUbicacionArea ?? o.idUbicacion, 0),
+    nombre: typeof o.nombre === "string" ? o.nombre : "",
+    area: typeof o.area === "string" ? o.area : o.area == null ? null : String(o.area),
+    descripcion:
+      typeof o.descripcion === "string"
+        ? o.descripcion
+        : o.descripcion == null
+          ? null
+          : String(o.descripcion),
+    totalUnidades: num(o.totalUnidades, 0),
+    totalVariantesConStock: num(o.totalVariantesConStock, 0),
+  };
+}
+
+function normalizarStockUbicacion(raw: unknown): StockUbicacion {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  return {
+    idVariante: num(o.idVariante, 0),
+    idProducto: o.idProducto != null ? num(o.idProducto, NaN) || null : null,
+    nombreProducto: typeof o.nombreProducto === "string" ? o.nombreProducto : null,
+    codigoIdentificacion:
+      typeof o.codigoIdentificacion === "string" ? o.codigoIdentificacion : null,
+    color: typeof o.color === "string" ? o.color : null,
+    talla: typeof o.talla === "string" ? o.talla : null,
+    sku: typeof o.sku === "string" ? o.sku : null,
+    stockActual: num(o.stockActual, 0),
+    idUbicacionArea: num(o.idUbicacionArea ?? o.idUbicacion, 0),
+    nombreUbicacion: typeof o.nombreUbicacion === "string" ? o.nombreUbicacion : "",
+    areaUbicacion:
+      typeof o.areaUbicacion === "string"
+        ? o.areaUbicacion
+        : o.areaUbicacion == null
+          ? null
+          : String(o.areaUbicacion),
+  };
+}
+
+function normalizarStockDesdeAlmacen(raw: unknown): StockDesdeAlmacen {
+  const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const stockRaw = o.stock;
+  const stock = Array.isArray(stockRaw) ? stockRaw.map(normalizarStockUbicacion) : [];
+  return {
+    idUbicacionAreaOrigen: num(o.idUbicacionAreaOrigen ?? o.idUbicacionOrigen, 0),
+    etiquetaAlmacen:
+      typeof o.etiquetaAlmacen === "string"
+        ? o.etiquetaAlmacen
+        : typeof o.nombreUbicacion === "string"
+          ? o.nombreUbicacion
+          : "Almacen",
+    stock,
+  };
+}
 
 export const AlmacenService = {
   listarPisos: async (): Promise<string[]> => {
@@ -14,50 +86,55 @@ export const AlmacenService = {
     return response.data;
   },
 
-  listarAreasDePiso: async (nombrePiso: string): Promise<Ubicacion[]> => {
-    const response = await apiClient.get<Ubicacion[]>(
-      RUTAS_ALMACEN.AREAS_POR_PISO(nombrePiso)
-    );
-    return response.data;
+  listarAreasDePiso: async (nombrePiso: string): Promise<UbicacionArea[]> => {
+    const response = await apiClient.get<unknown[]>(RUTAS_ALMACEN.AREAS_POR_PISO(nombrePiso));
+    const arr = Array.isArray(response.data) ? response.data : [];
+    return arr.map(normalizarUbicacionArea);
   },
 
   resumenStockAreasDePiso: async (nombrePiso: string): Promise<AreaStockResumen[]> => {
-    const response = await apiClient.get<AreaStockResumen[]>(
+    const response = await apiClient.get<unknown[]>(
       RUTAS_ALMACEN.RESUMEN_STOCK_PISO(nombrePiso)
     );
-    return response.data;
+    const arr = Array.isArray(response.data) ? response.data : [];
+    return arr.map(normalizarAreaStockResumen);
   },
 
-  listarOrigenesPosibles: async (idDestino: number): Promise<Ubicacion[]> => {
-    const response = await apiClient.get<Ubicacion[]>(
-      RUTAS_ALMACEN.ORIGENES_POSIBLES(idDestino)
+  listarOrigenesPosibles: async (idUbicacionAreaDestino: number): Promise<UbicacionArea[]> => {
+    const response = await apiClient.get<unknown[]>(
+      RUTAS_ALMACEN.ORIGENES_POSIBLES(idUbicacionAreaDestino)
     );
-    return response.data;
+    const arr = Array.isArray(response.data) ? response.data : [];
+    return arr.map(normalizarUbicacionArea);
   },
 
-  stockDesdeAlmacen: async (): Promise<StockDesdeAlmacen> => {
-    const response = await apiClient.get<StockDesdeAlmacen>(RUTAS_ALMACEN.STOCK_DESDE_ALMACEN);
-    return response.data;
+  stockDesdeAlmacen: async (sector?: string): Promise<StockDesdeAlmacen> => {
+    const params = sector?.trim() ? { sector: sector.trim() } : undefined;
+    const response = await apiClient.get<unknown>(RUTAS_ALMACEN.STOCK_DESDE_ALMACEN, { params });
+    return normalizarStockDesdeAlmacen(response.data);
   },
 
   buscarStockOrigenTraslado: async (
     q: string,
     limit = 30,
     signal?: AbortSignal,
-    soloAlmacen = false
+    soloAlmacen = false,
+    sector?: string
   ): Promise<StockUbicacion[]> => {
-    const response = await apiClient.get<StockUbicacion[]>(
-      RUTAS_ALMACEN.STOCK_ALMACEN_BUSCAR(q, limit, soloAlmacen),
+    const response = await apiClient.get<unknown[]>(
+      RUTAS_ALMACEN.STOCK_ALMACEN_BUSCAR(q, limit, soloAlmacen, sector),
       { signal }
     );
-    return response.data;
+    const arr = Array.isArray(response.data) ? response.data : [];
+    return arr.map(normalizarStockUbicacion);
   },
 
-  stockPorUbicacion: async (idUbicacion: number): Promise<StockUbicacion[]> => {
-    const response = await apiClient.get<StockUbicacion[]>(
-      RUTAS_ALMACEN.STOCK_POR_UBICACION(idUbicacion)
+  stockPorUbicacionArea: async (idUbicacionArea: number): Promise<StockUbicacion[]> => {
+    const response = await apiClient.get<unknown[]>(
+      RUTAS_ALMACEN.STOCK_POR_UBICACION_AREA(idUbicacionArea)
     );
-    return response.data;
+    const arr = Array.isArray(response.data) ? response.data : [];
+    return arr.map(normalizarStockUbicacion);
   },
 
   moverMercaderia: async (payload: TrasladoInventarioPayload): Promise<void> => {

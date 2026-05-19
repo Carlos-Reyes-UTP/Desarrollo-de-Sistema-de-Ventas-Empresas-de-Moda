@@ -2,8 +2,11 @@ package com.tienda.ropa.controller;
 
 import com.tienda.ropa.dto.VendedorCatalogoBusquedaDTO;
 import com.tienda.ropa.dto.VendedorCatalogoPorCodigoDTO;
+import com.tienda.ropa.dto.CrearSolicitudLoteResult;
+import com.tienda.ropa.dto.VendedorCrearSolicitudLoteRequest;
 import com.tienda.ropa.dto.VendedorCrearSolicitudRequest;
 import com.tienda.ropa.dto.VendedorSolicitudResumenDTO;
+import com.tienda.ropa.dto.VendedorUbicacionDTO;
 import com.tienda.ropa.entity.Solicitud;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.service.VendedorService;
@@ -66,6 +69,21 @@ public class VendedorController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("idSolicitud", guardada.getIdSolicitud()));
     }
 
+    /**
+     * Envío agrupado: una solicitud por área destino, varias líneas por solicitud.
+     * Evita duplicar tickets cuando el vendedor envía varios ítems al mismo piso.
+     */
+    @PostMapping("/solicitudes/lote")
+    public ResponseEntity<CrearSolicitudLoteResult> crearSolicitudLote(
+            @RequestBody VendedorCrearSolicitudLoteRequest body,
+            @AuthenticationPrincipal Usuario usuario) {
+        if (usuario == null || usuario.getId() == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        CrearSolicitudLoteResult result = vendedorService.crearSolicitudLote(body, usuario.getId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(result);
+    }
+
     @GetMapping("/solicitudes/mias")
     public List<VendedorSolicitudResumenDTO> misSolicitudes(
             @AuthenticationPrincipal Usuario usuario,
@@ -86,5 +104,14 @@ public class VendedorController {
             }
         }
         return vendedorService.listarMisSolicitudes(usuario.getId(), desdeEfectivo, hastaEfectivo);
+    }
+
+    /**
+     * Lista los pisos/áreas disponibles como destino de una solicitud de venta.
+     * Excluye ubicaciones reservadas (Almacén, Bodega, Depósito).
+     */
+    @GetMapping("/ubicaciones")
+    public List<VendedorUbicacionDTO> listarUbicaciones() {
+        return vendedorService.listarUbicacionesPiso();
     }
 }

@@ -87,10 +87,10 @@ const GestionProveedores: React.FC = () => {
       try {
         const proveedorEncontrado = await ProveedorService.obtenerProveedorPorRUC(formData.ruc);
         if (proveedorEncontrado) {
-          setFormData({
-            ...formData,
+          setFormData(prev => ({
+            ...prev,
             nombre: proveedorEncontrado.nombre
-          });
+          }));
           setError(null);
         } else {
           setError('No se encontró información del proveedor con este RUC');
@@ -487,7 +487,7 @@ const GestionProveedores: React.FC = () => {
                       value={formData.ruc}
                       onChange={(e) => {
                         if (e.target.value === '' || /^\d+$/.test(e.target.value)) {
-                          setFormData({ ...formData, ruc: e.target.value });
+                          setFormData(prev => ({ ...prev, ruc: e.target.value }));
                         }
                       }}
                       className="flex-1 px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all disabled:opacity-50"
@@ -517,7 +517,7 @@ const GestionProveedores: React.FC = () => {
                   <input
                     type="text"
                     value={formData.nombre}
-                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
                     className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
                     placeholder="Nombre completo..."
                     required

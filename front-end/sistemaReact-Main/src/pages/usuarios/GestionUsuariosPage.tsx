@@ -20,10 +20,13 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UsuarioService } from '@/services/UsuarioService';
+import { AccesoAreaAlmacenService } from '@/services/AccesoAreaAlmacenService';
+import type { UbicacionArea } from '@/types/Almacen';
 import type { RolNombre } from '@/types/enums';
 import type { ActualizarUsuarioDTO, Usuario, UsuarioBackend } from '@/types/Usuario';
 import { getErrorMessage, getResponseMessage } from '@/utils/errorUtils';
 import { Skeleton } from '@/shared/ui';
+import { SECTORES_ALMACEN_TEXTO } from '@/shared/constants/sectoresAlmacen';
 
 const GestionUsuariosPage = () => {
   // Contexto de autenticación
@@ -53,13 +56,18 @@ const GestionUsuariosPage = () => {
     confirmPassword: string;
     activo: boolean;
     roles: RolNombre[];
+    idUbicacionAreaAsignada: number | '';
   }>({
     usuario: '',
     password: '',
     confirmPassword: '',
     activo: true,
-    roles: []
+    roles: [],
+    idUbicacionAreaAsignada: '',
   });
+
+  const [areasAlmacenDisponibles, setAreasAlmacenDisponibles] = useState<UbicacionArea[]>([]);
+  const [cargandoAreasAlmacen, setCargandoAreasAlmacen] = useState(false);
 
   // Estado para mensajes de acción
   const [mensajeAccion, setMensajeAccion] = useState<{
@@ -98,9 +106,10 @@ const GestionUsuariosPage = () => {
 
   useEffect(() => {
     if (mostrarModal && usuarioInputRef.current) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         usuarioInputRef.current?.focus();
       }, 100);
+      return () => clearTimeout(timer);
     }
   }, [mostrarModal]);
   
@@ -155,8 +164,28 @@ const GestionUsuariosPage = () => {
         }));
       }
     }
+    usuario.idUbicacionAreaAsignada = usuarioBackend.idUbicacionAreaAsignada ?? null;
+    usuario.etiquetaAreaAsignada = usuarioBackend.etiquetaAreaAsignada ?? null;
     return usuario;
   };
+
+  const cargarAreasAlmacen = async () => {
+    setCargandoAreasAlmacen(true);
+    try {
+      const areas = await AccesoAreaAlmacenService.listarAreasAlmacen();
+      setAreasAlmacenDisponibles(areas);
+    } catch {
+      setAreasAlmacenDisponibles([]);
+    } finally {
+      setCargandoAreasAlmacen(false);
+    }
+  };
+
+  useEffect(() => {
+    if (mostrarModal && formUsuario.roles.includes('ROLE_ALMACENERO')) {
+      void cargarAreasAlmacen();
+    }
+  }, [mostrarModal, formUsuario.roles]);
 
   const cerrarModalConAnimacion = () => {
     setCerrandoModal(true);
@@ -168,8 +197,10 @@ const GestionUsuariosPage = () => {
         password: '',
         confirmPassword: '',
         activo: true,
-        roles: []
+        roles: [],
+        idUbicacionAreaAsignada: '',
       });
+      setAreasAlmacenDisponibles([]);
       setModoEdicion(false);
       setUsuarioEditando(null);
       setCambiarPassword(false);
@@ -247,7 +278,8 @@ const GestionUsuariosPage = () => {
       password: '',
       confirmPassword: '',
       activo: true,
-      roles: []
+      roles: [],
+      idUbicacionAreaAsignada: '',
     });
     setModoEdicion(false);
     setUsuarioEditando(null);
@@ -268,7 +300,8 @@ const GestionUsuariosPage = () => {
       activo: usuario.activo ?? true,
       roles: usuario.roles && usuario.roles.length > 0 
         ? usuario.roles.map(rol => rol.nombreRol) 
-        : [] 
+        : [],
+      idUbicacionAreaAsignada: usuario.idUbicacionAreaAsignada ?? '',
     });
     setUsuarioDisponible(true);
     setVerificandoUsuario(false);
@@ -332,13 +365,22 @@ const GestionUsuariosPage = () => {
 
     if (formUsuario.roles.length === 0) { setError('Debe seleccionar un rol'); return; }
 
+    const esAlmacenero = formUsuario.roles.includes('ROLE_ALMACENERO');
+    if (esAlmacenero && !formUsuario.idUbicacionAreaAsignada) {
+      setError(`Debe asignar el sector de almacén (${SECTORES_ALMACEN_TEXTO}) al almacenero`);
+      return;
+    }
+
     try {
       if (modoEdicion && usuarioEditando) {
         const usuarioParaActualizar: ActualizarUsuarioDTO = {
           id: usuarioEditando.id,
           usuario: formUsuario.usuario,
           activo: formUsuario.activo,
-          roles: formUsuario.roles
+          roles: formUsuario.roles,
+          idUbicacionAreaAsignada: esAlmacenero
+            ? Number(formUsuario.idUbicacionAreaAsignada)
+            : null,
         };
         
         if (cambiarPassword && formUsuario.password) {
@@ -370,7 +412,10 @@ const GestionUsuariosPage = () => {
           usuario: formUsuario.usuario,
           clave: formUsuario.password,
           rol: rolSeleccionado,
-          activo: formUsuario.activo
+          activo: formUsuario.activo,
+          idUbicacionAreaAsignada: esAlmacenero
+            ? Number(formUsuario.idUbicacionAreaAsignada)
+            : undefined,
         });
         mostrarMensaje('Usuario creado exitosamente', 'success');
       }
@@ -450,7 +495,7 @@ const GestionUsuariosPage = () => {
 
   const [paginaActual, setPaginaActual] = useState(1);
   const usuariosPorPagina = 10;
-  const usuariosOrdenados = [...usuariosFiltrados].sort((a, b) => a.usuario.localeCompare(b.usuario));
+  const usuariosOrdenados = usuariosFiltrados.toSorted((a, b) => a.usuario.localeCompare(b.usuario));
   const totalPaginas = Math.ceil(usuariosOrdenados.length / usuariosPorPagina);
   const usuariosPagina = usuariosOrdenados.slice((paginaActual - 1) * usuariosPorPagina, paginaActual * usuariosPorPagina);
 
@@ -525,6 +570,8 @@ const GestionUsuariosPage = () => {
                 <option value="ROLE_CAJERO">Cajero</option>
                 <option value="ROLE_ALMACENERO">Almacenero</option>
                 <option value="ROLE_VENDEDOR">Vendedor</option>
+                <option value="ROLE_GERENTE">Gerente</option>
+                <option value="ROLE_SUPERVISOR_ALMACEN">Supervisor almacén</option>
               </select>
                <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />
             </div>
@@ -754,7 +801,7 @@ const GestionUsuariosPage = () => {
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Requisitos de Seguridad</h4>
                           {formUsuario.password === formUsuario.confirmPassword && formUsuario.confirmPassword && (
-                            <div className="flex items-center gap-1.5 text-[#10b981] animate-bounce">
+                            <div className="flex items-center gap-1.5 text-emerald-500 animate-pulse">
                               <CheckCircle size={12} />
                               <span className="text-[9px] font-bold uppercase tracking-wider">Las contraseñas coinciden</span>
                             </div>
@@ -794,14 +841,21 @@ const GestionUsuariosPage = () => {
 
                 <div className="space-y-4">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Niveles de Autorización</label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {['ROLE_ADMIN', 'ROLE_CAJERO', 'ROLE_ALMACENERO', 'ROLE_VENDEDOR'].map(rol => (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {['ROLE_ADMIN', 'ROLE_CAJERO', 'ROLE_ALMACENERO', 'ROLE_VENDEDOR', 'ROLE_GERENTE', 'ROLE_SUPERVISOR_ALMACEN'].map(rol => (
                       <button
                         key={rol}
                         type="button"
                         onClick={() => {
                             if (modoEdicion && esUltimoAdministradorActivo(usuarioEditando as Usuario) && rol !== 'ROLE_ADMIN') return;
-                            setFormUsuario({...formUsuario, roles: [rol as RolNombre]});
+                            setFormUsuario({
+                              ...formUsuario,
+                              roles: [rol as RolNombre],
+                              idUbicacionAreaAsignada:
+                                rol === 'ROLE_ALMACENERO'
+                                  ? formUsuario.idUbicacionAreaAsignada
+                                  : '',
+                            });
                         }}
                         className={`py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${formUsuario.roles.includes(rol as RolNombre) ? 'bg-black text-white shadow-xl scale-105' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
                       >
@@ -810,6 +864,34 @@ const GestionUsuariosPage = () => {
                     ))}
                   </div>
                 </div>
+
+                {formUsuario.roles.includes('ROLE_ALMACENERO') && (
+                  <div className="space-y-4">
+                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                      Área de almacén asignada
+                    </label>
+                    <select
+                      name="idUbicacionAreaAsignada"
+                      value={formUsuario.idUbicacionAreaAsignada}
+                      onChange={manejarCambioForm}
+                      required
+                      disabled={cargandoAreasAlmacen}
+                      className="w-full py-4 px-4 bg-[#f8f8f8] rounded-xl text-sm font-bold appearance-none cursor-pointer"
+                    >
+                      <option value="">
+                        {cargandoAreasAlmacen ? 'Cargando áreas…' : `Seleccione sector (${SECTORES_ALMACEN_TEXTO})`}
+                      </option>
+                      {areasAlmacenDisponibles.map((ua) => (
+                        <option key={ua.idUbicacionArea} value={ua.idUbicacionArea}>
+                          {ua.descripcion ?? (ua.area ? `${ua.nombre} · ${ua.area}` : ua.nombre)}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      La mercadería que registre este almacenero quedará en esta ubicación desde el alta.
+                    </p>
+                  </div>
+                )}
 
                 <div className="flex gap-4 pt-6 border-t border-gray-50">
                   <button type="button" onClick={cerrarModalConAnimacion} className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100">Cerrar</button>

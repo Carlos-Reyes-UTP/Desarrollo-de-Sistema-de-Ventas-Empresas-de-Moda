@@ -1,14 +1,14 @@
-import type { AlmacenSolicitudCard } from "../../types/AlmacenCola";
+import type { AlmacenSolicitud } from "../../types/AlmacenSolicitudes";
 
 interface AlmacenPedidoFilaColaProps {
-  card: AlmacenSolicitudCard;
+  card: AlmacenSolicitud;
   urgente: boolean;
   seleccionado: boolean;
   resaltar: boolean;
   onClick: () => void;
 }
 
-function resumenLinea(card: AlmacenSolicitudCard): string {
+function resumenLinea(card: AlmacenSolicitud): string {
   const l = card.lineas[0];
   if (!l) return "—";
   const d = l.descripcion.length > 48 ? `${l.descripcion.slice(0, 46)}…` : l.descripcion;

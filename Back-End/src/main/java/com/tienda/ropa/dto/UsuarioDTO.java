@@ -8,6 +8,8 @@ public class UsuarioDTO {
     private String clave;
     private boolean activo;
     private Set<String> roles;
+    private Long idUbicacionAreaAsignada;
+    private String etiquetaAreaAsignada;
 
     public boolean isActivo() {
         return activo;
@@ -47,5 +49,21 @@ public class UsuarioDTO {
 
     public void setRoles(Set<String> roles) {
         this.roles = roles;
+    }
+
+    public Long getIdUbicacionAreaAsignada() {
+        return idUbicacionAreaAsignada;
+    }
+
+    public void setIdUbicacionAreaAsignada(Long idUbicacionAreaAsignada) {
+        this.idUbicacionAreaAsignada = idUbicacionAreaAsignada;
+    }
+
+    public String getEtiquetaAreaAsignada() {
+        return etiquetaAreaAsignada;
+    }
+
+    public void setEtiquetaAreaAsignada(String etiquetaAreaAsignada) {
+        this.etiquetaAreaAsignada = etiquetaAreaAsignada;
     }
 }

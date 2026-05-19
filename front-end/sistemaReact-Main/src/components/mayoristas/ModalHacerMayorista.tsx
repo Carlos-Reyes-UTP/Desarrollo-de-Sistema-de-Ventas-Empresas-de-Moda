@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Search, 
-  X, 
   User, 
   FileText, 
   Crown,

@@ -1,5 +1,6 @@
 package com.tienda.ropa.controller;
 
+import com.tienda.ropa.dto.AlmacenAtenderLoteRequest;
 import com.tienda.ropa.dto.AlmacenRechazarSolicitudRequest;
 import com.tienda.ropa.dto.AlmacenSolicitudCardDTO;
 import com.tienda.ropa.dto.CrearSolicitudDTO;
@@ -63,6 +64,13 @@ public class SolicitudController {
     @PostMapping("/{id}/atender")
     public Solicitud atender(@PathVariable Long id) {
         return solicitudService.atenderSolicitud(id);
+    }
+
+    /** Despacha un lote completo en una sola operación (evita llamadas duplicadas desde el front). */
+    @PostMapping("/atender-lote")
+    public ResponseEntity<Void> atenderLote(@RequestBody AlmacenAtenderLoteRequest body) {
+        solicitudService.atenderSolicitudesLote(body.idsSolicitud());
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/rechazar")

@@ -14,11 +14,12 @@ import com.tienda.ropa.entity.Categoria;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Proveedores;
+import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.repository.CategoriaRepository;
 import com.tienda.ropa.repository.ProductoRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.ProveedoresRepository;
-import com.tienda.ropa.service.InventarioUbicacionService;
+import com.tienda.ropa.service.InventarioService;
 import com.tienda.ropa.service.ProductoVarianteService;
 
 @Service
@@ -37,10 +38,13 @@ public class ProductoService {
     private ProductoVarianteRepository productoVarianteRepository;
 
     @Autowired
-    private InventarioUbicacionService inventarioUbicacionService;
+    private InventarioService inventarioService;
 
     @Autowired
     private ProductoVarianteService productoVarianteService;
+
+    @Autowired
+    private InventarioContextService inventarioContextService;
 
     @Transactional
     public Producto agregarProducto(Producto producto) {
@@ -167,25 +171,74 @@ public class ProductoService {
 
     public org.springframework.data.domain.Page<Producto> obtenerProductosPaginados(
             String busqueda, org.springframework.data.domain.Pageable pageable) {
+        return obtenerProductosPaginados(busqueda, pageable, null, null);
+    }
+
+    public org.springframework.data.domain.Page<Producto> obtenerProductosPaginados(
+            String busqueda,
+            org.springframework.data.domain.Pageable pageable,
+            Usuario usuario,
+            String sector) {
         String termino = busqueda == null ? "" : busqueda.trim();
+        boolean sinBusqueda = termino.isEmpty();
         org.springframework.data.domain.Page<Producto> page;
-        if (termino.isEmpty()) {
-            page = productoRepository.findProductosPaginadosSinBusqueda(pageable);
-        } else {
-            page = productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
+
+        if (usuario != null && inventarioContextService.esAlmaceneroDeLinea(usuario)) {
+            Long idUa = usuario.getAreaAsignado() != null
+                    ? usuario.getAreaAsignado().getIdUbicacionArea()
+                    : null;
+            if (idUa == null) {
+                return org.springframework.data.domain.Page.empty(pageable);
+            }
+            page = sinBusqueda
+                    ? productoRepository.findProductosConStockEnUbicacionArea(idUa, pageable)
+                    : productoRepository.findProductosConStockEnUbicacionAreaConBusqueda(idUa, termino, pageable);
+            enriquecerStock(page, ids -> productoRepository.findStockAlmacenByProductoIdsAndUbicacionArea(ids, idUa));
+            return page;
         }
-        if (page.hasContent()) {
-            List<Long> ids = page.getContent().stream()
-                    .map(Producto::getIdProducto)
-                    .collect(Collectors.toList());
-            Map<Long, Integer> map = productoRepository.findStockAlmacenByProductoIds(ids).stream()
-                    .collect(Collectors.toMap(
-                            r -> ((Number) r[0]).longValue(),
-                            r -> ((Number) r[1]).intValue()));
-            page.getContent().forEach(p ->
-                    p.setStockAlmacen(map.getOrDefault(p.getIdProducto(), 0)));
+
+        if (usuario != null && inventarioContextService.esAlmaceneroGeneral(usuario)) {
+            String sectorNorm = sector == null ? InventarioContextService.NOMBRE_AREA_GENERAL : sector.trim();
+            if (InventarioContextService.NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorNorm)) {
+                page = sinBusqueda
+                        ? productoRepository.findProductosPaginadosSinBusqueda(pageable)
+                        : productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
+                enriquecerStock(page, productoRepository::findStockAlmacenByProductoIds);
+            } else {
+                Long idArea = inventarioContextService.idAreaCatalogoPorNombre(sectorNorm);
+                if (idArea == null) {
+                    return org.springframework.data.domain.Page.empty(pageable);
+                }
+                page = sinBusqueda
+                        ? productoRepository.findProductosConStockEnSectorAlmacen(idArea, pageable)
+                        : productoRepository.findProductosConStockEnSectorAlmacenConBusqueda(idArea, termino, pageable);
+                Long idAreaFinal = idArea;
+                enriquecerStock(page, ids -> productoRepository.findStockAlmacenByProductoIdsAndAreaCatalogo(ids, idAreaFinal));
+            }
+            return page;
         }
+
+        page = sinBusqueda
+                ? productoRepository.findProductosPaginadosSinBusqueda(pageable)
+                : productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
+        enriquecerStock(page, productoRepository::findStockAlmacenByProductoIds);
         return page;
+    }
+
+    private void enriquecerStock(
+            org.springframework.data.domain.Page<Producto> page,
+            java.util.function.Function<List<Long>, List<Object[]>> stockLoader) {
+        if (!page.hasContent()) {
+            return;
+        }
+        List<Long> ids = page.getContent().stream()
+                .map(Producto::getIdProducto)
+                .collect(Collectors.toList());
+        Map<Long, Integer> map = stockLoader.apply(ids).stream()
+                .collect(Collectors.toMap(
+                        r -> ((Number) r[0]).longValue(),
+                        r -> ((Number) r[1]).intValue()));
+        page.getContent().forEach(p -> p.setStockAlmacen(map.getOrDefault(p.getIdProducto(), 0)));
     }
 
     public void eliminarProducto(Long id) {
@@ -305,7 +358,7 @@ public class ProductoService {
                     v.setCodigoBarras(variante.getCodigoBarras());
                     v.setSku(variante.getSku());
                     productoVarianteRepository.save(v);
-                    inventarioUbicacionService.establecerStockAlmacen(
+                    inventarioService.establecerStockAlmacen(
                             v.getIdProductoVariante(), v.getCantidad() != null ? v.getCantidad() : 0);
                 }
             } else {
@@ -322,7 +375,7 @@ public class ProductoService {
                         v.setCodigoBarras(variante.getCodigoBarras());
                     }
                     productoVarianteRepository.save(v);
-                    inventarioUbicacionService.establecerStockAlmacen(
+                    inventarioService.establecerStockAlmacen(
                             v.getIdProductoVariante(), v.getCantidad() != null ? v.getCantidad() : 0);
                 } else {
                     // Es una nueva variante, crearla
@@ -336,14 +389,14 @@ public class ProductoService {
                     if (variante.getCantidad() == null) {
                         variante.setCantidad(0);
                     }
-                    productoVarianteService.crearVariante(variante);
+                    productoVarianteService.crearVariante(variante, inventarioService.ubicacionAreaAlmacen());
                 }
             }
         }
         
         // Actualizar la cantidad total del producto sumando todas las variantes
         Integer cantidadTotal = productoVarianteRepository.findByProducto(productoGuardado).stream()
-                .mapToInt(v -> inventarioUbicacionService.stockTotalVariante(v.getIdProductoVariante()))
+                .mapToInt(v -> inventarioService.stockTotalVariante(v.getIdProductoVariante()))
                 .sum();
         productoGuardado.setCantidad(cantidadTotal);
         productoRepository.save(productoGuardado);

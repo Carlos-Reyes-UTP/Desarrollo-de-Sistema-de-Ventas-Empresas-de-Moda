@@ -10,5 +10,6 @@ public record SignUpRequest(
         @ContrasenaSegura 
         String clave,
         @NotBlank(message = "El rol no puede estar vacío") String rol, // Campo para el rol
-        Boolean activo // Campo para el estado activo (opcional, por defecto true)
+        Boolean activo, // Campo para el estado activo (opcional, por defecto true)
+        Long idUbicacionAreaAsignada // Obligatorio si rol ALMACENERO
 ) {}

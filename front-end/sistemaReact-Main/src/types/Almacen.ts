@@ -1,13 +1,13 @@
-export interface Ubicacion {
-  idUbicacion: number;
+export interface UbicacionArea {
+  idUbicacionArea: number;
   nombre: string;
   area: string | null;
-  descripcion: string | null;
+  descripcion?: string | null;
 }
 
 /** GET pisos/{piso}/resumen-stock */
 export interface AreaStockResumen {
-  idUbicacion: number;
+  idUbicacionArea: number;
   nombre: string;
   area: string | null;
   descripcion: string | null;
@@ -24,21 +24,21 @@ export interface StockUbicacion {
   talla: string | null;
   sku: string | null;
   stockActual: number;
-  idUbicacion: number;
+  idUbicacionArea: number;
   nombreUbicacion: string;
   areaUbicacion: string | null;
 }
 
 export interface TrasladoInventarioPayload {
   idVariante: number;
-  idUbicacionOrigen: number;
-  idUbicacionDestino: number;
+  idUbicacionAreaOrigen: number;
+  idUbicacionAreaDestino: number;
   cantidad: number;
 }
 
 /** Respuesta de GET /ubicaciones/stock/almacen */
 export interface StockDesdeAlmacen {
-  idUbicacionOrigen: number;
-  nombreUbicacion: string;
+  idUbicacionAreaOrigen: number;
+  etiquetaAlmacen: string;
   stock: StockUbicacion[];
 }

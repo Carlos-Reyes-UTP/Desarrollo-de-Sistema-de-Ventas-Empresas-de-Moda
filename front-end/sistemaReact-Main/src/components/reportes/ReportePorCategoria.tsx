@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   TableCellsIcon,
   ArrowDownTrayIcon
@@ -40,12 +40,12 @@ const ReportePorCategoria: React.FC = () => {
     { id: null, nombre: 'Categorías Principales', nivel: 'padre' }
   ]);
   const [nivelActual, setNivelActual] = useState<'padre' | 'subcategoria' | 'segunda-subcategoria'>('padre');
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<number | null>(null);
+  const categoriaSeleccionadaRef = useRef<number | null>(null);
   const [panelExpandido, setPanelExpandido] = useState(false);
 
   useEffect(() => {
     cargarReportes();
-  }, [filtros, nivelActual, categoriaSeleccionada]);
+  }, [filtros, nivelActual]);
 
   const cargarReportes = async () => {
     try {
@@ -70,18 +70,18 @@ const ReportePorCategoria: React.FC = () => {
           }
           break;
         case 'subcategoria':
-          if (categoriaSeleccionada) {
-            console.log(`🔍 Cargando subcategorías para la categoría ${categoriaSeleccionada}...`);
-            data = await ReporteService.getReportePorSubcategoria(categoriaSeleccionada, filtros);
+          if (categoriaSeleccionadaRef.current) {
+            console.log(`🔍 Cargando subcategorías para la categoría ${categoriaSeleccionadaRef.current}...`);
+            data = await ReporteService.getReportePorSubcategoria(categoriaSeleccionadaRef.current, filtros);
           } else {
             console.warn('⚠️ No hay categoría seleccionada para mostrar subcategorías');
             data = [];
           }
           break;
         case 'segunda-subcategoria':
-          if (categoriaSeleccionada) {
-            console.log(`🔍 Cargando segunda subcategoría para la subcategoría ${categoriaSeleccionada}...`);
-            data = await ReporteService.getReportePorSegundaSubcategoria(categoriaSeleccionada, filtros);
+          if (categoriaSeleccionadaRef.current) {
+            console.log(`🔍 Cargando segunda subcategoría para la subcategoría ${categoriaSeleccionadaRef.current}...`);
+            data = await ReporteService.getReportePorSegundaSubcategoria(categoriaSeleccionadaRef.current, filtros);
           } else {
             console.warn('⚠️ No hay subcategoría seleccionada para mostrar segunda subcategoría');
             data = [];
@@ -129,7 +129,7 @@ const ReportePorCategoria: React.FC = () => {
     };
     
     setBreadcrumbs(prev => [...prev, nuevoBreadcrumb]);
-    setCategoriaSeleccionada(categoria.idCategoria);
+    categoriaSeleccionadaRef.current = categoria.idCategoria;
     setNivelActual(nuevoNivel);
     
     // Auto-expandir el panel cuando se navega a un nuevo nivel
@@ -146,11 +146,11 @@ const ReportePorCategoria: React.FC = () => {
     if (index === 0) {
       console.log('🏠 Volviendo a categorías principales');
       setNivelActual('padre');
-      setCategoriaSeleccionada(null);
+      categoriaSeleccionadaRef.current = null;
     } else {
       const breadcrumbAnterior = nuevoBreadcrumbs[index];
       console.log(`📁 Navegando a ${breadcrumbAnterior.nombre} (Nivel: ${breadcrumbAnterior.nivel})`);
-      setCategoriaSeleccionada(breadcrumbAnterior.id);
+      categoriaSeleccionadaRef.current = breadcrumbAnterior.id;
       setNivelActual(breadcrumbAnterior.nivel);
     }
     

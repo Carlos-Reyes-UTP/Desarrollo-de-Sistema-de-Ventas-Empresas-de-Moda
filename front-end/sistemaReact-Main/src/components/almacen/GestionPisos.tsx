@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Building2, LayoutGrid, MoveRight, RefreshCw, LogIn, ArrowLeft } from "lucide-react";
 import { AlmacenService } from "@/services/AlmacenService";
-import type { Ubicacion, StockUbicacion } from "@/types/Almacen";
+import type { UbicacionArea, StockUbicacion } from "@/types/Almacen";
+import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
 import MoverMercaderiaModal from "./MoverMercaderiaModal";
 import { ListItemSkeleton, TableSkeleton } from "@/shared/ui";
 
 interface AreaConStock {
-  ubicacion: Ubicacion;
+  ubicacion: UbicacionArea;
   totalUnidades: number;
   totalVariantes: number;
   stock: StockUbicacion[];
@@ -17,6 +18,16 @@ interface GestionPisosProps {
 }
 
 const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
+  const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
+  const esAlmaceneroRestringido = Boolean(accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo);
+  const nombreAreaAsignada = useMemo(() => {
+    if (!esAlmaceneroRestringido || !accesoAreaAlmacen?.destinosTraslado?.length) {
+      return null;
+    }
+    const conArea = accesoAreaAlmacen.destinosTraslado.find((u) => u.area);
+    return conArea?.area ?? null;
+  }, [esAlmaceneroRestringido, accesoAreaAlmacen?.destinosTraslado]);
+
   const [pisos, setPisos] = useState<string[]>([]);
   const [pisoSeleccionado, setPisoSeleccionado] = useState<string | null>(null);
   const [areas, setAreas] = useState<AreaConStock[]>([]);
@@ -25,112 +36,29 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
   const [error, setError] = useState<string | null>(null);
 
   // Nuevos estados para el detalle del área
-  const [areaDetalle, setAreaDetalle] = useState<Ubicacion | null>(null);
+  const [areaDetalle, setAreaDetalle] = useState<UbicacionArea | null>(null);
   const [stockDetalle, setStockDetalle] = useState<StockUbicacion[]>([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
   /** Fila "Mover mercadería": el listado de productos es solo el stock de esta ubicación. */
-  const [origenAreaModal, setOrigenAreaModal] = useState<Ubicacion | null>(null);
+  const [origenAreaModal, setOrigenAreaModal] = useState<UbicacionArea | null>(null);
   const [trasladoGlobalAbierto, setTrasladoGlobalAbierto] = useState(false);
   const modalAbiertoRef = useRef(false);
   modalAbiertoRef.current = trasladoGlobalAbierto || origenAreaModal !== null;
 
-  useEffect(() => {
-    let isMounted = true;
-    const fetchPisos = async () => {
-      setCargandoPisos(true);
-      setError(null);
-      try {
-        const data = await AlmacenService.listarPisos();
-        if (!isMounted) return;
-        setPisos(data);
-        setPisoSeleccionado((prev) => {
-          if (data.length === 0) return null;
-          if (prev == null) return data[0];
-          return data.includes(prev) ? prev : data[0];
-        });
-        if (data.length === 0) setAreas([]);
-      } catch (err) {
-        if (isMounted) {
-          console.error("Error cargando pisos:", err);
-          setError("No se pudieron cargar los pisos. Intente nuevamente.");
-        }
-      } finally {
-        if (isMounted) setCargandoPisos(false);
+  const filtrarAreasPorSector = useCallback(
+    (items: AreaConStock[]) => {
+      if (!esAlmaceneroRestringido || !nombreAreaAsignada) {
+        return items;
       }
-    };
-    void fetchPisos();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const cargarAreasDePiso = useCallback(async (piso: string, opts?: { silent?: boolean }) => {
-    const silent = opts?.silent ?? false;
-    if (!silent) setCargandoAreas(true);
-    if (!silent) setError(null);
-    try {
-      const resumen = await AlmacenService.resumenStockAreasDePiso(piso);
-      setAreas(
-        resumen.map((r) => ({
-          ubicacion: {
-            idUbicacion: r.idUbicacion,
-            nombre: r.nombre,
-            area: r.area,
-            descripcion: r.descripcion,
-          },
-          stock: [],
-          totalUnidades: Number(r.totalUnidades ?? 0),
-          totalVariantes: Number(r.totalVariantesConStock ?? 0),
-        }))
+      return items.filter(
+        (a) => a.ubicacion.area?.toLowerCase() === nombreAreaAsignada.toLowerCase()
       );
-    } catch (err) {
-      console.error("Error cargando áreas:", err);
-      if (!silent) {
-        setError("No se pudieron cargar las áreas del piso seleccionado.");
-        setAreas([]);
-      }
-    } finally {
-      if (!silent) setCargandoAreas(false);
-    }
-  }, []);
+    },
+    [esAlmaceneroRestringido, nombreAreaAsignada]
+  );
 
-  useEffect(() => {
-    if (pisoSeleccionado) {
-      setAreaDetalle(null); // Resetear detalle si se cambia de piso
-      cargarAreasDePiso(pisoSeleccionado);
-    }
-  }, [pisoSeleccionado, cargarAreasDePiso]);
-
-  const refrescar = async () => {
-    if (pisoSeleccionado) {
-      if (areaDetalle) {
-        cargarDetalleArea(areaDetalle);
-      } else {
-        await cargarAreasDePiso(pisoSeleccionado);
-      }
-    }
-  };
-
-  const cargarDetalleArea = async (ubicacion: Ubicacion) => {
-    setAreaDetalle(ubicacion);
-    setCargandoDetalle(true);
-    try {
-      const data = await AlmacenService.stockPorUbicacion(ubicacion.idUbicacion);
-      setStockDetalle(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("Error cargando detalle de stock:", err);
-      setError("No se pudo cargar el detalle del área.");
-    } finally {
-      setCargandoDetalle(false);
-    }
-  };
-
-  useEffect(() => {
-    cargarPisos();
-  }, []);
-
-  const cargarPisos = async () => {
+  const cargarPisos = useCallback(async () => {
     setCargandoPisos(true);
     setError(null);
     try {
@@ -150,6 +78,71 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
       setError("No se pudieron cargar los pisos. Intente nuevamente.");
     } finally {
       setCargandoPisos(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void cargarPisos();
+  }, [cargarPisos]);
+
+  const cargarAreasDePiso = useCallback(async (piso: string, opts?: { silent?: boolean }) => {
+    const silent = opts?.silent ?? false;
+    if (!silent) setCargandoAreas(true);
+    if (!silent) setError(null);
+    try {
+      const resumen = await AlmacenService.resumenStockAreasDePiso(piso);
+      const mapeadas: AreaConStock[] = resumen.map((r) => ({
+        ubicacion: {
+          idUbicacionArea: r.idUbicacionArea,
+          nombre: r.nombre,
+          area: r.area,
+          descripcion: r.descripcion,
+        },
+        stock: [],
+        totalUnidades: Number(r.totalUnidades ?? 0),
+        totalVariantes: Number(r.totalVariantesConStock ?? 0),
+      }));
+      setAreas(filtrarAreasPorSector(mapeadas));
+    } catch (err) {
+      console.error("Error cargando áreas:", err);
+      if (!silent) {
+        setError("No se pudieron cargar las áreas del piso seleccionado.");
+        setAreas([]);
+      }
+    } finally {
+      if (!silent) setCargandoAreas(false);
+    }
+  }, [filtrarAreasPorSector]);
+
+  useEffect(() => {
+    if (pisoSeleccionado) {
+      setAreaDetalle(null); // Resetear detalle si se cambia de piso
+      cargarAreasDePiso(pisoSeleccionado);
+    }
+  }, [pisoSeleccionado, cargarAreasDePiso]);
+
+  const cargarDetalleArea = async (ubicacion: UbicacionArea) => {
+    setAreaDetalle(ubicacion);
+    setCargandoDetalle(true);
+    try {
+      const data = await AlmacenService.stockPorUbicacionArea(ubicacion.idUbicacionArea);
+      setStockDetalle(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error("Error cargando detalle de stock:", err);
+      setError("No se pudo cargar el detalle del área.");
+    } finally {
+      setCargandoDetalle(false);
+    }
+  };
+
+  const refrescar = async () => {
+    await cargarPisos();
+    if (pisoSeleccionado) {
+      if (areaDetalle) {
+        await cargarDetalleArea(areaDetalle);
+      } else {
+        await cargarAreasDePiso(pisoSeleccionado);
+      }
     }
   };
 
@@ -202,8 +195,22 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
             <ListItemSkeleton count={5} showAvatar={false} />
           ) : pisos.length === 0 ? (
             <p className="text-sm text-gray-500">
-              No hay pisos registrados. Agrega filas en <code>ubicacion</code> con un nombre distinto
-              de <strong>Almacén</strong>.
+              {esAlmaceneroRestringido ? (
+                <>
+                  No hay pisos de venta con su sector
+                  {accesoAreaAlmacen?.etiquetaAreaAsignada
+                    ? ` (${accesoAreaAlmacen.etiquetaAreaAsignada})`
+                    : nombreAreaAsignada
+                      ? ` (${nombreAreaAsignada})`
+                      : ""}
+                  . Contacte al administrador para configurar ubicaciones en piso.
+                </>
+              ) : (
+                <>
+                  No hay pisos registrados. Configura pisos y áreas en el catálogo de ubicaciones (distinto
+                  de <strong>Almacén</strong>).
+                </>
+              )}
             </p>
           ) : (
             <ul className="space-y-1.5">
@@ -277,7 +284,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-50">
                         {stockDetalle.map(item => (
-                          <tr key={`${item.idVariante}-${item.idUbicacion}`} className="hover:bg-slate-50 transition-colors">
+                          <tr key={`${item.idVariante}-${item.idUbicacionArea}`} className="hover:bg-slate-50 transition-colors">
                             <td className="px-6 py-4">
                               <span className="font-bold text-gray-900">{item.nombreProducto}</span>
                               <span className="ml-2 text-xs text-gray-500 font-mono">({item.codigoIdentificacion})</span>
@@ -325,12 +332,14 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                     ) : areas.length === 0 ? (
                       <tr>
                         <td colSpan={4} className="px-6 py-8 text-center text-sm text-gray-500 font-medium">
-                          Este piso aún no tiene áreas registradas.
+                          {esAlmaceneroRestringido
+                            ? `Este piso no tiene el sector ${nombreAreaAsignada ?? "asignado"} configurado.`
+                            : "Este piso aún no tiene áreas registradas."}
                         </td>
                       </tr>
                     ) : (
                       areas.map(({ ubicacion, totalUnidades, totalVariantes }) => (
-                        <tr key={ubicacion.idUbicacion} className="hover:bg-slate-100/50 transition-colors duration-150">
+                        <tr key={ubicacion.idUbicacionArea} className="hover:bg-slate-100/50 transition-colors duration-150">
                           <td className="px-6 py-4">
                             <div className="text-sm text-gray-900 font-bold">
                               {ubicacion.area ?? <span className="text-gray-400 font-medium">Sin área específica</span>}

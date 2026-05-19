@@ -206,13 +206,17 @@ export const RUTAS_VENDEDOR = {
   CATALOGO_POR_VARIANTE: (idVariante: number) =>
     `${API_BASE_URL}/api/vendedor/catalogo-por-variante/${idVariante}`,
   SOLICITUDES: `${API_BASE_URL}/api/vendedor/solicitudes`,
+  SOLICITUDES_LOTE: `${API_BASE_URL}/api/vendedor/solicitudes/lote`,
   MIS_SOLICITUDES: `${API_BASE_URL}/api/vendedor/solicitudes/mias`,
+  /** Lista de pisos/áreas disponibles como destino de solicitud */
+  UBICACIONES: `${API_BASE_URL}/api/vendedor/ubicaciones`,
 };
 
 /** Tablero almacén: cola de solicitudes pendientes */
 export const RUTAS_ALMACENERO_SOLICITUDES = {
   COLA: `${API_BASE_URL}/api/almacenero/solicitudes/cola`,
   ATENDER: (id: number) => `${API_BASE_URL}/api/almacenero/solicitudes/${id}/atender`,
+  ATENDER_LOTE: `${API_BASE_URL}/api/almacenero/solicitudes/atender-lote`,
   RECHAZAR: (id: number) => `${API_BASE_URL}/api/almacenero/solicitudes/${id}/rechazar`,
 };
 
@@ -224,17 +228,24 @@ export const RUTAS_ALMACEN = {
     `${API_BASE_URL}/api/almacenero/ubicaciones/pisos/${encodeURIComponent(nombrePiso)}/resumen-stock`,
   ORIGENES_POSIBLES: (idDestino: number) =>
     `${API_BASE_URL}/api/almacenero/ubicaciones/origenes?destino=${idDestino}`,
-  STOCK_POR_UBICACION: (idUbicacion: number) =>
-    `${API_BASE_URL}/api/almacenero/ubicaciones/${idUbicacion}/stock`,
+  STOCK_POR_UBICACION_AREA: (idUbicacionArea: number) =>
+    `${API_BASE_URL}/api/almacenero/ubicaciones/${idUbicacionArea}/stock`,
   STOCK_DESDE_ALMACEN: `${API_BASE_URL}/api/almacenero/ubicaciones/stock/almacen`,
-  STOCK_ALMACEN_BUSCAR: (q: string, limit: number, soloAlmacen = false) => {
+  STOCK_ALMACEN_BUSCAR: (q: string, limit: number, soloAlmacen = false, sector?: string) => {
     const params = new URLSearchParams();
     params.set("q", q);
     params.set("limit", String(limit));
     if (soloAlmacen) params.set("soloAlmacen", "true");
+    if (sector?.trim()) params.set("sector", sector.trim());
     return `${API_BASE_URL}/api/almacenero/ubicaciones/stock/almacen/buscar?${params.toString()}`;
   },
   TRASLADO: `${API_BASE_URL}/api/almacenero/inventario/traslado`,
+};
+
+export const RUTAS_INVENTARIO_CONTEXTO = {
+  MI_CONTEXTO: `${API_BASE_URL}/api/almacenero/inventario/mi-contexto`,
+  AREAS_ALMACEN: `${API_BASE_URL}/api/almacenero/ubicaciones/areas-almacen`,
+  RESUMEN_AREAS: `${API_BASE_URL}/api/almacenero/inventario/resumen-areas`,
 };
 
 export const RUTAS_DASHBOARD = {

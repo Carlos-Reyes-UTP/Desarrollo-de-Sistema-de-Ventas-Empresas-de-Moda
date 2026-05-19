@@ -26,6 +26,8 @@ interface DetalleExportacion {
 
 type TipoPeriodo = 'diario' | 'semanal' | 'mensual';
 
+const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+
 const ReporteDeVentas: React.FC = () => {
   const [periodo, setPeriodo] = useState<TipoPeriodo>('semanal');
   const [fechaReferencia, setFechaReferencia] = useState(new Date().toISOString().split('T')[0]);
@@ -380,10 +382,7 @@ const ReporteDeVentas: React.FC = () => {
   };
 
   const formatearMoneda = (valor: number) => {
-    return new Intl.NumberFormat('es-PE', {
-      style: 'currency',
-      currency: 'PEN'
-    }).format(valor);
+    return formatterMonedaPE.format(valor);
   };
 
   return (
@@ -564,7 +563,7 @@ const ReporteDeVentas: React.FC = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {(() => {
                   // Ordenar las ventas por fecha más reciente primero
-                  const ventasOrdenadas = [...ventas].sort((a, b) => {
+                  const ventasOrdenadas = ventas.toSorted((a, b) => {
                     const fechaA = parsearFechaVenta(a.fechaVenta);
                     const fechaB = parsearFechaVenta(b.fechaVenta);
                     return fechaB.getTime() - fechaA.getTime();
@@ -648,7 +647,7 @@ const ReporteDeVentas: React.FC = () => {
           
           {/* Controles de paginación responsiva */}
           {(() => {
-            const ventasOrdenadas = [...ventas].sort((a, b) => {
+            const ventasOrdenadas = ventas.toSorted((a, b) => {
               const fechaA = parsearFechaVenta(a.fechaVenta);
               const fechaB = parsearFechaVenta(b.fechaVenta);
               return fechaB.getTime() - fechaA.getTime();

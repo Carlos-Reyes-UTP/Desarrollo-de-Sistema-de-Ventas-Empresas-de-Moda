@@ -1,6 +1,9 @@
 import type { RolNombre } from "../../types/enums";
+import { esRolModuloAlmacen } from "../constants/rolesAlmacen";
 
 type RoleChecker = (role: RolNombre) => boolean;
+
+const esPersonalAlmacen = (hasRole: RoleChecker): boolean => esRolModuloAlmacen(hasRole);
 
 export type CajeroView = "apertura" | "ventas" | "cierre";
 
@@ -106,15 +109,14 @@ export const resolveRouteView = ({
     return "reportes-admin";
   }
 
-  for (const config of INVENTORY_ROUTE_CONFIG) {
-    if (pathname.includes(config.ruta)) {
-      if (hasRole("ROLE_ADMIN")) {
-        return config.admin;
-      }
+  const matchingConfig = INVENTORY_ROUTE_CONFIG.find(config => pathname.includes(config.ruta));
+  if (matchingConfig) {
+    if (hasRole("ROLE_ADMIN")) {
+      return matchingConfig.admin;
+    }
 
-      if (hasRole("ROLE_ALMACENERO")) {
-        return config.almacenero;
-      }
+    if (esPersonalAlmacen(hasRole)) {
+      return matchingConfig.almacenero;
     }
   }
 
@@ -146,7 +148,7 @@ export const resolveSidebarState = (input: ResolveViewInput) => {
         return { view, accordion: config.accordionAdmin };
       }
 
-      if (input.hasRole("ROLE_ALMACENERO")) {
+      if (esPersonalAlmacen(input.hasRole)) {
         return { view, accordion: config.accordionAlmacenero };
       }
     }

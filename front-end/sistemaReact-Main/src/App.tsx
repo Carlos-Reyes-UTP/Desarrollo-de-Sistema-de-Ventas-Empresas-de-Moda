@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
-import { useAuth } from "./context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import type { RolNombre } from "./types/enums";
+import { logger } from "./utils/logger";
 import DashboardAdminPage from "./pages/dashboard/DashboardAdminPage";
 import DashboardAlmaceneroPage from "./pages/dashboard/DashboardAlmaceneroPage";
 import PuntoDeVentaPage from "./pages/ventas/PuntoDeVentaPage";
@@ -16,18 +17,20 @@ import GestionProveedoresPage from "./pages/inventario/GestionProveedoresPage";
 import ReportesPage from "./pages/reportes/ReportesPage";
 import Layout from "./shared/layout/Layout";
 import { APP_PATHS } from "./shared/layout/navigationConfig";
+import { ROLES_MODULO_ALMACEN } from "./shared/constants/rolesAlmacen";
 import { AppShellSkeleton } from "./shared/ui";
+import { BandejaSolicitudProvider } from "./context/BandejaSolicitudContext";
 
-const ROLES_ADMIN_O_ALMACENERO: RolNombre[] = [
-  "ROLE_ADMIN",
+const ROLES_DASHBOARD_ALMACENERO: RolNombre[] = [
   "ROLE_ALMACENERO",
+  "ROLE_SUPERVISOR_ALMACEN",
 ];
-const ROLES_DASHBOARD_ALMACENERO: RolNombre[] = ["ROLE_ALMACENERO"];
 const ROLES_CAJERO_O_ADMIN: RolNombre[] = ["ROLE_CAJERO", "ROLE_ADMIN"];
 
-/** Tablero de pedidos (almacén ↔ vendedor) — solo personal de almacén y admin */
+/** Tablero de pedidos (almacén ↔ vendedor) — personal de almacén y admin */
 const ROLES_TABLERO_ALMACEN: RolNombre[] = [
   "ROLE_ALMACENERO",
+  "ROLE_SUPERVISOR_ALMACEN",
   "ROLE_ADMIN",
 ];
 
@@ -38,24 +41,15 @@ const ROLES_VENDEDOR_PISO: RolNombre[] = [
 
 const RedirectToDashboard = () => {
   const { usuario, tieneRol } = useAuth();
-  console.log(
-    "RedirectToDashboard - Usuario:",
-    usuario?.usuario,
-    "Roles:",
-    usuario?.roles
-  );
+  logger.debug("RedirectToDashboard - Usuario:", usuario?.usuario, "Roles:", usuario?.roles);
 
   if (tieneRol("ROLE_ADMIN")) {
-    console.log(
-      "RedirectToDashboard - Usuario es ADMIN, redirigiendo a /dashboard/admin"
-    );
+    logger.debug("RedirectToDashboard - redirigiendo a /dashboard/admin");
     return <Navigate to={APP_PATHS.dashboardAdmin} />;
   }
 
-  if (tieneRol("ROLE_ALMACENERO")) {
-    console.log(
-      "RedirectToDashboard - Usuario es ALMACENERO, redirigiendo al tablero de pedidos"
-    );
+  if (tieneRol("ROLE_ALMACENERO") || tieneRol("ROLE_SUPERVISOR_ALMACEN")) {
+    logger.debug("RedirectToDashboard - redirigiendo al tablero de pedidos");
     return <Navigate to={APP_PATHS.almacenTablero} />;
   }
 
@@ -64,15 +58,11 @@ const RedirectToDashboard = () => {
   }
 
   if (tieneRol("ROLE_CAJERO")) {
-    console.log(
-      "RedirectToDashboard - Usuario es CAJERO, redirigiendo al punto de venta"
-    );
-  return <Navigate to={APP_PATHS.caja} state={{ view: "apertura" }} />;
+    logger.debug("RedirectToDashboard - redirigiendo al punto de venta");
+    return <Navigate to={APP_PATHS.caja} state={{ view: "apertura" }} />;
   }
 
-  console.log(
-    "RedirectToDashboard - Usuario sin rol reconocido, redirigiendo a /login"
-  );
+  logger.warn("RedirectToDashboard - usuario sin rol reconocido, redirigiendo a /login");
   return <Navigate to={APP_PATHS.login} />;
 };
 
@@ -89,30 +79,21 @@ const RutaProtegida = ({ children, rolRequerido }: RutaProtegidaProps) => {
     if (Array.isArray(roles)) {
       return roles.some((rol) => tieneRol(rol));
     }
-
     return tieneRol(roles);
   };
 
-  console.log("RutaProtegida - Verificando acceso:", {
-    ruta: location.pathname,
-    usuarioPresente: !!usuario,
-    rolRequerido,
-    tieneRolRequerido: rolRequerido ? tieneAlgunRol(rolRequerido) : true,
-  });
+  logger.debug("RutaProtegida - Verificando acceso:", location.pathname);
 
   if (!usuario) {
-    console.log("RutaProtegida - No hay usuario, redirigiendo a /login");
+    logger.debug("RutaProtegida - Sin usuario, redirigiendo a /login");
     return <Navigate to={APP_PATHS.login} state={{ from: location }} replace />;
   }
 
   if (rolRequerido && !tieneAlgunRol(rolRequerido)) {
-    console.log(
-      `RutaProtegida - Usuario no tiene rol(es) ${rolRequerido}, redirigiendo a /`
-    );
+    logger.warn(`RutaProtegida - Acceso denegado: se requiere ${rolRequerido}`);
     return <Navigate to="/" replace />;
   }
 
-  console.log("RutaProtegida - Acceso permitido");
   return <>{children}</>;
 };
 
@@ -131,14 +112,8 @@ const RutaProtegidaConLayout = ({
 );
 
 function App() {
-  console.log("App renderizando");
   const { usuario, cargando } = useAuth();
-  console.log(
-    "App - Estado de usuario:",
-    usuario ? "Autenticado" : "No autenticado",
-    "Cargando:",
-    cargando
-  );
+  logger.debug("App - Estado:", usuario ? "Autenticado" : "No autenticado", "| Cargando:", cargando);
 
   if (cargando) {
     return <AppShellSkeleton />;
@@ -192,7 +167,9 @@ function App() {
         path={APP_PATHS.vendedorPiso}
         element={
           <RutaProtegidaConLayout rolRequerido={ROLES_VENDEDOR_PISO}>
-            <VendedorPisoVentasPage />
+            <BandejaSolicitudProvider>
+              <VendedorPisoVentasPage />
+            </BandejaSolicitudProvider>
           </RutaProtegidaConLayout>
         }
       />
@@ -209,7 +186,7 @@ function App() {
       <Route
         path={APP_PATHS.productos}
         element={
-          <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
+          <RutaProtegidaConLayout rolRequerido={ROLES_MODULO_ALMACEN}>
             <GestionProductosPage />
           </RutaProtegidaConLayout>
         }
@@ -218,7 +195,7 @@ function App() {
       <Route
         path={APP_PATHS.proveedores}
         element={
-          <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
+          <RutaProtegidaConLayout rolRequerido={ROLES_MODULO_ALMACEN}>
             <GestionProveedoresPage />
           </RutaProtegidaConLayout>
         }
@@ -227,7 +204,7 @@ function App() {
       <Route
         path={APP_PATHS.categorias}
         element={
-          <RutaProtegidaConLayout rolRequerido={ROLES_ADMIN_O_ALMACENERO}>
+          <RutaProtegidaConLayout rolRequerido={ROLES_MODULO_ALMACEN}>
             <GestionCategoriasPage />
           </RutaProtegidaConLayout>
         }

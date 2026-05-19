@@ -16,9 +16,12 @@ import com.tienda.ropa.agregates.response.AuthenticationResponse;
 import com.tienda.ropa.entity.Rol;
 import com.tienda.ropa.entity.Role;
 import com.tienda.ropa.entity.Usuario;
+import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.repository.RolRepository;
+import com.tienda.ropa.repository.UbicacionAreaRepository;
 import com.tienda.ropa.repository.UsuarioRepository;
 import com.tienda.ropa.service.AuthenticationService;
+import com.tienda.ropa.service.InventarioService;
 import com.tienda.ropa.service.UsuarioService;
 import com.tienda.ropa.util.JwtUtils;
 
@@ -36,6 +39,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private final UsuarioService usuarioService;
     private final JwtUtils jwtUtils;
     private final PasswordEncoder passwordEncoder;
+    private final UbicacionAreaRepository ubicacionAreaRepository;
+    private final InventarioService inventarioService;
 
     @Override
     public Usuario signUpAdmin(SignUpRequest signUpRequest) {
@@ -91,6 +96,21 @@ public class AuthenticationServiceImpl implements AuthenticationService {
                 .roles(roles)
                 .activo(signUpRequest.activo() != null ? signUpRequest.activo() : true) // Usar el valor del request o true por defecto
                 .build();
+
+        if (validRole == Role.ALMACENERO) {
+            Long idArea = signUpRequest.idUbicacionAreaAsignada();
+            if (idArea == null) {
+                throw new IllegalArgumentException(
+                        "Debe asignar un área de almacén al crear un usuario ALMACENERO.");
+            }
+            UbicacionArea ua = ubicacionAreaRepository.findByIdWithUbicacionYArea(idArea)
+                    .orElseThrow(() -> new IllegalArgumentException("Área de almacén no encontrada: " + idArea));
+            if (!inventarioService.esUbicacionAlmacen(ua)) {
+                throw new IllegalArgumentException(
+                        "La ubicación-área seleccionada no pertenece al piso de almacén.");
+            }
+            user.setAreaAsignado(ua);
+        }
 
         return usuarioRepository.save(user);
     }

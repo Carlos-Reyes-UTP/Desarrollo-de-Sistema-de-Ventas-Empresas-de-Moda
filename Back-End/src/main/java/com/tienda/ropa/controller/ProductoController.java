@@ -20,7 +20,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
+import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.service.ProductoService;
+
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 @RestController
 @RequestMapping("/api/almacenero/productos")
@@ -49,7 +52,9 @@ public class ProductoController {
     public ResponseEntity<java.util.Map<String, Object>> obtenerProductosPaginados(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String busqueda) {
+            @RequestParam(required = false) String busqueda,
+            @RequestParam(required = false) String sector,
+            @AuthenticationPrincipal Usuario usuario) {
         int pagina = Math.max(page, 0);
         int tamanio = Math.max(1, Math.min(size, 100));
         String termino = busqueda == null ? null : busqueda.trim();
@@ -58,7 +63,11 @@ public class ProductoController {
         }
 
         org.springframework.data.domain.Page<Producto> resultado = productoService
-                .obtenerProductosPaginados(termino, org.springframework.data.domain.PageRequest.of(pagina, tamanio));
+                .obtenerProductosPaginados(
+                        termino,
+                        org.springframework.data.domain.PageRequest.of(pagina, tamanio),
+                        usuario,
+                        sector);
         
         java.util.Map<String, Object> response = new java.util.HashMap<>();
         response.put("content", resultado.getContent());

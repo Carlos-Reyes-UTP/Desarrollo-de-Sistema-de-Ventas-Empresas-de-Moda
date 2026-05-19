@@ -35,17 +35,89 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Query("SELECT p FROM Producto p ORDER BY p.idProducto DESC")
     Page<Producto> findProductosPaginadosSinBusqueda(Pageable pageable);
 
-    // Stock de Almacén agrupado por producto (batch para evitar N+1)
+    // Stock de Almacén agrupado por producto (todos los sectores)
     @Query(value = """
-        SELECT pv.id_producto, COALESCE(SUM(iu.stock_actual), 0)
+        SELECT pv.id_producto, COALESCE(SUM(i.stock), 0)
         FROM producto_variante pv
-        LEFT JOIN inventario_ubicacion iu
-            ON iu.id_variante = pv.id_producto_variante
-            AND iu.id_ubicacion = (SELECT id_ubicacion FROM ubicacion WHERE LOWER(nombre) = 'almacén')
+        LEFT JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
+        LEFT JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
+        LEFT JOIN ubicacion u ON u.id_ubicacion = ua.id_ubicacion
+            AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen')
         WHERE pv.id_producto IN :ids
         GROUP BY pv.id_producto
         """, nativeQuery = true)
     List<Object[]> findStockAlmacenByProductoIds(@Param("ids") List<Long> ids);
+
+    @Query(value = """
+        SELECT pv.id_producto, COALESCE(SUM(i.stock), 0)
+        FROM producto_variante pv
+        LEFT JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
+            AND i.id_ubicacion_area = :idUbicacionArea
+        WHERE pv.id_producto IN :ids
+        GROUP BY pv.id_producto
+        """, nativeQuery = true)
+    List<Object[]> findStockAlmacenByProductoIdsAndUbicacionArea(
+            @Param("ids") List<Long> ids,
+            @Param("idUbicacionArea") Long idUbicacionArea);
+
+    @Query(value = """
+        SELECT pv.id_producto, COALESCE(SUM(i.stock), 0)
+        FROM producto_variante pv
+        LEFT JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
+        LEFT JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
+        LEFT JOIN ubicacion u ON u.id_ubicacion = ua.id_ubicacion
+            AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen')
+        LEFT JOIN area a ON a.id_area = ua.id_area AND a.id_area = :idAreaCatalogo
+        WHERE pv.id_producto IN :ids
+        GROUP BY pv.id_producto
+        """, nativeQuery = true)
+    List<Object[]> findStockAlmacenByProductoIdsAndAreaCatalogo(
+            @Param("ids") List<Long> ids,
+            @Param("idAreaCatalogo") Long idAreaCatalogo);
+
+    @Query("SELECT DISTINCT p FROM Producto p "
+            + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
+            + "WHERE pv.producto = p AND i.ubicacionArea.idUbicacionArea = :idUbicacionArea AND i.stock > 0) "
+            + "ORDER BY p.idProducto DESC")
+    Page<Producto> findProductosConStockEnUbicacionArea(
+            @Param("idUbicacionArea") Long idUbicacionArea,
+            Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Producto p "
+            + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
+            + "JOIN i.ubicacionArea ua JOIN ua.area a JOIN ua.ubicacion u "
+            + "WHERE pv.producto = p AND i.stock > 0 "
+            + "AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen') AND a.idArea = :idAreaCatalogo) "
+            + "ORDER BY p.idProducto DESC")
+    Page<Producto> findProductosConStockEnSectorAlmacen(
+            @Param("idAreaCatalogo") Long idAreaCatalogo,
+            Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Producto p "
+            + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
+            + "WHERE pv.producto = p AND i.ubicacionArea.idUbicacionArea = :idUbicacionArea AND i.stock > 0) "
+            + "AND (LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
+            + "OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
+            + "OR LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :busqueda, '%'))) "
+            + "ORDER BY p.idProducto DESC")
+    Page<Producto> findProductosConStockEnUbicacionAreaConBusqueda(
+            @Param("idUbicacionArea") Long idUbicacionArea,
+            @Param("busqueda") String busqueda,
+            Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Producto p "
+            + "WHERE EXISTS (SELECT 1 FROM ProductoVariante pv JOIN Inventario i ON i.variante = pv "
+            + "JOIN i.ubicacionArea ua JOIN ua.area a JOIN ua.ubicacion u "
+            + "WHERE pv.producto = p AND i.stock > 0 "
+            + "AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen') AND a.idArea = :idAreaCatalogo) "
+            + "AND (LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
+            + "OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
+            + "OR LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :busqueda, '%'))) "
+            + "ORDER BY p.idProducto DESC")
+    Page<Producto> findProductosConStockEnSectorAlmacenConBusqueda(
+            @Param("idAreaCatalogo") Long idAreaCatalogo,
+            @Param("busqueda") String busqueda,
+            Pageable pageable);
 
     // Paginación con búsqueda opcional por nombre, código de identificación o código de barras
     @Query("SELECT p FROM Producto p " +

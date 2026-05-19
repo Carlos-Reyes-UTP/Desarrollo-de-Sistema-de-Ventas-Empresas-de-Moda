@@ -11,6 +11,10 @@ export interface VendedorVarianteStock {
   color: string;
   codigoBarras: string | null;
   stockAlmacen: number;
+  /** Área destino ya conocida. null = producto nuevo sin área asignada aún. */
+  idUbicacionAreaDestino: number | null;
+  /** Nombre legible del área destino. null si no está asignada. */
+  nombreUbicacion: string | null;
 }
 
 export interface VendedorCatalogoPorCodigo {
@@ -55,4 +59,29 @@ export interface VendedorCrearSolicitudPayload {
   idVariante: number;
   cantidad: number;
   tipoSolicitud?: VendedorTipoSolicitud;
+  /** Área/piso destino seleccionada por el vendedor. */
+  idUbicacionAreaDestino?: number;
+  /** Identificador de lote/ticket para agrupar múltiples ítems. */
+  codigoLote?: string;
+}
+
+export interface VendedorCrearSolicitudLotePayload {
+  codigoLote?: string;
+  items: Array<{
+    idVariante: number;
+    cantidad: number;
+    idUbicacionAreaDestino: number;
+  }>;
+}
+
+export interface VendedorCrearSolicitudLoteResult {
+  codigoLote: string;
+  idsSolicitud: number[];
+}
+
+/** Ubicación (piso/área) disponible como destino para solicitudes del vendedor. */
+export interface VendedorUbicacion {
+  idUbicacionArea: number;
+  nombre: string;
+  area: string | null;
 }

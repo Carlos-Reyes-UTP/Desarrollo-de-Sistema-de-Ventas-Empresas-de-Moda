@@ -49,7 +49,13 @@ export const ProductoService = {
   },
 
   // NUEVO: Obtener productos con paginación desde el servidor (Optimizado para 10k+ productos)
-  getProductosPaginados: async (page: number = 0, size: number = 20, busqueda?: string, userRole?: string): Promise<{
+  getProductosPaginados: async (
+    page: number = 0,
+    size: number = 20,
+    busqueda?: string,
+    userRole?: string,
+    sector?: string
+  ): Promise<{
     content: Producto[],
     totalElements: number,
     totalPages: number,
@@ -63,11 +69,14 @@ export const ProductoService = {
         ? endpoints.PAGINADOS
         : RUTAS_PRODUCTOS.PAGINADOS;
     
-    const params: any = { page, size };
+    const params: Record<string, string | number> = { page, size };
     if (busqueda && busqueda.trim()) {
       params.busqueda = busqueda.trim();
     }
-    
+    if (sector?.trim()) {
+      params.sector = sector.trim();
+    }
+
     const response = await apiClient.get(url, { params });
     return response.data;
   },

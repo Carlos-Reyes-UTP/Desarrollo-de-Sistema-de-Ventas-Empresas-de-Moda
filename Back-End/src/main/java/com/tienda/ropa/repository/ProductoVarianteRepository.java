@@ -17,7 +17,7 @@ import com.tienda.ropa.entity.ProductoVariante;
 @Repository
 public interface ProductoVarianteRepository extends JpaRepository<ProductoVariante, Long> {
 
-    @EntityGraph(attributePaths = {"inventariosUbicacion", "inventariosUbicacion.ubicacion"})
+    @EntityGraph(attributePaths = {"inventarios", "inventarios.ubicacionArea", "inventarios.ubicacionArea.ubicacion", "inventarios.ubicacionArea.area"})
     @Query("SELECT DISTINCT pv FROM ProductoVariante pv WHERE pv.producto = :producto")
     List<ProductoVariante> findByProductoWithInventarios(@Param("producto") Producto producto);
 
@@ -39,7 +39,7 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
             SELECT
               pv.id_producto_variante,
               COALESCE(pv.codigo_barras, ''),
-              COALESCE((SELECT SUM(iu.stock_actual) FROM inventario_ubicacion iu WHERE iu.id_variante = pv.id_producto_variante), COALESCE(pv.cantidad, 0)),
+              COALESCE((SELECT SUM(i.stock) FROM inventario i WHERE i.id_producto_variante = pv.id_producto_variante), COALESCE(pv.cantidad, 0)),
               p.id_producto,
               p.nombre,
               p.sexo,

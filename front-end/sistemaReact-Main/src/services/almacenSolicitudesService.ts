@@ -1,17 +1,9 @@
 import apiClient from "../config/apiClient";
 import { RUTAS_ALMACENERO_SOLICITUDES } from "../config/apiConfig";
-import type { AlmacenSolicitudCard, MotivoRechazoApi } from "../types/AlmacenCola";
+import type { AlmacenSolicitud, ItemSolicitudAlmacen, MotivoRechazoApi } from "../types/AlmacenSolicitudes";
+import { num } from "../utils/num";
 
-function num(v: unknown, fallback = 0): number {
-  if (typeof v === "number" && !Number.isNaN(v)) return v;
-  if (typeof v === "string" && v.trim() !== "") {
-    const n = Number(v);
-    return Number.isNaN(n) ? fallback : n;
-  }
-  return fallback;
-}
-
-function normalizarLinea(raw: unknown): AlmacenSolicitudCard["lineas"][0] {
+function normalizarLinea(raw: unknown): ItemSolicitudAlmacen {
   const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   return {
     idVariante: num(o.idVariante, 0),
@@ -21,7 +13,7 @@ function normalizarLinea(raw: unknown): AlmacenSolicitudCard["lineas"][0] {
   };
 }
 
-function normalizarCard(raw: unknown): AlmacenSolicitudCard {
+function normalizarSolicitud(raw: unknown): AlmacenSolicitud {
   const o = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
   const lineasRaw = o.lineas;
   const lineas = Array.isArray(lineasRaw) ? lineasRaw.map(normalizarLinea) : [];
@@ -37,21 +29,34 @@ function normalizarCard(raw: unknown): AlmacenSolicitudCard {
     fechaCreacion: typeof o.fechaCreacion === "string" ? o.fechaCreacion : "",
     idUsuario,
     nombreVendedor: typeof o.nombreVendedor === "string" ? o.nombreVendedor : "",
+    codigoLote: typeof o.codigoLote === "string" ? o.codigoLote : null,
     lineas,
   };
 }
 
 export const AlmacenSolicitudesApi = {
-  cola: async (signal?: AbortSignal): Promise<AlmacenSolicitudCard[]> => {
+  cola: async (signal?: AbortSignal): Promise<AlmacenSolicitud[]> => {
     const res = await apiClient.get<unknown[]>(RUTAS_ALMACENERO_SOLICITUDES.COLA, {
       signal,
     });
     const arr = Array.isArray(res.data) ? res.data : [];
-    return arr.map(normalizarCard);
+    return arr.map(normalizarSolicitud);
   },
 
   atender: async (idSolicitud: number): Promise<void> => {
     await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.ATENDER(idSolicitud));
+  },
+
+  atenderLote: async (idsSolicitud: number[]): Promise<void> => {
+    const unicos = [...new Set(idsSolicitud.filter((id) => id > 0))];
+    if (unicos.length === 0) return;
+    if (unicos.length === 1) {
+      await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.ATENDER(unicos[0]));
+      return;
+    }
+    await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.ATENDER_LOTE, {
+      idsSolicitud: unicos,
+    });
   },
 
   rechazar: async (idSolicitud: number, motivo: MotivoRechazoApi): Promise<void> => {

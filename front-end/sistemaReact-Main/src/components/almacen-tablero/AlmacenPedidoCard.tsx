@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { AlmacenSolicitudCard } from "../../types/AlmacenCola";
+import type { AlmacenSolicitud } from "../../types/AlmacenSolicitudes";
 
 const SLA_SEC = 120;
 
@@ -16,7 +16,7 @@ function formatoMmSs(sec: number): string {
 }
 
 interface AlmacenPedidoCardProps {
-  card: AlmacenSolicitudCard;
+  card: AlmacenSolicitud;
   resaltar: boolean;
   modoVenta: boolean;
   onConfirmar: () => void;

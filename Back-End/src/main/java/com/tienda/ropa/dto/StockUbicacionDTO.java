@@ -1,8 +1,7 @@
 package com.tienda.ropa.dto;
 
 /**
- * Fila plana de stock por variante en una ubicación, pensada para el modal de
- * traslado: incluye lo necesario para mostrar el producto y limitar la cantidad.
+ * Stock por variante en una {@code ubicacion_area}.
  */
 public record StockUbicacionDTO(
         Long idVariante,
@@ -13,7 +12,7 @@ public record StockUbicacionDTO(
         String talla,
         String sku,
         Integer stockActual,
-        Long idUbicacion,
+        Long idUbicacionArea,
         String nombreUbicacion,
         String areaUbicacion
 ) {}

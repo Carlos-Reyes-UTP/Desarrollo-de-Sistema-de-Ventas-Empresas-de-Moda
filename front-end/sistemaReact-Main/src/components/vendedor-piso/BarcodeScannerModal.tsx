@@ -39,11 +39,25 @@ export const BarcodeScannerModal = ({
 
     const run = async () => {
       try {
-        const { Html5Qrcode } = await import("html5-qrcode");
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
         if (!active) {
           return;
         }
-        const html5 = new Html5Qrcode(REGION_ID, false);
+        const html5 = new Html5Qrcode(REGION_ID, {
+          verbose: false,
+          formatsToSupport: [
+            Html5QrcodeSupportedFormats.EAN_13,
+            Html5QrcodeSupportedFormats.EAN_8,
+            Html5QrcodeSupportedFormats.UPC_A,
+            Html5QrcodeSupportedFormats.UPC_E,
+            Html5QrcodeSupportedFormats.CODE_128,
+            Html5QrcodeSupportedFormats.CODE_39,
+            Html5QrcodeSupportedFormats.CODE_93,
+            Html5QrcodeSupportedFormats.CODABAR,
+            Html5QrcodeSupportedFormats.ITF,
+            Html5QrcodeSupportedFormats.QR_CODE,
+          ]
+        });
         if (!active) {
           return;
         }
@@ -54,7 +68,12 @@ export const BarcodeScannerModal = ({
         );
         await html5.start(
           { facingMode: "environment" },
-          { fps: 10, qrbox: { width: w, height: 160 } },
+          {
+            fps: 30,
+            qrbox: { width: w, height: 200 },
+            aspectRatio: 16 / 9,
+            disableFlip: true,
+          },
           (decoded) => {
             const text = decoded.trim();
             if (!text || !active) return;

@@ -28,10 +28,4 @@ public class Ubicacion {
     @NotBlank
     @Column(name = "nombre", nullable = false, length = 120)
     private String nombre;
-
-    @Column(name = "area", length = 120)
-    private String area;
-
-    @Column(name = "descripcion", columnDefinition = "TEXT")
-    private String descripcion;
 }

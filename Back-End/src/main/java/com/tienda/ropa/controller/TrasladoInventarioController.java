@@ -1,9 +1,11 @@
 package com.tienda.ropa.controller;
 
 import com.tienda.ropa.dto.TrasladoInventarioDTO;
+import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.service.TrasladoInventarioService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,8 +24,10 @@ public class TrasladoInventarioController {
     private final TrasladoInventarioService trasladoInventarioService;
 
     @PostMapping("/traslado")
-    public ResponseEntity<Void> mover(@RequestBody TrasladoInventarioDTO dto) {
-        trasladoInventarioService.mover(dto);
+    public ResponseEntity<Void> mover(
+            @RequestBody TrasladoInventarioDTO dto,
+            @AuthenticationPrincipal Usuario usuario) {
+        trasladoInventarioService.mover(dto, usuario);
         return ResponseEntity.noContent().build();
     }
 }

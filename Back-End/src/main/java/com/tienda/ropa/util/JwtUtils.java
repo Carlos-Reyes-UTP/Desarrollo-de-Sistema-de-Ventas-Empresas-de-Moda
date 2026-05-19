@@ -39,14 +39,20 @@ public class JwtUtils {
         if (a.contains("ADMIN")) {
             return 0;
         }
-        if (a.contains("ALMACENERO")) {
+        if (a.contains("GERENTE")) {
             return 1;
         }
-        if (a.contains("VENDEDOR")) {
+        if (a.contains("SUPERVISOR")) {
+            return 2;
+        }
+        if (a.contains("ALMACENERO")) {
             return 3;
         }
-        if (a.contains("CAJERO")) {
+        if (a.contains("VENDEDOR")) {
             return 4;
+        }
+        if (a.contains("CAJERO")) {
+            return 5;
         }
         return 50;
     }

@@ -1,11 +1,14 @@
 package com.tienda.ropa.service.impl;
 
 import com.tienda.ropa.dto.UsuarioDTO;
+import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.entity.Rol;
 import com.tienda.ropa.entity.Role;
+import com.tienda.ropa.repository.UbicacionAreaRepository;
 import com.tienda.ropa.repository.UsuarioRepository;
 import com.tienda.ropa.repository.RolRepository;
+import com.tienda.ropa.service.InventarioService;
 import com.tienda.ropa.service.UsuarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -26,11 +29,17 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
     @Autowired
     private RolRepository rolRepository;
 
+    @Autowired
+    private UbicacionAreaRepository ubicacionAreaRepository;
+
+    @Autowired
+    private InventarioService inventarioService;
+
     public UserDetailsService userDetailsService() {
         return new UserDetailsService() {
             @Override
             public UserDetails loadUserByUsername(String usuario) throws UsernameNotFoundException {
-                Usuario usuarioEntity = usuarioRepository.findByUsuario(usuario)
+                Usuario usuarioEntity = usuarioRepository.findByUsuarioWithAreaAsignada(usuario)
                         .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
                 if (!usuarioEntity.isActivo()) {
@@ -97,6 +106,8 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
                 usuario.getRoles().add(rol);
             }
         }
+
+        aplicarAreaAsignadaDesdeDto(usuario, usuarioDTO);
         
         usuarioRepository.save(usuario);
 
@@ -160,7 +171,39 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
 
         dto.setRoles(roles);
 
+        if (usuario.getAreaAsignado() != null) {
+            dto.setIdUbicacionAreaAsignada(usuario.getAreaAsignado().getIdUbicacionArea());
+            dto.setEtiquetaAreaAsignada(InventarioService.etiquetaUbicacionArea(usuario.getAreaAsignado()));
+        }
+
         return dto;
+    }
+
+    private void aplicarAreaAsignadaDesdeDto(Usuario usuario, UsuarioDTO dto) {
+        boolean esAlmacenero = usuario.getRoles().stream()
+                .anyMatch(r -> r.getNombreRol() == Role.ALMACENERO);
+
+        if (!esAlmacenero) {
+            usuario.setAreaAsignado(null);
+            return;
+        }
+
+        Long idArea = dto.getIdUbicacionAreaAsignada();
+        if (idArea == null) {
+            if (usuario.getAreaAsignado() == null) {
+                throw new RuntimeException(
+                        "Debe asignar un área de almacén al usuario con rol ALMACENERO.");
+            }
+            return;
+        }
+
+        UbicacionArea ua = ubicacionAreaRepository.findByIdWithUbicacionYArea(idArea)
+                .orElseThrow(() -> new RuntimeException("Área de almacén no encontrada: " + idArea));
+        if (!inventarioService.esUbicacionAlmacen(ua)) {
+            throw new RuntimeException(
+                    "La ubicación-área seleccionada no pertenece al piso de almacén.");
+        }
+        usuario.setAreaAsignado(ua);
     }
 
     @Override

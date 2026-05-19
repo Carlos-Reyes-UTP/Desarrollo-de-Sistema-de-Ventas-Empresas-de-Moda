@@ -61,7 +61,13 @@ export const UsuarioService = {
     }
   },
   
-  crear: async (datosUsuario: { usuario: string, clave: string, rol: string, activo?: boolean }): Promise<Usuario> => {
+  crear: async (datosUsuario: {
+    usuario: string;
+    clave: string;
+    rol: string;
+    activo?: boolean;
+    idUbicacionAreaAsignada?: number | null;
+  }): Promise<Usuario> => {
     const rolNormalizado = datosUsuario.rol.startsWith('ROLE_') 
       ? datosUsuario.rol 
       : `ROLE_${datosUsuario.rol}`;

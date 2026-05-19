@@ -5,14 +5,8 @@ import apiClient from '../config/apiClient';
 import type { Usuario, Rol } from '../types/Usuario';
 import type { CredencialesLogin, RespuestaAutenticacion } from '../types/Usuario';
 import type { RolNombre } from '../types/enums';
+import type { TokenDecodificado } from '../types/TokenDecodificado';
 import { setAuthToken } from '../config/apiClient';
-
-interface TokenDecodificado {
-  sub: string;
-  authorities?: string[] | string;
-  exp: number;
-  [key: string]: any;
-}
 
 interface ContextoAutenticacion {
   usuario: Usuario | null;

@@ -4,9 +4,12 @@ import com.tienda.ropa.dto.CrearSolicitudDTO;
 import com.tienda.ropa.dto.DetalleSolicitudLineaDTO;
 import com.tienda.ropa.dto.VendedorCatalogoBusquedaDTO;
 import com.tienda.ropa.dto.VendedorCatalogoPorCodigoDTO;
+import com.tienda.ropa.dto.CrearSolicitudLoteResult;
+import com.tienda.ropa.dto.VendedorCrearSolicitudLoteRequest;
 import com.tienda.ropa.dto.VendedorCrearSolicitudRequest;
 import com.tienda.ropa.dto.VendedorProductoResumenDTO;
 import com.tienda.ropa.dto.VendedorSolicitudResumenDTO;
+import com.tienda.ropa.dto.VendedorUbicacionDTO;
 import com.tienda.ropa.dto.VendedorVarianteCoincidenciaDTO;
 import com.tienda.ropa.dto.VendedorVarianteStockDTO;
 import com.tienda.ropa.entity.DetalleSolicitud;
@@ -14,9 +17,12 @@ import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Solicitud;
 import com.tienda.ropa.entity.TipoSolicitud;
-import com.tienda.ropa.entity.Ubicacion;
+import com.tienda.ropa.entity.Inventario;
+import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.repository.DetalleSolicitudRepository;
+import com.tienda.ropa.repository.InventarioRepository;
 import com.tienda.ropa.repository.SolicitudRepository;
+import com.tienda.ropa.repository.UbicacionAreaRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -27,7 +33,12 @@ import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
 
 @Service
 @RequiredArgsConstructor
@@ -35,13 +46,19 @@ public class VendedorService {
 
     private static final int MAX_COINCIDENCIAS = 25;
 
+    /** Nombres reservados que NO son áreas de piso vendible. */
+    private static final List<String> RESERVADAS_LOWER = List.of(
+            "almacén", "almacen", "bodega", "depósito", "deposito");
+
     private final CodigoBarrasService codigoBarrasService;
     private final ProductoService productoService;
     private final ProductoVarianteService productoVarianteService;
-    private final InventarioUbicacionService inventarioUbicacionService;
+    private final InventarioService inventarioService;
+    private final InventarioRepository inventarioRepository;
     private final SolicitudService solicitudService;
     private final DetalleSolicitudRepository detalleSolicitudRepository;
     private final SolicitudRepository solicitudRepository;
+    private final UbicacionAreaRepository ubicacionAreaRepository;
 
     @Transactional(readOnly = true)
     public VendedorCatalogoBusquedaDTO buscarCatalogo(String terminoRaw) {
@@ -95,7 +112,7 @@ public class VendedorService {
                                 dto.idProductoVariante(), dto.idProducto(),
                                 dto.nombreProducto(), dto.talla(), dto.color(),
                                 dto.sku(), dto.codigoBarras(), dto.precioUnitario(),
-                                inventarioUbicacionService.stockEnAlmacen(dto.idProductoVariante())))
+                                inventarioService.stockEnAlmacen(dto.idProductoVariante())))
                         .toList();
                 return new VendedorCatalogoBusquedaDTO(true, opciones, null);
             }
@@ -168,28 +185,68 @@ public class VendedorService {
         return new BigDecimal(value.toString());
     }
 
+    /**
+     * Construye el catálogo de variantes para el vendedor.
+     * <p>
+     * <b>Sin N+1:</b> en lugar de hacer 2 queries por variante, se cargan todos los
+     * {@code Inventario} del producto en <em>una sola query</em> y se
+     * agrupan en memoria por id de variante.
+     * </p>
+     * Total de queries: 1 (variantes) + 1 (inventarios bulk) + 1 (ubicación Almacén).
+     */
     private VendedorCatalogoPorCodigoDTO construirCatalogo(Producto producto, Long idVariantePreseleccionada) {
         Long idProducto = producto.getIdProducto();
-        List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProducto(idProducto);
+        List<ProductoVariante> variantes = productoVarianteService.obtenerVariantesPorProducto(idProducto, null);
+        if (variantes.isEmpty()) {
+            VendedorProductoResumenDTO resumen = new VendedorProductoResumenDTO(
+                    idProducto, producto.getNombre(), producto.getPrecioUnitario(), 0);
+            return new VendedorCatalogoPorCodigoDTO(resumen, idVariantePreseleccionada, List.of());
+        }
+
+        // --- 1 query bulk: todos los inventarios del producto ---
+        List<Long> idsVariante = variantes.stream()
+                .map(ProductoVariante::getIdProductoVariante).toList();
+        List<Inventario> inventarios = inventarioRepository.findAllByVariantesIds(idsVariante);
+
+        Map<Long, List<Inventario>> porVariante = inventarios.stream()
+                .collect(Collectors.groupingBy(i -> i.getVariante().getIdProductoVariante()));
+
         List<VendedorVarianteStockDTO> filas = new ArrayList<>();
         for (ProductoVariante pv : variantes) {
-            int stockAlmacen = inventarioUbicacionService.stockEnAlmacen(pv.getIdProductoVariante());
+            Long idPV = pv.getIdProductoVariante();
+            List<Inventario> invPV = porVariante.getOrDefault(idPV, List.of());
+
+            int stockAlmacen = invPV.stream()
+                    .filter(i -> i.getUbicacionArea() != null
+                            && inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))
+                    .mapToInt(i -> i.getStock() != null ? i.getStock() : 0)
+                    .sum();
+
+            Long idUbicacionAreaDestino = null;
+            String nombreUbicacion = null;
+            List<Inventario> noAlmacen = invPV.stream()
+                    .filter(i -> i.getUbicacionArea() != null
+                            && !inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))
+                    .collect(Collectors.toList());
+            if (noAlmacen.size() == 1) {
+                UbicacionArea ua = noAlmacen.get(0).getUbicacionArea();
+                idUbicacionAreaDestino = ua.getIdUbicacionArea();
+                nombreUbicacion = InventarioService.etiquetaUbicacionArea(ua);
+            }
+
             filas.add(new VendedorVarianteStockDTO(
-                    pv.getIdProductoVariante(),
+                    idPV,
                     pv.getTalla(),
                     pv.getColor(),
                     pv.getCodigoBarras(),
-                    stockAlmacen));
+                    stockAlmacen,
+                    idUbicacionAreaDestino,
+                    nombreUbicacion));
         }
 
         int stockTotal = filas.stream().mapToInt(VendedorVarianteStockDTO::stockAlmacen).sum();
-
         VendedorProductoResumenDTO resumen = new VendedorProductoResumenDTO(
-                idProducto,
-                producto.getNombre(),
-                producto.getPrecioUnitario(),
-                stockTotal);
-
+                idProducto, producto.getNombre(), producto.getPrecioUnitario(), stockTotal);
         return new VendedorCatalogoPorCodigoDTO(resumen, idVariantePreseleccionada, filas);
     }
 
@@ -202,16 +259,17 @@ public class VendedorService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad debe ser mayor a cero");
         }
 
-        int stockAlmacen = inventarioUbicacionService.stockEnAlmacen(req.idVariante());
+        int stockAlmacen = inventarioService.stockEnAlmacen(req.idVariante());
         if (req.cantidad() > stockAlmacen) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
                     "La cantidad supera el stock disponible en Almacén (" + stockAlmacen + ")");
         }
 
-        Ubicacion almacen = inventarioUbicacionService.ubicacionAlmacen();
+        UbicacionArea origenAlmacen = inventarioService.resolverOrigenAlmacenConStock(
+                req.idVariante(), req.cantidad());
 
-        TipoSolicitud tipo = TipoSolicitud.REPOSICION;
+        TipoSolicitud tipo = TipoSolicitud.VENTA;
         if (req.tipoSolicitud() != null && !req.tipoSolicitud().isBlank()) {
             try {
                 tipo = TipoSolicitud.valueOf(req.tipoSolicitud().trim().toUpperCase());
@@ -221,21 +279,141 @@ public class VendedorService {
             }
         }
 
-        Ubicacion destino;
-        try {
-            destino = inventarioUbicacionService.ubicacionDeVarianteOLanzar(req.idVariante());
-        } catch (IllegalStateException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "El producto no tiene un área asignada. Primero mueva stock al área desde Almacén.");
+        // Resolver ubicación destino: primero usar la indicada por el vendedor,
+        // luego intentar inferirla desde el inventario existente.
+        UbicacionArea destino;
+        if (req.idUbicacionAreaDestino() != null) {
+            destino = ubicacionAreaRepository.findById(req.idUbicacionAreaDestino())
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "El área destino seleccionada no existe"));
+            if (inventarioService.esUbicacionAlmacen(destino)) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST, "El área destino no puede ser un sector de Almacen");
+            }
+            inventarioService.obtenerOCrearFila(
+                    productoVarianteService.obtenerVariantePorId(req.idVariante())
+                            .orElseThrow(() -> new ResponseStatusException(
+                                    HttpStatus.NOT_FOUND, "Variante no encontrada")),
+                    destino);
+        } else {
+            try {
+                destino = inventarioService.ubicacionAreaDeVarianteOLanzar(req.idVariante());
+            } catch (IllegalStateException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Selecciona el área destino donde se enviará el producto.");
+            }
         }
 
         CrearSolicitudDTO dto = new CrearSolicitudDTO(
                 tipo.name(),
-                almacen.getIdUbicacion(),
-                destino.getIdUbicacion(),
-                List.of(new DetalleSolicitudLineaDTO(req.idVariante(), req.cantidad())));
+                origenAlmacen.getIdUbicacionArea(),
+                destino.getIdUbicacionArea(),
+                List.of(new DetalleSolicitudLineaDTO(req.idVariante(), req.cantidad())),
+                req.codigoLote());
 
         return solicitudService.crear(dto, idUsuario);
+    }
+
+    /**
+     * Crea una o más solicitudes agrupando ítems por área destino (una solicitud por destino,
+     * con varias líneas de detalle). Un solo {@code codigoLote} para todo el envío.
+     */
+    @Transactional
+    public CrearSolicitudLoteResult crearSolicitudLote(VendedorCrearSolicitudLoteRequest req, Long idUsuario) {
+        if (req.items() == null || req.items().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La lista de ítems no puede estar vacía");
+        }
+        String codigoLote = req.codigoLote();
+        if (codigoLote == null || codigoLote.isBlank()) {
+            codigoLote = "LOT-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        }
+        Map<Long, Map<Long, Integer>> porDestino = new LinkedHashMap<>();
+        for (VendedorCrearSolicitudLoteRequest.VendedorCrearSolicitudLoteItem item : req.items()) {
+            if (item.idVariante() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La variante es obligatoria");
+            }
+            if (item.cantidad() == null || item.cantidad() <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cantidad debe ser mayor a cero");
+            }
+            if (item.idUbicacionAreaDestino() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Cada ítem debe indicar el área destino (idUbicacionAreaDestino)");
+            }
+            int stockAlmacen = inventarioService.stockEnAlmacen(item.idVariante());
+            if (item.cantidad() > stockAlmacen) {
+                throw new ResponseStatusException(
+                        HttpStatus.BAD_REQUEST,
+                        "La cantidad supera el stock en Almacén (" + stockAlmacen + ") para variante "
+                                + item.idVariante());
+            }
+            porDestino
+                    .computeIfAbsent(item.idUbicacionAreaDestino(), k -> new LinkedHashMap<>())
+                    .merge(item.idVariante(), item.cantidad(), Integer::sum);
+        }
+
+        List<Long> idsCreados = new ArrayList<>();
+        for (Map.Entry<Long, Map<Long, Integer>> entry : porDestino.entrySet()) {
+            Long idDestino = entry.getKey();
+            UbicacionArea destino = ubicacionAreaRepository.findById(idDestino)
+                    .orElseThrow(() -> new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "El área destino seleccionada no existe: " + idDestino));
+            if (inventarioService.esUbicacionAlmacen(destino)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El área destino no puede ser un sector de Almacen");
+            }
+
+            List<DetalleSolicitudLineaDTO> lineas = new ArrayList<>();
+            for (Map.Entry<Long, Integer> linea : entry.getValue().entrySet()) {
+                ProductoVariante variante = productoVarianteService.obtenerVariantePorId(linea.getKey())
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.NOT_FOUND, "Variante no encontrada: " + linea.getKey()));
+                inventarioService.obtenerOCrearFila(variante, destino);
+                lineas.add(new DetalleSolicitudLineaDTO(linea.getKey(), linea.getValue()));
+            }
+
+            Long idVarianteRef = entry.getValue().keySet().stream().findFirst().orElse(null);
+            int cantidadRef = entry.getValue().values().stream().mapToInt(Integer::intValue).sum();
+            if (idVarianteRef == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Solicitud sin variantes");
+            }
+            UbicacionArea origenAlmacen = inventarioService.resolverOrigenAlmacenConStock(
+                    idVarianteRef, Math.max(1, cantidadRef));
+
+            CrearSolicitudDTO dto = new CrearSolicitudDTO(
+                    TipoSolicitud.VENTA.name(),
+                    origenAlmacen.getIdUbicacionArea(),
+                    destino.getIdUbicacionArea(),
+                    lineas,
+                    codigoLote);
+            idsCreados.add(solicitudService.crear(dto, idUsuario).getIdSolicitud());
+        }
+
+        return new CrearSolicitudLoteResult(codigoLote, idsCreados);
+    }
+
+    /**
+     * Retorna todas las ubicaciones disponibles como destino para el vendedor.
+     * Excluye las ubicaciones reservadas (Almacén, Bodega, Depósito y variantes ortográficas).
+     */
+    @Transactional(readOnly = true)
+    public List<VendedorUbicacionDTO> listarUbicacionesPiso() {
+        return ubicacionAreaRepository.findAll().stream()
+                .filter(ua -> !inventarioService.esUbicacionAlmacen(ua))
+                .sorted((a, b) -> {
+                    String na = a.getUbicacion() != null ? a.getUbicacion().getNombre() : "";
+                    String nb = b.getUbicacion() != null ? b.getUbicacion().getNombre() : "";
+                    int cmp = na.compareToIgnoreCase(nb);
+                    if (cmp != 0) {
+                        return cmp;
+                    }
+                    String aa = a.getArea() != null ? a.getArea().getNombre() : "";
+                    String bb = b.getArea() != null ? b.getArea().getNombre() : "";
+                    return aa.compareToIgnoreCase(bb);
+                })
+                .map(ua -> new VendedorUbicacionDTO(
+                        ua.getIdUbicacionArea(),
+                        ua.getUbicacion() != null ? ua.getUbicacion().getNombre() : null,
+                        ua.getArea() != null ? ua.getArea().getNombre() : null))
+                .toList();
     }
 
     @Transactional(readOnly = true)

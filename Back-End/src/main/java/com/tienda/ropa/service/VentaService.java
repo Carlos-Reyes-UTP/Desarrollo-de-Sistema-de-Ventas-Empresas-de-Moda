@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tienda.ropa.entity.DetalleVenta;
-import com.tienda.ropa.entity.Ubicacion;
+import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Venta;
 import com.tienda.ropa.repository.DetalleVentaRepository;
 import com.tienda.ropa.repository.VentaRepository;
@@ -26,7 +26,7 @@ public class VentaService {
     private DetalleVentaRepository detalleVentaRepository;
 
     @Autowired
-    private InventarioUbicacionService inventarioUbicacionService;
+    private InventarioService inventarioService;
 
     @Autowired
     private ReposicionAutomaticaService reposicionAutomaticaService;
@@ -43,13 +43,15 @@ public class VentaService {
     public Venta registrarVenta(Venta venta) {
         for (DetalleVenta detalle : venta.getDetalles()) {
             Long idVariante = detalle.getProductoVariante().getIdProductoVariante();
-        Ubicacion ubicacionVenta = inventarioUbicacionService.resolverUbicacionUnicaDeVenta(idVariante);
-        inventarioUbicacionService.aplicarDeltaEnUbicacion(
+        UbicacionArea ubicacionAreaVenta = inventarioService.resolverUbicacionAreaUnicaDeVenta(idVariante);
+        inventarioService.aplicarDeltaEnUbicacionArea(
             idVariante,
-            ubicacionVenta,
+            ubicacionAreaVenta,
             -detalle.getCantidad(),
-            "Stock insuficiente en la ubicación de venta: " + ubicacionVenta.getNombre());
-        reposicionAutomaticaService.evaluarTrasSalidaEnUbicacion(idVariante, ubicacionVenta.getIdUbicacion());
+            "Stock insuficiente en la ubicación de venta: "
+                    + InventarioService.etiquetaUbicacionArea(ubicacionAreaVenta));
+        reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
+                idVariante, ubicacionAreaVenta.getIdUbicacionArea());
         }
 
         BigDecimal totalVenta = BigDecimal.ZERO;

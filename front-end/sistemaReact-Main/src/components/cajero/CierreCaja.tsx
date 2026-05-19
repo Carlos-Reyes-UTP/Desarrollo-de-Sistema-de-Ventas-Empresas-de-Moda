@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { VentaService } from '../../services/VentaService';
 import { CajaService, type CierreCajaRequest } from '../../services/CajaService';
 import { Printer, CheckCircle, Clock, User, Calculator, Loader2, ArrowRight, TrendingDown, AlertCircle } from 'lucide-react';
-import { obtenerDatosApertura, limpiarDatosApertura } from './AperturaCaja';
+import { obtenerDatosApertura, limpiarDatosApertura, guardarDatosApertura } from './AperturaCaja';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
 import { CajeroThemeToggle } from './CajeroThemeToggle';
 
@@ -99,7 +99,7 @@ const CierreCaja = () => {
             fechaApertura: new Date(cajaAbierta.fechaApertura).toLocaleDateString('es-ES'),
             horaApertura: new Date(cajaAbierta.fechaApertura).toLocaleTimeString('es-ES'),
           };
-          localStorage.setItem('datosAperturaCaja', JSON.stringify(datosAperturaActualizados));
+          guardarDatosApertura(datosAperturaActualizados);
         } else if (datosApertura) {
           setFechaApertura(datosApertura.fechaHoraApertura);
           setMontoInicial(datosApertura.montoApertura?.toString() || '0');

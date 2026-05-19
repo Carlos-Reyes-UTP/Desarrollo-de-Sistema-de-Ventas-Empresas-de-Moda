@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Printer, CheckCircle, Clock, User, Loader2, ArrowRight, TrendingUp } from 'lucide-react';
 import { CajaService, type AperturaCajaRequest } from '../../services/CajaService';
@@ -65,7 +65,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
           };
           
           if (!locales || locales.idCaja !== cajaAbierta.idCaja) {
-            localStorage.setItem('datosAperturaCaja', JSON.stringify(datos));
+            guardarDatosApertura(datos);
           }
           
           setDatosApertura(datos);
@@ -109,7 +109,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
         timestamp: new Date().toISOString(),
         idCaja: response.idCaja,
       };
-      localStorage.setItem('datosAperturaCaja', JSON.stringify(datos));
+      guardarDatosApertura(datos);
       setDatosApertura(datos);
       setAperturaExitosa(true);
     } catch (err: any) {
@@ -375,15 +375,20 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
   );
 };
 
+// Función utilitaria para guardar datos de apertura
+export const guardarDatosApertura = (datos: any) => {
+  localStorage.setItem('datosAperturaCaja:v1', JSON.stringify(datos));
+};
+
 // Función utilitaria para obtener datos de apertura guardados
 export const obtenerDatosApertura = () => {
-  const datos = localStorage.getItem('datosAperturaCaja');
+  const datos = localStorage.getItem('datosAperturaCaja:v1');
   return datos ? JSON.parse(datos) : null;
 };
 
 // Función utilitaria para limpiar datos de apertura después del cierre
 export const limpiarDatosApertura = () => {
-  localStorage.removeItem('datosAperturaCaja');
+  localStorage.removeItem('datosAperturaCaja:v1');
 };
 
 export default AperturaCaja;

@@ -508,7 +508,7 @@ const GestionCategorias: React.FC = () => {
                       type="text"
                       autoFocus
                       value={formData.nombre}
-                      onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                      onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
                       className="w-full px-6 py-5 bg-[#f8f8f8] border-2 border-transparent rounded-2xl text-sm font-black text-black focus:bg-white focus:border-black transition-all outline-none"
                       placeholder="Ej: Calzado Deportivo..."
                       required

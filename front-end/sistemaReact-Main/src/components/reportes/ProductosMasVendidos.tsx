@@ -369,15 +369,16 @@ const ProductosMasVendidos: React.FC = () => {
       
       for (const producto of productosFiltrados) {
         // Agregar fila del producto principal
-        datosDetallados.push({
+        const filaProducto = {
           'Tipo': 'PRODUCTO',
           'Nombre del Producto': producto.nombreProducto,
           'Categoría': formatearCategoriaCompleta(producto),
           'Código de Barras': producto.codigoIdentificacion,
-          'Stock Actual': '', // Se calculará el total después
+          'Stock Actual': '' as string | number, // Se calculará el total después
           'Cantidad Total Vendida': producto.cantidadVendida,
           'Ingresos Totales (S/)': producto.ingresosTotales
-        });
+        };
+        datosDetallados.push(filaProducto);
 
         let stockTotalProducto = 0; // Para calcular el stock total del producto
 
@@ -423,14 +424,7 @@ const ProductosMasVendidos: React.FC = () => {
           }
 
           // Actualizar el stock total en la fila del producto principal
-          if (datosDetallados.length > 0) {
-            const filaProducto = datosDetallados.find(fila => 
-              fila.Tipo === 'PRODUCTO' && fila['Nombre del Producto'] === producto.nombreProducto
-            );
-            if (filaProducto) {
-              filaProducto['Stock Actual'] = stockTotalProducto;
-            }
-          }
+          filaProducto['Stock Actual'] = stockTotalProducto;
 
         } catch (error) {
           console.warn(`Error al cargar tallas para producto ${producto.nombreProducto}:`, error);

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import SidebarMenu from "./SidebarMenu";
 import { VendedorPisoLayoutChrome } from "./VendedorPisoLayoutChrome";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "@/context/AuthContext";
 import { resolveRouteView } from "./navigationConfig";
 
 import MeshGradientBackground from "../ui/MeshGradientBackground";
@@ -56,10 +56,14 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
       )}
       <div
         className={`flex min-w-0 flex-1 flex-col overflow-hidden bg-transparent ${
-          esVendedorPisoKiosk ? "pt-14" : "pt-16 md:pt-0"
+          esVendedorPisoKiosk ? "pt-14" : esKioskAlmacen ? "pt-16 lg:pt-0" : "pt-16 md:pt-0"
         }`}
       >
-        <main className="flex-1 overflow-y-auto">
+        <main
+          className={`flex-1 min-h-0 ${
+            esKioskAlmacen ? "overflow-hidden" : "overflow-y-auto"
+          }`}
+        >
           <div
             className={`w-full h-full min-h-0 ${
               esKioskAlmacen || esVendedorPisoKiosk ? "" : "px-4 py-6 sm:px-6 lg:px-8"

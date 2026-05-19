@@ -21,12 +21,12 @@ import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.Solicitud;
 import com.tienda.ropa.entity.TipoSolicitud;
-import com.tienda.ropa.entity.Ubicacion;
+import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.repository.DetalleSolicitudRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.SolicitudRepository;
-import com.tienda.ropa.repository.UbicacionRepository;
+import com.tienda.ropa.repository.UbicacionAreaRepository;
 import com.tienda.ropa.repository.UsuarioRepository;
 import com.tienda.ropa.service.SolicitudService;
 import com.tienda.ropa.service.TrasladoInventarioService;
@@ -39,7 +39,7 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     private final SolicitudRepository solicitudRepository;
     private final DetalleSolicitudRepository detalleSolicitudRepository;
-    private final UbicacionRepository ubicacionRepository;
+    private final UbicacionAreaRepository ubicacionAreaRepository;
     private final UsuarioRepository usuarioRepository;
     private final ProductoVarianteRepository productoVarianteRepository;
     private final TrasladoInventarioService trasladoInventarioService;
@@ -63,17 +63,18 @@ public class SolicitudServiceImpl implements SolicitudService {
         if (dto.detalles() == null || dto.detalles().isEmpty()) {
             throw new IllegalArgumentException("La solicitud debe incluir al menos un detalle");
         }
-        Ubicacion origen = ubicacionRepository.findById(dto.idUbicacionOrigen())
-                .orElseThrow(() -> new IllegalArgumentException("Ubicación origen no encontrada"));
-        Ubicacion destino = ubicacionRepository.findById(dto.idUbicacionDestino())
-                .orElseThrow(() -> new IllegalArgumentException("Ubicación destino no encontrada"));
+        UbicacionArea origen = ubicacionAreaRepository.findById(dto.idUbicacionAreaOrigen())
+                .orElseThrow(() -> new IllegalArgumentException("Ubicación-área origen no encontrada"));
+        UbicacionArea destino = ubicacionAreaRepository.findById(dto.idUbicacionAreaDestino())
+                .orElseThrow(() -> new IllegalArgumentException("Ubicación-área destino no encontrada"));
 
         Solicitud s = new Solicitud();
         s.setUsuario(usuario);
         s.setTipoSolicitud(TipoSolicitud.valueOf(dto.tipoSolicitud().trim().toUpperCase()));
         s.setEstado(EstadoSolicitud.PENDIENTE);
-        s.setUbicacionOrigen(origen);
-        s.setUbicacionDestino(destino);
+        s.setUbicacionAreaOrigen(origen);
+        s.setUbicacionAreaDestino(destino);
+        s.setCodigoLote(dto.codigoLote());
         Solicitud guardada = solicitudRepository.save(s);
 
         for (DetalleSolicitudLineaDTO linea : dto.detalles()) {
@@ -114,6 +115,7 @@ public class SolicitudServiceImpl implements SolicitudService {
                 s.getFechaCreacion(),
                 idUsuario,
                 nombreVendedor,
+                s.getCodigoLote(),
                 lineas);
     }
 
@@ -141,10 +143,10 @@ public class SolicitudServiceImpl implements SolicitudService {
         // Esto asegura que, cuando el cajero realice la venta, exista stock en el área correspondiente.
         List<DetalleSolicitud> detalles = detalleSolicitudRepository.findBySolicitud_IdSolicitud(s.getIdSolicitud());
         if (detalles != null && !detalles.isEmpty()) {
-            Ubicacion origen = s.getUbicacionOrigen();
-            Ubicacion destino = s.getUbicacionDestino();
+            UbicacionArea origen = s.getUbicacionAreaOrigen();
+            UbicacionArea destino = s.getUbicacionAreaDestino();
             if (origen == null || destino == null) {
-                throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud no tiene ubicación origen/destino");
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud no tiene ubicación-área origen/destino");
             }
             for (DetalleSolicitud d : detalles) {
                 ProductoVariante v = d.getVariante();
@@ -154,16 +156,28 @@ public class SolicitudServiceImpl implements SolicitudService {
                 }
                 trasladoInventarioService.mover(new TrasladoInventarioDTO(
                         v.getIdProductoVariante(),
-                        origen.getIdUbicacion(),
-                        destino.getIdUbicacion(),
+                        origen.getIdUbicacionArea(),
+                        destino.getIdUbicacionArea(),
                         cant
-                ));
+                ), null);
             }
         }
 
         s.setEstado(EstadoSolicitud.ATENDIDO);
         s.setMotivoRechazo(null);
         return solicitudRepository.save(s);
+    }
+
+    @Override
+    @Transactional
+    public void atenderSolicitudesLote(List<Long> idsSolicitud) {
+        if (idsSolicitud == null || idsSolicitud.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe indicar al menos un id de solicitud");
+        }
+        List<Long> unicos = idsSolicitud.stream().distinct().toList();
+        for (Long id : unicos) {
+            atenderSolicitud(id);
+        }
     }
 
     @Override
@@ -194,10 +208,10 @@ public class SolicitudServiceImpl implements SolicitudService {
             // Mantener consistencia: al marcar como ATENDIDO, mover stock origen -> destino.
             List<DetalleSolicitud> detalles = detalleSolicitudRepository.findBySolicitud_IdSolicitud(s.getIdSolicitud());
             if (detalles != null && !detalles.isEmpty()) {
-                Ubicacion origen = s.getUbicacionOrigen();
-                Ubicacion destino = s.getUbicacionDestino();
+                UbicacionArea origen = s.getUbicacionAreaOrigen();
+                UbicacionArea destino = s.getUbicacionAreaDestino();
                 if (origen == null || destino == null) {
-                    throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud no tiene ubicación origen/destino");
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud no tiene ubicación-área origen/destino");
                 }
                 for (DetalleSolicitud d : detalles) {
                     ProductoVariante v = d.getVariante();
@@ -207,10 +221,10 @@ public class SolicitudServiceImpl implements SolicitudService {
                     }
                     trasladoInventarioService.mover(new TrasladoInventarioDTO(
                             v.getIdProductoVariante(),
-                            origen.getIdUbicacion(),
-                            destino.getIdUbicacion(),
+                            origen.getIdUbicacionArea(),
+                            destino.getIdUbicacionArea(),
                             cant
-                    ));
+                    ), null);
                 }
             }
         }

@@ -51,13 +51,13 @@ public class Solicitud {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_ubicacion_origen", nullable = false)
-    private Ubicacion ubicacionOrigen;
+    @JoinColumn(name = "id_ubicacion_area_origen", nullable = false)
+    private UbicacionArea ubicacionAreaOrigen;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "id_ubicacion_destino", nullable = false)
-    private Ubicacion ubicacionDestino;
+    @JoinColumn(name = "id_ubicacion_area_destino", nullable = false)
+    private UbicacionArea ubicacionAreaDestino;
 
     @NotNull
     @Column(name = "fecha_creacion", nullable = false)
@@ -66,6 +66,9 @@ public class Solicitud {
     @Enumerated(EnumType.STRING)
     @Column(name = "motivo_rechazo", length = 64)
     private MotivoRechazoSolicitud motivoRechazo;
+
+    @Column(name = "codigo_lote", length = 64)
+    private String codigoLote;
 
     @OneToMany(mappedBy = "solicitud", fetch = FetchType.LAZY)
     private List<DetalleSolicitud> detalles = new ArrayList<>();

@@ -2,9 +2,10 @@
 // This is a known issue: https://github.com/creativetimofficial/material-tailwind/issues/573
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import type { Usuario } from '../../types/Usuario';
 import { APP_PATHS, isCajeroView, resolveSidebarState } from './navigationConfig';
+import { esRolModuloAlmacen } from '../constants/rolesAlmacen';
 import {
   Typography,
   List,
@@ -47,6 +48,22 @@ interface SidebarMenuProps {
   cerrarSesion: () => void;
   cajeroDark?: boolean;
 }
+
+const NavItem = ({ icon: Icon, label, selected, onClick }: NavItemProps) => (
+  <ListItem
+    selected={selected}
+    onClick={onClick}
+    className={`relative overflow-hidden group rounded-xl py-3 px-4 transition-all duration-200 border border-transparent flex items-center active:scale-[0.98] ${selected
+      ? "bg-white/10 text-white shadow-lg shadow-black/20"
+      : "hover:bg-white/5 text-gray-400 hover:text-white"
+      }`}
+  >
+    <div className="mr-3.5 flex-shrink-0">
+      <Icon className={`h-[20px] w-[20px] transition-colors ${selected ? "text-white" : "text-gray-500 group-hover:text-white"}`} strokeWidth={selected ? 2.5 : 2} />
+    </div>
+    <span className={`text-[14px] font-medium tracking-tight truncate`}>{label}</span>
+  </ListItem>
+);
 
 const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroDark = false }: SidebarMenuProps) => {
   const [openAccordion, setOpenAccordion] = useState(0);
@@ -104,28 +121,14 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
 
   const getRoleLabel = () => {
     if (tieneRol('ROLE_ADMIN')) return 'ADMINISTRADOR';
+    if (tieneRol('ROLE_SUPERVISOR_ALMACEN')) return 'SUPERVISOR ALMACÉN';
     if (tieneRol('ROLE_ALMACENERO')) return 'GESTOR DE ALMACÉN';
     if (tieneRol('ROLE_VENDEDOR')) return 'VENDEDOR';
     if (tieneRol('ROLE_CAJERO')) return 'CAJERO';
     return 'USUARIO';
   };
 
-  // Componente interno para items
-  const NavItem = ({ icon: Icon, label, selected, onClick }: NavItemProps) => (
-    <ListItem
-      selected={selected}
-      onClick={onClick}
-      className={`relative overflow-hidden group rounded-xl py-3 px-4 transition-all duration-200 border border-transparent flex items-center active:scale-[0.98] ${selected
-        ? "bg-white/10 text-white shadow-lg shadow-black/20"
-        : "hover:bg-white/5 text-gray-400 hover:text-white"
-        }`}
-    >
-      <div className="mr-3.5 flex-shrink-0">
-        <Icon className={`h-[20px] w-[20px] transition-colors ${selected ? "text-white" : "text-gray-500 group-hover:text-white"}`} strokeWidth={selected ? 2.5 : 2} />
-      </div>
-      <span className={`text-[14px] font-medium tracking-tight truncate`}>{label}</span>
-    </ListItem>
-  );
+
 
   return (
     <>
@@ -223,7 +226,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
                 />
               )}
 
-              {tieneRol('ROLE_ALMACENERO') && (
+              {(tieneRol('ROLE_ALMACENERO') || tieneRol('ROLE_SUPERVISOR_ALMACEN')) && (
                 <NavItem
                   icon={LayoutDashboard}
                   label="Dashboard Almacén"
@@ -232,7 +235,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
                 />
               )}
 
-              {tieneRol('ROLE_ALMACENERO') && (
+              {(tieneRol('ROLE_ALMACENERO') || tieneRol('ROLE_SUPERVISOR_ALMACEN')) && (
                 <NavItem
                   icon={LayoutGrid}
                   label="Tablero pedidos"
@@ -292,7 +295,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
               )}
 
               {/* Administración / Inventario */}
-              {(tieneRol('ROLE_ADMIN') || tieneRol('ROLE_ALMACENERO')) && (
+              {(tieneRol('ROLE_ADMIN') || esRolModuloAlmacen(tieneRol)) && (
                 <div className="py-2">
                   <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">
                     {tieneRol('ROLE_ADMIN') ? 'Configuración' : 'Gestión'}
@@ -309,7 +312,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
                   )}
 
                   {/* Inventario Acordeón (Solo Almacenero) */}
-                  {tieneRol('ROLE_ALMACENERO') && (
+                  {esRolModuloAlmacen(tieneRol) && !tieneRol('ROLE_ADMIN') && (
                     <Accordion open={openAccordion === 3} className="border-none mt-2">
                       <ListItem className="p-0" selected={openAccordion === 3}>
                         <AccordionHeader onClick={() => handleAccordionOpen(3)} className="border-none p-0">

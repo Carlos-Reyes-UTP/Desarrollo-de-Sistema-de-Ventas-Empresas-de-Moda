@@ -88,11 +88,20 @@ function prepararPayloadParaBackend(variante: Partial<ProductoVariante>): Record
 }
 
 export const ProductoVarianteService = {    // Crear nueva variante
-  crearVariante: async (variante: Omit<ProductoVariante, 'idVariante'>): Promise<ProductoVariante> => {
+  crearVariante: async (
+    variante: Omit<ProductoVariante, 'idVariante'>,
+    idUbicacionArea?: number | null
+  ): Promise<ProductoVariante> => {
     try {
       const payload = prepararPayloadParaBackend(variante);
       logger.debug('Creando nueva variante con datos:', payload);
-      const response = await apiClient.post<ProductoVariante>(RUTAS_VARIANTES.BASE, payload);
+      const params =
+        idUbicacionArea != null && idUbicacionArea > 0
+          ? { idUbicacionArea }
+          : undefined;
+      const response = await apiClient.post<ProductoVariante>(RUTAS_VARIANTES.BASE, payload, {
+        params,
+      });
       return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
       logger.error('Error al crear variante:', error);
@@ -134,10 +143,20 @@ export const ProductoVarianteService = {    // Crear nueva variante
       throw error;
     }
   },  // Obtener todas las variantes de un producto
-  obtenerVariantesPorProducto: async (idProducto: number): Promise<ProductoVariante[]> => {
+  obtenerVariantesPorProducto: async (
+    idProducto: number,
+    idUbicacionArea?: number | null
+  ): Promise<ProductoVariante[]> => {
     try {
       logger.debug(`Obteniendo variantes para producto ID: ${idProducto}`);
-      const response = await apiClient.get<ProductoVariante[]>(RUTAS_VARIANTES.POR_PRODUCTO(idProducto));
+      const params =
+        idUbicacionArea != null && idUbicacionArea > 0
+          ? { idUbicacionArea }
+          : undefined;
+      const response = await apiClient.get<ProductoVariante[]>(
+        RUTAS_VARIANTES.POR_PRODUCTO(idProducto),
+        { params }
+      );
       
       if (response.data.length > 0) {
         const primerVariante = response.data[0];
@@ -215,16 +234,24 @@ export const ProductoVarianteService = {    // Crear nueva variante
     }
   },
   // Actualizar solo la cantidad de una variante
-  actualizarCantidad: async (id: number, cantidad: number): Promise<ProductoVariante> => {
+  actualizarCantidad: async (
+    id: number,
+    cantidad: number,
+    idUbicacionArea?: number | null
+  ): Promise<ProductoVariante> => {
     if (cantidad < 0) {
       throw new Error('La cantidad no puede ser negativa');
     }
     
     try {
+      const params: Record<string, number> = { cantidad };
+      if (idUbicacionArea != null && idUbicacionArea > 0) {
+        params.idUbicacionArea = idUbicacionArea;
+      }
       const response = await apiClient.patch<ProductoVariante>(
         RUTAS_VARIANTES.ACTUALIZAR_CANTIDAD(id),
         null,
-        { params: { cantidad } }
+        { params }
       );
       return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
@@ -257,14 +284,19 @@ export const ProductoVarianteService = {    // Crear nueva variante
     idProducto: number,
     tallas: string[],
     colores: string[],
-    distribucionPorcentual: boolean = false
+    distribucionPorcentual: boolean = false,
+    idUbicacionArea?: number | null
   ): Promise<ProductoVariante[]> => {
     try {
       const payload = { tallas, colores };
+      const params: Record<string, string | number | boolean> = { distribucionPorcentual };
+      if (idUbicacionArea != null && idUbicacionArea > 0) {
+        params.idUbicacionArea = idUbicacionArea;
+      }
       const response = await apiClient.post<ProductoVariante[]>(
         RUTAS_VARIANTES.MIGRAR_PRODUCTO(idProducto),
         payload,
-        { params: { distribucionPorcentual } }
+        { params }
       );
       return response.data.map(normalizarVarianteDesdeBackend);
     } catch (error: any) {

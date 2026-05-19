@@ -1,4 +1,4 @@
-import type { MotivoRechazoApi } from "../../types/AlmacenCola";
+import type { MotivoRechazoApi } from "../../types/AlmacenSolicitudes";
 
 interface RechazoPedidoModalProps {
   nombreVendedor: string;

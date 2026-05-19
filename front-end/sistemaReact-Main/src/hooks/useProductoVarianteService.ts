@@ -1,5 +1,5 @@
 import { useMemo, useCallback } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { ProductoVarianteService } from '../services/ProductoVarianteService';
 import type { Rol } from '../types/Usuario';
 
@@ -9,6 +9,7 @@ export function resolveInventarioUserRole(roles: Rol[] | undefined): string | un
   if (nombres.length === 0) return undefined;
   if (nombres.includes('ROLE_ADMIN')) return 'ROLE_ADMIN';
   if (nombres.includes('ROLE_ALMACENERO')) return 'ROLE_ALMACENERO';
+  if (nombres.includes('ROLE_SUPERVISOR_ALMACEN')) return 'ROLE_SUPERVISOR_ALMACEN';
   if (nombres.includes('ROLE_VENDEDOR')) return 'ROLE_VENDEDOR';
   if (nombres.includes('ROLE_CAJERO')) return 'ROLE_CAJERO';
   return nombres[0];
@@ -65,7 +66,11 @@ export const useProductoVarianteService = () => {
     // User info
     userRole,
     canWrite: nombresRoles.some(
-      (r) => r === 'ROLE_ADMIN' || r === 'ROLE_ALMACENERO' || r === 'ROLE_VENDEDOR'
+      (r) =>
+        r === 'ROLE_ADMIN' ||
+        r === 'ROLE_ALMACENERO' ||
+        r === 'ROLE_SUPERVISOR_ALMACEN' ||
+        r === 'ROLE_VENDEDOR'
     ),
     canRead: nombresRoles.length > 0,
     isAdmin: nombresRoles.includes('ROLE_ADMIN'),

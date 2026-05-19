@@ -15,6 +15,8 @@ import {
   LayoutDashboard
 } from 'lucide-react';
 
+import { scrollbarStyles } from '@/styles/scrollbarStyles';
+
 import ModalHacerMayorista from '@/components/mayoristas/ModalHacerMayorista';
 import { useAuthReady } from '@/hooks/useAuthReady';
 import { useAuth } from '@/context/AuthContext';
@@ -28,24 +30,6 @@ import type { Usuario } from '@/types/Usuario';
 import type { Cliente } from '@/types/Cliente';
 import type { RolNombre } from '@/types/enums';
 
-// Estilos para la barra de desplazamiento personalizada
-const scrollbarStyles = `
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #c5c5c5;
-    border-radius: 10px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #a0a0a0;
-  }
-`;
 
 interface ActividadVenta {
   id: number;
@@ -66,6 +50,22 @@ interface ClienteMetrica {
   totalCompras?: number;
   cantidadCompras?: number;
 }
+
+const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+
+const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ value: number, payload: { label: string } }> }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-2xl shadow-xl">
+        <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{payload[0].payload.label}</p>
+        <p className="text-indigo-400 text-sm font-black">
+          {formatterMonedaPE.format(payload[0].value)}
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const DashboardAdminPage = () => {
   const { isReady, isAuthenticated, loading: authLoading } = useAuthReady();
@@ -171,8 +171,8 @@ const DashboardAdminPage = () => {
   }, []);
 
   const generarActividadReciente = useCallback((ventas: Venta[]) => {
-    const ventasRecientes: ActividadVenta[] = [...ventas]
-      .sort((a, b) => new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime())
+    const ventasRecientes: ActividadVenta[] = ventas
+      .toSorted((a, b) => new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime())
       .slice(0, 10)
       .map(venta => ({
         id: venta.idVenta || 0,
@@ -287,22 +287,10 @@ const DashboardAdminPage = () => {
   }, [isReady, isAuthenticated, navigate, cargarDatos]);
 
   const formatearMoneda = (valor: number) => {
-    return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(valor);
+    return formatterMonedaPE.format(valor);
   };
 
-  const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ value: number, payload: { label: string } }> }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-2xl shadow-xl">
-          <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{payload[0].payload.label}</p>
-          <p className="text-indigo-400 text-sm font-black">
-            {formatearMoneda(payload[0].value)}
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+
 
   if (authLoading || !isReady) return <AuthLoadingScreen message="Cargando panel de administración..." />;
 

@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
+import { USUARIOS_DEMO } from '@/shared/constants/sectoresAlmacen';
 
 const LoginPage = () => {
   const [usuario, setUsuario] = useState('');
@@ -218,6 +219,9 @@ const LoginPage = () => {
 
           
           <div className="mt-8 text-center text-gray-400 text-xs space-y-1">
+             <p className="text-gray-500">
+               Demo: {USUARIOS_DEMO.supervisor}, {USUARIOS_DEMO.almacenero1}… — clave <span className="font-mono">Prueba123!</span>
+             </p>
              <p className="md:hidden">Backend: <span className="font-mono text-gray-500">http://localhost:8080</span></p>
           </div>
         </div>

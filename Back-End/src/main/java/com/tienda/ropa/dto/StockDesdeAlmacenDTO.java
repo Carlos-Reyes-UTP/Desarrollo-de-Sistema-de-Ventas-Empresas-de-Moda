@@ -3,12 +3,10 @@ package com.tienda.ropa.dto;
 import java.util.List;
 
 /**
- * Stock disponible para enviar a pisos: por variante se prioriza fila en Almacén;
- * Solo desde Almacén.
- * Cada {@link StockUbicacionDTO} conserva su {@code idUbicacion} real para el POST de traslado.
+ * Stock disponible en Almacén para distribuir a pisos.
  */
 public record StockDesdeAlmacenDTO(
-        Long idUbicacionOrigen,
-        String nombreUbicacion,
-        List<StockUbicacionDTO> stock
+        Long idUbicacionAreaOrigen,
+        String etiquetaAlmacen,
+        List<StockUbicacionDTO> filas
 ) {}

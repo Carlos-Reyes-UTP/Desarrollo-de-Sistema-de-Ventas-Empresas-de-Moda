@@ -21,5 +21,8 @@ public interface SolicitudService {
 
     Solicitud atenderSolicitud(Long idSolicitud);
 
+    /** Atiende varias solicitudes en una transacción (ids sin duplicar). */
+    void atenderSolicitudesLote(List<Long> idsSolicitud);
+
     Solicitud rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo);
 }

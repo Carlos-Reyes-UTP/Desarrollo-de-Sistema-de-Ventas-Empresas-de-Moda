@@ -8,10 +8,12 @@ import { ProductoService } from '../../services/ProductoService';
 import { CategoriaService } from '../../services/CategoriaService';
 import { ProveedorService } from '../../services/ProveedorService';
 import { ConfirmModal, TableSkeleton, Skeleton } from '@/shared/ui';
-import FormularioProductoUnificado from './FormularioProductoUnificado'
+import FormularioProducto from './FormularioProducto'
 import GestionVariantes from './GestionVariantes';
 import GestionPisos from '../almacen/GestionPisos';
 import { useAuth } from '@/context/AuthContext';
+import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
+import { SECTOR_ALMACEN_GENERAL } from '@/shared/constants/sectoresAlmacen';
 
 const GestionProductos: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -19,9 +21,35 @@ const GestionProductos: React.FC = () => {
   const tabActual = tabParam === 'pisos' ? 'pisos' : 'catalogo';
 
   const { tieneRol } = useAuth();
+  const { acceso: accesoAreaAlmacen, etiquetaStock } = useAccesoAreaAlmacen(true);
+  const [sectorFiltro, setSectorFiltro] = useState<string>(SECTOR_ALMACEN_GENERAL);
+
+  const sectorParaApi = useMemo(() => {
+    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
+      return sectorFiltro;
+    }
+    if (accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo) {
+      return accesoAreaAlmacen.sectoresVisibles[0] ?? undefined;
+    }
+    return undefined;
+  }, [accesoAreaAlmacen, sectorFiltro]);
+
+  const etiquetaColumnaStock = useMemo(() => {
+    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
+      return sectorFiltro === SECTOR_ALMACEN_GENERAL
+        ? 'Stock almacén (total)'
+        : `Stock (${sectorFiltro})`;
+    }
+    if (accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && sectorParaApi) {
+      return `Stock (${sectorParaApi})`;
+    }
+    return 'Nivel de Stock';
+  }, [accesoAreaAlmacen, sectorFiltro, sectorParaApi]);
+
   const rolParaApiProductos = useMemo(() => {
     if (tieneRol('ROLE_ADMIN')) return 'ROLE_ADMIN';
     if (tieneRol('ROLE_ALMACENERO')) return 'ROLE_ALMACENERO';
+    if (tieneRol('ROLE_SUPERVISOR_ALMACEN')) return 'ROLE_ALMACENERO';
     if (tieneRol('ROLE_VENDEDOR')) return 'ROLE_VENDEDOR';
     return undefined;
   }, [tieneRol]);
@@ -136,7 +164,13 @@ const GestionProductos: React.FC = () => {
       }
 
       // Cargar productos PAGINADOS desde el servidor (Evita N+1 y colapso de RAM)
-      const paginaProductos = await ProductoService.getProductosPaginados(numeroPagina, 20, busqueda, rolParaApiProductos);
+      const paginaProductos = await ProductoService.getProductosPaginados(
+        numeroPagina,
+        20,
+        busqueda,
+        rolParaApiProductos,
+        sectorParaApi
+      );
       
       setProductos(paginaProductos.content || []);
       setTotalPages(paginaProductos.totalPages);
@@ -152,7 +186,19 @@ const GestionProductos: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [categorias.length, proveedores.length, rolParaApiProductos]);
+  }, [categorias.length, proveedores.length, rolParaApiProductos, sectorParaApi]);
+
+  useEffect(() => {
+    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
+      setSectorFiltro(SECTOR_ALMACEN_GENERAL);
+    }
+  }, [accesoAreaAlmacen?.esAlmaceneroGeneral]);
+
+  useEffect(() => {
+    if (!datosInicialesCargadosRef.current) return;
+    setPage(0);
+    void cargarFiltrosYDatos(0, searchTerm);
+  }, [sectorParaApi]);
 
   const cargarDatos = useCallback(() => {
     cargarFiltrosYDatos(page, searchTerm);
@@ -286,6 +332,16 @@ const GestionProductos: React.FC = () => {
           <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
             Inventario
           </h1>
+          {accesoAreaAlmacen?.esAlmaceneroGeneral && (
+            <p className="text-sm font-bold text-indigo-700 mb-1">
+              Almacenero general · vista por sector
+            </p>
+          )}
+          {accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && etiquetaStock && (
+            <p className="text-sm font-bold text-indigo-700 mb-1">
+              Sector asignado: {etiquetaStock}
+            </p>
+          )}
           <p className="text-gray-500 text-sm max-w-lg font-medium">
             Sincronización avanzada de stock multinivel para el ecosistema DK-SYSTEM.
           </p>
@@ -322,6 +378,25 @@ const GestionProductos: React.FC = () => {
           </div>
         )}
       </div>
+
+      {accesoAreaAlmacen?.esAlmaceneroGeneral && tabActual === 'catalogo' && (
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          {accesoAreaAlmacen.sectoresVisibles.map((sector) => (
+            <button
+              key={sector}
+              type="button"
+              onClick={() => setSectorFiltro(sector)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
+                sectorFiltro === sector
+                  ? 'bg-black text-white shadow-md'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              }`}
+            >
+              {sector}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-gray-200 mb-8">
@@ -587,7 +662,7 @@ const GestionProductos: React.FC = () => {
                   Matriz de Precios (U/C/M/D)
                 </th>
                 <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
-                  Nivel de Stock
+                  {etiquetaColumnaStock}
                 </th>
                 <th className="px-8 py-6 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
                   Acciones
@@ -801,7 +876,7 @@ const GestionProductos: React.FC = () => {
 
       {/* Modales */}
       {showFormulario && (
-        <FormularioProductoUnificado
+        <FormularioProducto
           producto={productoEditar}
           categorias={categorias}
           proveedores={proveedores}
