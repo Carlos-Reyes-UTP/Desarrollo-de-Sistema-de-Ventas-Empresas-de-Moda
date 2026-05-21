@@ -1,23 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import {
-  User,
-  Search,
-  Edit,
-  UserPlus,
-  AlertCircle,
-  Loader2,
-  CheckCircle,
-  X,
-  RefreshCw,
-  UserCheck,
-  UserX,
-  Filter,
-  ChevronDown,
-  Shield,
-  Lock,
-  Eye,
-  EyeOff
-} from 'lucide-react';
+import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { UsuarioService } from '@/services/UsuarioService';
 import { AccesoAreaAlmacenService } from '@/services/AccesoAreaAlmacenService';
@@ -25,7 +7,6 @@ import type { UbicacionArea } from '@/types/Almacen';
 import type { RolNombre } from '@/types/enums';
 import type { ActualizarUsuarioDTO, Usuario, UsuarioBackend } from '@/types/Usuario';
 import { getErrorMessage, getResponseMessage } from '@/utils/errorUtils';
-import { Skeleton } from '@/shared/ui';
 import { SECTORES_ALMACEN_TEXTO } from '@/shared/constants/sectoresAlmacen';
 
 const GestionUsuariosPage = () => {
@@ -502,28 +483,20 @@ const GestionUsuariosPage = () => {
   useEffect(() => { setPaginaActual(1); }, [usuariosFiltrados]);
 
   return (
-    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] min-h-screen animate-fadeIn text-left">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
-            Gestión de usuarios
-          </h1>
-          <p className="text-gray-500 text-sm max-w-md font-medium">
-            Administración de accesos, roles y seguridad perimetral para DK-SYSTEM.
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button
-            onClick={abrirModalCreacion}
-            className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider"
-          >
-            <UserPlus className="w-4 h-4" />
-            Nuevo Usuario
-          </button>
-        </div>
-      </div>
+    <div className="app-page p-4 sm:p-6 max-w-[1600px] mx-auto min-h-screen animate-fadeIn text-left">
+      <PageHeader
+        surface="elevated"
+        eyebrow="Administración"
+        title="Gestión de usuarios"
+        actions={
+          <PageActionGroup>
+            <PageActionButton grouped onClick={abrirModalCreacion}>
+              <MaterialIcon icon="person_add" className="w-4 h-4" />
+              Nuevo Usuario
+            </PageActionButton>
+          </PageActionGroup>
+        }
+      />
 
       {/* Action Messages */}
       {mensajeAccion.visible && (
@@ -531,22 +504,26 @@ const GestionUsuariosPage = () => {
           mensajeAccion.tipo === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
         }`}>
           <div className="flex items-center gap-3">
-            {mensajeAccion.tipo === 'success' ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            {mensajeAccion.tipo === 'success' ? (
+              <MaterialIcon icon="check_circle" className="w-5 h-5" />
+            ) : (
+              <MaterialIcon icon="error" className="w-5 h-5" />
+            )}
             <span className="text-[10px] font-bold uppercase tracking-widest">{mensajeAccion.texto}</span>
           </div>
           <button onClick={() => setMensajeAccion(prev => ({ ...prev, visible: false }))}>
-            <X className="w-4 h-4" />
+            <MaterialIcon icon="close" className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Filters Bar */}
-      <div className="bg-white rounded-[2rem] p-8 mb-8 shadow-sm border border-gray-100">
+      <div className="app-panel rounded-[2rem] p-8 mb-8 shadow-sm border">
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-8 items-end">
           <div className="lg:col-span-12 xl:col-span-5">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">Búsqueda de Operador</label>
             <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Nombre de usuario..."
@@ -559,7 +536,7 @@ const GestionUsuariosPage = () => {
           <div className="lg:col-span-4 xl:col-span-3">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">Filtrado por Rol</label>
             <div className="relative">
-               <Filter className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="filter_list" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <select
                 className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] rounded-xl text-sm font-bold appearance-none cursor-pointer"
                 value={filtroRol}
@@ -573,13 +550,13 @@ const GestionUsuariosPage = () => {
                 <option value="ROLE_GERENTE">Gerente</option>
                 <option value="ROLE_SUPERVISOR_ALMACEN">Supervisor almacén</option>
               </select>
-               <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />
             </div>
           </div>
           <div className="lg:col-span-4 xl:col-span-2">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">Estado</label>
             <div className="relative">
-               <UserCheck className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="how_to_reg" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
               <select
                 className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] rounded-xl text-sm font-bold appearance-none cursor-pointer"
                 value={filtroActivo === 'TODOS' ? 'TODOS' : filtroActivo ? 'true' : 'false'}
@@ -589,7 +566,7 @@ const GestionUsuariosPage = () => {
                 <option value="true">Activos</option>
                 <option value="false">Inactivos</option>
               </select>
-               <ChevronDown className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />
             </div>
           </div>
           <div className="lg:col-span-4 xl:col-span-2">
@@ -597,7 +574,11 @@ const GestionUsuariosPage = () => {
               onClick={cargarUsuarios}
               className="w-full h-[46px] bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
             >
-              {cargando ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              {cargando ? (
+                <MaterialIcon icon="sync" className="w-4 h-4 animate-spin" />
+              ) : (
+                <MaterialIcon icon="refresh" className="w-4 h-4" />
+              )}
               {cargando ? 'Sincronizando' : 'Recargar'}
             </button>
           </div>
@@ -605,7 +586,7 @@ const GestionUsuariosPage = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+      <div className="app-panel rounded-[2.5rem] shadow-sm border overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-white border-b border-gray-50">
@@ -638,7 +619,7 @@ const GestionUsuariosPage = () => {
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4 text-left">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${usuario.activo ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>
-                      <User className="w-5 h-5" />
+                      <MaterialIcon icon="person" className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
                       <span className={`text-sm font-bold ${!usuario.activo ? 'text-gray-400' : 'text-black'}`}>
@@ -669,10 +650,14 @@ const GestionUsuariosPage = () => {
                 <td className="px-8 py-6 text-right">
                   <div className="flex justify-end gap-2 text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button onClick={() => abrirModalEdicion(usuario)} className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all border border-transparent shadow-sm">
-                      <Edit className="w-4 h-4" />
+                      <MaterialIcon icon="edit" className="w-4 h-4" />
                     </button>
                     <button onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)} disabled={(esUltimoAdministradorActivo(usuario) && usuario.activo) || (esUsuarioActual(usuario) && usuario.activo)} className={`p-2.5 rounded-xl transition-all border border-transparent shadow-sm disabled:opacity-20 ${usuario.activo ? 'hover:bg-red-500 hover:text-white' : 'hover:bg-[#10b981] hover:text-white'}`}>
-                      {usuario.activo ? <UserX className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
+                      {usuario.activo ? (
+                        <MaterialIcon icon="person_remove" className="w-4 h-4" />
+                      ) : (
+                        <MaterialIcon icon="how_to_reg" className="w-4 h-4" />
+                      )}
                     </button>
                   </div>
                 </td>
@@ -712,14 +697,14 @@ const GestionUsuariosPage = () => {
               <form onSubmit={guardarUsuario} className="space-y-8">
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-3">
-                    <AlertCircle className="w-4 h-4" /> {error}
+                    <MaterialIcon icon="error" className="w-4 h-4" /> {error}
                   </div>
                 )}
                 
                 <div className="space-y-4">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre de Usuario</label>
                   <div className="relative">
-                    <User className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <MaterialIcon icon="person" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input
                       ref={usuarioInputRef}
                       type="text"
@@ -744,7 +729,7 @@ const GestionUsuariosPage = () => {
                       <div className="space-y-4">
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contraseña</label>
                         <div className="relative">
-                          <Lock className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <MaterialIcon icon="lock" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                           <input
                             type={mostrarPassword ? 'text' : 'password'}
                             name="password"
@@ -757,9 +742,13 @@ const GestionUsuariosPage = () => {
                           <button
                             type="button"
                             onClick={() => setMostrarPassword(!mostrarPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors flex items-center justify-center"
                           >
-                            {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {mostrarPassword ? (
+                              <MaterialIcon icon="visibility_off" className="w-[18px] h-[18px]" />
+                            ) : (
+                              <MaterialIcon icon="visibility" className="w-[18px] h-[18px]" />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -768,7 +757,7 @@ const GestionUsuariosPage = () => {
                       <div className="space-y-4">
                         <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Confirmación</label>
                         <div className="relative">
-                          <Shield className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <MaterialIcon icon="shield" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
                           <input
                             type={mostrarConfirmPassword ? 'text' : 'password'}
                             name="confirmPassword"
@@ -787,9 +776,13 @@ const GestionUsuariosPage = () => {
                           <button
                             type="button"
                             onClick={() => setMostrarConfirmPassword(!mostrarConfirmPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors flex items-center justify-center"
                           >
-                            {mostrarConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            {mostrarConfirmPassword ? (
+                              <MaterialIcon icon="visibility_off" className="w-[18px] h-[18px]" />
+                            ) : (
+                              <MaterialIcon icon="visibility" className="w-[18px] h-[18px]" />
+                            )}
                           </button>
                         </div>
                       </div>
@@ -802,7 +795,7 @@ const GestionUsuariosPage = () => {
                           <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Requisitos de Seguridad</h4>
                           {formUsuario.password === formUsuario.confirmPassword && formUsuario.confirmPassword && (
                             <div className="flex items-center gap-1.5 text-emerald-500 animate-pulse">
-                              <CheckCircle size={12} />
+                              <MaterialIcon icon="check_circle" className="w-3 h-3" />
                               <span className="text-[9px] font-bold uppercase tracking-wider">Las contraseñas coinciden</span>
                             </div>
                           )}
@@ -817,7 +810,7 @@ const GestionUsuariosPage = () => {
                           ].map((req, i) => (
                             <div key={i} className="flex items-center gap-2.5">
                               <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-500 ${req.check ? 'bg-[#10b981] scale-110' : 'bg-gray-100'}`}>
-                                <CheckCircle size={10} className={req.check ? 'text-white' : 'text-gray-300'} />
+                                <MaterialIcon icon="check_circle" className={`w-[10px] h-[10px] ${req.check ? 'text-white' : 'text-gray-300'}`} />
                               </div>
                               <span className={`text-[10px] font-bold uppercase tracking-tight transition-colors ${req.check ? 'text-black' : 'text-gray-400'}`}>
                                 {req.label}
@@ -835,7 +828,7 @@ const GestionUsuariosPage = () => {
                         if (esUsuarioActual(usuarioEditando as Usuario)) setMostrarModalPassword(true);
                         else setCambiarPassword(true);
                     }} className="text-[10px] font-bold text-black uppercase tracking-widest flex items-center gap-2 hover:opacity-50 transition-opacity">
-                      <RefreshCw className="w-4 h-4" /> Resetear Credenciales de Seguridad
+                      <MaterialIcon icon="refresh" className="w-4 h-4" /> Resetear Credenciales de Seguridad
                     </button>
                 )}
 
@@ -910,7 +903,7 @@ const GestionUsuariosPage = () => {
             {/* Header */}
             <div className="bg-black px-8 py-6 flex items-center gap-4">
               <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <Lock className="w-5 h-5 text-white" />
+                <MaterialIcon icon="lock" className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Verificar Identidad</h3>
@@ -922,7 +915,7 @@ const GestionUsuariosPage = () => {
               <div className="space-y-3">
                 <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Contraseña Actual</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-gray-300 absolute left-5 top-1/2 -translate-y-1/2" />
+                  <MaterialIcon icon="lock" className="w-4 h-4 text-gray-300 absolute left-5 top-1/2 -translate-y-1/2" />
                   <input
                     type={mostrarPassword ? 'text' : 'password'}
                     value={passwordActual}
@@ -933,9 +926,13 @@ const GestionUsuariosPage = () => {
                   <button
                     type="button"
                     onClick={() => setMostrarPassword(!mostrarPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors flex items-center justify-center"
                   >
-                    {mostrarPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    {mostrarPassword ? (
+                      <MaterialIcon icon="visibility_off" className="w-[18px] h-[18px]" />
+                    ) : (
+                      <MaterialIcon icon="visibility" className="w-[18px] h-[18px]" />
+                    )}
                   </button>
                 </div>
                 {errorPasswordActual && (

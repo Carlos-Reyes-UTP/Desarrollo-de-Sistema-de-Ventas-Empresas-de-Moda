@@ -78,13 +78,13 @@ const ReportesPage: React.FC = () => {
 
   if (!tieneRol('ROLE_ADMIN') && !tieneRol('ROLE_ALMACENERO')) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full text-center">
+      <div className="app-page min-h-screen flex items-center justify-center p-4">
+        <div className="app-panel rounded-xl shadow-lg p-8 max-w-md w-full text-center">
           <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <ChartBarIcon className="w-8 h-8 text-red-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Acceso Restringido</h2>
-          <p className="text-gray-600">
+          <h2 className="text-xl font-bold app-heading mb-2">Acceso Restringido</h2>
+          <p className="app-text-muted">
             Los reportes están disponibles únicamente para administradores y almaceneros.
           </p>
         </div>
@@ -93,7 +93,7 @@ const ReportesPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+    <div className="app-page min-h-screen p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Cabecera */}
         <div className="mb-8">
@@ -101,16 +101,16 @@ const ReportesPage: React.FC = () => {
             <div className="p-2 bg-blue-100 rounded-lg">
               <ChartBarIcon className="h-6 w-6 text-blue-600" />
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Reportes</h1>
+            <h1 className="text-3xl font-bold app-heading">Reportes</h1>
           </div>
-          <p className="text-gray-600">
+          <p className="app-text-muted">
             Análisis detallado de productos más vendidos, categorías, colores y tallas
           </p>
         </div>
 
         {/* Navegación por Tabs */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
-          <div className="border-b border-gray-200">
+        <div className="app-panel rounded-xl shadow-sm border mb-6">
+          <div className="border-b border-[var(--app-border)]">
             <nav className="flex space-x-8 px-6 overflow-x-auto" aria-label="Tabs">
               {tabs.map((tab) => {
                 const IconoTab = tab.icono;
@@ -135,15 +135,15 @@ const ReportesPage: React.FC = () => {
           </div>
           
           {/* Descripción del tab activo */}
-          <div className="px-6 py-3 bg-gray-50">
-            <p className="text-sm text-gray-600">
+          <div className="px-6 py-3 bg-[var(--app-bg-muted)]">
+            <p className="text-sm app-text-muted">
               {tabs.find(tab => tab.id === tabActiva)?.descripcion}
             </p>
           </div>
         </div>
 
         {/* Contenido del Tab */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div className="app-panel rounded-xl shadow-sm border">
           <div className="p-6">
             {renderizarContenidoTab()}
           </div>

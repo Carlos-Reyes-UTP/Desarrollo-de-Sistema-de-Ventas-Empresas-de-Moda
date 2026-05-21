@@ -13,7 +13,7 @@ export const ChartSkeleton: React.FC<ChartSkeletonProps> = ({
   barCount = 7,
 }) => (
   <div
-    className={`flex flex-col rounded-[2.5rem] border border-[#E5E7EB] bg-white p-8 ${className}`}
+    className={`app-panel flex flex-col rounded-[2.5rem] p-8 ${className}`}
     aria-busy
     aria-label="Cargando gráfico"
   >

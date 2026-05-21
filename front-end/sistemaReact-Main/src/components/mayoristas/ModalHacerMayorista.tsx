@@ -1,15 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Search, 
-  User, 
-  FileText, 
-  Crown,
-  Loader2,
-  CheckCircle,
-  AlertCircle,
-  Trash2,
-  UserPlus
-} from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 
 // Importar servicios
 import { ClienteService } from '../../services/ClienteService';
@@ -644,7 +634,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const renderPantallaExito = () => (
     <div className="text-center py-10 px-4 animate-fadeIn">
       <div className="mx-auto flex items-center justify-center w-20 h-20 bg-black rounded-[2rem] mb-8 shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
-        <CheckCircle className="w-10 h-10 text-white" strokeWidth={2.5} />
+        <MaterialIcon icon="check_circle" className="w-10 h-10 text-white" />
       </div>
       <h3 className="text-2xl font-black text-black mb-3 tracking-tight">
         {modo === 'crear' ? 'Registro Exitoso' : 'Conversión Exitosa'}
@@ -658,11 +648,11 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       
       <div className="bg-[#f8f8f8] rounded-[2.5rem] p-8 mb-10 relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
-          <Crown size={100} />
+          <MaterialIcon icon="crown" className="w-[100px] h-[100px]" />
         </div>
         <div className="relative z-10">
           <div className="flex items-center justify-center gap-3 mb-3">
-            <Crown className="w-4 h-4 text-black opacity-40" />
+            <MaterialIcon icon="crown" className="w-4 h-4 text-black opacity-40" />
             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">
               Código de Membresía
             </span>
@@ -682,7 +672,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         }}
         className="w-full py-5 bg-black text-white rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
       >
-        <CheckCircle className="w-4 h-4" strokeWidth={3} />
+        <MaterialIcon icon="check_circle" className="w-4 h-4" />
         <span>Finalizar Proceso</span>
       </button>
     </div>
@@ -691,7 +681,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const renderPantallaEliminacion = () => (
     <div className="text-center py-10 px-4 animate-fadeIn">
       <div className="mx-auto flex items-center justify-center w-20 h-20 bg-red-50 rounded-[2rem] mb-8">
-        <Trash2 className="w-10 h-10 text-red-500" strokeWidth={2.5} />
+        <MaterialIcon icon="delete" className="w-10 h-10 text-red-500" />
       </div>
       <h3 className="text-2xl font-black text-black mb-3 tracking-tight">Estatus Revocado</h3>
       <p className="text-gray-400 font-medium mb-10 max-w-xs mx-auto text-sm">
@@ -710,7 +700,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         }}
         className="w-full py-5 bg-black text-white rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
       >
-        <CheckCircle className="w-4 h-4" strokeWidth={3} />
+        <MaterialIcon icon="check_circle" className="w-4 h-4" />
         <span>Confirmar y Salir</span>
       </button>
     </div>
@@ -733,7 +723,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 : 'text-gray-400 hover:text-black hover:bg-gray-50'
             }`}
           >
-            <Search size={14} strokeWidth={2.5} />
+            <MaterialIcon icon="search" className="w-3.5 h-3.5" />
             <span>Buscar Cliente</span>
           </button>
           <button
@@ -744,7 +734,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 : 'text-gray-400 hover:text-black hover:bg-gray-50'
             }`}
           >
-            <UserPlus size={14} strokeWidth={2.5} />
+            <MaterialIcon icon="person_add" className="w-3.5 h-3.5" />
             <span>Crear Nuevo</span>
           </button>
         </div>
@@ -762,7 +752,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           Búsqueda de Identidad
         </label>
         <div className="relative group">
-          <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors" size={18} />
+          <MaterialIcon icon="search" className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-black transition-colors w-[18px] h-[18px]" />
           <input
             id="buscar-cliente"
             type="text"
@@ -786,7 +776,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           />
           {buscandoClientes && (
             <div className="absolute right-4 top-1/2 transform -translate-y-1/2">
-              <Loader2 className="animate-spin text-black" size={18} />
+              <MaterialIcon icon="progress_activity" className="animate-spin text-black w-[18px] h-[18px]" />
             </div>
           )}
         </div>
@@ -814,7 +804,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
             >
               <div className="flex items-center space-x-4">
                 <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
-                  <User className="w-5 h-5 text-gray-400 group-hover:text-black transition-colors" />
+                  <MaterialIcon icon="person" className="w-5 h-5 text-gray-400 group-hover:text-black transition-colors" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-black">{cliente.nombreCliente}</p>
@@ -828,7 +818,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                 <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                  <CheckCircle className="w-4 h-4 text-white" />
+                  <MaterialIcon icon="check_circle" className="w-4 h-4 text-white" />
                 </div>
               </div>
             </button>
@@ -915,9 +905,9 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                   className="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-[0.98]"
                 >
                   {buscandoDatosExternos ? (
-                    <Loader2 className="animate-spin" size={16} />
+                    <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />
                   ) : (
-                    <Search size={16} strokeWidth={2.5} />
+                    <MaterialIcon icon="search" className="w-4 h-4" />
                   )}
                 </button>
               </div>
@@ -934,7 +924,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           {buscandoDatosExternos && (
             <div className="mb-6 p-4 bg-gray-50 rounded-2xl border border-gray-100 animate-pulse">
               <div className="flex items-center gap-3 text-gray-400">
-                <Loader2 className="animate-spin" size={16} />
+                <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
                   Conectando con {tipoDocumento === 'DNI' ? 'RENIEC' : 'SUNAT'}...
                 </span>
@@ -945,7 +935,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           {datosEncontrados && (
             <div className="mb-6 p-4 bg-[#10b981]/5 rounded-2xl border border-[#10b981]/10 animate-fadeIn">
               <div className="flex items-center gap-3 text-[#10b981]">
-                <CheckCircle size={16} />
+                <MaterialIcon icon="check_circle" className="w-4 h-4" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.2em]">
                   Sincronización Exitosa
                 </span>
@@ -959,7 +949,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               Nombre o Razón Social
             </label>
             <div className="relative group">
-              <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors" size={18} />
+              <MaterialIcon icon="person" className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 group-focus-within:text-black transition-colors w-[18px] h-[18px]" />
               <input
                 id="nombre-cliente"
                 type="text"
@@ -985,7 +975,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           <div className="bg-black/[0.02] rounded-[1.5rem] p-5">
             <div className="flex items-start gap-4">
               <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center flex-shrink-0">
-                <FileText className="w-4 h-4 text-black opacity-40" />
+                <MaterialIcon icon="description" className="w-4 h-4 text-black opacity-40" />
               </div>
               <div>
                 <p className="text-[10px] font-bold text-black uppercase tracking-wider mb-1">Automatización de Registro</p>
@@ -1013,12 +1003,12 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         <div className="bg-[#f8f8f8] rounded-[2rem] p-8 relative overflow-hidden group">
           {/* Fondo decorativo sutil */}
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
-            <Crown size={120} strokeWidth={1} />
+            <MaterialIcon icon="crown" className="w-[120px] h-[120px]" />
           </div>
 
           {verificandoMayorista ? (
             <div className="flex flex-col items-center justify-center py-6 gap-3">
-              <Loader2 className="animate-spin text-black" size={32} />
+              <MaterialIcon icon="progress_activity" className="animate-spin text-black w-8 h-8" />
               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400">Verificando estatus...</span>
             </div>
           ) : (
@@ -1026,7 +1016,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               {/* Información principal */}
               <div className="flex items-start gap-6 mb-8">
                 <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center flex-shrink-0">
-                  <User className="w-8 h-8 text-black" />
+                  <MaterialIcon icon="person" className="w-8 h-8 text-black" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-xl font-black text-black leading-tight mb-2 truncate">
@@ -1034,7 +1024,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                   </h4>
                   <div className="flex flex-wrap gap-3">
                     <div className="flex items-center gap-1.5 text-gray-500">
-                      <FileText size={14} className="opacity-40" />
+                      <MaterialIcon icon="description" className="opacity-40 w-3.5 h-3.5" />
                       <span className="text-[10px] font-bold tracking-wider uppercase">{clienteSeleccionado.tipoCliente}:</span>
                       <span className="text-[11px] font-mono font-medium">{clienteSeleccionado.numeroDocumento}</span>
                     </div>
@@ -1047,7 +1037,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 mb-6 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-lg">
-                      <Crown size={18} className="text-white" />
+                      <MaterialIcon icon="crown" className="text-white w-[18px] h-[18px]" />
                     </div>
                     <div>
                       <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Identificador Mayorista</p>
@@ -1067,7 +1057,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 {esMayorista ? (
                   <div className="space-y-4">
                     <div className="flex items-center gap-3 text-[#f59e0b] bg-amber-50/50 px-5 py-3 rounded-2xl">
-                      <AlertCircle size={18} strokeWidth={2.5} />
+                      <MaterialIcon icon="error" className="w-[18px] h-[18px]" />
                       <span className="text-[10px] font-bold uppercase tracking-wider">Membresía activa registrada</span>
                     </div>
                     <button
@@ -1076,10 +1066,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                       className="w-full group/btn flex items-center justify-center gap-3 px-6 py-4 bg-white border border-red-100 hover:bg-red-500 text-red-500 hover:text-white rounded-[1.5rem] transition-all duration-300 disabled:opacity-50 active:scale-[0.98]"
                     >
                       {eliminandoMayorista ? (
-                        <Loader2 className="animate-spin" size={18} />
+                        <MaterialIcon icon="progress_activity" className="animate-spin w-[18px] h-[18px]" />
                       ) : (
                         <>
-                          <Trash2 size={16} className="group-hover/btn:scale-110 transition-transform" />
+                          <MaterialIcon icon="delete" className="group-hover/btn:scale-110 transition-transform w-4 h-4" />
                           <span className="text-[10px] font-bold uppercase tracking-[0.2em]">Revocar Privilegios</span>
                         </>
                       )}
@@ -1088,7 +1078,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 ) : (
                   <div className="flex items-center gap-4 bg-[#10b981]/5 px-6 py-4 rounded-2xl">
                     <div className="w-8 h-8 bg-[#10b981] rounded-xl flex items-center justify-center shadow-[0_4px_12px_rgba(16,185,129,0.3)]">
-                      <CheckCircle size={16} className="text-white" />
+                      <MaterialIcon icon="check_circle" className="text-white w-4 h-4" />
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-[#10b981]">Criterios de promoción cumplidos</span>
                   </div>
@@ -1107,7 +1097,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       {error && (
         <div className="mb-6 p-5 bg-red-50/50 backdrop-blur-sm rounded-2xl animate-shake">
           <div className="flex items-center gap-3 text-red-500">
-            <AlertCircle size={18} strokeWidth={2.5} />
+            <MaterialIcon icon="error" className="w-[18px] h-[18px]" />
             <span className="text-[10px] font-bold uppercase tracking-wider">{error}</span>
           </div>
         </div>
@@ -1116,7 +1106,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
       {exito && !mostrarConfirmacionExito && (
         <div className="mb-6 p-5 bg-green-50/50 backdrop-blur-sm rounded-2xl animate-fadeIn">
           <div className="flex items-center gap-3 text-green-600">
-            <CheckCircle size={18} strokeWidth={2.5} />
+            <MaterialIcon icon="check_circle" className="w-[18px] h-[18px]" />
             <span className="text-[10px] font-bold uppercase tracking-wider">{exito}</span>
           </div>
         </div>
@@ -1143,10 +1133,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           className={`flex-[1.5] py-4 bg-black text-white rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97] ${animacionBotonConvertir}`}
         >
           {convirtiendoMayorista ? (
-            <Loader2 className="animate-spin" size={16} />
+            <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />
           ) : (
             <>
-              <Crown size={16} strokeWidth={2.5} />
+              <MaterialIcon icon="crown" className="w-4 h-4" />
               <span>Elevar a Mayorista</span>
             </>
           )}
@@ -1161,10 +1151,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           className="flex-[1.5] py-4 bg-black text-white rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97]"
         >
           {creandoMayorista ? (
-            <Loader2 className="animate-spin" size={16} />
+            <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />
           ) : (
             <>
-              <UserPlus size={16} strokeWidth={2.5} />
+              <MaterialIcon icon="person_add" className="w-4 h-4" />
               <span>Registrar Mayorista</span>
             </>
           )}
@@ -1204,7 +1194,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         onClose={cerrarModalConAnimacion}
         title="Gestión de Membresías"
         subtitle="Conversión y Registro de Clientes Mayoristas"
-        icon={<Crown className="w-5 h-5 text-white" />}
+        icon={<MaterialIcon icon="crown" className="w-5 h-5 text-white" />}
         maxWidth="2xl"
         belowHeader={renderToggleModo()}
         footer={mostrarFooterAcciones ? renderBotonesAccion() : undefined}

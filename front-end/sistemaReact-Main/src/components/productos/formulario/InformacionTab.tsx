@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, FolderTree, Building2, X, Info, Barcode } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { Categoria } from '../../../types/Categoria';
 import type { Proveedor } from '../../../types/Proveedor';
 
@@ -109,7 +109,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
   );
 
   return (
-    <div className="bg-gray-50 rounded-[1.5rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
+    <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
       <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-6">
         Información básica
       </h3>
@@ -148,7 +148,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
               title="Generar código de barras automático"
             >
-              <Barcode size={16} />
+              <MaterialIcon icon="barcode" className="w-4 h-4" />
               Auto
             </button>
           </div>
@@ -229,7 +229,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
           <div className="relative">
             {!categoriaSeleccionada && (
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
+                <MaterialIcon icon="search" className="h-4 w-4 text-gray-400" />
               </div>
             )}
             <input
@@ -290,7 +290,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             {categoriaSeleccionada && !searchCategoria && (
               <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FolderTree className="w-4 h-4 text-white/60" />
+                  <MaterialIcon icon="folder" className="w-4 h-4 text-white/60" />
                   <span className="text-white font-bold text-sm">{categoriaSeleccionada}</span>
                 </div>
                 <button
@@ -304,7 +304,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                   title="Limpiar selección"
                   type="button"
                 >
-                  <X className="w-4 h-4" />
+                  <MaterialIcon icon="close" className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -319,7 +319,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             <div className="relative">
               {!subcategoriaSeleccionada && (
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <MaterialIcon icon="search" className="h-4 w-4 text-gray-400" />
                 </div>
               )}
               <input
@@ -375,7 +375,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               {subcategoriaSeleccionada && !searchSubcategoria && (
                 <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FolderTree className="w-4 h-4 text-white/60" />
+                    <MaterialIcon icon="folder" className="w-4 h-4 text-white/60" />
                     <span className="text-white font-bold text-sm">{subcategoriaSeleccionada}</span>
                   </div>
                   <button
@@ -389,7 +389,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     title="Limpiar selección"
                     type="button"
                   >
-                    <X className="w-4 h-4" />
+                    <MaterialIcon icon="close" className="w-4 h-4" />
                   </button>
                 </div>
               )}
@@ -411,7 +411,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             <div className="relative">
               {!subcategoria2Seleccionada && (
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-4 w-4 text-gray-400" />
+                  <MaterialIcon icon="search" className="h-4 w-4 text-gray-400" />
                 </div>
               )}
               <input
@@ -465,7 +465,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               {subcategoria2Seleccionada && !searchSubcategoria2 && (
                 <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FolderTree className="w-4 h-4 text-white/60" />
+                    <MaterialIcon icon="folder" className="w-4 h-4 text-white/60" />
                     <span className="text-white font-bold text-sm">{subcategoria2Seleccionada}</span>
                   </div>
                   <button
@@ -478,7 +478,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     title="Limpiar selección"
                     type="button"
                   >
-                    <X className="w-4 h-4" />
+                    <MaterialIcon icon="close" className="w-4 h-4" />
                   </button>
                 </div>
               )}
@@ -495,7 +495,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
         {subcategorias.length > 0 && subCategorias2.length === 0 && formData.subcategoriaId && (
           <div className="md:col-span-2">
             <div className="bg-[#f8f8f8] rounded-xl p-3 border border-gray-100 flex items-start gap-2">
-              <Info className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+              <MaterialIcon icon="info" className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
               <p className="text-xs text-gray-600">
                 La subcategoría seleccionada no tiene categorías de nivel 3 disponibles.
               </p>
@@ -510,7 +510,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
           <div className="relative">
             {!proveedorSeleccionado && (
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-4 w-4 text-gray-400" />
+                <MaterialIcon icon="search" className="h-4 w-4 text-gray-400" />
               </div>
             )}
             <input
@@ -564,7 +564,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             {proveedorSeleccionado && !searchProveedor && (
               <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-white/60" />
+                  <MaterialIcon icon="corporate_fare" className="w-4 h-4 text-white/60" />
                   <span className="text-white font-bold text-sm">{proveedorSeleccionado}</span>
                 </div>
                 <button
@@ -577,7 +577,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                   title="Limpiar selección"
                   type="button"
                 >
-                  <X className="w-4 h-4" />
+                  <MaterialIcon icon="close" className="w-4 h-4" />
                 </button>
               </div>
             )}

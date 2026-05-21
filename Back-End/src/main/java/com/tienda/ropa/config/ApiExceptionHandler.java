@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 
+import jakarta.persistence.PersistenceException;
+
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -28,6 +30,19 @@ public class ApiExceptionHandler {
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "Solicitud inválida"));
+    }
+
+    @ExceptionHandler(PersistenceException.class)
+    public ResponseEntity<Map<String, String>> handlePersistence(PersistenceException ex) {
+        Throwable cause = ex.getCause();
+        while (cause != null) {
+            if (cause instanceof IllegalArgumentException iae) {
+                return handleIllegalArgument(iae);
+            }
+            cause = cause.getCause();
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", "No se pudo guardar: revise los datos enviados."));
     }
 
     private static String mensajeAmigableIntegridad(DataIntegrityViolationException ex) {

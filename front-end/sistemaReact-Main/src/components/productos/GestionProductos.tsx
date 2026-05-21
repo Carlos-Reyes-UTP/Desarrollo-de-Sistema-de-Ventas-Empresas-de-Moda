@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Plus, Edit, Trash2, Package, X, Search } from 'lucide-react';
 import type { Producto } from '../../types/Producto';
 import type { Categoria } from '../../types/Categoria';
 import type { Proveedor } from '../../types/Proveedor';
 import { ProductoService } from '../../services/ProductoService';
 import { CategoriaService } from '../../services/CategoriaService';
 import { ProveedorService } from '../../services/ProveedorService';
-import { ConfirmModal, TableSkeleton, Skeleton } from '@/shared/ui';
+import { ConfirmModal, TableSkeleton, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, MaterialIcon } from '@/shared/ui';
 import FormularioProducto from './FormularioProducto'
 import GestionVariantes from './GestionVariantes';
 import GestionPisos from '../almacen/GestionPisos';
@@ -64,6 +63,7 @@ const GestionProductos: React.FC = () => {
   const [selectedStock, setSelectedStock] = useState<string>('');
   const [searchCategoriaPrincipal, setSearchCategoriaPrincipal] = useState<string>('');
   const [searchSubCategoria, setSearchSubCategoria] = useState<string>('');
+  const [searchProveedor, setSearchProveedor] = useState<string>('');
   const [selectedProveedor, setSelectedProveedor] = useState<string>('');
 
   const [showFormulario, setShowFormulario] = useState(false);
@@ -75,10 +75,12 @@ const GestionProductos: React.FC = () => {
   const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
   const [isCategoriaPrincipalFocused, setIsCategoriaPrincipalFocused] = useState(false);
   const [isSubCategoriaFocused, setIsSubCategoriaFocused] = useState(false);
+  const [isProveedorFocused, setIsProveedorFocused] = useState(false);
 
   // Referencias para los componentes de búsqueda
   const categoriaPrincipalRef = useRef<HTMLDivElement>(null);
   const subcategoriaRef = useRef<HTMLDivElement>(null);
+  const proveedorRef = useRef<HTMLDivElement>(null);
   const datosInicialesCargadosRef = useRef(false);
   const busquedaDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const omitirDebounceBusquedaRef = useRef(true);
@@ -118,6 +120,11 @@ const GestionProductos: React.FC = () => {
   const subcategoriasFiltradas = subcategorias.filter(categoria =>
     searchSubCategoria === '' || 
     categoria.nombre.toLowerCase().includes(searchSubCategoria.toLowerCase())
+  );
+
+  const proveedoresFiltradas = proveedores.filter(p =>
+    searchProveedor === '' || 
+    p.nombre.toLowerCase().includes(searchProveedor.toLowerCase())
   );
 
   const productosFiltrados = productos.filter((producto) => {
@@ -280,6 +287,9 @@ const GestionProductos: React.FC = () => {
       if (subcategoriaRef.current && !subcategoriaRef.current.contains(event.target as Node)) {
         setIsSubCategoriaFocused(false);
       }
+      if (proveedorRef.current && !proveedorRef.current.contains(event.target as Node)) {
+        setIsProveedorFocused(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -296,6 +306,7 @@ const GestionProductos: React.FC = () => {
     setSelectedStock("");
     setSearchCategoriaPrincipal("");
     setSearchSubCategoria("");
+    setSearchProveedor("");
     setPage(0);
     void cargarFiltrosYDatos(0, "");
   };
@@ -351,110 +362,106 @@ const GestionProductos: React.FC = () => {
   };
 
   return (
-    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent font-sans text-gray-900 pb-8">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <div>
-          <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
-            Inventario
-          </h1>
-          {accesoAreaAlmacen?.esAlmaceneroGeneral && (
-            <p className="text-sm font-bold text-indigo-700 mb-1">
-              Almacenero general · vista por sector
-            </p>
-          )}
-          {accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && etiquetaStock && (
-            <p className="text-sm font-bold text-indigo-700 mb-1">
-              Sector asignado: {etiquetaStock}
-            </p>
-          )}
-          <p className="text-gray-500 text-sm max-w-lg font-medium">
-            Sincronización avanzada de stock multinivel para el ecosistema DK-SYSTEM.
-          </p>
-          {tabActual === "catalogo" && ultimaCargaLista && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 font-semibold text-gray-700 shadow-sm">
-                {totalElements} producto{totalElements !== 1 ? "s" : ""} en catálogo
-              </span>
-              <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-3 py-1 font-medium">
-                Lista actualizada · {ultimaCargaLista}
-              </span>
+    <div className="app-page p-4 sm:p-6 max-w-[1600px] mx-auto lg:bg-transparent font-sans pb-8">
+      <PageHeader
+        surface="elevated"
+        eyebrow="Módulo · Inventario"
+        title="Inventario"
+        belowTitle={
+          <>
+            {accesoAreaAlmacen?.esAlmaceneroGeneral && (
+              <PageHeaderMetaChip variant="context" icon="inventory_2">
+                Almacenero general · vista por sector
+              </PageHeaderMetaChip>
+            )}
+            {accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && etiquetaStock && (
+              <PageHeaderMetaChip variant="context" icon="corporate_fare">
+                Sector asignado: {etiquetaStock}
+              </PageHeaderMetaChip>
+            )}
+            {tabActual === "catalogo" && ultimaCargaLista && (
+              <>
+                <PageHeaderMetaChip variant="stat">
+                  {totalElements} producto{totalElements !== 1 ? "s" : ""} en catálogo
+                </PageHeaderMetaChip>
+                <PageHeaderMetaChip variant="muted">
+                  Lista actualizada · {ultimaCargaLista}
+                </PageHeaderMetaChip>
+              </>
+            )}
+          </>
+        }
+        toolbar={
+          <div className="space-y-3 min-w-0">
+            <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto pb-px snap-x snap-mandatory custom-scrollbar -mx-1 px-1">
+              <button
+                type="button"
+                onClick={() => {
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.delete('tab');
+                  setSearchParams(newParams);
+                }}
+                className={`shrink-0 snap-start min-h-10 px-4 py-2 text-xs sm:text-sm font-bold tracking-wide uppercase transition-all rounded-lg touch-manipulation whitespace-nowrap ${
+                  tabActual === 'catalogo'
+                    ? 'app-btn-primary shadow-sm'
+                    : 'app-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+                }`}
+              >
+                Catálogo principal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const newParams = new URLSearchParams(searchParams);
+                  newParams.set('tab', 'pisos');
+                  setSearchParams(newParams);
+                }}
+                className={`shrink-0 snap-start min-h-10 px-4 py-2 text-xs sm:text-sm font-bold tracking-wide uppercase transition-all rounded-lg touch-manipulation whitespace-nowrap ${
+                  tabActual === 'pisos'
+                    ? 'app-btn-primary shadow-sm'
+                    : 'app-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+                }`}
+              >
+                Pisos y áreas
+              </button>
             </div>
-          )}
-        </div>
-
-        {tabActual === 'catalogo' && (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => {/* Lógica de exportación si existe */}}
-              className="bg-white hover:bg-gray-50 text-gray-900 px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm border border-gray-100 transition-all duration-200 font-bold text-xs uppercase tracking-wider"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Exportar Lista
-            </button>
-            <button
-              onClick={() => setShowFormulario(true)}
-              className="bg-black text-white hover:bg-gray-800 px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all duration-200 font-bold text-xs uppercase tracking-wider active:scale-[0.98]"
-            >
-              <Plus className="w-4 h-4" />
-              Nuevo Producto
-            </button>
+            {accesoAreaAlmacen?.esAlmaceneroGeneral && tabActual === 'catalogo' && (
+              <div className="flex flex-wrap items-center gap-2">
+                {accesoAreaAlmacen.sectoresVisibles.map((sector) => (
+                  <button
+                    key={sector}
+                    type="button"
+                    onClick={() => setSectorFiltro(sector)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                      sectorFiltro === sector
+                        ? 'app-btn-primary shadow-sm'
+                        : 'app-panel app-text-muted border hover:bg-[var(--app-bg-muted)]'
+                    }`}
+                  >
+                    {sector}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        )}
-      </div>
-
-      {accesoAreaAlmacen?.esAlmaceneroGeneral && tabActual === 'catalogo' && (
-        <div className="flex flex-wrap items-center gap-2 mb-6">
-          {accesoAreaAlmacen.sectoresVisibles.map((sector) => (
-            <button
-              key={sector}
-              type="button"
-              onClick={() => setSectorFiltro(sector)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all ${
-                sectorFiltro === sector
-                  ? 'bg-black text-white shadow-md'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
-            >
-              {sector}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-gray-200 mb-8">
-        <button
-          onClick={() => {
-            const newParams = new URLSearchParams(searchParams);
-            newParams.delete('tab');
-            setSearchParams(newParams);
-          }}
-          className={`px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all border-b-2 ${
-            tabActual === 'catalogo'
-              ? 'border-black text-black'
-              : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
-          }`}
-        >
-          Catálogo principal
-        </button>
-        <button
-          onClick={() => {
-            const newParams = new URLSearchParams(searchParams);
-            newParams.set('tab', 'pisos');
-            setSearchParams(newParams);
-          }}
-          className={`px-4 py-3 text-sm font-bold tracking-wide uppercase transition-all border-b-2 ${
-            tabActual === 'pisos'
-              ? 'border-black text-black'
-              : 'border-transparent text-gray-500 hover:text-gray-900 hover:border-gray-300'
-          }`}
-        >
-          Pisos y áreas
-        </button>
-      </div>
+        }
+        actions={
+          tabActual === "catalogo" ? (
+            <PageActionGroup>
+              <PageActionButton grouped variant="secondary" onClick={() => {}}>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Exportar Lista
+              </PageActionButton>
+              <PageActionButton grouped onClick={() => setShowFormulario(true)}>
+                <MaterialIcon icon="add" className="w-4 h-4" />
+                Nuevo Producto
+              </PageActionButton>
+            </PageActionGroup>
+          ) : undefined
+        }
+      />
 
       {error && (
         <div className="mb-8 px-4 py-3 bg-red-50 text-red-600 text-sm font-medium border border-red-100 rounded-xl flex items-start animate-fadeIn">
@@ -480,7 +487,7 @@ const GestionProductos: React.FC = () => {
               Buscar Producto
             </label>
             <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Nombre o Código..."
@@ -513,7 +520,8 @@ const GestionProductos: React.FC = () => {
               </span>
 
               {selectedCategoriaPrincipal ? (
-                <X 
+                <MaterialIcon 
+                  icon="close"
                   className="w-4 h-4 cursor-pointer hover:text-gray-300" 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -572,7 +580,8 @@ const GestionProductos: React.FC = () => {
               </span>
 
               {selectedSubCategoria ? (
-                <X 
+                <MaterialIcon 
+                  icon="close"
                   className="w-4 h-4 cursor-pointer hover:text-gray-300" 
                   onClick={(e) => {
                     e.stopPropagation();
@@ -616,18 +625,69 @@ const GestionProductos: React.FC = () => {
           </div>
 
           {/* Provider / Public Combined (Simplified for UI) */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 relative" ref={proveedorRef}>
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
               Proveedor
             </label>
-            <select
-              value={selectedProveedor}
-              onChange={(e) => setSelectedProveedor(e.target.value)}
-              className="w-full px-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:ring-2 focus:ring-gray-100 transition-all appearance-none cursor-pointer"
+            <div 
+              onClick={() => !selectedProveedor && setIsProveedorFocused(true)}
+              className={`relative cursor-pointer ${selectedProveedor ? 'bg-black text-white' : 'bg-[#f8f8f8] text-gray-900'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
-              <option value="">Cualquier Proveedor</option>
-              {proveedores.map(p => <option key={p.idProveedor} value={p.nombre}>{p.nombre}</option>)}
-            </select>
+              <span className="text-sm font-bold truncate">
+                {selectedProveedor || "Cualquier Proveedor"}
+              </span>
+
+              {selectedProveedor ? (
+                <MaterialIcon 
+                  icon="close"
+                  className="w-4 h-4 cursor-pointer hover:text-gray-300" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedProveedor('');
+                    setSearchProveedor('');
+                  }}
+                />
+              ) : (
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </div>
+
+            {/* Dropdown logic for Proveedor */}
+            {isProveedorFocused && !selectedProveedor && (
+              <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="Filtrar..."
+                  value={searchProveedor}
+                  onChange={(e) => setSearchProveedor(e.target.value)}
+                  className="w-full px-3 py-2 text-xs bg-gray-50 rounded-lg mb-2 focus:outline-none"
+                />
+
+                {proveedoresFiltradas.map(p => (
+                  <button
+                    key={p.idProveedor}
+                    type="button"
+                    onClick={() => {
+                      setSelectedProveedor(p.nombre);
+                      setSearchProveedor('');
+                      setIsProveedorFocused(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg transition-colors font-medium text-gray-900"
+                  >
+                    {p.nombre}
+                  </button>
+                ))}
+
+                {proveedoresFiltradas.length === 0 && (
+                  <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                    No se encontraron proveedores
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
 
@@ -747,7 +807,7 @@ const GestionProductos: React.FC = () => {
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center p-2 group-hover:bg-white border border-transparent group-hover:border-gray-100 transition-all shadow-sm">
-                          <Package className="w-6 h-6 text-gray-400" />
+                          <MaterialIcon icon="package" className="w-6 h-6 text-gray-400" />
                         </div>
                         <div className="flex flex-col">
                           <span className="text-sm font-bold text-black leading-tight mb-1">
@@ -808,7 +868,7 @@ const GestionProductos: React.FC = () => {
                           className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all text-gray-400 shadow-sm hover:shadow-md border border-transparent"
                           title="Detalles de Stock"
                         >
-                          <Package className="w-4 h-4" />
+                          <MaterialIcon icon="package" className="w-4 h-4" />
                         </button>
 
                         <button
@@ -819,7 +879,7 @@ const GestionProductos: React.FC = () => {
                           className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all text-gray-400 shadow-sm hover:shadow-md border border-transparent"
                           title="Editar"
                         >
-                          <Edit className="w-4 h-4" />
+                          <MaterialIcon icon="edit" className="w-4 h-4" />
                         </button>
 
                         <button
@@ -827,7 +887,7 @@ const GestionProductos: React.FC = () => {
                           className="p-2.5 hover:bg-red-500 hover:text-white rounded-xl transition-all text-red-400 shadow-sm hover:shadow-md border border-transparent"
                           title="Eliminar"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <MaterialIcon icon="delete" className="w-4 h-4" />
                         </button>
 
                       </div>
@@ -845,7 +905,7 @@ const GestionProductos: React.FC = () => {
           
           {productosFiltrados.length === 0 && !loading && (
             <div className="text-center py-16 px-4 border-t border-gray-100 bg-slate-50/40">
-              <Package className="mx-auto h-14 w-14 text-slate-300 mb-4" />
+              <MaterialIcon icon="package" className="mx-auto h-14 w-14 text-slate-300 mb-4" />
               <h3 className="text-lg font-bold text-gray-900">No hay productos que coincidan</h3>
               <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
                 Prueba otra búsqueda, ajusta los filtros o crea un producto nuevo en el catálogo.
@@ -856,7 +916,7 @@ const GestionProductos: React.FC = () => {
                   onClick={() => setShowFormulario(true)}
                   className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98]"
                 >
-                  <Plus className="h-4 w-4" />
+                  <MaterialIcon icon="add" className="h-4 w-4" />
                   Nuevo producto
                 </button>
                 <button

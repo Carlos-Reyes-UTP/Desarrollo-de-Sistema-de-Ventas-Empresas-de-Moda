@@ -1,0 +1,14 @@
+# Windows: nombre de dispositivo reservado (error al hacer git add si existe)
+nul
+
+# AI and Agent Context
+AGENTE.md
+QA-LOGS.md
+*.md.bak
+
+# Scripts and Fixes
+**/scripts/
+*.cjs
+*.py
+build_output.txt
+build-output.txt

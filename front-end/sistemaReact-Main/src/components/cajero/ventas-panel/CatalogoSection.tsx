@@ -1,7 +1,6 @@
-import { Search, X, Loader2, Plus, ChevronLeft, ChevronRight, Tag, Barcode } from 'lucide-react';
 import type { ProductoVariante } from '../../../types/ProductoVariante';
 import { BorderBeam } from 'border-beam';
-import { Card, CardGridSkeleton } from '@/shared/ui';
+import { Card, CardGridSkeleton, MaterialIcon } from '@/shared/ui';
 
 interface CatalogoSectionProps {
   variantesFiltradas: ProductoVariante[];
@@ -47,7 +46,7 @@ export const CatalogoSection = ({
       <div className="px-10 py-8 border-b caj-border-subtle flex items-center justify-between caj-card relative z-10">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-            <Search className="h-5 w-5 text-white" />
+            <MaterialIcon icon="search" className="h-5 w-5 text-white" />
           </div>
           <h2 className="caj-heading text-[12px] font-bold tracking-[0.3em] uppercase">Búsqueda de Productos</h2>
         </div>
@@ -67,14 +66,14 @@ export const CatalogoSection = ({
               onClick={() => setTipoBusqueda('nombre')}
               className={`py-3.5 rounded-xl text-[10px] font-bold transition-all uppercase tracking-[0.25em] flex items-center justify-center gap-3 ${tipoBusqueda === 'nombre' ? 'caj-segment-active shadow-xl translate-y-[-2px]' : 'caj-segment-inactive'}`}
             >
-              <Tag size={14} strokeWidth={3} />
+              <MaterialIcon icon="label" className="h-3.5 w-3.5" />
               Nombre
             </button>
             <button
               onClick={() => setTipoBusqueda('codigo')}
               className={`py-3.5 rounded-xl text-[10px] font-bold transition-all uppercase tracking-[0.25em] flex items-center justify-center gap-3 ${tipoBusqueda === 'codigo' ? 'caj-segment-active shadow-xl translate-y-[-2px]' : 'caj-segment-inactive'}`}
             >
-              <Barcode size={14} strokeWidth={3} />
+              <MaterialIcon icon="barcode" className="h-3.5 w-3.5" />
               Código de barras
             </button>
           </div>
@@ -85,7 +84,7 @@ export const CatalogoSection = ({
           <BorderBeam size="line" colorVariant="colorful" duration={2.4} strength={0.83}>
             <Card className="relative">
               <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                <Search size={20} className="text-gray-300" />
+                <MaterialIcon icon="search" className="h-5 w-5 text-gray-300" />
               </div>
               <input 
                 type="text" 
@@ -105,10 +104,10 @@ export const CatalogoSection = ({
               <div className="absolute inset-y-0 right-3 flex items-center gap-2">
                 {busqueda && (
                   <button
-                    className="p-2 text-gray-300 hover:text-black transition-colors"
+                    className="p-2 text-gray-300 hover:text-black transition-colors flex items-center justify-center"
                     onClick={() => { setBusqueda(''); setMensajeInfoVista(null); }}
                   >
-                    <X size={18} />
+                    <MaterialIcon icon="close" className="h-[18px] w-[18px]" />
                   </button>
                 )}
                 <button 
@@ -116,7 +115,7 @@ export const CatalogoSection = ({
                   onClick={handleBuscarEnServicio} 
                   disabled={cargandoBusquedaAccion || !busqueda.trim()}
                 >
-                  {cargandoBusquedaAccion ? <Loader2 className="animate-spin" size={16}/> : 'Buscar'}
+                  {cargandoBusquedaAccion ? <MaterialIcon icon="progress_activity" className="animate-spin h-4 w-4" /> : 'Buscar'}
                 </button>
               </div>
             </Card>
@@ -179,7 +178,7 @@ export const CatalogoSection = ({
                   {/* Overlay Hover Effect */}
                   <div className="absolute inset-0 bg-black/[0.02] opacity-0 group-hover:opacity-100 rounded-[2rem] transition-opacity pointer-events-none flex items-center justify-center">
                      <div className="bg-black text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center scale-50 group-hover:scale-100 transition-all duration-300 shadow-black/20">
-                        <Plus className="w-6 h-6" />
+                        <MaterialIcon icon="add" className="w-6 h-6" />
                      </div>
                   </div>
                 </div>
@@ -188,7 +187,7 @@ export const CatalogoSection = ({
           ) : (
             <div className="flex flex-col justify-center items-center h-full text-center py-20">
                <div className="w-20 h-20 caj-page rounded-full flex items-center justify-center mb-8 border caj-border-subtle">
-                  <Search className="h-10 w-10 text-gray-200" />
+                  <MaterialIcon icon="search" className="h-10 w-10 text-gray-200" />
                </div>
                <h3 className="caj-heading text-[13px] font-bold uppercase tracking-[0.3em] mb-4">No hay resultados</h3>
                <p className="caj-text-muted text-[11px] font-medium max-w-[250px] mb-8 leading-relaxed">Prueba buscando con otro nombre o código de barras.</p>
@@ -204,7 +203,7 @@ export const CatalogoSection = ({
           <span className="caj-label text-[10px] font-bold uppercase tracking-[0.2em]">Página {paginaActual + 1} / {totalPaginas} · {totalElementos} productos</span>
           <div className="caj-segment flex gap-2 p-1.5 rounded-2xl">
             <button onClick={() => handleCambiarPagina(paginaActual - 1)} disabled={paginaActual === 0} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white hover:shadow-sm text-gray-400 hover:text-black transition-all disabled:opacity-20 disabled:hover:bg-transparent">
-              <ChevronLeft size={18} />
+              <MaterialIcon icon="chevron_left" className="h-[18px] w-[18px]" />
             </button>
             {[...Array(Math.min(totalPaginas, 5))].map((_, i) => {
               let n: number;
@@ -228,7 +227,7 @@ export const CatalogoSection = ({
               );
             })}
             <button onClick={() => handleCambiarPagina(paginaActual + 1)} disabled={paginaActual >= totalPaginas - 1} className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-white hover:shadow-sm text-gray-400 hover:text-black transition-all disabled:opacity-20 disabled:hover:bg-transparent">
-              <ChevronRight size={18} />
+              <MaterialIcon icon="chevron_right" className="h-[18px] w-[18px]" />
             </button>
           </div>
         </div>

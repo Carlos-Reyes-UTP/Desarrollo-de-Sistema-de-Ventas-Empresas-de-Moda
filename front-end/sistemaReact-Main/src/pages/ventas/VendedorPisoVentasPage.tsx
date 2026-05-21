@@ -1,4 +1,3 @@
-import { ArrowUp, Minus, Package, Plus, ScanLine } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -27,7 +26,7 @@ import {
   VendedorToastStack,
   type VendedorToastInfo,
 } from "../../components/vendedor-piso/VendedorToastStack";
-import { SearchResultSkeleton } from "@/shared/ui";
+import { SearchResultSkeleton, MaterialIcon } from "@/shared/ui";
 import { BorderBeam } from "border-beam";
 import {
   esPeticionCancelada,
@@ -489,7 +488,7 @@ const VendedorPisoVentasPage = () => {
                       className={`absolute right-4 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-[1.8rem] text-white shadow-lg transition-all hover:scale-105 active:scale-95 ${estaEnfocado || buscando ? 'bg-black' : 'bg-black/90'}`}
                       aria-label="Escanear código"
                     >
-                      <ScanLine className="h-6 w-6" strokeWidth={2.5} />
+                      <MaterialIcon icon="qr_code_scanner" className="h-6 w-6" />
                     </button>
                   </div>
                 </BorderBeam>
@@ -601,7 +600,7 @@ const VendedorPisoVentasPage = () => {
               <section className="space-y-6 rounded-[3rem] bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-gray-50 animate-fadeInRight">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-gray-100">
                   <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-[2rem] bg-black text-white shadow-xl">
-                    <Package className="h-10 w-10" strokeWidth={1.5} />
+                    <MaterialIcon icon="inventory_2" className="h-10 w-10" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-2">
@@ -681,7 +680,7 @@ const VendedorPisoVentasPage = () => {
                             onClick={() => setCantidad((c) => Math.max(1, c - 1))}
                             className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white text-xl font-black shadow-sm transition-all hover:bg-gray-100 active:scale-95"
                           >
-                            <Minus className="h-6 w-6" strokeWidth={3} />
+                            <MaterialIcon icon="remove" className="h-6 w-6" />
                           </button>
                           <span className="flex-1 text-center text-3xl font-black tabular-nums text-black">
                             {cantidad}
@@ -694,7 +693,7 @@ const VendedorPisoVentasPage = () => {
                             disabled={cantidad >= stockDisponible}
                             className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white text-xl font-black shadow-sm transition-all hover:bg-gray-100 active:scale-95 disabled:opacity-30"
                           >
-                            <Plus className="h-6 w-6" strokeWidth={3} />
+                            <MaterialIcon icon="add" className="h-6 w-6" />
                           </button>
                         </div>
                         {(stockReservado > 0 || enBandejaVariante > 0) && (
@@ -723,7 +722,7 @@ const VendedorPisoVentasPage = () => {
                         onClick={agregarALista}
                         className="flex w-full items-center justify-center gap-2 rounded-[1.8rem] bg-black py-5 text-sm font-black uppercase tracking-widest text-white shadow-2xl transition-all hover:bg-gray-900 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        <Plus className="h-4 w-4" strokeWidth={3} />
+                        <MaterialIcon icon="add" className="h-4 w-4" />
                         Agregar a la lista
                       </button>
                     </div>
@@ -733,7 +732,7 @@ const VendedorPisoVentasPage = () => {
             ) : (
               <div className="hidden md:flex h-full min-h-[500px] flex-col items-center justify-center rounded-[3rem] border-2 border-dashed border-black/5 bg-black/[0.01] p-12 text-center animate-fadeIn">
                 <div className="mb-6 rounded-[2rem] bg-black/5 p-8">
-                  <Package className="h-16 w-16 text-black/10" strokeWidth={1} />
+                  <MaterialIcon icon="inventory_2" className="h-16 w-16 text-black/10" />
                 </div>
                 <h3 className="text-xl font-black text-black/40">Esperando Selección</h3>
                 <p className="mt-3 max-w-[280px] text-sm font-medium text-gray-400 leading-relaxed">
@@ -785,7 +784,7 @@ const VendedorPisoVentasPage = () => {
         }`}
         aria-label="Subir"
       >
-        <ArrowUp className="h-5 w-5" strokeWidth={3} />
+        <MaterialIcon icon="arrow_upward" className="h-5 w-5" />
       </button>
     </div>
   );

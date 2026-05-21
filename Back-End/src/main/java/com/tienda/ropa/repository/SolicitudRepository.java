@@ -61,4 +61,18 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
             EstadoSolicitud estado,
             com.tienda.ropa.entity.TipoSolicitud tipoSolicitud,
             Instant fechaLimite);
+
+    @Query("""
+            SELECT DISTINCT s FROM Solicitud s
+            LEFT JOIN FETCH s.detalles d
+            LEFT JOIN FETCH d.variante v
+            LEFT JOIN FETCH v.producto
+            WHERE s.usuario.id = :idUsuario
+              AND s.fechaCreacion BETWEEN :desde AND :hasta
+            ORDER BY s.fechaCreacion DESC
+            """)
+    List<Solicitud> findMisSolicitudesConDetalles(
+            @Param("idUsuario") Long idUsuario,
+            @Param("desde") Instant desde,
+            @Param("hasta") Instant hasta);
 }

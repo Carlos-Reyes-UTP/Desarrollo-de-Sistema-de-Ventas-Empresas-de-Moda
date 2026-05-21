@@ -1,4 +1,4 @@
-import { CreditCard, Smartphone, DollarSign, X, Loader2 } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { ProductoVenta } from '../../../types/Producto';
 import type { ProductoVariante } from '../../../types/ProductoVariante';
 import type { PrecioCalculado } from './types';
@@ -48,21 +48,21 @@ export const CarritoSection = ({
       id: 'tarjeta', 
       name: 'Tarjeta', 
       icon: (isSelected: boolean) => (
-        <CreditCard size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+        <MaterialIcon icon="credit_card" className={`h-[18px] w-[18px] ${isSelected ? "text-white" : "text-gray-600"}`} />
       )
     },
     { 
       id: 'yape', 
       name: 'Yape', 
       icon: (isSelected: boolean) => (
-        <Smartphone size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+        <MaterialIcon icon="smartphone" className={`h-[18px] w-[18px] ${isSelected ? "text-white" : "text-gray-600"}`} />
       )
     },
     { 
       id: 'plin', 
       name: 'Plin', 
       icon: (isSelected: boolean) => (
-        <Smartphone size={18} className={isSelected ? "text-white" : "text-gray-600"} />
+        <MaterialIcon icon="smartphone" className={`h-[18px] w-[18px] ${isSelected ? "text-white" : "text-gray-600"}`} />
       )
     },
   ];
@@ -72,7 +72,7 @@ export const CarritoSection = ({
       <div className="px-6 py-4 border-b caj-border-subtle flex items-center justify-between caj-card">
         <div className="flex items-center gap-4">
           <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-            <CreditCard className="h-5 w-5 text-white" />
+            <MaterialIcon icon="credit_card" className="h-5 w-5 text-white" />
           </div>
           <h2 className="caj-heading text-[12px] font-bold tracking-[0.3em] uppercase">Lista de compras</h2>
         </div>
@@ -130,9 +130,9 @@ export const CarritoSection = ({
 
                   <button 
                     onClick={() => handleEliminarProductoDeVenta(item.idProductoVariante)}
-                    className="p-1 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                    className="p-1 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded transition-all flex items-center justify-center"
                   >
-                    <X size={14} />
+                    <MaterialIcon icon="close" className="h-3.5 w-3.5" />
                   </button>
                 </div>
                 
@@ -158,7 +158,7 @@ export const CarritoSection = ({
         ) : (
           <div className="flex flex-col justify-center items-center h-full text-center py-20">
             <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-8 border border-gray-100">
-              <DollarSign className="h-10 w-10 text-gray-100" />
+              <MaterialIcon icon="payments" className="h-10 w-10 text-gray-100" />
             </div>
             <h3 className="caj-heading text-[13px] font-bold uppercase tracking-[0.3em] mb-3">Lista vacía</h3>
             <p className="caj-text-faint text-xs font-medium max-w-[200px] leading-relaxed">Selecciona productos del catálogo para empezar a vender.</p>
@@ -215,7 +215,7 @@ export const CarritoSection = ({
           className="w-full py-6 caj-btn-primary rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
         >
           <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          {cargandoProcesoVenta ? <Loader2 className="animate-spin h-5 w-5" /> : <CreditCard className="w-5 h-5 group-hover:rotate-12 transition-transform" />}
+          {cargandoProcesoVenta ? <MaterialIcon icon="progress_activity" className="animate-spin h-5 w-5" /> : <MaterialIcon icon="credit_card" className="w-5 h-5 group-hover:rotate-12 transition-transform" />}
           <span className="relative z-10">{cargandoProcesoVenta ? 'PROCESANDO PAGO...' : 'COBRAR AHORA'}</span>
         </button>
       </div>

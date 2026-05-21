@@ -17,6 +17,7 @@ import com.tienda.ropa.entity.Proveedores;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.repository.CategoriaRepository;
 import com.tienda.ropa.repository.ProductoRepository;
+import com.tienda.ropa.repository.InventarioRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.ProveedoresRepository;
 import com.tienda.ropa.service.InventarioService;
@@ -36,6 +37,9 @@ public class ProductoService {
 
     @Autowired
     private ProductoVarianteRepository productoVarianteRepository;
+
+    @Autowired
+    private InventarioRepository inventarioRepository;
 
     @Autowired
     private InventarioService inventarioService;
@@ -403,13 +407,14 @@ public class ProductoService {
             }
         }
         
-        // Actualizar la cantidad total del producto sumando todas las variantes
-        Integer cantidadTotal = productoVarianteRepository.findByProducto(productoGuardado).stream()
-                .mapToInt(v -> inventarioService.stockTotalVariante(v.getIdProductoVariante()))
-                .sum();
+        List<Long> idsVariantesFinal = productoVarianteRepository.findByProducto(productoGuardado).stream()
+                .map(ProductoVariante::getIdProductoVariante)
+                .toList();
+        int cantidadTotal = idsVariantesFinal.isEmpty() ? 0
+                : inventarioRepository.sumStockByVariantes(idsVariantesFinal);
         productoGuardado.setCantidad(cantidadTotal);
         productoRepository.save(productoGuardado);
-        
+
         return productoGuardado;
     }
 }

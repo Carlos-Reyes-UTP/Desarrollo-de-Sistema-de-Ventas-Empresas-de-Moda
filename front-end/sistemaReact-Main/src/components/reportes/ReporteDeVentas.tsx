@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Download, Calendar, TrendingUp, DollarSign, FileText, Users, ChevronLeft, ChevronRight } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaService';
 import type { Venta } from '../../types/Venta';
@@ -431,7 +431,7 @@ const ReporteDeVentas: React.FC = () => {
               disabled={cargando || ventas.length === 0}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              <Download size={16} />
+              <MaterialIcon icon="download" className="w-4 h-4" />
               Exportar Excel
             </button>
           </div>
@@ -448,7 +448,7 @@ const ReporteDeVentas: React.FC = () => {
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
-                <DollarSign className="h-6 w-6 text-green-600" />
+                <MaterialIcon icon="attach_money" className="h-6 w-6 text-green-600" />
               </div>
             </div>
           </div>
@@ -462,7 +462,7 @@ const ReporteDeVentas: React.FC = () => {
                 </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
-                <FileText className="h-6 w-6 text-blue-600" />
+                <MaterialIcon icon="description" className="h-6 w-6 text-blue-600" />
               </div>
             </div>
           </div>
@@ -476,7 +476,7 @@ const ReporteDeVentas: React.FC = () => {
                 </p>
               </div>
               <div className="p-3 bg-yellow-100 rounded-full">
-                <TrendingUp className="h-6 w-6 text-yellow-600" />
+                <MaterialIcon icon="trending_up" className="h-6 w-6 text-yellow-600" />
               </div>
             </div>
           </div>
@@ -490,7 +490,7 @@ const ReporteDeVentas: React.FC = () => {
                 </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-full">
-                <Users className="h-6 w-6 text-purple-600" />
+                <MaterialIcon icon="group" className="h-6 w-6 text-purple-600" />
               </div>
             </div>
           </div>
@@ -507,7 +507,7 @@ const ReporteDeVentas: React.FC = () => {
               })()}
             </h2>
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Calendar size={16} />
+              <MaterialIcon icon="calendar_today" className="w-4 h-4" />
               {periodo.charAt(0).toUpperCase() + periodo.slice(1)}
             </div>
           </div>
@@ -670,7 +670,7 @@ const ReporteDeVentas: React.FC = () => {
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
+                      <MaterialIcon icon="chevron_left" className="h-4 w-4 mr-1" />
                       Anterior
                     </button>
                     
@@ -693,7 +693,7 @@ const ReporteDeVentas: React.FC = () => {
                       }`}
                     >
                       Siguiente
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <MaterialIcon icon="chevron_right" className="h-4 w-4 ml-1" />
                     </button>
                   </div>
                 </div>
@@ -722,7 +722,7 @@ const ReporteDeVentas: React.FC = () => {
                       disabled={paginaActual === 1}
                       className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      <MaterialIcon icon="chevron_left" className="h-4 w-4" />
                       Anterior
                     </button>
                     
@@ -809,7 +809,7 @@ const ReporteDeVentas: React.FC = () => {
                       className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       Siguiente
-                      <ChevronRight className="h-4 w-4" />
+                      <MaterialIcon icon="chevron_right" className="h-4 w-4" />
                     </button>
                   </div>
                 </div>

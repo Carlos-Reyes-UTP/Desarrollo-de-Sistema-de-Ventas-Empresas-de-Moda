@@ -1,25 +1,37 @@
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import type { RolNombre } from "./types/enums";
 import { logger } from "./utils/logger";
-import DashboardAdminPage from "./pages/dashboard/DashboardAdminPage";
-import DashboardAlmaceneroPage from "./pages/dashboard/DashboardAlmaceneroPage";
-import PuntoDeVentaPage from "./pages/ventas/PuntoDeVentaPage";
-import VendedorPisoVentasPage from "./pages/ventas/VendedorPisoVentasPage";
-import AlmacenTableroPedidosPage from "./pages/almacen/AlmacenTableroPedidosPage";
-import GestionUsuariosPage from "./pages/usuarios/GestionUsuariosPage";
 import LoginPage from "./pages/auth/LoginPage";
 import PaginaNoEncontradaPage from "./pages/errores/PaginaNoEncontradaPage";
-import GestionCategoriasPage from "./pages/inventario/GestionCategoriasPage";
-import GestionProductosPage from "./pages/inventario/GestionProductosPage";
-import GestionProveedoresPage from "./pages/inventario/GestionProveedoresPage";
-import ReportesPage from "./pages/reportes/ReportesPage";
 import Layout from "./shared/layout/Layout";
 import { APP_PATHS } from "./shared/layout/navigationConfig";
 import { ROLES_MODULO_ALMACEN } from "./shared/constants/rolesAlmacen";
 import { AppShellSkeleton } from "./shared/ui";
 import { BandejaSolicitudProvider } from "./context/BandejaSolicitudContext";
+
+const DashboardAdminPage = lazy(() => import("./pages/dashboard/DashboardAdminPage"));
+const DashboardAlmaceneroPage = lazy(() => import("./pages/dashboard/DashboardAlmaceneroPage"));
+const PuntoDeVentaPage = lazy(() => import("./pages/ventas/PuntoDeVentaPage"));
+const VendedorPisoVentasPage = lazy(() => import("./pages/ventas/VendedorPisoVentasPage"));
+const AlmacenTableroPedidosPage = lazy(() => import("./pages/almacen/AlmacenTableroPedidosPage"));
+const GestionUsuariosPage = lazy(() => import("./pages/usuarios/GestionUsuariosPage"));
+const GestionCategoriasPage = lazy(() => import("./pages/inventario/GestionCategoriasPage"));
+const GestionProductosPage = lazy(() => import("./pages/inventario/GestionProductosPage"));
+const GestionProveedoresPage = lazy(() => import("./pages/inventario/GestionProveedoresPage"));
+const ReportesPage = lazy(() => import("./pages/reportes/ReportesPage"));
+
+const PageFallback = () => (
+  <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full" aria-busy aria-label="Cargando vista">
+    <div className="h-12 w-64 max-w-full rounded-xl bg-[var(--app-bg-muted)] animate-pulse mb-6" />
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      {Array.from({ length: 4 }, (_, i) => (
+        <div key={i} className="h-32 rounded-[2rem] bg-[var(--app-bg-muted)] animate-pulse" />
+      ))}
+    </div>
+  </div>
+);
 
 const ROLES_DASHBOARD_ALMACENERO: RolNombre[] = [
   "ROLE_ALMACENERO",
@@ -107,7 +119,9 @@ const RutaProtegidaConLayout = ({
   rolRequerido,
 }: RutaProtegidaConLayoutProps) => (
   <RutaProtegida rolRequerido={rolRequerido}>
-    <Layout>{children}</Layout>
+    <Layout>
+      <Suspense fallback={<PageFallback />}>{children}</Suspense>
+    </Layout>
   </RutaProtegida>
 );
 

@@ -85,7 +85,7 @@ public class CajaService {
 
         Caja caja = cajaOpt.get();
         final Long idUsuarioCaja = caja.getUsuario().getId();
-        
+
         if (!"ABIERTA".equals(caja.getEstado())) {
             throw new RuntimeException("La caja ya está cerrada");
         }
@@ -95,9 +95,8 @@ public class CajaService {
         LocalDateTime inicioDia = fechaSolo.atStartOfDay();
         LocalDateTime finDia = fechaSolo.plusDays(1).atStartOfDay();
 
-        List<Venta> ventasDelDia = ventaRepository.findByFechaVentaBetween(inicioDia, finDia).stream()
-                .filter(v -> v.getUsuario().getId().equals(idUsuarioCaja))
-                .collect(Collectors.toList());
+        List<Venta> ventasDelDia = ventaRepository.findByUsuarioIdAndFechaVentaBetween(
+                idUsuarioCaja, inicioDia, finDia);
 
         BigDecimal ventasEfectivo = BigDecimal.ZERO;
         BigDecimal ventasTarjeta = BigDecimal.ZERO;
@@ -166,14 +165,14 @@ public class CajaService {
     @Transactional(readOnly = true)
     public List<CajaDTO> obtenerHistorialCajas(Long idUsuario) {
         return cajaRepository.findByUsuarioIdOrderByFechaAperturaDesc(idUsuario).stream()
-                .map(this::convertirADTO)
+                .map(caja -> convertirADTO(caja, false))
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public List<CajaDTO> obtenerTodasCajas() {
         return cajaRepository.findAll().stream()
-                .map(this::convertirADTO)
+                .map(caja -> convertirADTO(caja, false))
                 .collect(Collectors.toList());
     }
 
@@ -220,8 +219,12 @@ public class CajaService {
     }
 
     private CajaDTO convertirADTO(Caja caja) {
+        return convertirADTO(caja, true);
+    }
+
+    private CajaDTO convertirADTO(Caja caja, boolean incluirMovimientos) {
         List<MovimientoCajaDTO> movimientos = new ArrayList<>();
-        if (caja.getId() != null) {
+        if (incluirMovimientos && caja.getId() != null) {
             movimientos = movimientoCajaRepository.findByCaja_IdOrderByFechaMovimientoAsc(caja.getId()).stream()
                     .map(this::convertirMovimientoADTO)
                     .collect(Collectors.toList());
@@ -230,7 +233,7 @@ public class CajaService {
         BigDecimal totalVentas = caja.getMontoVentasEfectivo()
                 .add(caja.getMontoVentasTarjeta())
                 .add(caja.getMontoVentasYape());
-        
+
         BigDecimal efectivoEsperado = caja.getMontoApertura() != null && caja.getMontoVentasEfectivo() != null
                 ? caja.getMontoApertura().add(caja.getMontoVentasEfectivo())
                 : BigDecimal.ZERO;
@@ -254,7 +257,7 @@ public class CajaService {
         dto.setMovimientos(movimientos);
         dto.setTotalVentas(totalVentas);
         dto.setEfectivoEsperado(efectivoEsperado);
-        
+
         return dto;
     }
 

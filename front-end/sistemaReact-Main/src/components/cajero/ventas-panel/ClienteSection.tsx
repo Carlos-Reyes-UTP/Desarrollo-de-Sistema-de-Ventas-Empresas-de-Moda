@@ -1,4 +1,4 @@
-import { Search, Users, CheckCircle, Plus, X, Loader2 } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { Cliente } from '../../../types/Cliente';
 
 interface ClienteSectionProps {
@@ -32,7 +32,7 @@ export const ClienteSection = ({
     <div className="caj-card rounded-[2.5rem] p-10 mb-10 shadow-sm border transition-all duration-300">
       <div className="flex items-center gap-4 mb-10">
         <div className="w-12 h-12 caj-btn-primary rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)]">
-          <Users className="h-6 w-6 text-[var(--caj-accent-fg)]" />
+          <MaterialIcon icon="group" className="h-6 w-6 text-[var(--caj-accent-fg)]" />
         </div>
         <div>
           <h2 className="caj-heading text-[12px] font-bold tracking-[0.25em] uppercase">Datos del Cliente</h2>
@@ -83,7 +83,7 @@ export const ClienteSection = ({
               disabled={cargandoBusquedaAccion || !documentoCliente.trim()}
               className="absolute right-2 top-1/2 -translate-y-1/2 p-3 caj-btn-primary rounded-xl disabled:opacity-40 transition-all shadow-md group-active:scale-95"
             >
-              {cargandoBusquedaAccion ? <Loader2 className="animate-spin" size={18}/> : <Search size={18}/>}
+              {cargandoBusquedaAccion ? <MaterialIcon icon="progress_activity" className="animate-spin h-[18px] w-[18px]" /> : <MaterialIcon icon="search" className="h-[18px] w-[18px]" />}
             </button>
           </div>
         </div>
@@ -104,13 +104,13 @@ export const ClienteSection = ({
         <div className={`mt-10 p-8 rounded-[2rem] border animate-fadeIn transition-all duration-500 overflow-hidden relative ${esMayorista ? 'bg-black border-gray-800 text-white shadow-2xl' : 'caj-page caj-border-subtle border'}`}>
           {esMayorista && (
             <div className="absolute top-0 right-0 p-4 opacity-10">
-               <Plus className="w-32 h-32 text-white" />
+               <MaterialIcon icon="add" className="w-32 h-32 text-white" />
             </div>
           )}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-6">
               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${esMayorista ? 'bg-white shadow-[0_0_30px_rgba(255,255,255,0.2)] animate-pulse' : 'caj-btn-primary shadow-lg'}`}>
-                <CheckCircle className={`h-8 w-8 ${esMayorista ? 'text-black' : 'text-[var(--caj-accent-fg)]'}`} />
+                <MaterialIcon icon="check_circle" className={`h-8 w-8 ${esMayorista ? 'text-black' : 'text-[var(--caj-accent-fg)]'}`} />
               </div>
               <div>
                 <h3 className={`text-lg font-bold uppercase tracking-widest ${esMayorista ? 'text-white' : 'caj-heading'}`}>
@@ -133,7 +133,7 @@ export const ClienteSection = ({
               onClick={limpiarCliente}
               className={`flex items-center gap-2 px-8 py-3.5 text-[11px] font-bold uppercase tracking-[0.25em] rounded-xl transition-all shadow-sm ${esMayorista ? 'bg-white/10 hover:bg-white text-white hover:text-black border border-white/20' : 'caj-card hover:bg-red-50/10 caj-text-muted hover:text-red-400 border'}`}
             >
-              <X className="h-4 w-4" />
+              <MaterialIcon icon="close" className="h-4 w-4" />
               Quitar cliente
             </button>
           </div>

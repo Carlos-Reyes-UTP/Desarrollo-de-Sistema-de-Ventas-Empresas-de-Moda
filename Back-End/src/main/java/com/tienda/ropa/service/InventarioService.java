@@ -370,6 +370,18 @@ public class InventarioService {
     }
 
     @Transactional(readOnly = true)
+    public java.util.Map<Long, Integer> stockEnAlmacenBulk(java.util.List<Long> idsVariante) {
+        if (idsVariante == null || idsVariante.isEmpty()) {
+            return java.util.Map.of();
+        }
+        java.util.Map<Long, Integer> resultado = new java.util.HashMap<>();
+        for (Object[] row : inventarioRepository.sumStockByVariantesEnAlmacen(idsVariante, NOMBRES_ALMACEN_LOWER)) {
+            resultado.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue());
+        }
+        return resultado;
+    }
+
+    @Transactional(readOnly = true)
     public int stockEnUbicacionArea(Long idVariante, Long idUbicacionArea) {
         if (idUbicacionArea == null) {
             return 0;

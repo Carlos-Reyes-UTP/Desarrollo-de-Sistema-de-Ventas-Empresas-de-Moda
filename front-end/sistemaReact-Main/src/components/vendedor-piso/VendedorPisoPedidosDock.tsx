@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, Loader2, RefreshCw, X, Settings, Volume2, VolumeX } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BorderBeam } from "border-beam";
 import type { VendedorSolicitudResumen } from "../../types/Vendedor";
@@ -227,9 +227,9 @@ export const VendedorPisoPedidosDock = ({
             aria-label="Actualizar lista de pedidos"
           >
             {refrescando ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+              <MaterialIcon icon="sync" className="h-3.5 w-3.5 animate-spin" aria-hidden />
             ) : (
-              <RefreshCw className="h-3.5 w-3.5" aria-hidden />
+              <MaterialIcon icon="refresh" className="h-3.5 w-3.5" aria-hidden />
             )}
             <span className="hidden sm:inline">Actualizar</span>
           </button>
@@ -243,7 +243,7 @@ export const VendedorPisoPedidosDock = ({
             }`}
             aria-label="Configuración de sonido de notificaciones"
           >
-            <Settings className="h-4 w-4" />
+            <MaterialIcon icon="settings" className="h-4 w-4" />
           </button>
 
           <button
@@ -252,7 +252,7 @@ export const VendedorPisoPedidosDock = ({
             className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-black"
             aria-label="Cerrar panel de pedidos"
           >
-            <X className="h-4 w-4" />
+            <MaterialIcon icon="close" className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -267,11 +267,11 @@ export const VendedorPisoPedidosDock = ({
           </div>
           <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
             {([
-              { id: "boutique", label: "Boutique", icon: <Volume2 className="h-3.5 w-3.5" /> },
-              { id: "crystal", label: "Crystal", icon: <Volume2 className="h-3.5 w-3.5" /> },
-              { id: "double", label: "Doble Beep", icon: <Volume2 className="h-3.5 w-3.5" /> },
-              { id: "kiosk", label: "Clásico", icon: <Volume2 className="h-3.5 w-3.5" /> },
-              { id: "mute", label: "Silencio", icon: <VolumeX className="h-3.5 w-3.5" /> }
+              { id: "boutique", label: "Boutique", icon: <MaterialIcon icon="volume_up" className="h-3.5 w-3.5" /> },
+              { id: "crystal", label: "Crystal", icon: <MaterialIcon icon="volume_up" className="h-3.5 w-3.5" /> },
+              { id: "double", label: "Doble Beep", icon: <MaterialIcon icon="volume_up" className="h-3.5 w-3.5" /> },
+              { id: "kiosk", label: "Clásico", icon: <MaterialIcon icon="volume_up" className="h-3.5 w-3.5" /> },
+              { id: "mute", label: "Silencio", icon: <MaterialIcon icon="volume_off" className="h-3.5 w-3.5" /> }
             ] as { id: SoundTheme; label: string; icon: React.ReactNode }[]).map((theme) => {
               const active = temaSonido === theme.id;
               return (
@@ -395,8 +395,8 @@ export const VendedorPisoPedidosDock = ({
       } ${hasNewResponse ? "ring-2 ring-offset-2 ring-emerald-400/90 ring-offset-[#f8f9fa]" : ""}`}
     >
       <div className="relative z-10 flex items-center gap-1">
-        <Bell className="h-6 w-6 shrink-0" strokeWidth={2} />
-        {abierto ? <ChevronDown className="h-4 w-4 shrink-0 opacity-80" aria-hidden /> : null}
+        <MaterialIcon icon="notifications" className="h-6 w-6 shrink-0" />
+        {abierto ? <MaterialIcon icon="expand_more" className="h-4 w-4 shrink-0 opacity-80" aria-hidden /> : null}
         {ordenados.length > 0 && (
           <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-black animate-bounce-in">
             {pendientes > 0 ? (pendientes > 9 ? "9+" : pendientes) : ordenados.length > 9 ? "9+" : ordenados.length}

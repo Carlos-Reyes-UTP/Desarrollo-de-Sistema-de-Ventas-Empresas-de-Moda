@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tag } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 
 interface PreciosTabProps {
   formData: {
@@ -18,9 +18,9 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
   errorPrecio
 }) => {
   return (
-    <div className="bg-gray-50 rounded-[1.5rem] p-8 border border-gray-100 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
-      <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-6 flex items-center gap-2">
-        <Tag className="w-4 h-4" />
+    <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <h3 className="text-xs font-bold tracking-[0.2em] text-gray-500 uppercase mb-6 flex items-center gap-2">
+        <MaterialIcon icon="sell" className="w-4 h-4 text-black" />
         Precios por volumen
       </h3>
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { X } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 
 const REGION_ID = "vendedor-html5qrcode-region";
 
@@ -134,7 +134,7 @@ export const BarcodeScannerModal = ({
             className="rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black"
             aria-label="Cerrar escáner"
           >
-            <X className="h-5 w-5" />
+            <MaterialIcon icon="close" className="h-5 w-5" />
           </button>
         </div>
         <div

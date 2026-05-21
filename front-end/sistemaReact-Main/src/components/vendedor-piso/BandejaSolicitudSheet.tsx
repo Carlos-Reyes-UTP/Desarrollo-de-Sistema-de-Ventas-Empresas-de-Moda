@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { CheckCircle2, Loader2, Package2, Trash2, X, XCircle } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 import { useBandeja, type ItemBandeja } from "../../context/BandejaSolicitudContext";
 import { VendedorService } from "../../services/VendedorService";
 import { mensajeErrorApi } from "@/utils/apiErrors";
@@ -131,7 +131,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
               className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200 disabled:opacity-40"
               aria-label="Cerrar"
             >
-              <X className="h-5 w-5" strokeWidth={2.5} />
+              <MaterialIcon icon="close" className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -143,7 +143,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 min-h-0">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Package2 className="h-12 w-12 text-gray-200 mb-4" strokeWidth={1} />
+              <MaterialIcon icon="inventory_2" className="h-12 w-12 text-gray-200 mb-4" />
               <p className="text-sm font-semibold text-gray-400">La lista está vacía</p>
             </div>
           ) : (
@@ -190,7 +190,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
           >
             {enviando ? (
               <>
-                <Loader2 className="h-5 w-5 animate-spin" />
+                <MaterialIcon icon="sync" className="h-5 w-5 animate-spin" />
                 <span>Enviando {okCount + errCount}/{items.length}...</span>
               </>
             ) : (
@@ -232,9 +232,9 @@ function ItemRow({
     >
       {/* Ícono de estado */}
       <div className="mt-0.5 flex-shrink-0">
-        {estado === "ok" && <CheckCircle2 className="h-5 w-5 text-emerald-500" strokeWidth={2.5} />}
-        {estado === "error" && <XCircle className="h-5 w-5 text-red-500" strokeWidth={2.5} />}
-        {estado === "enviando" && <Loader2 className="h-5 w-5 animate-spin text-gray-400" />}
+        {estado === "ok" && <MaterialIcon icon="check_circle" className="h-5 w-5 text-emerald-500" />}
+        {estado === "error" && <MaterialIcon icon="cancel" className="h-5 w-5 text-red-500" />}
+        {estado === "enviando" && <MaterialIcon icon="sync" className="h-5 w-5 animate-spin text-gray-400" />}
         {estado === "pendiente" && (
           <div className="h-5 w-5 rounded-full border-2 border-gray-200" />
         )}
@@ -266,7 +266,7 @@ function ItemRow({
           className="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
           aria-label="Quitar"
         >
-          <Trash2 className="h-4 w-4" strokeWidth={2} />
+          <MaterialIcon icon="delete" className="h-4 w-4" />
         </button>
       )}
     </div>

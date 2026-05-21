@@ -1,4 +1,4 @@
-import { ArrowRight, MapPin, Warehouse } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 
 export interface UbicacionSolicitudResumen {
   piso: string | null;
@@ -44,9 +44,9 @@ function FilaUbicacion({
       </p>
       <Row className={`flex items-start gap-1.5 ${oscuro ? "text-white" : "text-black"}`}>
         {icono === "almacen" ? (
-          <Warehouse className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-70" strokeWidth={2.5} />
+          <MaterialIcon icon="warehouse" className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-70" />
         ) : (
-          <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-70" strokeWidth={2.5} />
+          <MaterialIcon icon="location_on" className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-70" />
         )}
         <Row className="min-w-0">
           <p className="text-[11px] font-black uppercase tracking-tight leading-tight truncate">
@@ -98,7 +98,7 @@ export function AlmacenSolicitudRuta({
             invertido ? "text-white/40" : "text-gray-300"
           }`}
         >
-          <ArrowRight className="w-4 h-4" strokeWidth={3} />
+          <MaterialIcon icon="arrow_forward" className="w-4 h-4" />
         </Box>
         <FilaUbicacion titulo="Entregar en" u={destino} icono="piso" oscuro={invertido} />
       </Box>

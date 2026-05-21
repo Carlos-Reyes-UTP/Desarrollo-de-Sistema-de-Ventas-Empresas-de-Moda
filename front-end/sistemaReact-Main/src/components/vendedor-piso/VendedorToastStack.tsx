@@ -1,5 +1,5 @@
-import { AlertTriangle, CheckCircle2, Info, X } from "lucide-react";
 import { useEffect, useRef } from "react";
+import { MaterialIcon } from "@/shared/ui";
 
 export interface VendedorToastInfo {
   id: string;
@@ -78,21 +78,21 @@ const VendedorToastCard = ({ toast, onDismiss }: VendedorToastCardProps) => {
       bg: "bg-white/95 border-emerald-100 shadow-[0_15px_40px_rgba(16,185,129,0.12)]",
       badgeBg: "bg-emerald-50 text-emerald-700 border-emerald-100",
       accentBar: "bg-emerald-500",
-      icon: <CheckCircle2 className="h-5 w-5 text-emerald-500" strokeWidth={2.5} />,
+      icon: <MaterialIcon icon="check_circle" className="h-5 w-5 text-emerald-500" />,
       titleColor: "text-emerald-950",
     },
     error: {
       bg: "bg-white/95 border-red-100 shadow-[0_15px_40px_rgba(239,68,68,0.12)]",
       badgeBg: "bg-red-50 text-red-700 border-red-100",
       accentBar: "bg-red-500",
-      icon: <AlertTriangle className="h-5 w-5 text-red-500" strokeWidth={2.5} />,
+      icon: <MaterialIcon icon="warning" className="h-5 w-5 text-red-500" />,
       titleColor: "text-red-950",
     },
     info: {
       bg: "bg-white/95 border-blue-100 shadow-[0_15px_40px_rgba(59,130,246,0.12)]",
       badgeBg: "bg-blue-50 text-blue-700 border-blue-100",
       accentBar: "bg-blue-500",
-      icon: <Info className="h-5 w-5 text-blue-500" strokeWidth={2.5} />,
+      icon: <MaterialIcon icon="info" className="h-5 w-5 text-blue-500" />,
       titleColor: "text-blue-950",
     },
   }[tipo];
@@ -151,7 +151,7 @@ const VendedorToastCard = ({ toast, onDismiss }: VendedorToastCardProps) => {
           className="shrink-0 flex h-7 w-7 items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-gray-100 hover:text-black transition-colors"
           aria-label="Cerrar notificación"
         >
-          <X className="h-4 w-4" strokeWidth={2.5} />
+          <MaterialIcon icon="close" className="h-4 w-4" />
         </button>
       </div>
 

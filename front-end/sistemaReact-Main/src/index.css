@@ -1,4 +1,6 @@
 @import "tailwindcss";
+@import "./styles/app-themes.css";
+@import "./styles/theme-contrast-overrides.css";
 @import "./styles/cajero-theme.css";
 
 :root {
@@ -7,9 +9,9 @@
   --accent: #334155;
 }
 
-/* Tablas: filas alternas muy sutiles sobre fondo blanco */
+/* Tablas: filas alternas según tema */
 .table-zebra tbody tr:nth-child(odd) {
-  background-color: rgb(249 250 251 / 0.85);
+  background-color: color-mix(in srgb, var(--app-bg-muted) 85%, transparent);
 }
 
 

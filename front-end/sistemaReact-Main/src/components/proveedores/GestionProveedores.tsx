@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Save, Building2, Loader2, AlertCircle } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { Proveedor } from '../../types/Proveedor';
 import { ProveedorService } from '../../services/ProveedorService';
-import { ConfirmModal, Skeleton } from '@/shared/ui';
+import { ConfirmModal, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup } from '@/shared/ui';
 
 const GestionProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -226,38 +226,32 @@ const GestionProveedores: React.FC = () => {
 
   return (
     <div className="max-w-[1600px] mx-auto animate-fadeIn pb-8">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
-            Gestión de proveedores
-          </h1>
-          <p className="text-gray-500 text-sm max-w-lg font-medium">
-            Administración centralizada de socios estratégicos y logística para DK-SYSTEM.
-          </p>
-          {ultimaCargaLista && (
-            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-              <span className="inline-flex items-center rounded-full bg-white border border-gray-200 px-3 py-1 font-semibold text-gray-700 shadow-sm">
+      <PageHeader
+        surface="elevated"
+        eyebrow="Catálogo · Proveedores"
+        title="Gestión de proveedores"
+        belowTitle={
+          ultimaCargaLista ? (
+            <>
+              <PageHeaderMetaChip variant="stat">
                 {proveedoresOriginal.length}{" "}
                 {proveedoresOriginal.length === 1 ? "proveedor registrado" : "proveedores registrados"}
-              </span>
-              <span className="inline-flex items-center rounded-full bg-slate-100 text-slate-600 px-3 py-1 font-medium">
+              </PageHeaderMetaChip>
+              <PageHeaderMetaChip variant="muted">
                 Datos cargados · {ultimaCargaLista}
-              </span>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleNuevo}
-            className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" />
-            Nuevo Proveedor
-          </button>
-        </div>
-      </div>
+              </PageHeaderMetaChip>
+            </>
+          ) : undefined
+        }
+        actions={
+          <PageActionGroup>
+            <PageActionButton grouped onClick={handleNuevo}>
+              <MaterialIcon icon="add" className="w-4 h-4" />
+              Nuevo Proveedor
+            </PageActionButton>
+          </PageActionGroup>
+        }
+      />
 
       {/* Primary Filters Bar */}
       <div className="bg-white rounded-[2rem] p-8 mb-8 shadow-sm border border-gray-100">
@@ -268,7 +262,7 @@ const GestionProveedores: React.FC = () => {
               Buscar Proveedor
             </label>
             <div className="relative">
-              <Search className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
               <input
                 type="text"
                 placeholder="Nombre o RUC..."
@@ -282,7 +276,7 @@ const GestionProveedores: React.FC = () => {
 
           <div className="lg:col-span-1">
             <div className="h-[46px] flex items-center justify-center bg-[#f8f8f8] rounded-xl px-4 text-gray-400">
-              <Building2 className="w-4 h-4" />
+              <MaterialIcon icon="corporate_fare" className="w-4 h-4" />
               <span className="ml-2 text-xs font-bold uppercase tracking-widest">{proveedores.length} Total</span>
             </div>
           </div>
@@ -328,7 +322,7 @@ const GestionProveedores: React.FC = () => {
                 <tr>
                   <td colSpan={4} className="px-8 py-16 text-center bg-slate-50/50">
                     <div className="flex flex-col items-center max-w-md mx-auto">
-                      <Building2 className="w-14 h-14 text-slate-300 mb-4" />
+                      <MaterialIcon icon="corporate_fare" className="w-14 h-14 text-slate-300 mb-4" />
                       <p className="text-base font-bold text-gray-900">
                         {proveedoresOriginal.length === 0
                           ? "Aún no hay proveedores"
@@ -345,7 +339,7 @@ const GestionProveedores: React.FC = () => {
                           onClick={handleNuevo}
                           className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98]"
                         >
-                          <Plus className="w-4 h-4" />
+                          <MaterialIcon icon="add" className="w-4 h-4" />
                           Nuevo proveedor
                         </button>
                         {proveedoresOriginal.length > 0 && (
@@ -367,7 +361,7 @@ const GestionProveedores: React.FC = () => {
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-white shadow-lg">
-                        <Building2 className="w-5 h-5" />
+                        <MaterialIcon icon="corporate_fare" className="w-5 h-5" />
                       </div>
                       <div className="flex flex-col">
                         <span className="text-sm font-bold text-black leading-tight mb-1">
@@ -401,14 +395,14 @@ const GestionProveedores: React.FC = () => {
                         className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent"
                         title="Editar"
                       >
-                        <Edit className="w-4 h-4" />
+                        <MaterialIcon icon="edit" className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => solicitarEliminar(proveedor.idProveedor!)}
                         className="p-2.5 hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent text-red-400 hover:text-white"
                         title="Eliminar"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <MaterialIcon icon="delete" className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -472,7 +466,7 @@ const GestionProveedores: React.FC = () => {
               <form onSubmit={handleSubmit} className="space-y-6">
                 {error && (
                   <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4" />
+                    <MaterialIcon icon="error" className="w-4 h-4" />
                     {error}
                   </div>
                 )}
@@ -503,7 +497,7 @@ const GestionProveedores: React.FC = () => {
                         disabled={buscandoProveedor || formData.ruc.length !== 11}
                         className="px-6 py-4 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-30 transition-all shadow-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"
                       >
-                        {buscandoProveedor ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+                        {buscandoProveedor ? <MaterialIcon icon="sync" className="w-4 h-4 animate-spin" /> : <MaterialIcon icon="search" className="w-4 h-4" />}
                         Verificar
                       </button>
                     )}
@@ -536,7 +530,7 @@ const GestionProveedores: React.FC = () => {
                     type="submit"
                     className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
                   >
-                    <Save className="w-4 h-4" />
+                    <MaterialIcon icon="save" className="w-4 h-4" />
                     {proveedorEditar ? 'Actualizar' : 'Guardar'}
                   </button>
                 </div>

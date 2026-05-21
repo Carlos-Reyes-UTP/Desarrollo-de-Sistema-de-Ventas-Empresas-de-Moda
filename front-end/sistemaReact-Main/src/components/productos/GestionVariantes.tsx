@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Plus, Edit, Trash2, Save, Package, Palette, Ruler, ShoppingBag, RefreshCw, AlertTriangle } from 'lucide-react';
 import type { Producto } from '../../types/Producto';
 import type { ProductoVariante } from '../../types/ProductoVariante';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
@@ -11,7 +10,7 @@ import {
   mismoParTallaColor,
   nombresUnicosOrdenados,
 } from '../../utils/varianteCatalogoHelpers';
-import { AlertModal, ConfirmModal, Skeleton } from '@/shared/ui';
+import { AlertModal, ConfirmModal, Skeleton, MaterialIcon } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
 
@@ -200,14 +199,14 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
             </div>
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold uppercase tracking-wider">
-                <ShoppingBag className="w-4 h-4" />
+                <MaterialIcon icon="shopping_bag" className="w-4 h-4" />
                 Stock: {totalStock}
               </span>
               <button
                 onClick={handleClose}
                 className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all duration-200"
               >
-                <X className="w-6 h-6" />
+                <MaterialIcon icon="close" className="w-6 h-6" />
               </button>
             </div>
           </div>
@@ -216,7 +215,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         <div className="flex-1 overflow-y-auto px-10 pb-10">
           {error && (
             <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2 mb-6" role="alert">
-              <AlertTriangle className="w-4 h-4" />
+              <MaterialIcon icon="warning" className="w-4 h-4" />
               {error}
             </div>
           )}
@@ -226,7 +225,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
               onClick={() => setShowNuevaVariante(true)}
               className="bg-black hover:bg-gray-900 text-white px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg hover:shadow-xl"
             >
-              <Plus className="w-4 h-4" />
+              <MaterialIcon icon="add" className="w-4 h-4" />
               Nueva Variante
             </button>
 
@@ -235,7 +234,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
               disabled={loading}
               className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <MaterialIcon icon="sync" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Cargando...' : 'Actualizar'}
             </button>
           </div>
@@ -277,7 +276,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
             {variantes.length === 0 && !loading && (
               <div className="text-center p-20">
                 <div className="w-16 h-16 rounded-full bg-gray-100 mx-auto mb-4 flex items-center justify-center">
-                  <Package className="w-8 h-8 text-gray-400" />
+                  <MaterialIcon icon="package" className="w-8 h-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-bold text-black mb-2">Sin variantes registradas</h3>
                 <p className="text-gray-500 text-sm max-w-sm mx-auto">Agrega variantes para gestionar el inventario por talla y color.</p>
@@ -303,7 +302,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                 <div>
                   <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-2">
                     <span className="flex items-center gap-2">
-                      <Ruler className="w-4 h-4" />
+                      <MaterialIcon icon="straighten" className="w-4 h-4" />
                       Talla <span className="text-red-500">*</span>
                     </span>
                   </label>
@@ -325,7 +324,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                 <div>
                   <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-2">
                     <span className="flex items-center gap-2">
-                      <Palette className="w-4 h-4" />
+                      <MaterialIcon icon="palette" className="w-4 h-4" />
                       Color <span className="text-red-500">*</span>
                     </span>
                   </label>
@@ -347,7 +346,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                 <div className="space-y-2">
                   <label htmlFor="cantidadInput" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
                     <span className="flex items-center gap-2">
-                      <Package className="w-4 h-4" />
+                      <MaterialIcon icon="package" className="w-4 h-4" />
                       Cantidad Inicial
                       <span className="text-red-500">*</span>
                     </span>
@@ -411,7 +410,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     type="submit"
                     className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
                   >
-                    <Plus className="w-4 h-4" />
+                    <MaterialIcon icon="add" className="w-4 h-4" />
                     Crear Variante
                   </button>
                 </div>
@@ -532,7 +531,7 @@ const VarianteRow: React.FC<{
                 className={`inline-flex items-center justify-center gap-2 min-w-[80px] px-3 py-1.5 rounded-full font-bold cursor-pointer transition-transform duration-200 group-hover:scale-105 border-0 ${cantidadClass}`}
                 title="Clic para editar cantidad"
               >
-                <ShoppingBag className="w-4 h-4" />
+                <MaterialIcon icon="shopping_bag" className="w-4 h-4" />
                 {stockAlmacen}
               </button>
             );
@@ -542,13 +541,13 @@ const VarianteRow: React.FC<{
       <td className="px-8 py-5 text-right">
         {editandoCantidad ? (
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={() => void handleGuardarCantidad()} disabled={guardando} className="p-2.5 rounded-xl text-black bg-gray-100 hover:bg-black hover:text-white disabled:opacity-50 transition-all" title="Guardar"><Save className="w-4 h-4" /></button>
-            <button type="button" onClick={handleCancelarEdicion} disabled={guardando} className="p-2.5 rounded-xl text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-all" title="Cancelar"><X className="w-4 h-4" /></button>
+            <button type="button" onClick={() => void handleGuardarCantidad()} disabled={guardando} className="p-2.5 rounded-xl text-black bg-gray-100 hover:bg-black hover:text-white disabled:opacity-50 transition-all" title="Guardar"><MaterialIcon icon="save" className="w-4 h-4" /></button>
+            <button type="button" onClick={handleCancelarEdicion} disabled={guardando} className="p-2.5 rounded-xl text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-all" title="Cancelar"><MaterialIcon icon="close" className="w-4 h-4" /></button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={() => setEditandoCantidad(true)} className="p-2.5 rounded-xl text-gray-400 hover:bg-black hover:text-white transition-all" title="Editar Cantidad"><Edit className="w-4 h-4" /></button>
-            <button type="button" onClick={() => variante.idVariante && onEliminar(variante.idVariante)} className="p-2.5 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Eliminar Variante"><Trash2 className="w-4 h-4" /></button>
+            <button type="button" onClick={() => setEditandoCantidad(true)} className="p-2.5 rounded-xl text-gray-400 hover:bg-black hover:text-white transition-all" title="Editar Cantidad"><MaterialIcon icon="edit" className="w-4 h-4" /></button>
+            <button type="button" onClick={() => variante.idVariante && onEliminar(variante.idVariante)} className="p-2.5 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Eliminar Variante"><MaterialIcon icon="delete" className="w-4 h-4" /></button>
           </div>
         )}
       </td>

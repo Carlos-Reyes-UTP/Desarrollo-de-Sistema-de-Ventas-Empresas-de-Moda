@@ -1,4 +1,4 @@
-import { CheckCircle, Loader2, Smartphone, X } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 
 interface QrPaymentModalProps {
   open: boolean;
@@ -28,7 +28,7 @@ export const QrPaymentModal = ({
         <div className="bg-black px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <Smartphone className="w-5 h-5 text-white" />
+              <MaterialIcon icon="smartphone" className="w-5 h-5 text-white" />
             </div>
             <div>
               <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Pago con {tipo}</h3>
@@ -36,7 +36,7 @@ export const QrPaymentModal = ({
             </div>
           </div>
           <button onClick={onCancel} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
-            <X className="w-4 h-4 text-white" />
+            <MaterialIcon icon="close" className="w-4 h-4 text-white" />
           </button>
         </div>
 
@@ -71,9 +71,9 @@ export const QrPaymentModal = ({
             className="flex-1 py-4 caj-btn-primary rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
-              <Loader2 className="animate-spin w-4 h-4" />
+              <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />
             ) : (
-              <CheckCircle className="w-4 h-4" />
+              <MaterialIcon icon="check_circle" className="w-4 h-4" />
             )}
             <span>Confirmar</span>
           </button>

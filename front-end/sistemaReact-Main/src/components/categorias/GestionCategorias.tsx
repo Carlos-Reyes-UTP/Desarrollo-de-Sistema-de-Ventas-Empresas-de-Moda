@@ -1,23 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Save,
-  Folder,
-  FolderOpen,
-  FolderPlus,
-  ChevronRight,
-  ChevronDown,
-  TreePine,
-  Hash,
-  AlertCircle,
-  GripVertical
-} from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { CategoriaDTO } from '../../types/CategoriaDTO';
 import { CategoriaService } from '../../services/CategoriaService';
-import { ConfirmModal, ListItemSkeleton } from '@/shared/ui';
+import { ConfirmModal, ListItemSkeleton, PageHeader, PageActionButton, PageActionGroup } from '@/shared/ui';
 
 interface ArbolCategoriaProps {
   categoria: CategoriaDTO;
@@ -55,7 +40,7 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <div className="flex items-center gap-1 flex-shrink-0">
             <div className="p-1 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab">
-               <GripVertical className="w-3.5 h-3.5 text-gray-300" />
+               <MaterialIcon icon="drag_indicator" className="w-3.5 h-3.5 text-gray-300" />
             </div>
             
             {tieneSubcategorias ? (
@@ -66,9 +51,9 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
                 }`}
               >
                 {estaExpandida ? (
-                  <ChevronDown className="w-3.5 h-3.5" />
+                  <MaterialIcon icon="expand_more" className="w-3.5 h-3.5" />
                 ) : (
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <MaterialIcon icon="chevron_right" className="w-3.5 h-3.5" />
                 )}
               </button>
             ) : (
@@ -83,9 +68,9 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
                 : 'bg-gray-50 text-gray-400 border border-gray-100'
             }`}>
               {estaExpandida && tieneSubcategorias ? (
-                <FolderOpen className="w-4 h-4" />
+                <MaterialIcon icon="folder_open" className="w-4 h-4" />
               ) : (
-                <Folder className="w-4 h-4" />
+                <MaterialIcon icon="folder" className="w-4 h-4" />
               )}
             </div>
           </div>
@@ -122,21 +107,21 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
             className="p-2.5 bg-white hover:bg-black hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-gray-400"
             title="Añadir Subrama"
           >
-            <FolderPlus className="w-4 h-4" />
+            <MaterialIcon icon="create_new_folder" className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEditar(categoria)}
             className="p-2.5 bg-white hover:bg-black hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-gray-400"
             title="Editar"
           >
-            <Edit className="w-4 h-4" />
+            <MaterialIcon icon="edit" className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEliminar(categoria.id)}
             className="p-2.5 bg-white hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-red-400"
             title="Eliminar"
           >
-            <Trash2 className="w-4 h-4" />
+            <MaterialIcon icon="delete" className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -360,28 +345,20 @@ const GestionCategorias: React.FC = () => {
   };
 
   return (
-    <div className="p-10 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent min-h-screen animate-fadeIn">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-[2.5rem] font-bold tracking-tight text-black leading-none mb-2">
-            Arquitectura de categorías
-          </h1>
-          <p className="text-gray-500 text-sm max-w-md font-medium">
-            Definición de jerarquías y taxonomía de productos para el ecosistema DK-SYSTEM.
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <button
-            onClick={handleNuevaCategoria}
-            className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl flex items-center gap-2 shadow-sm transition-all font-bold text-xs uppercase tracking-wider"
-          >
-            <Plus className="w-4 h-4" />
-            Nueva Categoría
-          </button>
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent min-h-screen animate-fadeIn">
+      <PageHeader
+        surface="elevated"
+        eyebrow="Catálogo · Taxonomía"
+        title="Arquitectura de categorías"
+        actions={
+          <PageActionGroup>
+            <PageActionButton grouped onClick={handleNuevaCategoria}>
+              <MaterialIcon icon="add" className="w-4 h-4" />
+              Nueva Categoría
+            </PageActionButton>
+          </PageActionGroup>
+        }
+      />
 
       {/* Control & Search Deck (Glassmorphism as per AGENTE.md) */}
       <div className="bg-white/80 backdrop-blur-md rounded-3xl p-4 mb-10 shadow-sm border border-gray-200 sticky top-4 z-20">
@@ -389,7 +366,7 @@ const GestionCategorias: React.FC = () => {
           
           {/* Search Module */}
           <div className="lg:col-span-5 relative group">
-            <Search className="w-4 h-4 text-gray-400 absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-black transition-colors" />
+            <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-black transition-colors" />
             <input
               type="text"
               placeholder="Buscar en la estructura..."
@@ -406,14 +383,14 @@ const GestionCategorias: React.FC = () => {
               onClick={expandirTodas}
               className="flex-1 h-[56px] flex items-center justify-center bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-sm"
             >
-              <FolderOpen className="w-4 h-4 mr-2.5" />
+              <MaterialIcon icon="folder_open" className="w-4 h-4 mr-2.5" />
               Expandir
             </button>
             <button
               onClick={contraerTodas}
               className="flex-1 h-[56px] flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 hover:text-black transition-all"
             >
-              <Folder className="w-4 h-4 mr-2.5" />
+              <MaterialIcon icon="folder" className="w-4 h-4 mr-2.5" />
               Contraer
             </button>
           </div>
@@ -422,7 +399,7 @@ const GestionCategorias: React.FC = () => {
           <div className="lg:col-span-3">
             <div className="h-[56px] flex items-center justify-between bg-gray-50 border border-gray-200 rounded-2xl px-6 text-black">
                <div className="flex items-center gap-3">
-                  <Hash className="w-4 h-4 text-gray-300" />
+                  <MaterialIcon icon="tag" className="w-4 h-4 text-gray-300" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total</span>
                </div>
                <span className="text-xl font-black tabular-nums">{contarCategorias(categorias)}</span>
@@ -440,7 +417,7 @@ const GestionCategorias: React.FC = () => {
         ) : categoriasFiltradas.length === 0 ? (
           <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200 shadow-sm py-40 text-center flex flex-col items-center gap-6">
             <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center">
-                <TreePine className="w-8 h-8 text-gray-200" />
+                <MaterialIcon icon="category" className="w-8 h-8 text-gray-200" />
             </div>
             <div className="space-y-2">
                 <h3 className="text-lg font-black text-black uppercase tracking-tight">Sin resultados</h3>
@@ -488,14 +465,14 @@ const GestionCategorias: React.FC = () => {
                     onClick={cerrarModalConAnimacion}
                     className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-gray-400"
                 >
-                    <Plus className="w-6 h-6 rotate-45" />
+                    <MaterialIcon icon="add" className="w-6 h-6 rotate-45" />
                 </button>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-10">
                 {error && (
                   <div className="bg-red-50 p-5 rounded-2xl border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
-                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <MaterialIcon icon="error" className="w-5 h-5 flex-shrink-0" />
                     <span>{error}</span>
                   </div>
                 )}
@@ -527,7 +504,7 @@ const GestionCategorias: React.FC = () => {
                     type="submit"
                     className="flex-1 py-5 bg-black hover:bg-gray-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2"
                   >
-                    <Save className="w-4 h-4" />
+                    <MaterialIcon icon="save" className="w-4 h-4" />
                     <span>{categoriaEditar ? 'Actualizar' : 'Guardar'}</span>
                   </button>
                 </div>

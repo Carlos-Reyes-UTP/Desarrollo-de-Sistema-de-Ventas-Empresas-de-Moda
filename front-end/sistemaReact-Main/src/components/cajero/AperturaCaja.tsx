@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Printer, CheckCircle, Clock, User, Loader2, ArrowRight, TrendingUp } from 'lucide-react';
 import { CajaService, type AperturaCajaRequest } from '../../services/CajaService';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
-import { Skeleton } from '@/shared/ui';
-import { CajeroThemeToggle } from './CajeroThemeToggle';
+import { Skeleton, PageHeader, MaterialIcon } from '@/shared/ui';
 
 interface AperturaCajaProps {
   onAperturaCompleta: () => void;
@@ -160,22 +158,15 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
   // ── VISTA DE ÉXITO ────────────────────────────────────────────────────────────
   if (aperturaExitosa && datosApertura) {
     return (
-      <div className="p-10 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
-        {/* Header */}
-        <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">CAJA ACTIVA</h1>
-          <p className="caj-label text-sm font-medium uppercase tracking-[0.1em]">Sesión de turno en curso — Detalles del inicio</p>
-          </div>
-          <CajeroThemeToggle />
-        </div>
+      <div className="p-4 sm:p-6 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
+        <PageHeader variant="cajero" title="Caja activa" />
 
         {/* Success Card */}
         <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-8">
           {/* Confirmation Banner */}
           <div className="bg-black px-10 py-8 flex items-center gap-6">
             <div className="w-12 h-12 caj-card rounded-2xl flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="h-6 w-6 caj-heading" />
+              <MaterialIcon icon="check_circle" className="h-6 w-6 caj-heading" />
             </div>
             <div>
               <h2 className="text-[11px] font-bold tracking-[0.4em] text-white uppercase mb-1">Caja Verificada</h2>
@@ -193,7 +184,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Cajero de turno</span>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+                  <MaterialIcon icon="person" className="h-4 w-4 text-white" />
                 </div>
                 <span className="text-[15px] font-bold caj-heading uppercase tracking-tight">{datosApertura.usuario}</span>
               </div>
@@ -203,7 +194,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Fecha y Hora de Inicio</span>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
-                  <Clock className="h-4 w-4 text-white" />
+                  <MaterialIcon icon="schedule" className="h-4 w-4 text-white" />
                 </div>
                 <span className="text-[13px] font-bold caj-heading font-mono tracking-tight">{datosApertura.fechaHora}</span>
               </div>
@@ -227,7 +218,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
               onClick={imprimirComprobante}
               className="flex items-center gap-3 px-7 py-4 caj-input border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] text-gray-600 hover:bg-gray-100 transition-all"
             >
-              <Printer size={16} />
+              <MaterialIcon icon="print" className="h-4 w-4" />
               Imprimir recibo
             </button>
             <button
@@ -235,7 +226,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
               className="flex-1 flex items-center justify-center gap-3 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] group"
             >
               Empezar a vender
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <MaterialIcon icon="arrow_forward" className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
@@ -253,21 +244,19 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
 
   // ── VISTA DE FORMULARIO ───────────────────────────────────────────────────────
   return (
-    <div className="p-10 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">APERTURA DE CAJA</h1>
-          <p className="caj-label text-sm font-medium uppercase tracking-[0.08em]">Inicio de turno — Ingrese el monto con el que arranca la caja</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <CajeroThemeToggle />
-        <div className="px-6 py-3 caj-card border caj-border rounded-2xl shadow-sm">
-          <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-1">Caja</span>
-          <span className="text-xs font-bold caj-heading uppercase">Caja Principal 01</span>
-        </div>
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
+      <PageHeader
+        variant="cajero"
+        title="Apertura de caja"
+        actions={
+          <>
+            <div className="px-4 py-2.5 caj-card border caj-border rounded-xl shadow-sm">
+              <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-0.5">Caja</span>
+              <span className="text-xs font-bold caj-heading uppercase">Caja Principal 01</span>
+            </div>
+          </>
+        }
+      />
 
       {/* Error Banner */}
       {error && (
@@ -285,7 +274,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
         {/* Card Header */}
         <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
           <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-            <TrendingUp className="h-5 w-5 text-white" />
+            <MaterialIcon icon="trending_up" className="h-5 w-5 text-white" />
           </div>
           <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Información de inicio</h2>
         </div>
@@ -296,7 +285,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
             <label className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Cajero de turno</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                <User size={18} className="text-gray-300" />
+                <MaterialIcon icon="person" className="h-[18px] w-[18px] text-gray-300" />
               </div>
               <input
                 type="text"
@@ -312,7 +301,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
             <label className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Fecha y hora</label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
-                <Clock size={18} className="text-gray-300" />
+                <MaterialIcon icon="schedule" className="h-[18px] w-[18px] text-gray-300" />
               </div>
               <input
                 type="text"
@@ -358,7 +347,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
             className="w-full py-6 bg-black text-white rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] hover:bg-gray-800 transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
           >
             <div className="absolute inset-0 caj-card/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            {cargando ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle className="w-5 h-5" />}
+            {cargando ? <MaterialIcon icon="progress_activity" className="animate-spin h-5 w-5" /> : <MaterialIcon icon="check_circle" className="w-5 h-5" />}
             <span className="relative z-10">{cargando ? 'ABRIENDO...' : 'ABRIR CAJA'}</span>
           </button>
         </form>

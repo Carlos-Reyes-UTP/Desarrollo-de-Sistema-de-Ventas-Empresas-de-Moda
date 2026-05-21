@@ -6,7 +6,7 @@ export interface SearchResultSkeletonProps {
 }
 
 export const SearchResultSkeleton: React.FC<SearchResultSkeletonProps> = ({
-  className = 'space-y-2 rounded-3xl border border-gray-100 bg-white/80 p-4 shadow-sm backdrop-blur-md',
+  className = 'app-panel space-y-2 rounded-3xl border p-4 shadow-sm backdrop-blur-md',
 }) => (
   <div className={className} aria-busy aria-label="Buscando">
     <Skeleton className="h-4 w-[60%] max-w-xs" />

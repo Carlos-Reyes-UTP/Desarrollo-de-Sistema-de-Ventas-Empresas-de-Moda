@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { USUARIOS_DEMO } from '@/shared/constants/sectoresAlmacen';
 
 const LoginPage = () => {
   const [usuario, setUsuario] = useState('');
@@ -58,7 +57,7 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="flex min-h-screen w-full bg-[#fafafa] font-sans text-gray-900 overflow-x-hidden">
+    <div data-theme="classic" style={{ colorScheme: 'light' }} className="flex min-h-screen w-full bg-[#fafafa] font-sans text-gray-900 overflow-x-hidden">
       <style>{`
         @keyframes floatAmbient1 {
           0%, 100% {
@@ -211,9 +210,9 @@ const LoginPage = () => {
                   tabIndex={-1}
                 >
                   {mostrarClave ? (
-                    <EyeOff size={20} className="tracking-normal" />
+                    <MaterialIcon icon="visibility_off" className="w-5 h-5" />
                   ) : (
-                    <Eye size={20} className="tracking-normal" />
+                    <MaterialIcon icon="visibility" className="w-5 h-5" />
                   )}
                 </button>
               </div>

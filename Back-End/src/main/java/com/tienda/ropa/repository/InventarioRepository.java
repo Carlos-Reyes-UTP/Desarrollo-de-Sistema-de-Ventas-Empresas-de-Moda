@@ -27,6 +27,9 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
     @Query("SELECT COALESCE(SUM(i.stock), 0) FROM Inventario i WHERE i.variante.idProductoVariante = :idVariante")
     int sumStockByVariante(@Param("idVariante") Long idVariante);
 
+    @Query("SELECT COALESCE(SUM(i.stock), 0) FROM Inventario i WHERE i.variante.idProductoVariante IN :idsVariante")
+    int sumStockByVariantes(@Param("idsVariante") List<Long> idsVariante);
+
     @Query("SELECT i FROM Inventario i "
             + "JOIN FETCH i.ubicacionArea ua JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
             + "WHERE i.variante.idProductoVariante = :idVariante "
@@ -74,6 +77,15 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
             + "AND LOWER(TRIM(u.nombre)) IN :nombresAlmacenLower")
     int sumStockByVarianteEnAlmacen(
             @Param("idVariante") Long idVariante,
+            @Param("nombresAlmacenLower") List<String> nombresAlmacenLower);
+
+    @Query("SELECT i.variante.idProductoVariante, COALESCE(SUM(i.stock), 0) FROM Inventario i "
+            + "JOIN i.ubicacionArea ua JOIN ua.ubicacion u "
+            + "WHERE i.variante.idProductoVariante IN :idsVariante "
+            + "AND LOWER(TRIM(u.nombre)) IN :nombresAlmacenLower "
+            + "GROUP BY i.variante.idProductoVariante")
+    List<Object[]> sumStockByVariantesEnAlmacen(
+            @Param("idsVariante") List<Long> idsVariante,
             @Param("nombresAlmacenLower") List<String> nombresAlmacenLower);
 
     @Query("SELECT COUNT(DISTINCT i.variante.idProductoVariante) FROM Inventario i "

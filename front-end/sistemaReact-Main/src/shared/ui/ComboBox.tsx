@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { MaterialIcon } from './MaterialIcon';
+
 
 export interface ComboBoxOption {
   value: string;
@@ -71,33 +72,31 @@ const ComboBox: React.FC<ComboBoxProps> = ({
   return (
     <div className={`relative ${className}`} ref={containerRef}>
       {label && (
-        <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+        <label className="block text-[10px] font-bold tracking-[0.15em] app-text-faint uppercase mb-3">
           {label}
         </label>
       )}
-      
-      {/* Trigger Button */}
+
       <button
         type="button"
         onClick={handleToggle}
         disabled={disabled}
-        className={`w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all text-left flex items-center justify-between ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[#f0f0f0]'
+        className={`app-input-surface w-full px-5 py-4 border border-[var(--app-border)] rounded-xl text-sm font-bold focus:ring-2 focus:ring-[var(--app-ring)] transition-all text-left flex items-center justify-between ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-[var(--app-bg-muted)]'
         }`}
       >
         <div className="flex items-center gap-3">
-          {icon && <span className="text-gray-400">{icon}</span>}
-          <span className={selectedOption ? 'text-black' : 'text-gray-400'}>
+          {icon && <span className="app-text-muted">{icon}</span>}
+          <span className={selectedOption ? 'app-heading' : 'app-text-muted'}>
             {selectedOption?.label || placeholder}
           </span>
         </div>
-        <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <MaterialIcon icon="expand_more" className={`w-4 h-4 app-text-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className={`absolute z-[200] mt-2 w-full bg-white rounded-xl shadow-2xl border border-gray-100 overflow-hidden ${
+          className={`app-panel absolute z-[200] mt-2 w-full rounded-xl shadow-2xl border overflow-hidden ${
             isClosing ? 'animate-fadeOut' : 'animate-fadeIn'
           }`}
           style={{ maxHeight: '280px' }}
@@ -110,12 +109,12 @@ const ComboBox: React.FC<ComboBoxProps> = ({
                 onClick={() => handleSelect(option.value)}
                 className={`w-full px-5 py-3.5 text-left text-sm font-medium transition-all flex items-center justify-between ${
                   option.value === value
-                    ? 'bg-black text-white'
-                    : 'text-gray-900 hover:bg-gray-50'
-                } ${index === 0 ? '' : 'border-t border-gray-50'}`}
+                    ? 'app-btn-primary'
+                    : 'app-heading hover:bg-[var(--app-bg-muted)]'
+                } ${index === 0 ? '' : 'border-t border-[var(--app-border)]'}`}
               >
                 <span>{option.label}</span>
-                {option.value === value && <Check className="w-4 h-4" />}
+                {option.value === value && <MaterialIcon icon="check" className="w-4 h-4" />}
               </button>
             ))}
           </div>

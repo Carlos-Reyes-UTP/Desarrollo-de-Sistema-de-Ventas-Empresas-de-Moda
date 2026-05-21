@@ -28,4 +28,8 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
             + "LEFT JOIN FETCH aa.area "
             + "WHERE u.id = :id")
     Optional<Usuario> findByIdWithAreaAsignada(@Param("id") Long id);
+
+    @Query("SELECT COUNT(DISTINCT u) FROM Usuario u JOIN u.roles r "
+            + "WHERE u.activo = true AND r.nombreRol = com.tienda.ropa.entity.Role.ADMIN")
+    long countActiveAdmins();
 }

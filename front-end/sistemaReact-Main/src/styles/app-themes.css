@@ -1,0 +1,777 @@
+/* Temas globales DK-SYSTEM — data-theme en <html> */
+
+/* --- Classic (monocromo DK, default) --- */
+:root,
+[data-theme="classic"] {
+  --app-bg: #fafafa;
+  --app-bg-muted: #f8f8f8;
+  --app-surface: #ffffff;
+  --app-surface-elevated: #fcfcfc;
+  --app-surface-glass: rgb(255 255 255 / 0.9);
+  --app-input: #f8f8f8;
+  --app-border: #f3f4f6;
+  --app-border-strong: #e5e7eb;
+  --app-text: #000000;
+  --app-text-muted: #6b7280;
+  --app-text-faint: #9ca3af;
+  --app-accent: #000000;
+  --app-accent-fg: #ffffff;
+  --app-layout-bg: #fafafa;
+  --app-ring: rgb(243 244 246);
+  --app-hover-overlay: rgb(0 0 0 / 0.02);
+  --app-mesh-rgb: 15, 15, 15;
+  --app-sidebar-rail-bg: rgb(255 255 255 / 0.95);
+  --app-sidebar-rail-border: rgb(229 231 235 / 0.9);
+  --accent: #334155;
+  --app-canvas: #f8fafc;
+  --app-panel: #ffffff;
+  --app-panel-border: #e5e7eb;
+  --app-shadow-panel: 0 1px 3px rgb(0 0 0 / 0.02), 0 4px 12px rgb(0 0 0 / 0.04);
+  --app-metric-bg: #0d0d0d;
+  --app-metric-border: #1f1f1f;
+  --app-metric-text: #f8fafc;
+  --app-metric-label: #9ca3af;
+  --app-metric-glow: rgb(255 255 255 / 0.02);
+  --app-drawer-bg: #0a0a0a;
+  --app-drawer-text: #ffffff;
+  --app-drawer-muted: #9ca3af;
+  --app-drawer-hover: rgb(255 255 255 / 0.05);
+  --app-drawer-selected: rgb(255 255 255 / 0.1);
+  --app-drawer-border: rgb(255 255 255 / 0.05);
+  --app-theme-menu-bg: #1a1a1a;
+  --app-theme-menu-text: #f3f4f6;
+  --app-theme-menu-active: #2d2d2d;
+  --app-cta-bg: #000000;
+  --app-cta-text: #ffffff;
+  --app-cta-subtitle: #6b7280;
+  --app-cta-glow: rgb(99 102 241 / 0.2);
+  --app-cta-btn-primary-bg: #ffffff;
+  --app-cta-btn-primary-text: #000000;
+  --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.1);
+  --app-cta-btn-secondary-text: #ffffff;
+  --app-dashboard-accent-border: #6366f1;
+
+  --caj-bg: #fafafa;
+  --caj-bg-muted: #f8f8f8;
+  --caj-surface: #ffffff;
+  --caj-surface-elevated: #fcfcfc;
+  --caj-input: #f8f8f8;
+  --caj-input-focus: #ffffff;
+  --caj-border: #f3f4f6;
+  --caj-border-strong: #e5e7eb;
+  --caj-text: #000000;
+  --caj-text-muted: #9ca3af;
+  --caj-text-faint: #d1d5db;
+  --caj-accent: #000000;
+  --caj-accent-fg: #ffffff;
+  --caj-layout-bg: #fafafa;
+  --caj-ring: rgb(243 244 246);
+  --caj-icon-muted: #d1d5db;
+  --caj-hover-overlay: rgb(0 0 0 / 0.02);
+
+  /* Themed metric icons */
+  --app-metric-icon-1-bg: #e6f4ea;
+  --app-metric-icon-1-fg: #137333;
+  --app-metric-icon-2-bg: #e8f0fe;
+  --app-metric-icon-2-fg: #1a73e8;
+  --app-metric-icon-3-bg: #f3e8ff;
+  --app-metric-icon-3-fg: #7e22ce;
+  --app-metric-icon-4-bg: #fef3c7;
+  --app-metric-icon-4-fg: #d97706;
+  --app-metric-icon-5-bg: #fce8e6;
+  --app-metric-icon-5-fg: #c5221f;
+}
+
+/* --- Dark --- */
+[data-theme="dark"] {
+  --app-bg: #0a0a0a;
+  --app-bg-muted: #111111;
+  --app-surface: #171717;
+  --app-surface-elevated: #1f1f1f;
+  --app-surface-glass: rgb(23 23 23 / 0.95);
+  --app-input: #1f1f1f;
+  --app-border: rgb(255 255 255 / 0.08);
+  --app-border-strong: rgb(255 255 255 / 0.12);
+  --app-text: #e8e8e8;
+  --app-text-muted: #9e9e9e;
+  --app-text-faint: #616161;
+  --app-accent: #e8e8e8;
+  --app-accent-fg: #0a0a0a;
+  --app-layout-bg: #0a0a0a;
+  --app-ring: rgb(255 255 255 / 0.12);
+  --app-hover-overlay: rgb(255 255 255 / 0.05);
+  --app-mesh-rgb: 14, 14, 14;
+  --app-sidebar-rail-bg: rgb(17 17 17 / 0.97);
+  --app-sidebar-rail-border: rgb(255 255 255 / 0.08);
+  --accent: #9e9e9e;
+  --app-canvas: #0a0a0a;
+  --app-panel: #171717;
+  --app-panel-border: rgb(255 255 255 / 0.08);
+  --app-shadow-panel: 0 4px 24px rgb(0 0 0 / 0.6);
+  --app-metric-bg: #131313;
+  --app-metric-border: rgb(255 255 255 / 0.08);
+  --app-metric-text: #f5f5f5;
+  --app-metric-label: #9e9e9e;
+  --app-metric-glow: rgb(255 255 255 / 0.03);
+  --app-drawer-bg: #080808;
+  --app-drawer-text: #f5f5f5;
+  --app-drawer-muted: #9e9e9e;
+  --app-drawer-hover: rgb(255 255 255 / 0.06);
+  --app-drawer-selected: rgb(255 255 255 / 0.1);
+  --app-drawer-border: rgb(255 255 255 / 0.06);
+  --app-theme-menu-bg: #171717;
+  --app-theme-menu-text: #e8e8e8;
+  --app-theme-menu-active: rgb(255 255 255 / 0.08);
+  --app-cta-bg: #131313;
+  --app-cta-text: #f5f5f5;
+  --app-cta-subtitle: #9e9e9e;
+  --app-cta-glow: rgb(255 255 255 / 0.04);
+  --app-cta-btn-primary-bg: #e8e8e8;
+  --app-cta-btn-primary-text: #0a0a0a;
+  --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.07);
+  --app-cta-btn-secondary-text: #e8e8e8;
+  --app-dashboard-accent-border: rgb(255 255 255 / 0.15);
+
+  --caj-bg: #0a0a0a;
+  --caj-bg-muted: #111111;
+  --caj-surface: #171717;
+  --caj-surface-elevated: #1f1f1f;
+  --caj-input: #1f1f1f;
+  --caj-input-focus: #262626;
+  --caj-border: rgb(255 255 255 / 0.08);
+  --caj-border-strong: rgb(255 255 255 / 0.12);
+  --caj-text: #e8e8e8;
+  --caj-text-muted: #9e9e9e;
+  --caj-text-faint: #616161;
+  --caj-accent: #e8e8e8;
+  --caj-accent-fg: #0a0a0a;
+  --caj-layout-bg: #0a0a0a;
+  --caj-ring: rgb(255 255 255 / 0.12);
+  --caj-icon-muted: #616161;
+  --caj-hover-overlay: rgb(255 255 255 / 0.05);
+
+  /* Themed metric icons */
+  --app-metric-icon-1-bg: rgba(52, 211, 153, 0.15);
+  --app-metric-icon-1-fg: #34d399;
+  --app-metric-icon-2-bg: rgba(96, 165, 250, 0.15);
+  --app-metric-icon-2-fg: #60a5fa;
+  --app-metric-icon-3-bg: rgba(192, 132, 252, 0.15);
+  --app-metric-icon-3-fg: #c084fc;
+  --app-metric-icon-4-bg: rgba(251, 191, 36, 0.15);
+  --app-metric-icon-4-fg: #fbbf24;
+  --app-metric-icon-5-bg: rgba(248, 113, 113, 0.15);
+  --app-metric-icon-5-fg: #f87171;
+}
+
+/* --- Pastel Dama --- */
+[data-theme="pastel-dama"] {
+  --app-bg: #fdf6f6;
+  --app-bg-muted: #faf0f2;
+  --app-surface: #fffbfc;
+  --app-surface-elevated: #fff5f7;
+  --app-surface-glass: rgb(255 251 252 / 0.92);
+  --app-input: #faf0f2;
+  --app-border: #f5e4e8;
+  --app-border-strong: #e8d4da;
+  --app-text: #3d3236;
+  --app-text-muted: #8a7378;
+  --app-text-faint: #b8a3a8;
+  --app-accent: #8b6b6f;
+  --app-accent-fg: #fffbfc;
+  --app-layout-bg: #fdf6f6;
+  --app-ring: rgb(232 212 218);
+  --app-hover-overlay: rgb(139 107 111 / 0.06);
+  --app-mesh-rgb: 200, 170, 175;
+  --app-sidebar-rail-bg: rgb(255 251 252 / 0.95);
+  --app-sidebar-rail-border: #e8d4da;
+  --accent: #a88a8e;
+  --app-canvas: #fdf6f6;
+  --app-panel: #fffbfc;
+  --app-panel-border: #e8d4da;
+  --app-shadow-panel: 0 2px 12px rgb(139 107 111 / 0.08);
+  --app-metric-bg: #f5e8eb;
+  --app-metric-border: #e8d4da;
+  --app-metric-text: #3d3236;
+  --app-metric-label: #8a7378;
+  --app-metric-glow: rgb(201 168 168 / 0.15);
+  --app-drawer-bg: #4a3d40;
+  --app-drawer-text: #fff9fa;
+  --app-drawer-muted: #e8d4da;
+  --app-drawer-hover: rgb(255 255 255 / 0.08);
+  --app-drawer-selected: rgb(255 255 255 / 0.14);
+  --app-drawer-border: rgb(255 255 255 / 0.1);
+  --app-theme-menu-bg: #5c4a4e;
+  --app-theme-menu-text: #fff9fa;
+  --app-theme-menu-active: #6e5a5e;
+  --app-cta-bg: #8b6b6f;
+  --app-cta-text: #fffbfc;
+  --app-cta-subtitle: #f5e4e8;
+  --app-cta-glow: rgb(255 255 255 / 0.12);
+  --app-cta-btn-primary-bg: #fffbfc;
+  --app-cta-btn-primary-text: #3d3236;
+  --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.12);
+  --app-cta-btn-secondary-text: #fffbfc;
+  --app-dashboard-accent-border: #a88a8e;
+
+  --caj-bg: #fdf6f6;
+  --caj-bg-muted: #faf0f2;
+  --caj-surface: #fffbfc;
+  --caj-surface-elevated: #fff5f7;
+  --caj-input: #faf0f2;
+  --caj-input-focus: #fffbfc;
+  --caj-border: #f5e4e8;
+  --caj-border-strong: #e8d4da;
+  --caj-text: #3d3236;
+  --caj-text-muted: #8a7378;
+  --caj-text-faint: #c4b0b5;
+  --caj-accent: #8b6b6f;
+  --caj-accent-fg: #fffbfc;
+  --caj-layout-bg: #fdf6f6;
+  --caj-ring: rgb(232 212 218);
+  --caj-icon-muted: #c4b0b5;
+  --caj-hover-overlay: rgb(139 107 111 / 0.06);
+
+  /* Themed metric icons */
+  --app-metric-icon-1-bg: #eaf5ea;
+  --app-metric-icon-1-fg: #5a7d5a;
+  --app-metric-icon-2-bg: #e6effa;
+  --app-metric-icon-2-fg: #50719e;
+  --app-metric-icon-3-bg: #f5ebfa;
+  --app-metric-icon-3-fg: #80529c;
+  --app-metric-icon-4-bg: #faf0e6;
+  --app-metric-icon-4-fg: #a6723c;
+  --app-metric-icon-5-bg: #fdf2f2;
+  --app-metric-icon-5-fg: #c81e1e;
+}
+
+/* --- Pastel Caballero --- */
+[data-theme="pastel-caballero"] {
+  --app-bg: #f4f7fa;
+  --app-bg-muted: #eef3f7;
+  --app-surface: #fafbfc;
+  --app-surface-elevated: #f5f8fb;
+  --app-surface-glass: rgb(250 251 252 / 0.92);
+  --app-input: #eef3f7;
+  --app-border: #dce6ef;
+  --app-border-strong: #c5d4e0;
+  --app-text: #2e3a42;
+  --app-text-muted: #6b7d8a;
+  --app-text-faint: #9aabb8;
+  --app-accent: #6b8499;
+  --app-accent-fg: #fafbfc;
+  --app-layout-bg: #f4f7fa;
+  --app-ring: rgb(197 212 224);
+  --app-hover-overlay: rgb(107 132 153 / 0.06);
+  --app-mesh-rgb: 160, 185, 200;
+  --app-sidebar-rail-bg: rgb(250 251 252 / 0.95);
+  --app-sidebar-rail-border: #c5d4e0;
+  --accent: #7a94a8;
+  --app-canvas: #f4f7fa;
+  --app-panel: #fafbfc;
+  --app-panel-border: #c5d4e0;
+  --app-shadow-panel: 0 2px 12px rgb(107 132 153 / 0.1);
+  --app-metric-bg: #e8eef4;
+  --app-metric-border: #c5d4e0;
+  --app-metric-text: #2e3a42;
+  --app-metric-label: #6b7d8a;
+  --app-metric-glow: rgb(107 132 153 / 0.12);
+  --app-drawer-bg: #3d4f5c;
+  --app-drawer-text: #f5f8fb;
+  --app-drawer-muted: #c5d4e0;
+  --app-drawer-hover: rgb(255 255 255 / 0.08);
+  --app-drawer-selected: rgb(255 255 255 / 0.14);
+  --app-drawer-border: rgb(255 255 255 / 0.1);
+  --app-theme-menu-bg: #4a5d6b;
+  --app-theme-menu-text: #f5f8fb;
+  --app-theme-menu-active: #5a6f7f;
+  --app-cta-bg: #6b8499;
+  --app-cta-text: #fafbfc;
+  --app-cta-subtitle: #dce6ef;
+  --app-cta-glow: rgb(255 255 255 / 0.1);
+  --app-cta-btn-primary-bg: #fafbfc;
+  --app-cta-btn-primary-text: #2e3a42;
+  --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.12);
+  --app-cta-btn-secondary-text: #fafbfc;
+  --app-dashboard-accent-border: #7a94a8;
+
+  --caj-bg: #f4f7fa;
+  --caj-bg-muted: #eef3f7;
+  --caj-surface: #fafbfc;
+  --caj-surface-elevated: #f5f8fb;
+  --caj-input: #eef3f7;
+  --caj-input-focus: #fafbfc;
+  --caj-border: #dce6ef;
+  --caj-border-strong: #c5d4e0;
+  --caj-text: #2e3a42;
+  --caj-text-muted: #6b7d8a;
+  --caj-text-faint: #9aabb8;
+  --caj-accent: #6b8499;
+  --caj-accent-fg: #fafbfc;
+  --caj-layout-bg: #f4f7fa;
+  --caj-ring: rgb(197 212 224);
+  --caj-icon-muted: #9aabb8;
+  --caj-hover-overlay: rgb(107 132 153 / 0.06);
+
+  /* Themed metric icons */
+  --app-metric-icon-1-bg: #ebf7ee;
+  --app-metric-icon-1-fg: #3d8c55;
+  --app-metric-icon-2-bg: #e8f2fc;
+  --app-metric-icon-2-fg: #4682b4;
+  --app-metric-icon-3-bg: #ede9fe;
+  --app-metric-icon-3-fg: #6d28d9;
+  --app-metric-icon-4-bg: #fef3c7;
+  --app-metric-icon-4-fg: #b45309;
+  --app-metric-icon-5-bg: #fee2e2;
+  --app-metric-icon-5-fg: #dc2626;
+}
+
+/* --- Soft Neutral --- */
+[data-theme="soft-neutral"] {
+  --app-bg: #f7f5f2;
+  --app-bg-muted: #f0ede8;
+  --app-surface: #fcfaf7;
+  --app-surface-elevated: #f5f2ed;
+  --app-surface-glass: rgb(252 250 247 / 0.92);
+  --app-input: #f0ede8;
+  --app-border: #e8e4dd;
+  --app-border-strong: #d8d2c8;
+  --app-text: #3a3835;
+  --app-text-muted: #7a756d;
+  --app-text-faint: #a8a299;
+  --app-accent: #6e6860;
+  --app-accent-fg: #fcfaf7;
+  --app-layout-bg: #f7f5f2;
+  --app-ring: rgb(216 210 200);
+  --app-hover-overlay: rgb(110 104 96 / 0.06);
+  --app-mesh-rgb: 180, 175, 168;
+  --app-sidebar-rail-bg: rgb(252 250 247 / 0.95);
+  --app-sidebar-rail-border: #d8d2c8;
+  --accent: #8a847c;
+  --app-canvas: #f7f5f2;
+  --app-panel: #fcfaf7;
+  --app-panel-border: #d8d2c8;
+  --app-shadow-panel: 0 2px 12px rgb(110 104 96 / 0.08);
+  --app-metric-bg: #ebe6df;
+  --app-metric-border: #d8d2c8;
+  --app-metric-text: #3a3835;
+  --app-metric-label: #7a756d;
+  --app-metric-glow: rgb(110 104 96 / 0.1);
+  --app-drawer-bg: #4a4743;
+  --app-drawer-text: #fcfaf7;
+  --app-drawer-muted: #d8d2c8;
+  --app-drawer-hover: rgb(255 255 255 / 0.08);
+  --app-drawer-selected: rgb(255 255 255 / 0.14);
+  --app-drawer-border: rgb(255 255 255 / 0.1);
+  --app-theme-menu-bg: #5c5854;
+  --app-theme-menu-text: #fcfaf7;
+  --app-theme-menu-active: #6e6a64;
+  --app-cta-bg: #6e6860;
+  --app-cta-text: #fcfaf7;
+  --app-cta-subtitle: #e8e4dd;
+  --app-cta-glow: rgb(255 255 255 / 0.1);
+  --app-cta-btn-primary-bg: #fcfaf7;
+  --app-cta-btn-primary-text: #3a3835;
+  --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.12);
+  --app-cta-btn-secondary-text: #fcfaf7;
+  --app-dashboard-accent-border: #8a847c;
+
+  --caj-bg: #f7f5f2;
+  --caj-bg-muted: #f0ede8;
+  --caj-surface: #fcfaf7;
+  --caj-surface-elevated: #f5f2ed;
+  --caj-input: #f0ede8;
+  --caj-input-focus: #fcfaf7;
+  --caj-border: #e8e4dd;
+  --caj-border-strong: #d8d2c8;
+  --caj-text: #3a3835;
+  --caj-text-muted: #7a756d;
+  --caj-text-faint: #a8a299;
+  --caj-accent: #6e6860;
+  --caj-accent-fg: #fcfaf7;
+  --caj-layout-bg: #f7f5f2;
+  --caj-ring: rgb(216 210 200);
+  --caj-icon-muted: #a8a299;
+  --caj-hover-overlay: rgb(110 104 96 / 0.06);
+
+  /* Themed metric icons */
+  --app-metric-icon-1-bg: #edf3ec;
+  --app-metric-icon-1-fg: #4d7c47;
+  --app-metric-icon-2-bg: #e8ecf3;
+  --app-metric-icon-2-fg: #4b6b94;
+  --app-metric-icon-3-bg: #ece8f3;
+  --app-metric-icon-3-fg: #67477c;
+  --app-metric-icon-4-bg: #f3ece4;
+  --app-metric-icon-4-fg: #94674b;
+  --app-metric-icon-5-bg: #fbebeb;
+  --app-metric-icon-5-fg: #a84444;
+}
+
+/* Utilidades app (layout / shell) */
+.app-layout-bg {
+  background-color: var(--app-layout-bg);
+}
+
+.app-page {
+  background-color: var(--app-bg);
+  color: var(--app-text);
+}
+
+.app-card {
+  background-color: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+
+.app-card-glass {
+  background-color: var(--app-surface-glass);
+  backdrop-filter: blur(12px);
+  border-color: var(--app-border);
+  color: var(--app-text);
+}
+
+.app-heading {
+  color: var(--app-text);
+}
+
+.app-text-muted {
+  color: var(--app-text-muted);
+}
+
+.app-text-faint {
+  color: var(--app-text-faint);
+}
+
+.app-border {
+  border-color: var(--app-border-strong);
+}
+
+.app-input-surface {
+  background-color: var(--app-input);
+  color: var(--app-text);
+}
+
+.app-btn-primary {
+  background-color: var(--app-accent);
+  color: var(--app-accent-fg);
+}
+
+.app-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.app-btn-secondary {
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border: 1px solid var(--app-border-strong);
+}
+
+.app-btn-secondary:hover {
+  background-color: var(--app-bg-muted);
+}
+
+.app-sidebar-rail {
+  background-color: var(--app-sidebar-rail-bg);
+  border-color: var(--app-sidebar-rail-border);
+}
+
+.app-modal-panel {
+  background-color: var(--app-surface);
+  border-color: var(--app-border-strong);
+  color: var(--app-text);
+}
+
+.app-modal-body-muted {
+  color: var(--app-text-muted);
+}
+
+.app-modal-cancel {
+  background-color: var(--app-input);
+  color: var(--app-text-muted);
+}
+
+.app-modal-cancel:hover {
+  background-color: var(--app-bg-muted);
+}
+
+[data-theme="dark"] .app-page-header-default {
+  --ph-title: var(--app-text);
+  --ph-subtitle: var(--app-text-muted);
+  --ph-eyebrow: var(--app-text-faint);
+  --ph-shell-bg: var(--app-surface);
+  --ph-shell-border: var(--app-border-strong);
+}
+
+[data-theme="pastel-dama"] .app-page-header-default,
+[data-theme="pastel-caballero"] .app-page-header-default,
+[data-theme="soft-neutral"] .app-page-header-default {
+  --ph-title: var(--app-text);
+  --ph-subtitle: var(--app-text-muted);
+  --ph-eyebrow: var(--app-text-faint);
+  --ph-shell-bg: var(--app-surface-glass);
+  --ph-shell-border: var(--app-border);
+}
+
+.app-page-header-themed {
+  color: var(--ph-title, var(--app-text));
+}
+
+.app-page-header-themed .app-ph-subtitle {
+  color: var(--ph-subtitle, var(--app-text-muted));
+}
+
+.app-page-header-themed .app-ph-eyebrow {
+  color: var(--ph-eyebrow, var(--app-text-faint));
+}
+
+.app-page-header-themed.app-ph-elevated {
+  background-color: var(--ph-shell-bg, var(--app-surface-glass));
+  border-color: var(--ph-shell-border, var(--app-border));
+}
+
+.app-canvas {
+  background-color: var(--app-canvas);
+  color: var(--app-text);
+}
+
+.app-panel {
+  background-color: var(--app-panel);
+  border-color: var(--app-panel-border);
+  color: var(--app-text);
+  box-shadow: var(--app-shadow-panel);
+}
+
+/* Chips bajo PageHeader (catálogo, inventario, proveedores) */
+.app-header-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 9999px;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.app-header-meta-chip--stat {
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border-strong);
+  color: var(--app-text);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
+}
+
+.app-header-meta-chip--muted {
+  background-color: var(--app-bg-muted);
+  border: 1px solid transparent;
+  color: var(--app-text-muted);
+  font-weight: 500;
+}
+
+.app-header-meta-chip--context {
+  background-color: var(--app-surface);
+  border: 2px solid var(--app-text);
+  color: var(--app-text);
+  font-weight: 700;
+}
+
+[data-theme="dark"] .app-header-meta-chip--context {
+  border-width: 1px;
+  border-color: var(--app-border-strong);
+}
+
+.app-metric-card {
+  background-color: var(--app-metric-bg);
+  border-color: var(--app-metric-border);
+  box-shadow: inset 1px 1px 0 0 var(--app-metric-glow), 0 25px 50px -12px rgb(0 0 0 / 0.15);
+}
+
+.app-metric-card-glow {
+  background-color: var(--app-metric-glow);
+}
+
+.app-metric-value {
+  color: var(--app-metric-text);
+}
+
+.app-metric-label {
+  color: var(--app-metric-label);
+}
+
+.app-metric-icon-1 {
+  background-color: var(--app-metric-icon-1-bg) !important;
+  color: var(--app-metric-icon-1-fg) !important;
+}
+.app-metric-icon-2 {
+  background-color: var(--app-metric-icon-2-bg) !important;
+  color: var(--app-metric-icon-2-fg) !important;
+}
+.app-metric-icon-3 {
+  background-color: var(--app-metric-icon-3-bg) !important;
+  color: var(--app-metric-icon-3-fg) !important;
+}
+.app-metric-icon-4 {
+  background-color: var(--app-metric-icon-4-bg) !important;
+  color: var(--app-metric-icon-4-fg) !important;
+}
+.app-metric-icon-5 {
+  background-color: var(--app-metric-icon-5-bg) !important;
+  color: var(--app-metric-icon-5-fg) !important;
+}
+
+.app-drawer {
+  background-color: var(--app-drawer-bg);
+  color: var(--app-drawer-text);
+}
+
+.app-drawer-text {
+  color: var(--app-drawer-text);
+}
+
+.app-drawer-muted {
+  color: var(--app-drawer-muted);
+}
+
+.app-drawer-nav-item {
+  color: var(--app-drawer-muted);
+}
+
+.app-drawer-nav-item:hover {
+  background-color: var(--app-drawer-hover);
+  color: var(--app-drawer-text);
+}
+
+.app-drawer-nav-item-selected {
+  background-color: var(--app-drawer-selected);
+  color: var(--app-drawer-text);
+}
+
+.app-drawer-theme-trigger:hover {
+  background-color: var(--app-drawer-hover);
+}
+
+.app-drawer-theme-icon-wrap {
+  background-color: var(--app-drawer-selected);
+  color: var(--app-drawer-text);
+}
+
+.app-theme-menu-panel {
+  background-color: var(--app-theme-menu-bg);
+  border-color: var(--app-drawer-border);
+  color: var(--app-theme-menu-text);
+}
+
+.app-theme-menu-item {
+  color: var(--app-theme-menu-text);
+  border-color: var(--app-drawer-border);
+}
+
+.app-theme-menu-item:hover {
+  background-color: var(--app-drawer-hover);
+}
+
+.app-theme-menu-item-active {
+  background-color: var(--app-theme-menu-active);
+}
+
+.app-cta-panel {
+  background-color: var(--app-cta-bg);
+  color: var(--app-cta-text);
+}
+
+.app-cta-title {
+  color: var(--app-cta-text);
+}
+
+.app-cta-subtitle {
+  color: var(--app-cta-subtitle);
+}
+
+.app-cta-panel-glow {
+  background-color: var(--app-cta-glow);
+}
+
+.app-cta-btn-primary {
+  background-color: var(--app-cta-btn-primary-bg);
+  color: var(--app-cta-btn-primary-text);
+}
+
+.app-cta-btn-primary:hover {
+  opacity: 0.92;
+}
+
+.app-cta-btn-secondary {
+  background-color: var(--app-cta-btn-secondary-bg);
+  color: var(--app-cta-btn-secondary-text);
+  border: 1px solid var(--app-drawer-border);
+}
+
+.app-cta-btn-secondary:hover {
+  background-color: var(--app-drawer-hover);
+}
+
+.app-dashboard-header-shell {
+  background-color: var(--app-surface-glass);
+  border-color: var(--app-panel-border);
+  border-left-color: var(--app-dashboard-accent-border);
+}
+
+.chart-tick-muted {
+  fill: var(--app-text-muted);
+}
+
+.chart-tick-main {
+  fill: var(--app-text);
+}
+
+/* Herencia base por tema en documento */
+:root,
+html[data-theme="classic"] {
+  color: var(--app-text);
+  background-color: var(--app-layout-bg);
+}
+
+html[data-theme="dark"] {
+  color: var(--app-text);
+  background-color: var(--app-layout-bg);
+}
+
+html[data-theme="pastel-dama"],
+html[data-theme="pastel-caballero"],
+html[data-theme="soft-neutral"] {
+  color: var(--app-text);
+  background-color: var(--app-layout-bg);
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  color: var(--app-text-faint);
+}
+
+[data-theme="dark"] .app-metric-card {
+  box-shadow:
+    inset 1px 1px 0 0 rgb(255 255 255 / 0.04),
+    0 25px 50px -12px rgb(0 0 0 / 0.6);
+}
+
+[data-theme="dark"] .app-panel {
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.04),
+    0 8px 32px rgb(0 0 0 / 0.5);
+}
+
+[data-theme="dark"] .app-cta-panel {
+  border: 1px solid rgb(255 255 255 / 0.08);
+}
+
+[data-theme="dark"] .app-drawer-nav-item-selected {
+  background-color: rgb(255 255 255 / 0.1);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background-color: rgb(255 255 255 / 0.2);
+  border: 6px solid transparent;
+  background-clip: content-box;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(255 255 255 / 0.35);
+}

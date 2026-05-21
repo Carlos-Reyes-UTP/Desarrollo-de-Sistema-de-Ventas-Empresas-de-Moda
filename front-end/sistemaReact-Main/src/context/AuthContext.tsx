@@ -7,6 +7,12 @@ import type { CredencialesLogin, RespuestaAutenticacion } from '../types/Usuario
 import type { RolNombre } from '../types/enums';
 import type { TokenDecodificado } from '../types/TokenDecodificado';
 import { setAuthToken } from '../config/apiClient';
+import { leerSesionDesdeStorage } from '@/utils/authBootstrap';
+
+const sesionInicial = leerSesionDesdeStorage();
+if (sesionInicial.token) {
+  setAuthToken(sesionInicial.token);
+}
 
 interface ContextoAutenticacion {
   usuario: Usuario | null;
@@ -32,9 +38,9 @@ interface AuthProviderProps {
 }
 
 export const AuthProvider = ({ children }: AuthProviderProps) => {
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [cargando, setCargando] = useState(true);
+  const [usuario, setUsuario] = useState<Usuario | null>(sesionInicial.usuario);
+  const [token, setToken] = useState<string | null>(sesionInicial.token);
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const extraerRolesDelToken = (decodificado: TokenDecodificado): RolNombre[] => {
@@ -62,45 +68,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   useEffect(() => {
-    console.log('🔍 Inicializando autenticación');
-    const initializeAuth = async () => {
-      const tokenAlmacenado = localStorage.getItem('token');
-      console.log('📦 Token almacenado:', tokenAlmacenado);
-
-      if (tokenAlmacenado) {
-        try {
-          const decodificado = jwtDecode<TokenDecodificado>(tokenAlmacenado);
-          console.log('🔓 Token decodificado:', decodificado);
-
-          const tiempoActual = Date.now() / 1000;
-          console.log('⏰ Tiempo actual:', tiempoActual, 'Expiración del token:', decodificado.exp);
-
-          if (decodificado.exp && decodificado.exp < tiempoActual) {
-            console.log('❌ Token expirado, eliminando del almacenamiento');
-            localStorage.removeItem('token');
-          } else {
-            setToken(tokenAlmacenado);
-            setAuthToken(tokenAlmacenado);
-
-            const nombreUsuario = decodificado.sub;
-            const rolesUsuario = extraerRolesDelToken(decodificado);
-
-            console.log('👤 Usuario:', nombreUsuario, 'Roles:', rolesUsuario);
-
-            setUsuario({
-              usuario: nombreUsuario,
-              roles: rolesUsuario.map(rol => ({ nombreRol: rol }))
-            });
-          }
-        } catch (error) {
-          console.error('⚠️ Error al decodificar token:', error);
-          localStorage.removeItem('token');
-        }
-      }
-      setCargando(false);
-    };
-
-    initializeAuth();
+    const sesion = leerSesionDesdeStorage();
+    setToken(sesion.token);
+    setUsuario(sesion.usuario);
+    setAuthToken(sesion.token);
   }, []);
 
   // Efecto separado para sincronizar el token cuando cambie
@@ -109,6 +80,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [token]);
 
   const iniciarSesion = useCallback(async (credenciales: CredencialesLogin): Promise<boolean> => {
+    setCargando(true);
     try {
       setError(null);
       console.log('🔄 Intentando iniciar sesión con:', { usuario: credenciales.usuario });
@@ -146,6 +118,8 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       console.error('❌ Error en inicio de sesión:', error);
       setError('Credenciales inválidas');
       return false;
+    } finally {
+      setCargando(false);
     }
   }, []);
 

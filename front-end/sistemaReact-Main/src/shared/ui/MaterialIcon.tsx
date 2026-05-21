@@ -1,0 +1,58 @@
+import React from 'react';
+
+export interface MaterialIconProps extends React.HTMLAttributes<HTMLSpanElement> {
+  icon: string;
+  className?: string;
+  variant?: 'outlined' | 'rounded' | 'sharp';
+  fill?: boolean;
+}
+
+export function MaterialIcon({
+  icon,
+  className = '',
+  variant = 'rounded', // rounded style matches modern premium aesthetics
+  fill = false,
+  ...props
+}: MaterialIconProps) {
+  const sizeStyle: React.CSSProperties = {};
+  
+  // Detect standard Tailwind size classes (w-X / h-X)
+  const sizeMatch = className.match(/\b[wh]-(\d+)\b/);
+  if (sizeMatch) {
+    const sizeVal = parseInt(sizeMatch[1]);
+    const pxSize = sizeVal * 4; // Tailwind scale is 1 = 4px
+    sizeStyle.fontSize = `${pxSize}px`;
+    sizeStyle.width = `${pxSize}px`;
+    sizeStyle.height = `${pxSize}px`;
+  }
+
+  // Detect arbitrary Tailwind size classes (w-[Xpx] / h-[Xpx])
+  const arbSizeMatch = className.match(/\b[wh]-\[(\d+)px\]\b/);
+  if (arbSizeMatch) {
+    const pxSize = parseInt(arbSizeMatch[1]);
+    sizeStyle.fontSize = `${pxSize}px`;
+    sizeStyle.width = `${pxSize}px`;
+    sizeStyle.height = `${pxSize}px`;
+  }
+
+  // Set fontVariationSettings for material symbol features (like FILL)
+  const fillStyle = fill ? { fontVariationSettings: "'FILL' 1", ...sizeStyle } : sizeStyle;
+
+  // Clean Tailwind sizing classes so they do not conflict with our dynamic inline sizing
+  const cleanClassName = className
+    .replace(/\b[wh]-(\d+)\b/g, '')
+    .replace(/\b[wh]-\[(\d+)px\]\b/g, '')
+    .trim();
+
+  return (
+    <span
+      className={`material-symbols-${variant} select-none flex items-center justify-center shrink-0 ${cleanClassName}`}
+      style={fillStyle}
+      {...props}
+    >
+      {icon}
+    </span>
+  );
+}
+
+export default MaterialIcon;

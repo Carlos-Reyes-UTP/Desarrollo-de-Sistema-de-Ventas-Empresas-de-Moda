@@ -10,15 +10,23 @@ interface Blob {
   alpha: number;
 }
  
-const BLOB_COUNT = 5; // Reducido de 7
-const BLOB_COLOR = '15,15,15';
-const BLUR_PX = 160; // Aumentado el desenfoque para suavizar
- 
+const BLOB_COUNT = 5;
+const BLUR_PX = 160;
+
 interface MeshGradientProps {
   soloPuntero?: boolean;
+  blobColorRgb?: string;
 }
 
-const MeshGradientBackground: React.FC<MeshGradientProps> = ({ soloPuntero = false }) => {
+const MeshGradientBackground: React.FC<MeshGradientProps> = ({
+  soloPuntero = false,
+  blobColorRgb = '15, 15, 15',
+}) => {
+  const blobColorRef = useRef(blobColorRgb);
+
+  useEffect(() => {
+    blobColorRef.current = blobColorRgb;
+  }, [blobColorRgb]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const soloPunteroRef = useRef(soloPuntero);
 
@@ -68,9 +76,10 @@ const MeshGradientBackground: React.FC<MeshGradientProps> = ({ soloPuntero = fal
       alphaCenter: number, alphaMid: number,
     ) => {
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
-      g.addColorStop(0,   `rgba(${BLOB_COLOR},${alphaCenter})`);
-      g.addColorStop(0.45,`rgba(${BLOB_COLOR},${alphaMid})`);
-      g.addColorStop(1,   `rgba(${BLOB_COLOR},0)`);
+      const rgb = blobColorRef.current;
+      g.addColorStop(0,   `rgba(${rgb},${alphaCenter})`);
+      g.addColorStop(0.45,`rgba(${rgb},${alphaMid})`);
+      g.addColorStop(1,   `rgba(${rgb},0)`);
       ctx.beginPath();
       ctx.arc(x, y, r, 0, Math.PI * 2);
       ctx.fillStyle = g;

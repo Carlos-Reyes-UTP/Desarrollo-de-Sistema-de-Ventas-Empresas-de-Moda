@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Clock, Layers, User, AlertTriangle } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 import type { UbicacionSolicitudResumen } from "./AlmacenSolicitudRuta";
 
 interface Props {
@@ -177,7 +177,7 @@ export function AlmacenTicketCard({
                 ? "bg-red-500/20 border-red-400/30 text-red-300" 
                 : "bg-red-50 border-red-100 text-red-600 animate-pulse"
             }`}>
-              <AlertTriangle className="w-3.5 h-3.5 text-red-500" strokeWidth={2.5} />
+              <MaterialIcon icon="warning" className="w-3.5 h-3.5 text-red-500" fill />
               <span>{tiempo || "—"}</span>
             </div>
           ) : alertaTiempo === "media" ? (
@@ -186,7 +186,7 @@ export function AlmacenTicketCard({
                 ? "bg-amber-500/20 border-amber-400/30 text-amber-300" 
                 : "bg-amber-50 border-amber-100 text-amber-600"
             }`}>
-              <Clock className="w-3.5 h-3.5 text-amber-500" strokeWidth={2.5} />
+              <MaterialIcon icon="schedule" className="w-3.5 h-3.5 text-amber-500" />
               <span>{tiempo || "—"}</span>
             </div>
           ) : (
@@ -195,7 +195,7 @@ export function AlmacenTicketCard({
                 ? "bg-white/10 border-white/10 text-white/60" 
                 : "bg-emerald-50 border-emerald-100 text-emerald-600"
             }`}>
-              <Clock className="w-3.5 h-3.5 text-emerald-500 animate-spin-slow" strokeWidth={2.5} />
+              <MaterialIcon icon="schedule" className="w-3.5 h-3.5 text-emerald-500 animate-spin-slow" />
               <span>{tiempo || "—"}</span>
             </div>
           )}
@@ -207,7 +207,7 @@ export function AlmacenTicketCard({
               seleccionado ? "bg-white/10 text-white" : "bg-white text-black shadow-sm"
             }`}
           >
-            <User className="w-4.5 h-4.5" strokeWidth={2.5} />
+            <MaterialIcon icon="person" className="w-4.5 h-4.5" />
           </div>
           <div className="min-w-0">
             <p
@@ -222,7 +222,7 @@ export function AlmacenTicketCard({
                 seleccionado ? "text-white/40" : "text-gray-400"
               }`}
             >
-              <Layers className="w-3 h-3" />
+              <MaterialIcon icon="layers" className="w-3 h-3" />
               <span className="text-[10px] font-bold">
                 {itemsCount} {itemsCount === 1 ? "ítem" : "ítems"}
               </span>

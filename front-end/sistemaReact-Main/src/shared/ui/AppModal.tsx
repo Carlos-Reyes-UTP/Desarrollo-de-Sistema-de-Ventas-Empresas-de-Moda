@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { X } from 'lucide-react';
+import { MaterialIcon } from './MaterialIcon';
+
 
 export type AppModalMaxWidth = 'sm' | 'md' | 'lg' | '2xl';
 
@@ -66,21 +67,21 @@ const AppModal = ({
       <div
         role="dialog"
         aria-modal="true"
-        className={`bg-white rounded-[2.5rem] shadow-md w-full ${maxWidthClass[maxWidth]} mx-4 max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300 ${panelAnim}`}
+        className={`app-modal-panel rounded-[2.5rem] border shadow-md w-full ${maxWidthClass[maxWidth]} mx-4 max-h-[90vh] overflow-hidden flex flex-col transform transition-all duration-300 ${panelAnim}`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="bg-black px-8 py-6 flex items-center gap-4 flex-shrink-0">
+        <div className="bg-[var(--app-accent)] px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3 flex-shrink-0">
           {icon && (
-            <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0">
               {icon}
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase leading-tight">
+            <h3 className="text-sm sm:text-base font-bold text-[var(--app-accent-fg)] leading-tight truncate">
               {title}
             </h3>
             {subtitle && (
-              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">
+              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5 line-clamp-1">
                 {subtitle}
               </p>
             )}
@@ -88,19 +89,19 @@ const AppModal = ({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all flex-shrink-0"
+            className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all flex-shrink-0 touch-manipulation"
             aria-label="Cerrar"
           >
-            <X className="w-4 h-4 text-white" />
+            <MaterialIcon icon="close" className="w-4 h-4 text-white" />
           </button>
         </div>
 
         {belowHeader}
 
-        <div className="p-6 overflow-y-auto flex-1 bg-white">{children}</div>
+        <div className="p-6 overflow-y-auto flex-1 bg-[var(--app-surface)]">{children}</div>
 
         {footer && (
-          <div className="px-6 pb-6 pt-4 flex-shrink-0 bg-white">
+          <div className="px-6 pb-6 pt-4 flex-shrink-0 bg-[var(--app-surface)]">
             {footer}
           </div>
         )}

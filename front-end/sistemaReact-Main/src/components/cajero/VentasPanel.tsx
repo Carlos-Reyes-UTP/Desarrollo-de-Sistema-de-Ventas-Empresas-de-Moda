@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+// no longer importing X from lucide-react
 import { NotificationToast } from './ventas-panel/NotificationToast';
 import { QrPaymentModal } from './ventas-panel/QrPaymentModal';
 import { VentaCompletadaModal } from './ventas-panel/VentaCompletadaModal';
@@ -6,13 +6,13 @@ import { ClienteSection } from './ventas-panel/ClienteSection';
 import { CatalogoSection } from './ventas-panel/CatalogoSection';
 import { CarritoSection } from './ventas-panel/CarritoSection';
 import { useVentas } from './ventas-panel/useVentas';
-import { CajeroThemeToggle } from './CajeroThemeToggle';
+import { PageHeader, MaterialIcon } from '@/shared/ui';
 
 const VentasPanel = () => {
   const ventas = useVentas();
 
   return (
-    <div className="caj-page p-10 max-w-[1600px] mx-auto lg:bg-transparent min-h-screen animate-fadeIn text-left font-sans">
+    <div className="caj-page p-4 sm:p-6 max-w-[1600px] mx-auto lg:bg-transparent min-h-screen animate-fadeIn text-left font-sans">
       {ventas.errorGlobal && <NotificationToast title="Error" message={ventas.errorGlobal} variant="error" topClassName="top-4" onClose={() => ventas.setErrorGlobal(null)} />}
       
       {ventas.mensajeInfoVista && (
@@ -21,30 +21,24 @@ const VentasPanel = () => {
             <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{ventas.mensajeInfoVista}</span>
           </div>
-          <button onClick={() => ventas.setMensajeInfoVista(null)} className="hover:opacity-60 transition-opacity p-1">
-            <X size={18} />
+          <button onClick={() => ventas.setMensajeInfoVista(null)} className="hover:opacity-60 transition-opacity p-1 flex items-center justify-center">
+            <MaterialIcon icon="close" className="h-[18px] w-[18px]" />
           </button>
         </div>
       )}
 
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="caj-heading text-[2.25rem] font-bold tracking-tight leading-none mb-2">
-            PUNTO DE VENTA
-          </h1>
-          <p className="caj-text-muted text-sm max-w-md font-medium uppercase tracking-[0.05em]">
-            Aquí puedes realizar las ventas y cobrar a tus clientes fácilmente.
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <CajeroThemeToggle />
-          <div className="caj-card px-6 py-3 border rounded-2xl shadow-sm">
-            <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-1">Caja actual</span>
-            <span className="caj-heading text-xs font-bold uppercase">Caja Principal 01</span>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        variant="cajero"
+        title="Punto de venta"
+        actions={
+          <>
+            <div className="caj-card px-4 py-2.5 border rounded-xl shadow-sm">
+              <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-0.5">Caja actual</span>
+              <span className="caj-heading text-xs font-bold uppercase">Caja Principal 01</span>
+            </div>
+          </>
+        }
+      />
 
       <QrPaymentModal
         open={ventas.mostrarModalQR}

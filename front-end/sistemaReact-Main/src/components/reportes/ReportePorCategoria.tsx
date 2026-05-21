@@ -456,9 +456,9 @@ const ReportePorCategoria: React.FC = () => {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ categoria, ingresosTotales }) => 
-                        `${categoria}: S/ ${ingresosTotales.toLocaleString()}`
-                      }
+                      label={((props: any) => 
+                        `${props.categoria}: S/ ${Number(props.ingresosTotales).toLocaleString()}`
+                      ) as any}
                       outerRadius={120}
                       fill="#8884d8"
                       dataKey="ingresosTotales"
@@ -640,9 +640,9 @@ const ReportePorCategoria: React.FC = () => {
                           outerRadius={window.innerWidth < 640 ? 80 : 120}
                           fill="#8884d8"
                           dataKey="ingresosTotales"
-                          label={({ categoria, value }) => 
-                            `${categoria}: ${value ? ((value / totalIngresos) * 100).toFixed(1) : '0'}%`
-                          }
+                          label={((props: any) => 
+                            `${props.categoria}: ${props.value ? ((props.value / totalIngresos) * 100).toFixed(1) : '0'}%`
+                          ) as any}
                           labelLine={false}
                         >
                           {reportes.map((_entry, index) => (

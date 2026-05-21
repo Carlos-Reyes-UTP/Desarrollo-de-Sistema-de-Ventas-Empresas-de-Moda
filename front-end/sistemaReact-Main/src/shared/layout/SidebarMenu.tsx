@@ -16,25 +16,11 @@ import {
   Drawer,
   Card,
 } from "@material-tailwind/react";
-import {
-  LayoutDashboard,
-  Box,
-  Truck,
-  Layers,
-  ChevronRight,
-  ChevronDown,
-  Menu,
-  LogOut,
-  Users,
-  PieChart,
-  ShoppingBag,
-  PanelLeftClose,
-  Package,
-  LayoutGrid,
-} from "lucide-react";
+import { ThemeMenuButton } from "@/components/theme/ThemeMenuButton";
+import { MaterialIcon } from "@/shared/ui";
 
 interface NavItemProps {
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
+  icon: string;
   label: string;
   selected: boolean;
   onClick: () => void;
@@ -46,26 +32,27 @@ interface SidebarMenuProps {
   cambiarVista: (vista: string) => void;
   usuario: Usuario | null;
   cerrarSesion: () => void;
-  cajeroDark?: boolean;
 }
 
-const NavItem = ({ icon: Icon, label, selected, onClick }: NavItemProps) => (
+const NavItem = ({ icon, label, selected, onClick }: NavItemProps) => (
   <ListItem
     selected={selected}
     onClick={onClick}
-    className={`relative overflow-hidden group rounded-xl py-3 px-4 transition-all duration-200 border border-transparent flex items-center active:scale-[0.98] ${selected
-      ? "bg-white/10 text-white shadow-lg shadow-black/20"
-      : "hover:bg-white/5 text-gray-400 hover:text-white"
-      }`}
+    className={`relative overflow-hidden group rounded-xl py-3 px-4 transition-all duration-200 border border-transparent flex items-center active:scale-[0.98] ${
+      selected ? "app-drawer-nav-item-selected shadow-lg shadow-black/20" : "app-drawer-nav-item"
+    }`}
   >
-    <div className="mr-3.5 flex-shrink-0">
-      <Icon className={`h-[20px] w-[20px] transition-colors ${selected ? "text-white" : "text-gray-500 group-hover:text-white"}`} strokeWidth={selected ? 2.5 : 2} />
+    <div className="mr-3.5 flex-shrink-0 flex items-center justify-center">
+      <MaterialIcon
+        icon={icon}
+        className={`h-[20px] w-[20px] transition-colors app-drawer-text ${selected ? "" : "opacity-70 group-hover:opacity-100"}`}
+      />
     </div>
-    <span className={`text-[14px] font-medium tracking-tight truncate`}>{label}</span>
+    <span className="text-[14px] font-medium tracking-tight truncate app-drawer-text">{label}</span>
   </ListItem>
 );
 
-const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroDark = false }: SidebarMenuProps) => {
+const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: SidebarMenuProps) => {
   const [openAccordion, setOpenAccordion] = useState(0);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const navigate = useNavigate();
@@ -134,22 +121,22 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
     <>
       {/* Rail escritorio (fase 2): hueco real en el flex del Layout; mismo botón y mismo drawer */}
       <aside
-        className={`relative z-[30] hidden h-screen w-16 shrink-0 flex-col items-center border-r py-4 shadow-sm backdrop-blur-sm transition-opacity duration-200 ease-out md:flex ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface)]" : "border-gray-200/90 bg-white/95"} ${isDrawerOpen ? "pointer-events-none opacity-40" : "opacity-100"
+        className={`app-sidebar-rail relative z-[30] hidden h-screen w-16 shrink-0 flex-col items-center border-r py-4 shadow-sm backdrop-blur-sm transition-opacity duration-200 ease-out md:flex ${isDrawerOpen ? "pointer-events-none opacity-40" : "opacity-100"
           }`}
         aria-label="Navegación principal"
       >
         <button
           type="button"
           onClick={openDrawer}
-          className={`group flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface-elevated)] hover:bg-[var(--caj-input)]" : "border-gray-100 bg-white hover:bg-gray-50"}`}
+          className="group flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border shadow-[0_4px_12px_-2px_rgba(0,0,0,0.08)] transition-all duration-200 border-[var(--app-border-strong)] bg-[var(--app-surface-elevated)] hover:bg-[var(--app-input)] flex items-center justify-center"
         >
-          <Menu className={`h-6 w-6 transition-colors ${cajeroDark ? "text-[var(--caj-text-muted)] group-hover:text-[var(--caj-text)]" : "text-gray-400 group-hover:text-black"}`} />
+          <MaterialIcon icon="menu" className="h-6 w-6 transition-colors text-[var(--app-text-muted)] group-hover:text-[var(--app-text)]" />
         </button>
       </aside>
 
       {/* Barra superior móvil: siempre montada; evita parpadeo al abrir/cerrar el drawer */}
       <div
-        className={`fixed top-0 left-0 right-0 z-[40] border-b shadow-sm transition-opacity duration-200 ease-out md:hidden ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface)]" : "border-gray-100 bg-white"} ${isDrawerOpen ? "pointer-events-none opacity-0" : "opacity-100"
+        className={`fixed top-0 left-0 right-0 z-[40] border-b border-[var(--app-border-strong)] bg-[var(--app-surface)] shadow-sm transition-opacity duration-200 ease-out md:hidden ${isDrawerOpen ? "pointer-events-none opacity-0" : "opacity-100"
           }`}
         aria-hidden={isDrawerOpen}
       >
@@ -157,15 +144,15 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
           <button
             type="button"
             onClick={openDrawer}
-            className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm transition-all duration-200 ${cajeroDark ? "border-[var(--caj-border-strong)] bg-[var(--caj-surface-elevated)] hover:bg-[var(--caj-input)]" : "border-gray-200 bg-gray-50 hover:bg-gray-100"}`}
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--app-border-strong)] bg-[var(--app-surface-elevated)] shadow-sm transition-all duration-200 hover:bg-[var(--app-input)] flex items-center justify-center"
           >
-            <Menu className={`h-5 w-5 ${cajeroDark ? "text-[var(--caj-text)]" : "text-gray-800"}`} />
+            <MaterialIcon icon="menu" className="h-5 w-5 text-[var(--app-text)]" />
           </button>
           <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black">
-              <span className="text-[10px] font-bold text-white">DK</span>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--app-accent)]">
+              <span className="text-[10px] font-bold text-[var(--app-accent-fg)]">DK</span>
             </div>
-            <h2 className={`text-sm font-bold tracking-widest ${cajeroDark ? "text-[var(--caj-text)]" : "text-gray-900"}`}>DK-SYSTEM</h2>
+            <h2 className="text-sm font-bold tracking-widest text-[var(--app-text)]">DK-SYSTEM</h2>
           </div>
         </div>
       </div>
@@ -174,7 +161,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
         open={isDrawerOpen}
         onClose={closeDrawer}
         transition={{ type: "tween", duration: 0.22 }}
-        className="z-[50] border-r border-white/5 bg-[#0a0a0a] shadow-2xl"
+        className="app-drawer z-[50] border-r border-[var(--app-drawer-border)] shadow-2xl"
         overlay={true}
         placement="left"
         size={300}
@@ -192,23 +179,23 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
           {/* Header con Perfil */}
           <div className="px-6 py-8 mb-4 flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="h-12 w-12 flex-shrink-0 rounded-xl bg-white flex items-center justify-center shadow-xl shadow-white/5">
-                <span className="text-sm font-black text-black tracking-widest">DK</span>
+              <div className="h-12 w-12 flex-shrink-0 rounded-xl app-drawer-theme-icon-wrap flex items-center justify-center shadow-xl">
+                <span className="text-sm font-black app-drawer-text tracking-widest">DK</span>
               </div>
               <div className="flex flex-col min-w-0">
-                <Typography className="text-base font-bold text-white truncate leading-tight tracking-tight">
+                <Typography className="text-base font-bold app-drawer-text truncate leading-tight tracking-tight">
                   {usuario?.usuario ?? 'Usuario'}
                 </Typography>
-                <Typography className="text-[11px] font-medium text-gray-500 tracking-wider uppercase mt-1">
+                <Typography className="text-[11px] font-medium app-drawer-muted tracking-wider uppercase mt-1">
                   {getRoleLabel()}
                 </Typography>
               </div>
             </div>
             <button
               onClick={closeDrawer}
-              className="p-2 hover:bg-white/10 transition-colors rounded-xl group"
+              className="p-2 app-drawer-nav-item transition-colors rounded-xl group flex items-center justify-center"
             >
-              <PanelLeftClose className="h-5 w-5 text-gray-500 group-hover:text-white" strokeWidth={2} />
+              <MaterialIcon icon="menu_open" className="h-5 w-5 app-drawer-muted group-hover:app-drawer-text" />
             </button>
           </div>
 
@@ -219,7 +206,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
               {/* Dashboards */}
               {tieneRol('ROLE_ADMIN') && (
                 <NavItem
-                  icon={LayoutDashboard}
+                  icon="speed"
                   label="Dashboard Admin"
                   selected={vistaActual === 'dashboard-admin'}
                   onClick={() => handleMenuClick('dashboard-admin', () => navigate(APP_PATHS.dashboardAdmin))}
@@ -228,7 +215,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
 
               {(tieneRol('ROLE_ALMACENERO') || tieneRol('ROLE_SUPERVISOR_ALMACEN')) && (
                 <NavItem
-                  icon={LayoutDashboard}
+                  icon="speed"
                   label="Dashboard Almacén"
                   selected={vistaActual === 'dashboard-almacenero'}
                   onClick={() => handleMenuClick('dashboard-almacenero', () => navigate(APP_PATHS.dashboardAlmacenero))}
@@ -237,7 +224,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
 
               {(tieneRol('ROLE_ALMACENERO') || tieneRol('ROLE_SUPERVISOR_ALMACEN')) && (
                 <NavItem
-                  icon={LayoutGrid}
+                  icon="dashboard"
                   label="Tablero pedidos"
                   selected={vistaActual === 'almacen-tablero'}
                   onClick={() =>
@@ -250,7 +237,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
 
               {tieneRol('ROLE_VENDEDOR') && (
                 <NavItem
-                  icon={Package}
+                  icon="manage_search"
                   label="Solicitud a almacén"
                   selected={vistaActual === 'vendedor-piso'}
                   onClick={() =>
@@ -264,7 +251,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
               {/* Sistema de Caja */}
               {tieneRol('ROLE_CAJERO') && (
                 <div className="py-2">
-                  <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">Módulo Comercial</p>
+                  <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">Módulo Comercial</p>
                   <Accordion
                     open={openAccordion === 1}
                     className="border-none"
@@ -274,20 +261,20 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
                         onClick={() => handleAccordionOpen(1)}
                         className="border-none p-0"
                       >
-                        <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] ${openAccordion === 1 ? "bg-white/5 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}>
-                          <div className="mr-3.5 flex-shrink-0">
-                            <ShoppingBag className={`h-[20px] w-[20px] ${openAccordion === 1 ? "text-white" : "text-gray-500"}`} strokeWidth={2} />
+                        <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] ${openAccordion === 1 ? "app-drawer-nav-item-selected" : "app-drawer-nav-item"}`}>
+                          <div className="mr-3.5 flex-shrink-0 flex items-center justify-center">
+                            <MaterialIcon icon="storefront" className="h-[20px] w-[20px] app-drawer-text opacity-90" />
                           </div>
                           <span className="text-[14px] font-medium flex-1 text-left tracking-tight">Sistema de Caja</span>
-                          <ChevronDown className={`h-4 w-4 transition-transform ${openAccordion === 1 ? "rotate-180" : ""}`} strokeWidth={2.5} />
+                          <MaterialIcon icon="expand_more" className={`h-4 w-4 transition-transform ${openAccordion === 1 ? "rotate-180" : ""}`} />
                         </div>
                       </AccordionHeader>
                     </ListItem>
                     <AccordionBody className="py-2 pl-4 pr-1">
                       <List className="p-0 space-y-1.5">
-                        <NavItem icon={ChevronRight} label="Apertura" selected={vistaActual === 'apertura'} onClick={() => handleMenuClick('apertura')} />
-                        <NavItem icon={ChevronRight} label="Ventas" selected={vistaActual === 'ventas'} onClick={() => handleMenuClick('ventas')} />
-                        <NavItem icon={ChevronRight} label="Cierre" selected={vistaActual === 'cierre'} onClick={() => handleMenuClick('cierre')} />
+                        <NavItem icon="chevron_right" label="Apertura" selected={vistaActual === 'apertura'} onClick={() => handleMenuClick('apertura')} />
+                        <NavItem icon="chevron_right" label="Ventas" selected={vistaActual === 'ventas'} onClick={() => handleMenuClick('ventas')} />
+                        <NavItem icon="chevron_right" label="Cierre" selected={vistaActual === 'cierre'} onClick={() => handleMenuClick('cierre')} />
                       </List>
                     </AccordionBody>
                   </Accordion>
@@ -297,14 +284,14 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
               {/* Administración / Inventario */}
               {(tieneRol('ROLE_ADMIN') || esRolModuloAlmacen(tieneRol)) && (
                 <div className="py-2">
-                  <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">
+                  <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">
                     {tieneRol('ROLE_ADMIN') ? 'Configuración' : 'Gestión'}
                   </p>
 
                   {/* Usuarios (Solo Admin) */}
                   {tieneRol('ROLE_ADMIN') && (
                     <NavItem
-                      icon={Users}
+                      icon="manage_accounts"
                       label="Usuarios"
                       selected={vistaActual === 'usuarios'}
                       onClick={() => handleMenuClick('usuarios', () => navigate(APP_PATHS.gestionUsuarios))}
@@ -316,20 +303,20 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
                     <Accordion open={openAccordion === 3} className="border-none mt-2">
                       <ListItem className="p-0" selected={openAccordion === 3}>
                         <AccordionHeader onClick={() => handleAccordionOpen(3)} className="border-none p-0">
-                          <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] ${openAccordion === 3 ? "bg-white/5 text-white" : "text-gray-400 hover:bg-white/5 hover:text-white"}`}>
-                            <div className="mr-3.5 flex-shrink-0">
-                              <Box className={`h-[20px] w-[20px] ${openAccordion === 3 ? "text-white" : "text-gray-500"}`} strokeWidth={2} />
+                          <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] ${openAccordion === 3 ? "app-drawer-nav-item-selected" : "app-drawer-nav-item"}`}>
+                            <div className="mr-3.5 flex-shrink-0 flex items-center justify-center">
+                              <MaterialIcon icon="checkroom" className="h-[20px] w-[20px] app-drawer-text opacity-90" />
                             </div>
                             <span className="text-[14px] font-medium flex-1 text-left tracking-tight">Control Inventario</span>
-                            <ChevronDown className={`h-4 w-4 transition-transform ${openAccordion === 3 ? "rotate-180" : ""}`} strokeWidth={2.5} />
+                            <MaterialIcon icon="expand_more" className={`h-4 w-4 transition-transform ${openAccordion === 3 ? "rotate-180" : ""}`} />
                           </div>
                         </AccordionHeader>
                       </ListItem>
                       <AccordionBody className="py-2 pl-4 pr-1">
                         <List className="p-0 space-y-1.5">
-                          <NavItem icon={Box} label="Productos" selected={vistaActual.includes('productos')} onClick={() => handleMenuClick('productos-inventario', () => navigate(APP_PATHS.productos))} />
-                          <NavItem icon={Truck} label="Proveedores" selected={vistaActual.includes('proveedores')} onClick={() => handleMenuClick('proveedores', () => navigate(APP_PATHS.proveedores))} />
-                          <NavItem icon={Layers} label="Categorías" selected={vistaActual.includes('categorias')} onClick={() => handleMenuClick('categorias', () => navigate(APP_PATHS.categorias))} />
+                          <NavItem icon="checkroom" label="Productos" selected={vistaActual.includes('productos')} onClick={() => handleMenuClick('productos-inventario', () => navigate(APP_PATHS.productos))} />
+                          <NavItem icon="inventory" label="Proveedores" selected={vistaActual.includes('proveedores')} onClick={() => handleMenuClick('proveedores', () => navigate(APP_PATHS.proveedores))} />
+                          <NavItem icon="auto_awesome" label="Categorías" selected={vistaActual.includes('categorias')} onClick={() => handleMenuClick('categorias', () => navigate(APP_PATHS.categorias))} />
                         </List>
                       </AccordionBody>
                     </Accordion>
@@ -340,9 +327,9 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
               {/* Reportes para Admin */}
               {tieneRol('ROLE_ADMIN') && (
                 <div className="py-2">
-                  <p className="px-5 pb-3 text-[10px] font-bold text-[#9ca3af] tracking-[0.15em] uppercase">Análisis</p>
+                  <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">Análisis</p>
                   <NavItem
-                    icon={PieChart}
+                    icon="bar_chart"
                     label="Reportes"
                     selected={vistaActual === 'reportes-admin'}
                     onClick={() => handleMenuClick('reportes-admin', () => navigate(APP_PATHS.reportes))}
@@ -353,14 +340,15 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion, cajeroD
           </div>
 
           {/* Footer */}
-          <div className="mt-auto px-4 py-8 border-t border-white/5 flex flex-col space-y-1 bg-black/20">
-            <div className="pt-2">
+          <div className="mt-auto border-t border-[var(--app-drawer-border)] flex flex-col bg-black/10">
+            <ThemeMenuButton />
+            <div className="px-4 pb-6 pt-1">
               <ListItem
                 onClick={handleLogout}
                 className="group rounded-xl py-4 px-4 transition-all duration-200 active:scale-[0.98] text-red-500/80 hover:bg-red-500/10 hover:text-red-400 flex items-center border border-transparent hover:border-red-500/20"
               >
-                <div className="mr-3.5 flex-shrink-0">
-                  <LogOut className="h-[20px] w-[20px] transform group-hover:-translate-x-1 transition-transform" strokeWidth={2} />
+                <div className="mr-3.5 flex-shrink-0 flex items-center justify-center">
+                  <MaterialIcon icon="logout" className="h-[20px] w-[20px] transform group-hover:-translate-x-1 transition-transform" />
                 </div>
                 <span className="text-[14px] font-bold tracking-tight">Cerrar Sesión</span>
               </ListItem>

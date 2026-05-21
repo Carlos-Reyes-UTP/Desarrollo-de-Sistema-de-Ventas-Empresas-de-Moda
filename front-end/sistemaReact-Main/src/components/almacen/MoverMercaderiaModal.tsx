@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowRight, Loader2, PackageSearch, X } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 import axios from "axios";
 import { AlmacenService } from "@/services/AlmacenService";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
@@ -24,6 +24,11 @@ const origenEtiqueta = (v: StockUbicacion) =>
 const etiquetaProducto = (v: StockUbicacion) =>
   `${v.nombreProducto ?? "Producto"} · ${v.color ?? "-"} / ${v.talla ?? "-"}`;
 
+/** Evita cargar o listar todo el inventario al abrir el modal. */
+const MIN_CARACTERES_BUSQUEDA = 2;
+const DEBOUNCE_BUSQUEDA_MS = 350;
+const LIMITE_SUGERENCIAS = 30;
+
 const MoverMercaderiaModal = ({
   abierto,
   modoDestinoLibre = false,
@@ -35,6 +40,7 @@ const MoverMercaderiaModal = ({
   const [destinosDisponibles, setDestinosDisponibles] = useState<UbicacionArea[]>([]);
   const [idDestinoPaso1, setIdDestinoPaso1] = useState<number | "">("");
   const [cargandoDestinos, setCargandoDestinos] = useState(false);
+  const [comboAbierto, setComboAbierto] = useState(false);
 
   const [stockAreaCompleto, setStockAreaCompleto] = useState<StockUbicacion[]>([]);
   const [cargandoStockArea, setCargandoStockArea] = useState(false);
@@ -45,14 +51,25 @@ const MoverMercaderiaModal = ({
   const [listaAbierta, setListaAbierta] = useState(false);
   const [indiceResaltado, setIndiceResaltado] = useState(0);
   const [cargandoSugerencias, setCargandoSugerencias] = useState(false);
-  const [cantidad, setCantidad] = useState<number>(1);
+  const [cantidad, setCantidad] = useState<number | "">("");
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const abortRef = useRef<AbortController | null>(null);
   const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(abierto);
 
-  const requierePasoDestino = modoDestinoLibre || !!ubicacionOrigenStock;
+  /** Destino elegido en el combo (se confirma al seleccionar en la lista). */
+  const destinoActivo = useMemo(() => {
+    if (destinoEfectivo) return destinoEfectivo;
+    if (idDestinoPaso1 === "") return null;
+    return destinosDisponibles.find((u) => u.idUbicacionArea === idDestinoPaso1) ?? null;
+  }, [destinoEfectivo, idDestinoPaso1, destinosDisponibles]);
+
+  const terminoBusqueda = textoBusqueda.trim();
+  const productoYaSeleccionado =
+    filaSeleccionada != null && textoBusqueda === etiquetaProducto(filaSeleccionada);
+  const debeBuscarProductos =
+    terminoBusqueda.length >= MIN_CARACTERES_BUSQUEDA && !productoYaSeleccionado;
 
   const resetFormularioTraslado = useCallback(() => {
     setError(null);
@@ -61,10 +78,22 @@ const MoverMercaderiaModal = ({
     setFilaSeleccionada(null);
     setListaAbierta(false);
     setIndiceResaltado(0);
-    setCantidad(1);
+    setCantidad("");
     abortRef.current?.abort();
     abortRef.current = null;
   }, []);
+
+  // Bloqueo de scroll en móviles cuando está activo el autocompletado
+  useEffect(() => {
+    if (listaAbierta && sugerencias.length > 0 && window.innerWidth < 640) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [listaAbierta, sugerencias.length]);
 
   useEffect(() => {
     if (!abierto) {
@@ -72,6 +101,7 @@ const MoverMercaderiaModal = ({
       setDestinosDisponibles([]);
       setIdDestinoPaso1("");
       setStockAreaCompleto([]);
+      setComboAbierto(false);
       resetFormularioTraslado();
       return;
     }
@@ -150,7 +180,7 @@ const MoverMercaderiaModal = ({
   }, [abierto, modoDestinoLibre, ubicacionOrigenStock, resetFormularioTraslado, accesoAreaAlmacen]);
 
   useEffect(() => {
-    if (!abierto || !ubicacionOrigenStock) {
+    if (!abierto || !ubicacionOrigenStock || !destinoActivo) {
       if (!abierto) setStockAreaCompleto([]);
       return;
     }
@@ -173,14 +203,22 @@ const MoverMercaderiaModal = ({
     return () => {
       cancelled = true;
     };
-  }, [abierto, ubicacionOrigenStock?.idUbicacionArea]);
+  }, [abierto, ubicacionOrigenStock?.idUbicacionArea, destinoActivo?.idUbicacionArea]);
 
   useEffect(() => {
-    if (!abierto || !destinoEfectivo || ubicacionOrigenStock) {
+    if (!abierto || !destinoActivo || ubicacionOrigenStock) {
       return;
     }
 
-    const delayMs = textoBusqueda.trim() === "" ? 0 : 300;
+    if (!debeBuscarProductos) {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setCargandoSugerencias(false);
+      setSugerencias([]);
+      setListaAbierta(false);
+      return;
+    }
+
     const t = window.setTimeout(() => {
       abortRef.current?.abort();
       const ctrl = new AbortController();
@@ -189,10 +227,12 @@ const MoverMercaderiaModal = ({
       setError(null);
       const sectorBusqueda = accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo
         ? accesoAreaAlmacen.sectoresVisibles[0]
-        : destinoEfectivo?.area ?? undefined;
+        : accesoAreaAlmacen?.esAlmaceneroGeneral
+          ? destinoActivo.area ?? undefined
+          : undefined;
       AlmacenService.buscarStockOrigenTraslado(
-        textoBusqueda,
-        30,
+        terminoBusqueda,
+        LIMITE_SUGERENCIAS,
         ctrl.signal,
         true,
         sectorBusqueda
@@ -207,46 +247,66 @@ const MoverMercaderiaModal = ({
           console.error("Error en búsqueda de stock:", err);
           setError("No se pudo cargar el inventario para el traslado.");
           setSugerencias([]);
+          setListaAbierta(false);
         })
         .finally(() => {
           if (!ctrl.signal.aborted) {
             setCargandoSugerencias(false);
           }
         });
-    }, delayMs);
+    }, DEBOUNCE_BUSQUEDA_MS);
 
     return () => {
       window.clearTimeout(t);
       abortRef.current?.abort();
     };
-  }, [abierto, destinoEfectivo?.idUbicacionArea, ubicacionOrigenStock, textoBusqueda, accesoAreaAlmacen]);
+  }, [
+    abierto,
+    destinoActivo,
+    ubicacionOrigenStock,
+    terminoBusqueda,
+    debeBuscarProductos,
+    accesoAreaAlmacen,
+  ]);
 
   useEffect(() => {
-    if (!abierto || !destinoEfectivo || !ubicacionOrigenStock) {
+    if (!abierto || !destinoActivo || !ubicacionOrigenStock) {
       return;
     }
 
-    const delayMs = textoBusqueda.trim() === "" ? 0 : 120;
+    if (!debeBuscarProductos) {
+      setCargandoSugerencias(false);
+      setSugerencias([]);
+      setListaAbierta(false);
+      return;
+    }
+
     const t = window.setTimeout(() => {
       setCargandoSugerencias(true);
-      const q = textoBusqueda.trim().toLowerCase();
+      const q = terminoBusqueda.toLowerCase();
       const filtered = stockAreaCompleto
         .filter((fila) => {
-          if (!q) return true;
           const fields = [fila.nombreProducto, fila.codigoIdentificacion, fila.sku, fila.color, fila.talla].map((x) =>
             (x ?? "").toLowerCase()
           );
           return fields.some((f) => f.includes(q));
         })
-        .slice(0, 30);
+        .slice(0, LIMITE_SUGERENCIAS);
       setSugerencias(filtered);
       setIndiceResaltado(0);
       setListaAbierta(true);
       setCargandoSugerencias(false);
-    }, delayMs);
+    }, DEBOUNCE_BUSQUEDA_MS);
 
     return () => window.clearTimeout(t);
-  }, [abierto, destinoEfectivo?.idUbicacionArea, ubicacionOrigenStock, textoBusqueda, stockAreaCompleto]);
+  }, [
+    abierto,
+    destinoActivo?.idUbicacionArea,
+    ubicacionOrigenStock,
+    terminoBusqueda,
+    debeBuscarProductos,
+    stockAreaCompleto,
+  ]);
 
   useEffect(() => {
     if (textoBusqueda !== (filaSeleccionada ? etiquetaProducto(filaSeleccionada) : "")) {
@@ -255,29 +315,21 @@ const MoverMercaderiaModal = ({
   }, [textoBusqueda, filaSeleccionada]);
 
   const stockMaximo = filaSeleccionada?.stockActual ?? 0;
+  const numCantidad = Number(cantidad) || 0;
 
   const puedeEnviar =
-    !!destinoEfectivo &&
+    !!destinoActivo &&
     !!filaSeleccionada?.idUbicacionArea &&
     !!filaSeleccionada.idVariante &&
-    cantidad > 0 &&
-    cantidad <= stockMaximo &&
+    numCantidad > 0 &&
+    numCantidad <= stockMaximo &&
     !enviando;
 
-  const puedeContinuarPaso1 =
-    requierePasoDestino && idDestinoPaso1 !== "" && !cargandoDestinos && !enviando;
-
-  const confirmarDestinoPaso1 = () => {
-    if (idDestinoPaso1 === "") return;
-    const elegido = destinosDisponibles.find((u) => u.idUbicacionArea === idDestinoPaso1);
-    if (!elegido) return;
-    setDestinoEfectivo(elegido);
-    resetFormularioTraslado();
-  };
-
-  const volverAElegirDestino = () => {
-    setDestinoEfectivo(null);
-    setIdDestinoPaso1("");
+  const aplicarDestinoSeleccionado = (u: UbicacionArea) => {
+    setIdDestinoPaso1(u.idUbicacionArea);
+    setDestinoEfectivo(u);
+    setComboAbierto(false);
+    setStockAreaCompleto([]);
     resetFormularioTraslado();
   };
 
@@ -285,19 +337,19 @@ const MoverMercaderiaModal = ({
     setFilaSeleccionada(fila);
     setTextoBusqueda(etiquetaProducto(fila));
     setListaAbierta(false);
-    setCantidad(1);
+    setCantidad("");
   };
 
   const confirmar = async () => {
-    if (!puedeEnviar || !destinoEfectivo || !filaSeleccionada) return;
+    if (!puedeEnviar || !destinoActivo || !filaSeleccionada) return;
     setEnviando(true);
     setError(null);
     try {
       await AlmacenService.moverMercaderia({
         idVariante: filaSeleccionada.idVariante,
         idUbicacionAreaOrigen: filaSeleccionada.idUbicacionArea,
-        idUbicacionAreaDestino: destinoEfectivo.idUbicacionArea,
-        cantidad,
+        idUbicacionAreaDestino: destinoActivo.idUbicacionArea,
+        cantidad: numCantidad,
       });
       onExito();
       onCerrar();
@@ -335,277 +387,249 @@ const MoverMercaderiaModal = ({
     }
   };
 
-  const mostrarPasoDestino = requierePasoDestino && !destinoEfectivo;
+  const tituloOrigenArea = ubicacionOrigenStock ? formatoUbicacion(ubicacionOrigenStock) : "Almacén Principal";
 
-  const headerDestino = useMemo(() => {
-    if (!destinoEfectivo) return null;
-    return formatoUbicacion(destinoEfectivo);
-  }, [destinoEfectivo]);
-
-  const tituloOrigenArea = ubicacionOrigenStock ? formatoUbicacion(ubicacionOrigenStock) : null;
-
-  const mensajeSinStock = ubicacionOrigenStock
-    ? "No hay stock disponible en esta área para mover."
-    : "No hay stock disponible en Almacen para mover.";
+  const destinoDisplay = destinoActivo
+    ? formatoUbicacion(destinoActivo)
+    : "Seleccionar Destino";
 
   if (!abierto) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 animate-fadeIn">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn">
+      {/* Backdrop de cierre */}
+      <div className="absolute inset-0 -z-10" onClick={onCerrar} />
+
       <div
-        className={`bg-white rounded-2xl shadow-2xl w-full border border-gray-100 animate-scaleIn ${
-          mostrarPasoDestino ? "max-w-lg" : "max-w-2xl"
-        }`}
+        className="app-modal-panel w-full border shadow-2xl transition-all duration-300 ease-out rounded-t-3xl sm:rounded-3xl max-h-[94dvh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-scaleIn max-w-lg sm:mx-auto"
       >
-        <header className="flex items-start justify-between px-8 py-6 border-b border-gray-100">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">Mover mercadería</h2>
-            {mostrarPasoDestino ? (
-              <p className="text-sm text-gray-500 mt-1 font-medium">
-                {ubicacionOrigenStock ? (
-                  <>
-                    Origen del stock: <span className="font-bold text-gray-900">{tituloOrigenArea}</span>. Elige a
-                    dónde trasladar las unidades; luego verás solo variantes con stock en esa área.
-                  </>
-                ) : (
-                  <>
-                    Elige el piso o área de destino. Las sugerencias incluyen stock en{" "}
-                    <span className="font-bold text-gray-900">Almacen</span>; por variante se prioriza
-                    Almacen y cada línea indica el origen (Damas, Caballeros, Niños).
-                  </>
-                )}
-              </p>
-            ) : (
-              <>
-                <p className="text-sm text-gray-500 mt-1 font-medium">
-                  Destino del traslado:{" "}
-                  <span className="font-bold text-gray-900">{headerDestino}</span>
-                </p>
-                <p className="text-xs text-gray-500 mt-2 font-medium">
-                  {ubicacionOrigenStock ? (
-                    <>
-                      Origen por línea: stock en{" "}
-                      <span className="font-bold text-gray-900">{tituloOrigenArea}</span>.
-                    </>
-                  ) : (
-                    <>
-                      Origen por línea:{" "}
-                      <span className="font-bold text-gray-900">Almacen</span> (según la sugerencia
-                      elegida; se muestra en cada fila).
-                    </>
-                  )}
-                </p>
-                {requierePasoDestino && (
-                  <button
-                    type="button"
-                    onClick={volverAElegirDestino}
-                    className="mt-2 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors duration-200"
-                  >
-                    Cambiar destino
-                  </button>
-                )}
-              </>
-            )}
+        <header className="flex items-start justify-between gap-3 px-4 py-4 sm:px-8 sm:py-6 border-b border-[var(--app-border)] shrink-0">
+          <div className="min-w-0 pr-2">
+            <h2 className="text-xl sm:text-2xl font-bold app-heading">Transferir Stock</h2>
+            <p className="text-xs sm:text-sm app-text-muted mt-1 font-medium">
+              Traslado de mercadería entre ubicaciones internas.
+            </p>
           </div>
           <button
             type="button"
             onClick={onCerrar}
-            className="p-2 rounded-xl text-gray-400 hover:text-black hover:bg-gray-100 transition-colors duration-200"
+            className="p-2 rounded-full app-text-faint hover:app-heading hover:bg-[var(--app-hover-overlay)] transition-colors"
             aria-label="Cerrar"
           >
-            <X className="h-5 w-5" />
+            <MaterialIcon icon="close" className="h-5 w-5" />
           </button>
         </header>
 
-        <div className="px-8 py-6 space-y-6">
-          {mostrarPasoDestino ? (
+        <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 overflow-y-auto flex-1 overscroll-contain">
+          {/* Fila de Origen y Destino */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-3">
-                Destino del traslado
+              <label className="block text-xs font-bold app-heading mb-2">
+                Origen
               </label>
-              {cargandoDestinos ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500 py-3 font-medium">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Cargando ubicaciones…
-                </div>
-              ) : destinosDisponibles.length === 0 ? (
-                <p className="text-sm text-gray-500 font-medium">No hay ubicaciones de destino disponibles.</p>
-              ) : (
-                <select
-                  value={idDestinoPaso1 === "" ? "" : String(idDestinoPaso1)}
-                  onChange={(e) =>
-                    setIdDestinoPaso1(e.target.value ? Number(e.target.value) : "")
-                  }
-                  className="w-full rounded-xl border-transparent bg-[#f8f8f8] px-4 py-3 text-sm font-medium text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all duration-200"
+              <div className="w-full flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-input)] px-4 py-3 text-sm font-medium app-text-muted">
+                <span className="truncate">
+                  {tituloOrigenArea}
+                </span>
+                <MaterialIcon icon="arrow_drop_down" className="h-4 w-4 app-text-faint" />
+              </div>
+            </div>
+
+            <div className="relative">
+              <label className="block text-xs font-bold app-heading mb-2">
+                Destino
+              </label>
+              <>
+                <button
+                  type="button"
+                  onClick={() => setComboAbierto(!comboAbierto)}
+                  disabled={cargandoDestinos}
+                  className="w-full flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm font-medium app-heading hover:border-[var(--app-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--app-ring)] transition-all duration-200"
                 >
-                  <option value="">Seleccione un destino</option>
-                  {destinosDisponibles.map((u) => (
-                    <option key={u.idUbicacionArea} value={u.idUbicacionArea}>
-                      {formatoUbicacion(u)}
-                    </option>
+                  <span className="truncate">
+                    {cargandoDestinos ? "Cargando..." : destinoDisplay}
+                  </span>
+                  <MaterialIcon icon="arrow_drop_down" className="h-4 w-4 app-text-faint" />
+                </button>
+                {comboAbierto && !cargandoDestinos && (
+                  <>
+                    <div className="fixed inset-0 z-10" onClick={() => setComboAbierto(false)} />
+                    <ul className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-lg animate-fadeIn">
+                      {destinosDisponibles.map((u) => (
+                        <li key={u.idUbicacionArea}>
+                          <button
+                            type="button"
+                            onClick={() => aplicarDestinoSeleccionado(u)}
+                            className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 ${
+                              destinoActivo?.idUbicacionArea === u.idUbicacionArea
+                                ? "bg-[var(--app-surface-elevated)] app-heading font-bold"
+                                : "hover:bg-[var(--app-hover-overlay)] app-text-muted font-medium"
+                            }`}
+                          >
+                            {formatoUbicacion(u)}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </>
+            </div>
+          </div>
+
+          <div className="border-t border-[var(--app-border)] pt-6">
+            <label
+              htmlFor="busqueda-traslado-producto"
+              className="block text-xs font-bold app-heading mb-2"
+            >
+              Producto
+            </label>
+            <div className="relative">
+              <MaterialIcon icon="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 app-text-faint" />
+              <input
+                id="busqueda-traslado-producto"
+                type="text"
+                autoComplete="off"
+                value={textoBusqueda}
+                onChange={(e) => {
+                  setTextoBusqueda(e.target.value);
+                  if (e.target.value.trim().length < MIN_CARACTERES_BUSQUEDA) {
+                    setListaAbierta(false);
+                    setSugerencias([]);
+                  }
+                }}
+                onFocus={() => {
+                  if (debeBuscarProductos && sugerencias.length > 0) {
+                    setListaAbierta(true);
+                  }
+                }}
+                onBlur={() => {
+                  window.setTimeout(() => setListaAbierta(false), 200);
+                }}
+                onKeyDown={onKeyDownBusqueda}
+                placeholder={`Escriba al menos ${MIN_CARACTERES_BUSQUEDA} caracteres (SKU, código o nombre)`}
+                disabled={(ubicacionOrigenStock ? cargandoStockArea : false) || !destinoActivo}
+                className="w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-input)] pl-11 pr-4 py-3 text-sm font-medium app-heading placeholder:text-[var(--app-text-faint)] focus:border-[var(--app-border-strong)] focus:ring-0 transition-all duration-200 disabled:opacity-50 disabled:bg-[var(--app-bg-muted)]"
+              />
+              {(cargandoSugerencias || (ubicacionOrigenStock && cargandoStockArea)) && (
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                  <MaterialIcon icon="progress_activity" className="h-4 w-4 animate-spin app-text-faint" />
+                </div>
+              )}
+
+              {listaAbierta &&
+                destinoActivo &&
+                debeBuscarProductos &&
+                !cargandoSugerencias &&
+                !(ubicacionOrigenStock && cargandoStockArea) &&
+                sugerencias.length === 0 && (
+                  <p className="absolute z-30 mt-2 w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm app-text-muted shadow-lg">
+                    No hay productos con stock que coincidan con la búsqueda.
+                  </p>
+                )}
+
+              {listaAbierta && sugerencias.length > 0 && (
+                <ul
+                  role="listbox"
+                  className="absolute z-30 mt-2 max-h-52 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-xl animate-fadeIn"
+                >
+                  {sugerencias.map((fila, idx) => (
+                    <li key={`${fila.idVariante}-${fila.idUbicacionArea}`} role="option" aria-selected={idx === indiceResaltado}>
+                      <button
+                        type="button"
+                        className={`w-full text-left px-5 py-3 text-sm transition-colors duration-150 flex flex-col justify-center min-h-[48px] ${
+                          idx === indiceResaltado ? "bg-[var(--app-surface-elevated)] app-heading" : "hover:bg-[var(--app-hover-overlay)] app-text-muted"
+                        }`}
+                        onMouseEnter={() => setIndiceResaltado(idx)}
+                        onMouseDown={(ev) => {
+                          ev.preventDefault();
+                          elegirSugerencia(fila);
+                        }}
+                      >
+                        <div className="font-semibold app-heading leading-tight">{etiquetaProducto(fila)}</div>
+                        <div className="text-xs app-text-faint mt-1 font-medium">
+                          {origenEtiqueta(fila)} — stock <span className="font-mono font-bold app-heading">{fila.stockActual}</span>
+                        </div>
+                      </button>
+                    </li>
                   ))}
-                </select>
+                </ul>
               )}
             </div>
-          ) : (
-            <>
-              <div className="relative">
-                <label
-                  htmlFor="busqueda-traslado-producto"
-                  className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-3"
-                >
-                  Buscar producto / variante
-                </label>
-                <input
-                  id="busqueda-traslado-producto"
-                  type="text"
-                  autoComplete="off"
-                  value={textoBusqueda}
-                  onChange={(e) => {
-                    setTextoBusqueda(e.target.value);
-                    setListaAbierta(true);
-                  }}
-                  onFocus={() => setListaAbierta(true)}
-                  onBlur={() => {
-                    window.setTimeout(() => setListaAbierta(false), 180);
-                  }}
-                  onKeyDown={onKeyDownBusqueda}
-                  placeholder="Nombre, código, SKU, color o talla…"
-                  disabled={ubicacionOrigenStock ? cargandoStockArea : false}
-                  className="w-full rounded-xl border border-gray-200 bg-[#f8f8f8] px-4 py-3 text-sm font-medium text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all duration-200 disabled:opacity-50"
-                />
-                {(cargandoSugerencias || (ubicacionOrigenStock && cargandoStockArea)) && (
-                  <div className="absolute right-3 top-11 flex items-center pointer-events-none">
-                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
-                  </div>
-                )}
-                {listaAbierta && sugerencias.length > 0 && (
-                  <ul
-                    role="listbox"
-                    className="absolute z-10 mt-1 max-h-56 w-full overflow-auto rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
-                  >
-                    {sugerencias.map((fila, idx) => (
-                      <li key={`${fila.idVariante}-${fila.idUbicacionArea}`} role="option" aria-selected={idx === indiceResaltado}>
-                        <button
-                          type="button"
-                          className={`w-full text-left px-4 py-2.5 text-sm transition-colors duration-150 ${
-                            idx === indiceResaltado ? "bg-gray-100" : "hover:bg-gray-50"
-                          }`}
-                          onMouseEnter={() => setIndiceResaltado(idx)}
-                          onMouseDown={(ev) => {
-                            ev.preventDefault();
-                            elegirSugerencia(fila);
-                          }}
-                        >
-                          <div className="font-semibold text-gray-900">{etiquetaProducto(fila)}</div>
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            {origenEtiqueta(fila)} — stock {fila.stockActual}
-                          </div>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                {!cargandoSugerencias &&
-                  !(ubicacionOrigenStock && cargandoStockArea) &&
-                  listaAbierta &&
-                  textoBusqueda.trim() !== "" &&
-                  sugerencias.length === 0 && (
-                  <p className="mt-2 text-sm text-gray-500 font-medium">Sin coincidencias.</p>
-                )}
-                {!cargandoSugerencias &&
-                  !(ubicacionOrigenStock && cargandoStockArea) &&
-                  sugerencias.length === 0 &&
-                  textoBusqueda.trim() === "" && (
-                  <p className="mt-2 text-xs text-gray-500 font-medium">
-                    {ubicacionOrigenStock
-                      ? "Escribe para filtrar o elige entre las primeras variantes con stock en el área."
-                      : "Escribe para filtrar o elige entre las primeras sugerencias de Almacen."}
-                  </p>
-                )}
-              </div>
+            {!destinoActivo && (
+              <p className="mt-2 text-xs app-text-faint font-medium">Seleccione primero un destino.</p>
+            )}
+            {destinoActivo && !productoYaSeleccionado && terminoBusqueda.length < MIN_CARACTERES_BUSQUEDA && (
+              <p className="mt-2 text-xs app-text-faint font-medium">
+                Escriba al menos {MIN_CARACTERES_BUSQUEDA} caracteres para buscar en el inventario (máx.{" "}
+                {LIMITE_SUGERENCIAS} resultados).
+              </p>
+            )}
+            {destinoActivo && productoYaSeleccionado && (
+              <p className="mt-2 text-xs app-text-faint font-medium">
+                Borre el texto del producto para buscar otro artículo.
+              </p>
+            )}
+          </div>
 
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.15em] mb-3">
-                  Cantidad a mover
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={stockMaximo > 0 ? stockMaximo : undefined}
-                  value={cantidad}
-                  onChange={(e) => setCantidad(Math.max(0, Number(e.target.value || 0)))}
-                  disabled={!filaSeleccionada}
-                  className="w-full rounded-xl border-transparent bg-[#f8f8f8] px-4 py-3 text-sm font-medium text-gray-900 focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all duration-200 disabled:opacity-50"
-                />
-                {filaSeleccionada && (
-                  <p className="text-xs text-gray-500 mt-2 font-medium">
-                    Disponible en <span className="font-bold text-gray-900">{origenEtiqueta(filaSeleccionada)}</span>:{" "}
-                    <span className="font-bold text-gray-900">{stockMaximo}</span>
-                  </p>
-                )}
-                {!filaSeleccionada && sugerencias.length > 0 && (
-                  <p className="text-xs text-gray-500 mt-2 font-medium">
-                    Selecciona una sugerencia de la lista (clic o teclado).
-                  </p>
-                )}
-                {!filaSeleccionada &&
-                  !cargandoSugerencias &&
-                  !(ubicacionOrigenStock && cargandoStockArea) &&
-                  sugerencias.length === 0 && (
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mt-2 font-medium">
-                    <PackageSearch className="h-4 w-4" />
-                    {mensajeSinStock}
-                  </div>
-                )}
-              </div>
-            </>
-          )}
+          <div>
+            <label className="block text-xs font-bold app-heading mb-2">
+              Cantidad a Transferir
+            </label>
+            <div className="relative w-full sm:w-1/2">
+              <input
+                type="number"
+                min={1}
+                max={stockMaximo > 0 ? stockMaximo : undefined}
+                value={cantidad}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "") setCantidad("");
+                  else setCantidad(Math.max(0, Number(val)));
+                }}
+                disabled={!filaSeleccionada}
+                className="w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-input)] px-4 py-3 text-sm font-semibold app-heading text-center focus:border-[var(--app-border-strong)] focus:ring-0 transition-all duration-200 disabled:opacity-50 disabled:bg-[var(--app-bg-muted)] pr-12"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold app-text-muted">
+                Uds.
+              </span>
+            </div>
+            {filaSeleccionada && (
+              <p className="text-xs app-text-muted mt-2 font-medium">
+                Stock disponible: <span className="font-mono font-bold app-heading">{stockMaximo}</span>
+              </p>
+            )}
+          </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-100 text-red-600 text-sm font-medium rounded-xl px-4 py-3 flex items-center gap-2">
+            <div className="bg-rose-50 border border-rose-100 text-rose-600 text-sm font-semibold rounded-xl px-4 py-3 flex items-center gap-2">
               <span className="flex-shrink-0">⚠️</span>
               {error}
             </div>
           )}
         </div>
 
-        <footer className="px-8 py-5 border-t border-gray-100 flex justify-end gap-3 bg-[#fafafa] rounded-b-2xl">
+        <footer className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:py-5 border-t border-[var(--app-border)] flex flex-col-reverse sm:flex-row justify-stretch sm:justify-end items-stretch sm:items-center gap-2 sm:gap-4 bg-[var(--app-bg-muted)] shrink-0">
           <button
             type="button"
             onClick={onCerrar}
             disabled={enviando}
-            className="px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-500 hover:text-black transition-colors duration-200"
+            className="min-h-11 w-full sm:w-auto px-6 py-2.5 text-sm font-bold app-text-muted hover:app-heading transition-colors touch-manipulation"
           >
             Cancelar
           </button>
 
-          {mostrarPasoDestino ? (
-            <button
-              type="button"
-              onClick={confirmarDestinoPaso1}
-              disabled={!puedeContinuarPaso1}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-black rounded-xl hover:bg-gray-800 transition-all duration-200 shadow-sm disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed active:scale-[0.98]"
-            >
-              <ArrowRight className="h-4 w-4" />
-              Continuar
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={confirmar}
-              disabled={!puedeEnviar}
-              className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white bg-black rounded-xl hover:bg-gray-800 transition-all duration-200 shadow-sm disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed active:scale-[0.98]"
-            >
-              {enviando ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ArrowRight className="h-4 w-4" />
-              )}
-              Confirmar traslado
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={confirmar}
+            disabled={!puedeEnviar || !destinoActivo}
+            className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 px-8 py-2.5 text-sm font-bold text-[var(--app-accent-fg)] bg-[var(--app-accent)] rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] touch-manipulation"
+          >
+            {enviando && <MaterialIcon icon="progress_activity" className="h-4 w-4 animate-spin" />}
+            Confirmar Traslado
+          </button>
         </footer>
       </div>
     </div>

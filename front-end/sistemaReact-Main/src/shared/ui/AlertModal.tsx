@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, AlertTriangle, Info, XCircle } from 'lucide-react';
+import { MaterialIcon } from './MaterialIcon';
 
 export interface AlertModalProps {
   open: boolean;
@@ -32,12 +32,13 @@ const AlertModal = ({
 
   const getIcon = () => {
     switch (variant) {
-      case 'success': return <CheckCircle className="w-6 h-6 text-white" />;
-      case 'error':   return <XCircle className="w-6 h-6 text-white" />;
-      case 'warning': return <AlertTriangle className="w-6 h-6 text-white" />;
-      case 'info':    return <Info className="w-6 h-6 text-white" />;
+      case 'success': return <MaterialIcon icon="check_circle" className="w-6 h-6 text-white" fill />;
+      case 'error':   return <MaterialIcon icon="cancel" className="w-6 h-6 text-white" fill />;
+      case 'warning': return <MaterialIcon icon="warning" className="w-6 h-6 text-white" fill />;
+      case 'info':    return <MaterialIcon icon="info" className="w-6 h-6 text-white" fill />;
     }
   };
+
 
   const getDefaultTitle = () => {
     if (title) return title;

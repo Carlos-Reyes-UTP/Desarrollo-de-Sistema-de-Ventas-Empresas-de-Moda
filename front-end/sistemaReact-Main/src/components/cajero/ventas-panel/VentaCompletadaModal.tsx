@@ -1,4 +1,4 @@
-import { CheckCircle, Printer, User, CreditCard, UserCheck } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { DatosVentaBoleta } from './types';
 
 interface VentaCompletadaModalProps {
@@ -22,7 +22,7 @@ export const VentaCompletadaModal = ({
 
         <div className="bg-black px-8 py-6 flex items-center gap-4">
           <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <CheckCircle className="w-5 h-5 text-white" />
+            <MaterialIcon icon="check_circle" className="w-5 h-5 text-white" />
           </div>
           <div>
             <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Venta Registrada</h3>
@@ -44,7 +44,7 @@ export const VentaCompletadaModal = ({
         <div className="px-8 pb-2 grid grid-cols-1 gap-3">
           <div className="caj-page rounded-[1.5rem] p-5 border caj-border-subtle flex items-center gap-4">
             <div className="w-8 h-8 caj-btn-primary rounded-xl flex items-center justify-center flex-shrink-0">
-              <User className="h-4 w-4 text-[var(--caj-accent-fg)]" />
+              <MaterialIcon icon="person" className="h-4 w-4 text-[var(--caj-accent-fg)]" />
             </div>
             <div className="min-w-0">
               <span className="caj-text-faint block text-[9px] font-bold uppercase tracking-[0.3em] mb-0.5">Cliente</span>
@@ -56,7 +56,7 @@ export const VentaCompletadaModal = ({
             <div className="caj-page rounded-[1.5rem] p-5 border caj-border-subtle">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 caj-btn-primary rounded-lg flex items-center justify-center">
-                  <CreditCard className="h-3.5 w-3.5 text-[var(--caj-accent-fg)]" />
+                  <MaterialIcon icon="credit_card" className="h-3.5 w-3.5 text-[var(--caj-accent-fg)]" />
                 </div>
               </div>
               <span className="caj-text-faint block text-[9px] font-bold uppercase tracking-[0.25em] mb-1">Método de Pago</span>
@@ -66,7 +66,7 @@ export const VentaCompletadaModal = ({
             <div className="caj-page rounded-[1.5rem] p-5 border caj-border-subtle">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-7 h-7 caj-btn-primary rounded-lg flex items-center justify-center">
-                  <UserCheck className="h-3.5 w-3.5 text-[var(--caj-accent-fg)]" />
+                  <MaterialIcon icon="badge" className="h-3.5 w-3.5 text-[var(--caj-accent-fg)]" />
                 </div>
               </div>
               <span className="caj-text-faint block text-[9px] font-bold uppercase tracking-[0.25em] mb-1">Vendedor</span>
@@ -80,7 +80,7 @@ export const VentaCompletadaModal = ({
             onClick={onPrint}
             className="flex-1 flex items-center justify-center gap-2 py-4 caj-surface-muted border caj-border rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] caj-text-muted hover:opacity-80 transition-all"
           >
-            <Printer className="w-4 h-4" />
+            <MaterialIcon icon="print" className="w-4 h-4" />
             Imprimir Boleta
           </button>
           <button

@@ -107,13 +107,18 @@ public class VendedorService {
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado"));
                 idVariantePreseleccionada = fila.idProductoVariante();
             } else {
-                List<VendedorVarianteCoincidenciaDTO> opciones = filasVariante.stream()
+                List<VendedorVarianteCoincidenciaDTO> parciales = filasVariante.stream()
                         .map(this::mapearCoincidenciaVariante)
+                        .toList();
+                List<Long> idsMultiple = parciales.stream()
+                        .map(VendedorVarianteCoincidenciaDTO::idProductoVariante).toList();
+                Map<Long, Integer> stockBulk = inventarioService.stockEnAlmacenBulk(idsMultiple);
+                List<VendedorVarianteCoincidenciaDTO> opciones = parciales.stream()
                         .map(dto -> new VendedorVarianteCoincidenciaDTO(
                                 dto.idProductoVariante(), dto.idProducto(),
                                 dto.nombreProducto(), dto.talla(), dto.color(),
                                 dto.sku(), dto.codigoBarras(), dto.precioUnitario(),
-                                inventarioService.stockEnAlmacen(dto.idProductoVariante())))
+                                stockBulk.getOrDefault(dto.idProductoVariante(), 0)))
                         .toList();
                 return new VendedorCatalogoBusquedaDTO(true, opciones, null);
             }
@@ -481,12 +486,12 @@ public class VendedorService {
     @Transactional(readOnly = true)
     public List<VendedorSolicitudResumenDTO> listarMisSolicitudes(Long idUsuario, Instant desde, Instant hasta) {
         List<Solicitud> solicitudes = solicitudRepository
-                .findByUsuario_IdAndFechaCreacionBetweenOrderByFechaCreacionDesc(idUsuario, desde, hasta);
+                .findMisSolicitudesConDetalles(idUsuario, desde, hasta);
 
         List<VendedorSolicitudResumenDTO> resultado = new ArrayList<>();
         for (Solicitud s : solicitudes) {
-            List<DetalleSolicitud> detalles = detalleSolicitudRepository.findBySolicitud_IdSolicitud(s.getIdSolicitud());
-            if (detalles.isEmpty()) {
+            List<DetalleSolicitud> detalles = s.getDetalles();
+            if (detalles == null || detalles.isEmpty()) {
                 continue;
             }
             for (DetalleSolicitud d : detalles) {

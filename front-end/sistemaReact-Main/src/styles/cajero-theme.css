@@ -1,44 +1,4 @@
-/* Tokens cajero — modo claro (default en :root para utilidades caj-*) */
-:root {
-  --caj-bg: #fafafa;
-  --caj-bg-muted: #f8f8f8;
-  --caj-surface: #ffffff;
-  --caj-surface-elevated: #fcfcfc;
-  --caj-input: #f8f8f8;
-  --caj-input-focus: #ffffff;
-  --caj-border: #f3f4f6;
-  --caj-border-strong: #e5e7eb;
-  --caj-text: #000000;
-  --caj-text-muted: #9ca3af;
-  --caj-text-faint: #d1d5db;
-  --caj-accent: #000000;
-  --caj-accent-fg: #ffffff;
-  --caj-layout-bg: #fafafa;
-  --caj-ring: rgb(243 244 246);
-  --caj-icon-muted: #d1d5db;
-  --caj-hover-overlay: rgb(0 0 0 / 0.02);
-}
-
-/* Paleta alineada a Cursor Dark: grises neutros (#181818–#3c3c3c), sin tinte azul */
-.cajero-dark {
-  --caj-bg: #181818;
-  --caj-bg-muted: #1f1f1f;
-  --caj-surface: #252526;
-  --caj-surface-elevated: #2d2d2d;
-  --caj-input: #313131;
-  --caj-input-focus: #3c3c3c;
-  --caj-border: #333333;
-  --caj-border-strong: #3c3c3c;
-  --caj-text: #cccccc;
-  --caj-text-muted: #9d9d9d;
-  --caj-text-faint: #6e6e6e;
-  --caj-accent: #e4e4e4;
-  --caj-accent-fg: #181818;
-  --caj-layout-bg: #181818;
-  --caj-ring: rgb(60 60 60);
-  --caj-icon-muted: #6e6e6e;
-  --caj-hover-overlay: rgb(255 255 255 / 0.05);
-}
+/* Tokens --caj-* definidos por tema en app-themes.css (data-theme en html) */
 
 .caj-layout-bg {
   background-color: var(--caj-layout-bg);
@@ -144,7 +104,7 @@
   border-color: var(--caj-border-strong);
 }
 
-.cajero-dark .caj-product-card:hover {
+[data-theme="dark"] .caj-product-card:hover {
   border-color: var(--caj-accent);
 }
 
@@ -154,46 +114,46 @@
 }
 
 /* Scrollbar carrito en dark */
-.cajero-dark .carrito-scroll::-webkit-scrollbar-track {
+[data-theme="dark"] .carrito-scroll::-webkit-scrollbar-track {
   background: var(--caj-bg-muted);
 }
 
-.cajero-dark .carrito-scroll::-webkit-scrollbar-thumb {
+[data-theme="dark"] .carrito-scroll::-webkit-scrollbar-thumb {
   background: var(--caj-border-strong);
 }
 
-.cajero-dark .carrito-scroll::-webkit-scrollbar-thumb:hover {
+[data-theme="dark"] .carrito-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--caj-text-faint);
 }
 
 /* Toasts: fondo tipo panel Cursor + acento de color suave */
-.cajero-dark .caj-toast-error {
+[data-theme="dark"] .caj-toast-error {
   background-color: #2d2d2d;
   border-color: #5a3030;
   color: #f0c0c0;
 }
 
-.cajero-dark .caj-toast-error .caj-toast-icon-wrap {
+[data-theme="dark"] .caj-toast-error .caj-toast-icon-wrap {
   background-color: #3c2a2a;
 }
 
-.cajero-dark .caj-toast-info {
+[data-theme="dark"] .caj-toast-info {
   background-color: #2d2d2d;
   border-color: #3a3a4a;
   color: #c8d0e0;
 }
 
-.cajero-dark .caj-toast-info .caj-toast-icon-wrap {
+[data-theme="dark"] .caj-toast-info .caj-toast-icon-wrap {
   background-color: #2e2e38;
 }
 
-.cajero-dark .caj-toast-success {
+[data-theme="dark"] .caj-toast-success {
   background-color: #2d2d2d;
   border-color: #2f4a3a;
   color: #b8e0c8;
 }
 
-.cajero-dark .caj-toast-success .caj-toast-icon-wrap {
+[data-theme="dark"] .caj-toast-success .caj-toast-icon-wrap {
   background-color: #2a3830;
 }
 
@@ -202,7 +162,7 @@
   background-color: rgb(0 0 0 / 0.4);
 }
 
-.cajero-dark .caj-modal-overlay {
+[data-theme="dark"] .caj-modal-overlay {
   background-color: rgb(0 0 0 / 0.65);
 }
 

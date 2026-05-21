@@ -2,8 +2,8 @@ import React from 'react';
 import { Skeleton } from './Skeleton';
 
 export const AppShellSkeleton: React.FC = () => (
-  <div className="flex min-h-screen bg-[#fafafa]" aria-busy aria-label="Cargando aplicación">
-    <aside className="hidden w-64 shrink-0 border-r border-gray-100 bg-white p-6 md:flex md:flex-col md:gap-4">
+  <div className="flex min-h-screen app-layout-bg" aria-busy aria-label="Cargando aplicación">
+    <aside className="hidden w-64 shrink-0 border-r border-[var(--app-border)] bg-[var(--app-surface)] p-6 md:flex md:flex-col md:gap-4">
       <Skeleton className="mb-6 h-10 w-32" />
       {Array.from({ length: 8 }, (_, i) => (
         <Skeleton key={i} className="h-10 w-full rounded-xl" variant="muted" />

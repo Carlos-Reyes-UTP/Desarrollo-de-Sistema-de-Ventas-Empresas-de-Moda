@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Save, Package2, AlertCircle, Layers, Tag, Barcode } from 'lucide-react';
 import type { Producto } from '../../types/Producto';
 import type { Categoria } from '../../types/Categoria';
 import type { Proveedor } from '../../types/Proveedor';
@@ -17,7 +16,7 @@ import {
 import { validarJerarquiaPreciosProducto } from '../../utils/validarPreciosProducto';
 import { getErrorMessage, getStatusCode } from '@/utils/errorUtils';
 import { extractApiErrorMessage } from '@/utils/handleApiError';
-import { AlertModal } from '@/shared/ui';
+import { AlertModal, MaterialIcon } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
@@ -98,11 +97,72 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [errorPrecio, setErrorPrecio] = useState<string | null>(null);
 
+  // Estados de validación de pasos y clonación
+  const [pasosConError, setPasosConError] = useState<Record<string, boolean>>({
+    informacion: false,
+    variantes: false,
+    precios: false,
+  });
+  const [crearSiguiente, setCrearSiguiente] = useState(false);
+
   // Nombres descriptivos de selecciones para el autocompletado persistido
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
   const [subcategoriaSeleccionada, setSubcategoriaSeleccionada] = useState('');
   const [subcategoria2Seleccionada, setSubcategoria2Seleccionada] = useState('');
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
+
+  // Helpers de validación para el Stepper numerado
+  const isInfoValido = useMemo(() => {
+    const subcategoriaOk =
+      subcategorias.length === 0 || !!formData.subcategoriaId.trim();
+    return !!(
+      formData.nombre.trim() &&
+      formData.codigoIdentificacion.trim() &&
+      formData.categoriaId &&
+      formData.sexo &&
+      formData.marca.trim() &&
+      formData.tipoPublico &&
+      formData.proveedorId &&
+      subcategoriaOk
+    );
+  }, [formData, subcategorias.length]);
+
+  const isAreaStockValido = useMemo(() => {
+    if (errorContextoInventario) return false;
+    if (!accesoAreaAlmacen) return true;
+    if (!accesoAreaAlmacen.puedeElegirAreaEntrada) {
+      return idAreaAsignadaAlmacenero != null && idAreaAsignadaAlmacenero > 0;
+    }
+    return idAreaEntradaSupervisor !== '';
+  }, [
+    accesoAreaAlmacen?.puedeElegirAreaEntrada,
+    idAreaEntradaSupervisor,
+    idAreaAsignadaAlmacenero,
+    errorContextoInventario,
+  ]);
+
+  const isVariantesValido = useMemo(() => {
+    return variantes.length > 0 && isAreaStockValido;
+  }, [variantes, isAreaStockValido]);
+
+  const isPreciosValido = useMemo(() => {
+    const pu = parseFloat(formData.precioUnitario);
+    const pc = parseFloat(formData.precioCuarto);
+    const pmd = parseFloat(formData.precioMediaDocena);
+    const pd = parseFloat(formData.precioDocena);
+    
+    return (
+      !!formData.precioUnitario.trim() &&
+      !isNaN(pu) &&
+      !!formData.precioCuarto.trim() &&
+      !isNaN(pc) &&
+      !!formData.precioMediaDocena.trim() &&
+      !isNaN(pmd) &&
+      !!formData.precioDocena.trim() &&
+      !isNaN(pd) &&
+      !validarJerarquiaPreciosProducto(pu, pc, pmd, pd)
+    );
+  }, [formData]);
 
   // UI state
   const [tabActiva, setTabActiva] = useState<TabType>('informacion');
@@ -332,20 +392,15 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       const pmd = parseFloat(nextPmd);
       const pd = parseFloat(nextPd);
 
+      setFormData((prev) => ({ ...prev, [name]: value }));
+
       const errJer = validarJerarquiaPreciosProducto(
         Number.isFinite(pu) ? pu : NaN,
         Number.isFinite(pc) ? pc : NaN,
         Number.isFinite(pmd) ? pmd : NaN,
         Number.isFinite(pd) ? pd : NaN
       );
-
-      if (errJer) {
-        setErrorPrecio(errJer);
-        return;
-      }
-
-      setErrorPrecio(null);
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      setErrorPrecio(errJer);
       return;
     }
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -394,44 +449,43 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
 
   const handleCategoriaChange = (e: ValueChangeEvent) => {
     const categoriaId = e.target.value;
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       categoriaId,
       subcategoriaId: '',
       subCategoria2Id: ''
     }));
+    setSubcategoriaSeleccionada('');
+    setSubcategoria2Seleccionada('');
+    setSubCategorias2([]);
 
     if (categoriaId) {
-      const catObj = categorias.find(c => c.idCategoria?.toString() === categoriaId);
-      if (catObj?.subCategorias) {
-        setSubcategorias(catObj.subCategorias);
-      } else {
-        setSubcategorias([]);
+      const cat = categorias.find(c => c.idCategoria?.toString() === categoriaId);
+      if (cat?.subCategorias) {
+        setSubcategorias(cat.subCategorias);
+        return;
       }
-    } else {
-      setSubcategorias([]);
     }
-    setSubCategorias2([]);
+    setSubcategorias([]);
   };
 
   const handleSubcategoriaChange = (e: ValueChangeEvent) => {
     const subcategoriaId = e.target.value;
-    setFormData(prev => ({ 
-      ...prev, 
+    setFormData(prev => ({
+      ...prev,
       subcategoriaId,
       subCategoria2Id: ''
     }));
+    setSubcategoria2Seleccionada('');
 
     if (subcategoriaId) {
-      const subcatObj = subcategorias.find(c => c.idCategoria?.toString() === subcategoriaId);
-      if (subcatObj?.subCategorias) {
-        setSubCategorias2(subcatObj.subCategorias);
-      } else {
-        setSubCategorias2([]);
+      const subcat = subcategorias.find(sc => sc.idCategoria?.toString() === subcategoriaId);
+      if (subcat?.subCategorias) {
+        setSubCategorias2(subcat.subCategorias);
+        return;
       }
-    } else {
-      setSubCategorias2([]);
     }
+    setSubCategorias2([]);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -440,85 +494,115 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
     setError(null);
     setErrorPrecio(null);
 
-    try {
-      if (!formData.nombre.trim()) throw new Error('El nombre del producto es requerido');
-      if (!formData.codigoIdentificacion.trim()) throw new Error('El código de identificación es requerido');
-      if (!formData.categoriaId) throw new Error('Debe seleccionar una categoría principal');
-      if (!formData.sexo) throw new Error('Debe seleccionar el sexo del producto');
-      if (!formData.marca.trim()) throw new Error('La marca es requerida');
+    // Reset error steps
+    setPasosConError({
+      informacion: false,
+      variantes: false,
+      precios: false,
+    });
 
-      if (accesoAreaAlmacen && !accesoAreaAlmacen.puedeElegirAreaEntrada && !idUbicacionAreaParaStock) {
-        throw new Error(
-          errorContextoInventario ??
-            'No tiene área de almacén asignada. Contacte al administrador antes de registrar stock.'
+    // Validate
+    let errorsExist = false;
+    const nextPasosError = {
+      informacion: false,
+      variantes: false,
+      precios: false,
+    };
+
+    const mensajesError: string[] = [];
+
+    if (!isInfoValido) {
+      nextPasosError.informacion = true;
+      errorsExist = true;
+      const faltantes: string[] = [];
+      if (!formData.nombre.trim()) faltantes.push('nombre');
+      if (!formData.codigoIdentificacion.trim()) faltantes.push('código de identificación');
+      if (!formData.categoriaId) faltantes.push('categoría');
+      if (subcategorias.length > 0 && !formData.subcategoriaId.trim()) faltantes.push('subcategoría');
+      if (!formData.sexo) faltantes.push('sexo');
+      if (!formData.marca.trim()) faltantes.push('marca');
+      if (!formData.tipoPublico) faltantes.push('tipo de público');
+      if (!formData.proveedorId) faltantes.push('proveedor');
+      mensajesError.push(
+        `Detalles básicos: complete ${faltantes.join(', ')}.`
+      );
+    }
+
+    if (variantes.length === 0) {
+      nextPasosError.variantes = true;
+      errorsExist = true;
+      mensajesError.push(
+        'Tallas y colores: agregue al menos una combinación (cuadrícula → Confirmar combinaciones, o modo «Agregar una combinación»).'
+      );
+    } else if (!isAreaStockValido) {
+      nextPasosError.variantes = true;
+      errorsExist = true;
+      if (errorContextoInventario) {
+        mensajesError.push(`Tallas y colores: ${errorContextoInventario}`);
+      } else if (accesoAreaAlmacen?.puedeElegirAreaEntrada) {
+        mensajesError.push(
+          'Tallas y colores: seleccione el sector de almacén (Damas, Caballeros o Niños) donde ingresará el stock.'
+        );
+      } else {
+        mensajesError.push(
+          'Tallas y colores: su usuario no tiene área de almacén asignada. Contacte al administrador.'
         );
       }
-      if (accesoAreaAlmacen?.puedeElegirAreaEntrada && variantes.length > 0 && !idUbicacionAreaParaStock) {
-        setTabActiva('variantes');
-        setLoading(false);
-        throw new Error('Seleccione el área de almacén donde ingresa la mercadería.');
-      }
+    }
 
-      if (!formData.precioUnitario.trim() || isNaN(parseFloat(formData.precioUnitario))) {
-        setErrorPrecio('Indique un precio unitario válido.');
-        setTabActiva('precios');
-        setLoading(false);
-        return;
-      }
-
+    if (!isPreciosValido) {
+      nextPasosError.precios = true;
+      errorsExist = true;
       const pu = parseFloat(formData.precioUnitario);
       const pc = parseFloat(formData.precioCuarto);
       const pmd = parseFloat(formData.precioMediaDocena);
       const pd = parseFloat(formData.precioDocena);
-      
-      const faltanTotalesVolumen =
-        !formData.precioCuarto.trim() ||
-        !formData.precioMediaDocena.trim() ||
-        !formData.precioDocena.trim() ||
-        !Number.isFinite(pc) ||
-        !Number.isFinite(pmd) ||
-        !Number.isFinite(pd);
-
-      if (faltanTotalesVolumen) {
-        setErrorPrecio('Para guardar hace falta indicar el total para 3, 6 y 12 unidades.');
-        setTabActiva('precios');
-        setLoading(false);
-        return;
-      }
-
-      const errJerarquia = validarJerarquiaPreciosProducto(pu, pc, pmd, pd);
-      if (errJerarquia) {
-        setErrorPrecio(errJerarquia);
-        setTabActiva('precios');
-        setLoading(false);
-        return;
-      }
-
-      let categoriaSeleccionadaObj: Categoria | undefined = undefined;
-      let categoriaPadreSeleccionada: Categoria | undefined = undefined;
-
-      if (formData.subcategoriaId) {
-        categoriaSeleccionadaObj = subcategorias.find(c => c.idCategoria?.toString() === formData.subcategoriaId);
-        categoriaPadreSeleccionada = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId);
+      const errJer = validarJerarquiaPreciosProducto(
+        Number.isFinite(pu) ? pu : NaN,
+        Number.isFinite(pc) ? pc : NaN,
+        Number.isFinite(pmd) ? pmd : NaN,
+        Number.isFinite(pd) ? pd : NaN
+      );
+      if (!formData.precioUnitario.trim() || !formData.precioCuarto.trim() ||
+          !formData.precioMediaDocena.trim() || !formData.precioDocena.trim()) {
+        mensajesError.push('Costos y precios: complete los cuatro precios por volumen.');
+      } else if (errJer) {
+        mensajesError.push(`Costos y precios: ${errJer}`);
       } else {
-        const categoriaPrincipal = categorias.find(c => c.idCategoria?.toString() === formData.categoriaId)!;
-        if (!categoriaPrincipal) throw new Error('Debe seleccionar una categoría válida');
-        
-        if (categoriaPrincipal.subCategorias && categoriaPrincipal.subCategorias.length > 0) {
-          throw new Error('Debe seleccionar una subcategoría para esta categoría principal');
-        } else {
-          categoriaSeleccionadaObj = undefined;
-          categoriaPadreSeleccionada = categoriaPrincipal;
+        mensajesError.push('Costos y precios: revise los valores ingresados.');
+      }
+    }
+
+    if (errorsExist) {
+      setPasosConError(nextPasosError);
+      if (nextPasosError.informacion) setTabActiva('informacion');
+      else if (nextPasosError.variantes) setTabActiva('variantes');
+      else if (nextPasosError.precios) setTabActiva('precios');
+
+      setError(mensajesError.join(' '));
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const categoriaPadreSeleccionada = categorias.find(
+        (c) => c.idCategoria?.toString() === formData.categoriaId
+      );
+      
+      let categoriaSeleccionadaObj = categoriaPadreSeleccionada;
+      if (formData.subcategoriaId) {
+        const sub = subcategorias.find(
+          (c) => c.idCategoria?.toString() === formData.subcategoriaId
+        );
+        if (sub) {
+          categoriaSeleccionadaObj = sub;
         }
       }
 
-      if (!formData.tipoPublico) throw new Error('Debe seleccionar el tipo de público (niño o adulto)');
-      if (subCategorias2.length > 0 && !formData.subCategoria2Id) {
-        throw new Error('Debe seleccionar la segunda subcategoría (Nivel 3)');
-      }
-      if (!formData.proveedorId) throw new Error('Debe seleccionar un proveedor');
+      const proveedor = proveedores.find(
+        (p) => p.idProveedor?.toString() === formData.proveedorId
+      );
 
-      const proveedor = proveedores.find(p => p.idProveedor?.toString() === formData.proveedorId);
       if (!proveedor) throw new Error('Debe seleccionar un proveedor válido');
 
       let subCategoria2: Categoria | undefined = undefined;
@@ -632,7 +716,17 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
             cantidad: v.stockAlmacen ?? v.cantidad,
             codigoBarrasVariante: v.codigoIdentificacion
           };
-          await ProductoVarianteService.crearVariante(data, idUbicacionAreaParaStock);
+          try {
+            await ProductoVarianteService.crearVariante(data, idUbicacionAreaParaStock);
+          } catch (varianteErr: unknown) {
+            const detalle = extractApiErrorMessage(
+              varianteErr,
+              getErrorMessage(varianteErr, 'Error al crear la variante')
+            );
+            throw new Error(
+              `El producto se guardó, pero falló la combinación ${v.nombreTalla} / ${v.nombreColor}: ${detalle}`
+            );
+          }
         }
       }
 
@@ -649,27 +743,91 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       }
 
       onProductoGuardado(productoGuardadoObj);
-      handleClose();
+      
+      if (crearSiguiente && !producto) {
+        // Continuous input: keep form open, reset only specific fields
+        setFormData(prev => ({
+          ...prev,
+          nombre: '',
+          codigoIdentificacion: '',
+          codigoBarras: ''
+        }));
+        setVariantes([]);
+        setTabActiva('informacion');
+        setPasosConError({
+          informacion: false,
+          variantes: false,
+          precios: false,
+        });
+        setAlertModal({
+          open: true,
+          message: 'Producto guardado con éxito. Puede continuar registrando el siguiente producto.',
+          variant: 'success'
+        });
+        setCrearSiguiente(false);
+      } else {
+        handleClose();
+      }
     } catch (err: unknown) {
       console.error('Error al guardar producto:', err);
-      setError(extractApiErrorMessage(err, getErrorMessage(err, 'Error al guardar el producto')));
+      const msg = extractApiErrorMessage(err, getErrorMessage(err, 'Error al guardar el producto'));
+      setError(msg);
+      const msgLower = msg.toLowerCase();
+      if (
+        msgLower.includes('área de almacén') ||
+        msgLower.includes('area de almacen') ||
+        msgLower.includes('sector')
+      ) {
+        setPasosConError({ informacion: false, variantes: true, precios: false });
+        setTabActiva('variantes');
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  const steps = [
+    {
+      id: 'informacion' as TabType,
+      label: 'Detalles básicos',
+      number: '01',
+      isValid: isInfoValido,
+      hasError: pasosConError.informacion,
+    },
+    {
+      id: 'variantes' as TabType,
+      label: 'Tallas y colores',
+      number: '02',
+      isValid: isVariantesValido,
+      hasError: pasosConError.variantes,
+    },
+    {
+      id: 'precios' as TabType,
+      label: 'Costos y precios',
+      number: '03',
+      isValid: isPreciosValido,
+      hasError: pasosConError.precios,
+    },
+    {
+      id: 'codigosBarras' as TabType,
+      label: 'Generar código de barras',
+      number: '04',
+      isValid: producto ? true : false,
+      hasError: false,
+    }
+  ];
+
   return (
     <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
       <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden border border-gray-200 relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
         {/* Header */}
-        <div className="relative bg-white border-b border-gray-100 p-10 pb-6">
+        <div className="relative bg-white border-b border-gray-100 p-8">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <Package2 className="w-6 h-6 text-black" />
+                <MaterialIcon icon="save" className="w-6 h-6 text-black" />
               </div>
               <div>
-                <div className="mb-2 w-10 h-1 bg-black"></div>
                 <h2 className="text-2xl font-bold tracking-tight text-black uppercase mb-1">
                   {producto ? 'Editar Producto' : 'Crear Nuevo Producto'}
                 </h2>
@@ -682,75 +840,74 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
               onClick={handleClose}
               className="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-black rounded-xl flex items-center justify-center transition-all"
             >
-              <X size={20} />
+              <MaterialIcon icon="close" className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1">
-          <div className="px-8 py-6">
+        <div className="overflow-y-auto flex-1 bg-white">
+          <div className="px-8 py-6 bg-white">
             {error && (
-              <div className="mb-6 p-4 bg-rose-50/60 border border-rose-100 rounded-2xl flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
+               <div className="mb-6 p-4 bg-rose-50/60 border border-rose-100 rounded-2xl flex items-center gap-3">
+                <MaterialIcon icon="error" className="w-5 h-5 text-rose-500 shrink-0" />
                 <p className="text-xs font-black uppercase tracking-widest text-rose-700">{error}</p>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Navegación por pestañas */}
-              <div className="flex border-b border-gray-100 mb-6 overflow-x-auto custom-scrollbar">
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('informacion')}
-                  className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
-                    tabActiva === 'informacion' 
-                    ? 'text-black border-b-2 border-black bg-gray-50/50' 
-                    : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
-                  }`}
-                >
-                  <Package2 className="w-4 h-4" />
-                  Información Básica
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('variantes')}
-                  className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
-                    tabActiva === 'variantes' 
-                    ? 'text-black border-b-2 border-black bg-gray-50/50' 
-                    : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
-                  }`}
-                >
-                  <Layers className="w-4 h-4" />
-                  Variantes {variantes.length > 0 && `(${variantes.length})`}
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('precios')}
-                  className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
-                    tabActiva === 'precios' 
-                    ? 'text-black border-b-2 border-black bg-gray-50/50' 
-                    : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
-                  }`}
-                >
-                  <Tag className="w-4 h-4" />
-                  Precios
-                </button>
-                
-                <button
-                  type="button"
-                  onClick={() => setTabActiva('codigosBarras')}
-                  className={`flex items-center justify-center min-w-max gap-2 flex-1 px-6 py-4 font-bold text-[11px] uppercase tracking-[0.15em] transition-all ${
-                    tabActiva === 'codigosBarras' 
-                    ? 'text-black border-b-2 border-black bg-gray-50/50' 
-                    : 'text-gray-400 hover:text-gray-900 border-b-2 border-transparent'
-                  }`}
-                >
-                  <Barcode className="w-4 h-4" />
-                  Códigos de Barras
-                </button>
+              {/* Stepper tipo píldora */}
+              <div className="flex items-center gap-1 md:gap-2 overflow-x-auto border-b border-gray-100 pb-8 mb-8">
+                {steps.map((step, idx) => {
+                  const isActive = tabActiva === step.id;
+                  const isCompleted = step.isValid;
+
+                  return (
+                    <React.Fragment key={step.id}>
+                      <button
+                        type="button"
+                        onClick={() => setTabActiva(step.id)}
+                        className={`shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-all duration-200 ease-in-out text-left relative focus:outline-none min-w-[140px] md:min-w-0 md:flex-1 ${
+                          isActive
+                            ? 'bg-black border-black text-white'
+                            : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-800'
+                        }`}
+                      >
+                        <div className="relative flex-shrink-0 flex items-center gap-1">
+                          <span className={`text-xs font-bold tabular-nums ${
+                            isActive ? 'text-white/80' : 'text-gray-400'
+                          }`}>
+                            {step.number}
+                          </span>
+                          {isCompleted && (
+                            <MaterialIcon
+                              icon="check"
+                              className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-300' : 'text-emerald-600'}`}
+                            />
+                          )}
+                          {step.hasError && (
+                            <span className="absolute -top-1 -right-2 flex h-2.5 w-2.5">
+                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 border border-white" />
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className={`block text-[9px] font-bold tracking-[0.12em] uppercase leading-tight ${
+                            isActive ? 'text-white/50' : 'text-gray-400'
+                          }`}>
+                            Paso {step.number}
+                          </span>
+                          <span className="block text-xs md:text-sm font-semibold truncate leading-tight">
+                            {step.label}
+                          </span>
+                        </div>
+                      </button>
+                      {idx < steps.length - 1 && (
+                        <div className="hidden md:block h-px flex-1 min-w-[12px] max-w-[32px] bg-gray-200 shrink" aria-hidden />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </div>
 
               {/* RENDERIZADO DE PESTAÑAS COMPONENTIZADAS */}
@@ -826,18 +983,18 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                 />
               )}
 
-              {/* Botones de acción inferiores */}
-              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white px-8 py-6 border-t border-gray-100 rounded-b-[2rem]">
-                <div className="flex gap-3">
+              {/* Premium Sticky Footer Glassmorphic */}
+              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white px-8 py-6 border-t border-gray-100 z-10">
+                <div className="flex gap-3 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="px-6 py-3.5 rounded-xl border border-transparent bg-gray-100 text-gray-900 hover:bg-gray-200 font-bold text-xs uppercase tracking-widest transition-all"
+                    className="flex-1 sm:flex-initial px-6 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
                   >
                     Cancelar
                   </button>
                   
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 flex-1 sm:flex-initial">
                     {tabActiva !== 'informacion' && (
                       <button
                         type="button"
@@ -846,7 +1003,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                           else if (tabActiva === 'precios') setTabActiva('variantes');
                           else if (tabActiva === 'codigosBarras') setTabActiva('precios');
                         }}
-                        className="px-5 py-3.5 rounded-xl border border-transparent bg-[#f8f8f8] text-gray-600 hover:text-black font-bold text-xs uppercase tracking-widest transition-all"
+                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
                       >
                         Anterior
                       </button>
@@ -856,9 +1013,9 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('variantes')}
-                        className="px-5 py-3.5 rounded-xl border border-transparent bg-[#f8f8f8] text-gray-600 hover:text-black font-bold text-xs uppercase tracking-widest transition-all"
+                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
                       >
-                        Continuar a Variantes
+                        Siguiente
                       </button>
                     )}
                     
@@ -866,22 +1023,47 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('precios')}
-                        className="px-5 py-3.5 rounded-xl border border-transparent bg-[#f8f8f8] text-gray-600 hover:text-black font-bold text-xs uppercase tracking-widest transition-all"
+                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
                       >
-                        Continuar a Precios
+                        Siguiente
+                      </button>
+                    )}
+                    
+                    {tabActiva === 'precios' && (
+                      <button
+                        type="button"
+                        onClick={() => setTabActiva('codigosBarras')}
+                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
+                      >
+                        Siguiente
                       </button>
                     )}
                   </div>
                 </div>
-                
-                <button
-                  type="submit"
-                  className="px-8 py-3.5 text-xs font-bold text-white bg-black hover:bg-gray-900 rounded-xl shadow-lg active:scale-[0.98] transition-all uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
-                  disabled={loading}
-                >
-                  <Save className="w-5 h-5" />
-                  {loading ? 'Guardando...' : (producto ? 'Guardar Cambios' : 'Crear Producto')}
-                </button>
+
+                <div className="flex gap-3 w-full sm:w-auto">
+                  {/* "Guardar y Siguiente" button: Only shown when creating a new product */}
+                  {!producto && (
+                    <button
+                      type="submit"
+                      onClick={() => setCrearSiguiente(true)}
+                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-black border border-gray-300 bg-white hover:bg-gray-50 rounded-xl transition-all duration-200 ease-in-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                      disabled={loading}
+                    >
+                      Guardar y Siguiente
+                    </button>
+                  )}
+
+                  <button
+                    type="submit"
+                    onClick={() => setCrearSiguiente(false)}
+                    className="flex-1 sm:flex-initial px-8 py-3.5 text-xs font-bold text-white bg-black hover:bg-gray-800 rounded-xl shadow-md active:scale-[0.98] transition-all duration-200 ease-in-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    disabled={loading}
+                  >
+                    <MaterialIcon icon="save" className="w-4 h-4" />
+                    {loading ? 'Guardando...' : (producto ? 'Guardar Cambios' : 'Crear Producto')}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

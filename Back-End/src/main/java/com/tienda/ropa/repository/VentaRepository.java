@@ -17,6 +17,8 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     
     // Método para buscar por rango específico de fecha y hora
     List<Venta> findByFechaVentaBetween(LocalDateTime fechaInicio, LocalDateTime fechaFin);
-    
+
+    List<Venta> findByUsuarioIdAndFechaVentaBetween(Long idUsuario, LocalDateTime fechaInicio, LocalDateTime fechaFin);
+
     List<Venta> findByClienteIdCliente(Long idCliente);
 }

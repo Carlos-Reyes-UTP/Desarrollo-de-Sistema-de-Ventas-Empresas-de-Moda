@@ -1,3 +1,5 @@
+import type { PieLabelRenderProps } from 'recharts';
+
 interface TooltipPayload<T> {
   payload: T;
 }
@@ -20,18 +22,6 @@ interface VariantesTooltipData {
   cantidadVendida: number;
   cantidadStock: number;
   ingresosTotales: string | number;
-}
-
-interface CustomPieLabelProps {
-  cx?: number;
-  cy?: number;
-  midAngle?: number;
-  outerRadius?: number;
-  nombreColor?: string;
-  cantidadVendida?: number;
-  percent?: number;
-  // Recharts passes additional data properties via the payload
-  [key: string]: unknown;
 }
 
 export const CustomTooltip = ({ active, payload }: TooltipProps<ProductoTooltipData>) => {
@@ -94,24 +84,32 @@ export const CustomTooltipVariantes = ({
   );
 };
 
-export const CustomPieLabel = (props: CustomPieLabelProps) => {
-  const { cx, cy, midAngle, outerRadius, nombreColor, cantidadVendida, percent } = props;
+export const CustomPieLabel = (props: PieLabelRenderProps) => {
+  const { cx, cy, midAngle, outerRadius, percent } = props;
+  // Domain-specific fields passed by Recharts through the data entry
+  const entry = props as PieLabelRenderProps & { nombreColor?: string; cantidadVendida?: number };
+  const { nombreColor, cantidadVendida } = entry;
 
-  if (!cantidadVendida || !cx || !cy || !midAngle || !outerRadius) {
+  const cxNum = typeof cx === 'number' ? cx : parseFloat(cx as string) || 0;
+  const cyNum = typeof cy === 'number' ? cy : parseFloat(cy as string) || 0;
+  const midAngleNum = typeof midAngle === 'number' ? midAngle : 0;
+  const outerRadiusNum = typeof outerRadius === 'number' ? outerRadius : 0;
+
+  if (!cantidadVendida || !cxNum || !cyNum || !midAngleNum || !outerRadiusNum) {
     return null;
   }
 
   const radian = Math.PI / 180;
-  const radius = outerRadius + 30;
-  const x = cx + radius * Math.cos(-midAngle * radian);
-  const y = cy + radius * Math.sin(-midAngle * radian);
+  const radius = outerRadiusNum + 30;
+  const x = cxNum + radius * Math.cos(-midAngleNum * radian);
+  const y = cyNum + radius * Math.sin(-midAngleNum * radian);
 
   return (
     <text
       x={x}
       y={y}
       fill="#000000"
-      textAnchor={x > cx ? 'start' : 'end'}
+      textAnchor={x > cxNum ? 'start' : 'end'}
       dominantBaseline="central"
       fontSize="14"
       fontWeight="600"

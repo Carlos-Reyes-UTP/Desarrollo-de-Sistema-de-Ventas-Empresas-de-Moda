@@ -41,23 +41,21 @@ public class VentaService {
 
     @Transactional
     public Venta registrarVenta(Venta venta) {
-        for (DetalleVenta detalle : venta.getDetalles()) {
-            Long idVariante = detalle.getProductoVariante().getIdProductoVariante();
-        UbicacionArea ubicacionAreaVenta = inventarioService.resolverUbicacionAreaUnicaDeVenta(idVariante);
-        inventarioService.aplicarDeltaEnUbicacionArea(
-            idVariante,
-            ubicacionAreaVenta,
-            -detalle.getCantidad(),
-            "Stock insuficiente en la ubicación de venta: "
-                    + InventarioService.etiquetaUbicacionArea(ubicacionAreaVenta));
-        reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
-                idVariante, ubicacionAreaVenta.getIdUbicacionArea());
-        }
-
         BigDecimal totalVenta = BigDecimal.ZERO;
         for (DetalleVenta detalle : venta.getDetalles()) {
-            totalVenta = totalVenta.add(detalle.getSubtotal());
             detalle.setVenta(venta);
+            totalVenta = totalVenta.add(detalle.getSubtotal());
+
+            Long idVariante = detalle.getProductoVariante().getIdProductoVariante();
+            UbicacionArea ubicacionAreaVenta = inventarioService.resolverUbicacionAreaUnicaDeVenta(idVariante);
+            inventarioService.aplicarDeltaEnUbicacionArea(
+                    idVariante,
+                    ubicacionAreaVenta,
+                    -detalle.getCantidad(),
+                    "Stock insuficiente en la ubicación de venta: "
+                            + InventarioService.etiquetaUbicacionArea(ubicacionAreaVenta));
+            reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
+                    idVariante, ubicacionAreaVenta.getIdUbicacionArea());
         }
         venta.setTotalVentas(totalVenta);
 

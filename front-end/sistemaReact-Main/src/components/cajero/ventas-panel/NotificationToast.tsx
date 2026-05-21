@@ -1,5 +1,5 @@
-import { AlertCircle, CheckCircle, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { MaterialIcon } from '@/shared/ui';
 
 interface NotificationToastProps {
   title: string;
@@ -49,7 +49,7 @@ export const NotificationToast = ({
   autoDismissMs,
 }: NotificationToastProps) => {
   const style = STYLES[variant];
-  const Icon = variant === 'success' ? CheckCircle : AlertCircle;
+  const iconName = variant === 'success' ? 'check_circle' : variant === 'info' ? 'info' : 'error';
 
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
@@ -70,7 +70,7 @@ export const NotificationToast = ({
     >
       <div className="flex items-start">
         <div className={`p-1 rounded-lg mr-3 flex-shrink-0 ${style.iconContainer}`}>
-          <Icon className={`h-4 w-4 ${style.icon}`} />
+          <MaterialIcon icon={iconName} className={`h-4 w-4 ${style.icon}`} />
         </div>
         <div className="flex-grow">
           <h4 className={`font-medium mb-1 ${style.title}`}>{title}</h4>
@@ -82,7 +82,7 @@ export const NotificationToast = ({
           className={`ml-2 flex-shrink-0 p-1 rounded-lg transition-colors ${style.close}`}
           aria-label="Cerrar aviso"
         >
-          <X size={16} />
+          <MaterialIcon icon="close" className="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, Info, Trash2 } from 'lucide-react';
+import { MaterialIcon } from './MaterialIcon';
 
 export interface ConfirmModalProps {
   open: boolean;
@@ -38,11 +38,12 @@ const ConfirmModal = ({
 
   const getIcon = () => {
     switch (variant) {
-      case 'danger':  return <Trash2 className="w-6 h-6 text-white" />;
-      case 'warning': return <AlertTriangle className="w-6 h-6 text-white" />;
-      case 'info':    return <Info className="w-6 h-6 text-white" />;
+      case 'danger':  return <MaterialIcon icon="delete" className="w-6 h-6 text-white" fill />;
+      case 'warning': return <MaterialIcon icon="warning" className="w-6 h-6 text-white" fill />;
+      case 'info':    return <MaterialIcon icon="info" className="w-6 h-6 text-white" fill />;
     }
   };
+
 
   const modalTitle = title || (variant === 'danger' ? 'Confirmar eliminación' : 'Confirmar acción');
 
@@ -54,37 +55,36 @@ const ConfirmModal = ({
       onClick={onCancel}
     >
       <div
-        className={`bg-white rounded-[2.5rem] shadow-2xl transform transition-all duration-300 overflow-hidden ${
+        className={`app-modal-panel rounded-[2.5rem] border shadow-2xl transform transition-all duration-300 overflow-hidden ${
           isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header negro */}
-        <div className="bg-black px-8 py-6 flex items-center gap-4">
+        <div className="bg-[var(--app-accent)] px-8 py-6 flex items-center gap-4">
           <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
             {getIcon()}
           </div>
-          <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase leading-tight">
+          <h3 className="text-[11px] font-bold tracking-[0.3em] text-[var(--app-accent-fg)] uppercase leading-tight">
             {modalTitle}
           </h3>
         </div>
 
         {/* Body */}
         <div className="px-8 py-7">
-          <p className="text-sm text-gray-500 font-medium leading-relaxed">{message}</p>
+          <p className="text-sm app-modal-body-muted font-medium leading-relaxed">{message}</p>
         </div>
 
         {/* Actions */}
         <div className="px-8 pb-8 flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-4 bg-[#f8f8f8] rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all"
+            className="flex-1 py-4 app-modal-cancel rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] transition-all"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] active:scale-[0.97]"
+            className="flex-1 py-4 app-btn-primary rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] active:scale-[0.97]"
           >
             {confirmText}
           </button>

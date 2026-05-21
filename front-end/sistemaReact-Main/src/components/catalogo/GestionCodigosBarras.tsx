@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Trash2, BarChart3, Scan, X, AlertCircle, CheckCircle } from 'lucide-react';
+import { MaterialIcon } from '@/shared/ui';
 import type { Producto } from '../../types/Producto';
 import type { ProductoVariante } from '../../types/ProductoVariante';
 import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../types/CodigoBarras';
@@ -343,14 +343,14 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       {/* Alertas */}
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
+          <MaterialIcon icon="error" className="w-4 h-4" />
           {error}
         </div>
       )}
 
       {exito && (
         <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded flex items-center gap-2">
-          <CheckCircle className="w-4 h-4" />
+          <MaterialIcon icon="check_circle" className="w-4 h-4" />
           {exito}
         </div>
       )}
@@ -368,7 +368,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-lg transition-colors">
-              <Search className="w-4 h-4" />
+              <MaterialIcon icon="search" className="w-4 h-4" />
             </button>
           </div>
 
@@ -378,7 +378,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               onClick={() => setShowScannerModal(true)}
               className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
             >
-              <Scan className="w-4 h-4" />
+              <MaterialIcon icon="qr_code_scanner" className="w-4 h-4" />
               Escanear
             </button>
           </div>
@@ -441,7 +441,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                           className="text-red-600 hover:text-red-900 p-1 rounded"
                           title="Eliminar"
                         >
-                          <Trash2 className="w-4 h-4" />
+                          <MaterialIcon icon="delete" className="w-4 h-4" />
                         </button>
                       </div>
                     </td>
@@ -452,7 +452,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
 
             {codigosFiltrados.length === 0 && (
               <div className="text-center py-12">
-                <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
+                <MaterialIcon icon="bar_chart" className="mx-auto h-12 w-12 text-gray-400" />
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No hay códigos de barras</h3>
                 <p className="mt-1 text-sm text-gray-500">
                   {searchTerm ? 'No se encontraron códigos que coincidan con la búsqueda.' : 'Comienza generando códigos para tus productos.'}
@@ -528,7 +528,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               onClick={onClose}
               className="w-10 h-10 bg-[#f8f8f8] border border-gray-100 rounded-2xl flex items-center justify-center hover:bg-gray-100 transition-all"
             >
-              <X className="w-4 h-4 text-gray-400" />
+              <MaterialIcon icon="close" className="w-4 h-4 text-gray-400" />
             </button>
           </div>
           <div className="p-8">
@@ -557,7 +557,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">{entidadSeleccionada.nombre}</p>
               </div>
               <button onClick={() => setShowGenerarCodigo(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
-                <X className="w-4 h-4 text-white" />
+                <MaterialIcon icon="close" className="w-4 h-4 text-white" />
               </button>
             </div>
             <div className="px-8 py-7 space-y-5">
@@ -599,7 +599,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">{entidadSeleccionada.nombre}</p>
               </div>
               <button onClick={() => setShowAsignarCodigo(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
-                <X className="w-4 h-4 text-white" />
+                <MaterialIcon icon="close" className="w-4 h-4 text-white" />
               </button>
             </div>
             <div className="px-8 py-7 space-y-5">
@@ -662,7 +662,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">Ingrese o escanee un código de barras</p>
               </div>
               <button onClick={() => setShowScannerModal(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
-                <X className="w-4 h-4 text-white" />
+                <MaterialIcon icon="close" className="w-4 h-4 text-white" />
               </button>
             </div>
             <div className="px-8 py-7">

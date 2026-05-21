@@ -208,64 +208,41 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
 
     @Override
     public boolean validarContrasenaSegura(String password) {
-        if (password == null || password.isEmpty()) {
+        if (password == null || password.length() < 8) {
             return false;
         }
 
-        // Validar longitud mínima
-        if (password.length() < 8) {
-            return false;
+        boolean tieneMinuscula = false;
+        boolean tieneMayuscula = false;
+        boolean tieneDigito = false;
+        boolean tieneEspecial = false;
+
+        for (int i = 0; i < password.length(); i++) {
+            char c = password.charAt(i);
+            if (Character.isLowerCase(c)) tieneMinuscula = true;
+            else if (Character.isUpperCase(c)) tieneMayuscula = true;
+            else if (Character.isDigit(c)) tieneDigito = true;
+            else tieneEspecial = true;
         }
 
-        // Validar letra minúscula
-        if (!password.matches(".*[a-z].*")) {
-            return false;
-        }
-
-        // Validar letra mayúscula
-        if (!password.matches(".*[A-Z].*")) {
-            return false;
-        }
-
-        // Validar número
-        if (!password.matches(".*[0-9].*")) {
-            return false;
-        }
-
-        // Validar símbolo especial
-        if (!password.matches(".*[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?].*")) {
-            return false;
-        }
-
-        return true;
+        return tieneMinuscula && tieneMayuscula && tieneDigito && tieneEspecial;
     }
     
     @Override
     public boolean esUltimoAdministrador(Long usuarioId) {
-        // Obtener todos los usuarios activos
-        List<Usuario> usuariosActivos = usuarioRepository.findAll().stream()
-                .filter(Usuario::isActivo)
-                .collect(Collectors.toList());
-        
-        // Contar cuántos administradores activos hay
-        long cantidadAdminsActivos = usuariosActivos.stream()
-                .filter(usuario -> usuario.getRoles().stream()
-                        .anyMatch(rol -> rol.getNombreRol() == Role.ADMIN))
-                .count();
-        
-        // Verificar si el usuario actual es administrador
         Usuario usuarioActual = usuarioRepository.findById(usuarioId).orElse(null);
         if (usuarioActual == null) {
             return false;
         }
-        
+
         boolean esAdmin = usuarioActual.getRoles().stream()
                 .anyMatch(rol -> rol.getNombreRol() == Role.ADMIN);
-        
-        // Es el último admin si:
-        // 1. Es administrador
-        // 2. Solo hay 1 administrador activo en total
-        return esAdmin && cantidadAdminsActivos == 1;
+        if (!esAdmin) {
+            return false;
+        }
+
+        long cantidadAdminsActivos = usuarioRepository.countActiveAdmins();
+        return cantidadAdminsActivos == 1;
     }
     
     @Override

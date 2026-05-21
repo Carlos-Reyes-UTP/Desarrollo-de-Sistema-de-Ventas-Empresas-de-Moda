@@ -14,7 +14,7 @@ export const MetricCardsSkeleton: React.FC<MetricCardsSkeletonProps> = ({
     {Array.from({ length: count }, (_, i) => (
       <div
         key={i}
-        className="rounded-[2.5rem] border border-[#1F1F1F] bg-[#0D0D0D] p-8"
+        className="app-metric-card rounded-[2.5rem] border p-8"
       >
         <div className="flex items-start justify-between">
           <Skeleton variant="dark" className="h-14 w-14 rounded-2xl" />

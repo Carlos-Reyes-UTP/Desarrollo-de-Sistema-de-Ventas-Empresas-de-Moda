@@ -1,5 +1,5 @@
-import { ClipboardList } from "lucide-react";
 import { useBandeja } from "../../context/BandejaSolicitudContext";
+import { MaterialIcon } from "@/shared/ui";
 
 interface Props {
   onClick: () => void;
@@ -24,7 +24,7 @@ export function BandejaFAB({ onClick }: Props) {
         // Por encima del dock de pedidos (z-[100]) pero debajo de modals (z-[200])
       }}
     >
-      <ClipboardList className="h-5 w-5 flex-shrink-0" strokeWidth={2} />
+      <MaterialIcon icon="assignment" className="h-5 w-5 flex-shrink-0" />
       <span className="text-sm font-black tracking-tight">Lista</span>
       {/* Badge */}
       <span className="flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-white px-1.5 text-[11px] font-black text-black shadow-sm">

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ShoppingBag, Box } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 import type { AlmacenSolicitud } from "../../types/AlmacenSolicitudes";
 import { AlmacenTicketCard } from "./AlmacenTicketCard";
 import { agruparTickets } from "./almacenTableroUtils";
@@ -43,7 +43,7 @@ export function AlmacenColaLateral({
               : "text-gray-400 hover:bg-gray-100"
           }`}
         >
-          <ShoppingBag className="w-4 h-4" />
+          <MaterialIcon icon="shopping_bag" className="w-4 h-4" />
           <span className="text-[10px] font-black uppercase tracking-widest">Ventas</span>
           <span
             className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${
@@ -63,7 +63,7 @@ export function AlmacenColaLateral({
               : "text-gray-400 hover:bg-gray-100"
           }`}
         >
-          <Box className="w-4 h-4" />
+          <MaterialIcon icon="package" className="w-4 h-4" />
           <span className="text-[10px] font-black uppercase tracking-widest">Repo</span>
           <span
             className={`text-[9px] font-black px-1.5 py-0.5 rounded-md ${

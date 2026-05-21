@@ -3,10 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { VentaService } from '../../services/VentaService';
 import { CajaService, type CierreCajaRequest } from '../../services/CajaService';
-import { Printer, CheckCircle, Clock, User, Calculator, Loader2, ArrowRight, TrendingDown, AlertCircle } from 'lucide-react';
 import { obtenerDatosApertura, limpiarDatosApertura, guardarDatosApertura } from './AperturaCaja';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
-import { CajeroThemeToggle } from './CajeroThemeToggle';
+import { PageHeader, MaterialIcon } from '@/shared/ui';
 
 interface DiferenciasCierreCaja {
   diferenciasEfectivo: number;
@@ -259,20 +258,14 @@ const CierreCaja = () => {
   if (cierreExitoso && datosCierre) {
     const discrepancia = datosCierre.diferencias.discrepanciaCaja;
     return (
-      <div className="p-10 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
-        <div className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">CIERRE DE CAJA</h1>
-          <p className="caj-label text-sm font-medium uppercase tracking-[0.1em]">Final de turno — Resumen de la caja del día</p>
-          </div>
-          <CajeroThemeToggle />
-        </div>
+      <div className="p-4 sm:p-6 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
+        <PageHeader variant="cajero" title="Cierre de caja" />
 
         <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-8">
           {/* Banner */}
           <div className="bg-black px-10 py-8 flex items-center gap-6">
             <div className="w-12 h-12 caj-card rounded-2xl flex items-center justify-center flex-shrink-0">
-              <CheckCircle className="h-6 w-6 caj-heading" />
+              <MaterialIcon icon="check_circle" className="h-6 w-6 caj-heading" />
             </div>
             <div>
               <h2 className="text-[11px] font-bold tracking-[0.4em] text-white uppercase mb-1">¡Turno finalizado!</h2>
@@ -291,7 +284,7 @@ const CierreCaja = () => {
               <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Cajero</span>
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
-                  <User className="h-4 w-4 text-white" />
+                  <MaterialIcon icon="person" className="h-4 w-4 text-white" />
                 </div>
                 <span className="text-[14px] font-bold caj-heading uppercase tracking-tight">{datosCierre.usuario}</span>
               </div>
@@ -311,7 +304,7 @@ const CierreCaja = () => {
               <span className={`block text-[10px] font-bold uppercase tracking-[0.3em] mb-3 ${discrepancia === 0 ? 'text-gray-400' : 'text-gray-300'}`}>Diferencia de dinero</span>
               <span className={`text-[28px] font-extrabold tracking-tighter caj-heading`}>
                 {discrepancia === 0 ? (
-                  <span className="flex items-center gap-2"><CheckCircle className="h-7 w-7 caj-heading" /> Cuadrada</span>
+                  <span className="flex items-center gap-2"><MaterialIcon icon="check_circle" className="h-7 w-7 caj-heading" /> Cuadrada</span>
                 ) : `S/${Math.abs(discrepancia).toFixed(2)}`}
               </span>
               {discrepancia !== 0 && (
@@ -326,7 +319,7 @@ const CierreCaja = () => {
               onClick={imprimirComprobante}
               className="flex items-center gap-3 px-7 py-4 caj-input border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] text-gray-600 hover:bg-gray-100 transition-all"
             >
-              <Printer size={16} />
+              <MaterialIcon icon="print" className="h-4 w-4" />
               Imprimir recibo
             </button>
             <button
@@ -334,7 +327,7 @@ const CierreCaja = () => {
               className="flex-1 flex items-center justify-center gap-3 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] group"
             >
               Siguiente turno
-              <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+              <MaterialIcon icon="arrow_forward" className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
         </div>
@@ -347,21 +340,19 @@ const CierreCaja = () => {
   const hayConteo = efectivoContado || tarjetaContado || yapeContado;
 
   return (
-    <div className="p-10 max-w-[1100px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
-        <div>
-          <h1 className="text-[2.25rem] font-bold tracking-tight caj-heading leading-none mb-2">CIERRE DE CAJA</h1>
-          <p className="caj-label text-sm font-medium uppercase tracking-[0.08em]">Resumen del día — Ingrese el dinero contado</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <CajeroThemeToggle />
-        <div className="px-6 py-3 caj-card border caj-border rounded-2xl shadow-sm">
-          <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-1">Terminal</span>
-          <span className="text-xs font-bold caj-heading uppercase">Caja Principal 01</span>
-        </div>
-        </div>
-      </div>
+    <div className="p-4 sm:p-6 max-w-[1100px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
+      <PageHeader
+        variant="cajero"
+        title="Cierre de caja"
+        actions={
+          <>
+            <div className="px-4 py-2.5 caj-card border caj-border rounded-xl shadow-sm">
+              <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-0.5">Terminal</span>
+              <span className="text-xs font-bold caj-heading uppercase">Caja Principal 01</span>
+            </div>
+          </>
+        }
+      />
 
       {/* Error Banner */}
       {error && (
@@ -379,7 +370,7 @@ const CierreCaja = () => {
         <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
             <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-              <User className="h-5 w-5 text-white" />
+              <MaterialIcon icon="person" className="h-5 w-5 text-white" />
             </div>
             <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Datos del Cajero</h2>
           </div>
@@ -390,7 +381,7 @@ const CierreCaja = () => {
               <label className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Cajero actual</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <User size={16} className="text-gray-300" />
+                  <MaterialIcon icon="person" className="h-4 w-4 text-gray-300" />
                 </div>
                 <input type="text" value={usuario?.usuario ?? 'Usuario actual'} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading tracking-wider focus:outline-none shadow-inner" />
@@ -402,7 +393,7 @@ const CierreCaja = () => {
               <label className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Fecha de Apertura</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <Clock size={16} className="text-gray-300" />
+                  <MaterialIcon icon="schedule" className="h-4 w-4 text-gray-300" />
                 </div>
                 <input id="fecha-apertura" type="text" value={fechaApertura}
                   onChange={(e) => setFechaApertura(e.target.value)}
@@ -418,7 +409,7 @@ const CierreCaja = () => {
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <Clock size={16} className="text-gray-300" />
+                  <MaterialIcon icon="schedule" className="h-4 w-4 text-gray-300" />
                 </div>
                 <input id="fecha-cierre" type="text" value={fechaCierre} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading font-mono tracking-wider focus:outline-none shadow-inner" />
@@ -431,7 +422,7 @@ const CierreCaja = () => {
         <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
             <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-              <Calculator className="h-5 w-5 text-white" />
+              <MaterialIcon icon="calculate" className="h-5 w-5 text-white" />
             </div>
             <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Ventas del turno</h2>
             <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest caj-page px-4 py-2 rounded-xl border border-gray-100">Calculado automáticamente</span>
@@ -495,7 +486,7 @@ const CierreCaja = () => {
         <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
             <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-              <TrendingDown className="h-5 w-5 text-white" />
+              <MaterialIcon icon="trending_down" className="h-5 w-5 text-white" />
             </div>
             <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Dinero contado</h2>
             <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest caj-page px-4 py-2 rounded-xl border border-gray-100">Completar manualmente</span>
@@ -547,7 +538,7 @@ const CierreCaja = () => {
                 </span>
                 <span className={`text-[36px] font-extrabold tracking-tighter leading-none caj-heading`}>
                   {discrepanciaPreview === 0 ? (
-                    <span className="flex items-center gap-3"><CheckCircle className="h-8 w-8 caj-heading" /> CAJA CUADRADA</span>
+                    <span className="flex items-center gap-3"><MaterialIcon icon="check_circle" className="h-8 w-8 caj-heading" /> CAJA CUADRADA</span>
                   ) : `S/${Math.abs(discrepanciaPreview).toFixed(2)}`}
                 </span>
                 {discrepanciaPreview !== 0 && (
@@ -557,7 +548,7 @@ const CierreCaja = () => {
                 )}
               </div>
               <div className={`px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 ${discrepanciaPreview === 0 ? 'bg-black text-white' : 'caj-page text-gray-600 border border-gray-100'}`}>
-                {discrepanciaPreview === 0 ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
+                {discrepanciaPreview === 0 ? <MaterialIcon icon="check_circle" className="h-4 w-4" /> : <MaterialIcon icon="error" className="h-4 w-4" />}
                 {discrepanciaPreview === 0 ? 'Correcto' : 'Revisar'}
               </div>
             </div>
@@ -589,7 +580,7 @@ const CierreCaja = () => {
           className="w-full py-6 bg-black text-white rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] hover:bg-gray-800 transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
         >
           <div className="absolute inset-0 caj-card/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          {cargando ? <Loader2 className="animate-spin h-5 w-5" /> : <CheckCircle className="w-5 h-5" />}
+          {cargando ? <MaterialIcon icon="progress_activity" className="animate-spin h-5 w-5" /> : <MaterialIcon icon="check_circle" className="w-5 h-5" />}
           <span className="relative z-10">{cargando ? 'CERRANDO...' : 'CERRAR CAJA'}</span>
         </button>
       </form>

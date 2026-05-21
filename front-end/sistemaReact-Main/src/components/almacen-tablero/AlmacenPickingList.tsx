@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Package, User, Trash2, RefreshCw } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 import type { AlmacenTicketConsolidado } from "../../types/AlmacenSolicitudes";
 import { AlmacenSolicitudRuta } from "./AlmacenSolicitudRuta";
 import {
@@ -66,7 +66,7 @@ export function AlmacenPickingList({
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-center gap-4 min-w-0">
             <div className="h-14 w-14 rounded-2xl bg-black flex items-center justify-center text-white shadow-lg shrink-0">
-              <User className="w-6 h-6" />
+              <MaterialIcon icon="person" className="w-6 h-6" />
             </div>
             <div className="min-w-0">
               <h2 className="text-2xl font-black text-black leading-tight uppercase tracking-tight truncate">
@@ -101,7 +101,7 @@ export function AlmacenPickingList({
             className="p-3 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 disabled:opacity-40"
             title="Rechazar ticket"
           >
-            <Trash2 className="w-5 h-5" />
+            <MaterialIcon icon="delete" className="w-5 h-5" />
           </button>
         </div>
 
@@ -113,7 +113,7 @@ export function AlmacenPickingList({
 
         {ticket.codigoLote && (
           <div className="bg-gray-100/50 rounded-2xl p-4 flex items-center gap-3 border border-gray-100">
-            <Package className="w-4 h-4 text-gray-400 shrink-0" />
+            <MaterialIcon icon="package" className="w-4 h-4 text-gray-400 shrink-0" />
             <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest truncate">
               Lote: {ticket.codigoLote}
             </span>
@@ -163,7 +163,7 @@ export function AlmacenPickingList({
                   isDone ? "bg-black border-black text-white" : "border-gray-100 bg-white"
                 }`}
               >
-                {isDone && <Check className="w-5 h-5" strokeWidth={4} />}
+                {isDone && <MaterialIcon icon="check" className="w-5 h-5" />}
               </div>
             </button>
           );
@@ -182,10 +182,10 @@ export function AlmacenPickingList({
           }`}
         >
           {procesando ? (
-            <RefreshCw className="w-5 h-5 animate-spin" />
+            <MaterialIcon icon="sync" className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              <Check className="w-5 h-5" strokeWidth={3} />
+              <MaterialIcon icon="check" className="w-5 h-5" />
               Finalizar despacho
             </>
           )}

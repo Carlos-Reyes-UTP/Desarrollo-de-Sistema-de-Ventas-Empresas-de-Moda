@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
 import { SECTOR_ALMACEN_GENERAL } from "@/shared/constants/sectoresAlmacen";
-import { Inbox, VolumeX, RefreshCw, Settings, ChevronLeft } from "lucide-react";
+import { MaterialIcon } from "@/shared/ui";
 import { AlmacenColaLateral } from "../../components/almacen-tablero/AlmacenColaLateral";
 import { AlmacenPickingList } from "../../components/almacen-tablero/AlmacenPickingList";
 import { RechazoPedidoModal } from "../../components/almacen-tablero/RechazoPedidoModal";
@@ -214,24 +214,24 @@ export default function AlmacenTableroPedidosPage() {
   };
 
   return (
-    <div className="bg-[#fafafa] text-left flex flex-col h-full min-h-0 overflow-hidden animate-fadeIn">
-      <header className="flex justify-between items-center px-6 py-4 bg-white border-b border-gray-100 shrink-0">
+    <div className="bg-[var(--app-bg)] text-left flex flex-col h-full min-h-0 overflow-hidden animate-fadeIn">
+      <header className="flex justify-between items-center px-6 py-4 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0">
         <div className="flex items-center gap-3">
           {seleccionId && (
             <button
               type="button"
               onClick={() => setSeleccionId(null)}
-              className="lg:hidden p-2 -ml-2 rounded-full hover:bg-gray-100 text-black active:scale-95 transition-all"
+              className="lg:hidden p-2 -ml-2 rounded-full hover:bg-[var(--app-hover-overlay)] app-heading active:scale-95 transition-all"
               aria-label="Volver a la cola"
             >
-              <ChevronLeft className="w-6 h-6" strokeWidth={3} />
+              <MaterialIcon icon="chevron_left" className="w-6 h-6" />
             </button>
           )}
           <div>
-            <h1 className="text-xl font-black tracking-tight text-black leading-none uppercase">
+            <h1 className="text-xl font-black tracking-tight app-heading leading-none uppercase">
               {seleccionId ? "Picking" : "Tickets"}
             </h1>
-            <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mt-1">
+            <p className="text-[9px] font-black app-text-faint uppercase tracking-widest leading-none mt-1">
               Dakani Warehouse
             </p>
           </div>
@@ -241,31 +241,31 @@ export default function AlmacenTableroPedidosPage() {
           <button
             type="button"
             onClick={() => void cargar()}
-            className="p-2.5 rounded-xl hover:bg-gray-100 text-gray-400 transition-all active:rotate-180 duration-500"
+            className="p-2.5 rounded-xl hover:bg-[var(--app-hover-overlay)] app-text-faint transition-all active:rotate-180 duration-500"
             title="Actualizar"
           >
-            <RefreshCw className="w-5 h-5" />
+            <MaterialIcon icon="refresh" className="w-5 h-5" />
           </button>
           <div ref={settingsRef} className="relative">
             <button
               type="button"
               onClick={() => setShowSettings(!showSettings)}
               className={`p-2.5 rounded-xl transition-all ${
-                showSettings ? "bg-black text-white" : "hover:bg-gray-100 text-gray-400"
+                showSettings ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)]" : "hover:bg-[var(--app-hover-overlay)] app-text-faint"
               }`}
               aria-expanded={showSettings}
               aria-haspopup="menu"
             >
-              <Settings className="w-5 h-5" />
+              <MaterialIcon icon="settings" className="w-5 h-5" />
             </button>
 
             {showSettings && (
               <div
-                className="absolute right-0 mt-2 w-72 bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-100 z-[100] p-4 animate-slideUpFade"
+                className="absolute right-0 mt-2 w-72 bg-[var(--app-surface-glass)] backdrop-blur-md rounded-3xl shadow-2xl border border-[var(--app-border)] z-[100] p-4 animate-slideUpFade"
                 role="menu"
               >
-                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-100">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-gray-900">
+                <div className="flex items-center justify-between mb-3 pb-2 border-b border-[var(--app-border)]">
+                  <span className="text-[10px] font-black uppercase tracking-widest app-heading">
                     Configuración de Alertas
                   </span>
                 </div>
@@ -278,12 +278,12 @@ export default function AlmacenTableroPedidosPage() {
                   }}
                   className="w-full flex items-center gap-2.5 px-4 py-3 mb-4 rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-xs font-bold text-amber-900 transition-all active:scale-[0.98]"
                 >
-                  <VolumeX className="w-4 h-4 shrink-0 text-amber-600" />
+                  <MaterialIcon icon="volume_off" className="w-4 h-4 shrink-0 text-amber-600" />
                   <span>Silenciar por 15 Minutos</span>
                 </button>
 
                 <div className="space-y-1.5">
-                  <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block px-1 mb-1">
+                  <span className="text-[9px] font-black uppercase tracking-widest app-text-faint block px-1 mb-1">
                     Tema del Timbre
                   </span>
                   
@@ -306,13 +306,13 @@ export default function AlmacenTableroPedidosPage() {
                         }}
                         className={`w-full flex items-center justify-between text-left px-3 py-2.5 rounded-xl border text-xs transition-all active:scale-[0.99] ${
                           active
-                            ? "bg-black border-black text-white shadow-md font-bold"
-                            : "bg-gray-50/50 hover:bg-gray-100/80 border-gray-100 text-gray-700"
+                            ? "bg-[var(--app-accent)] border-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-md font-bold"
+                            : "bg-[var(--app-bg-muted)] hover:bg-[var(--app-surface-elevated)] border-[var(--app-border)] app-text-muted"
                         }`}
                       >
                         <div className="min-w-0">
-                          <p className={`font-semibold ${active ? "text-white" : "text-black"}`}>{theme.label}</p>
-                          <p className={`text-[10px] mt-0.5 ${active ? "text-white/70" : "text-gray-400"}`}>{theme.desc}</p>
+                          <p className={`font-semibold ${active ? "text-[var(--app-accent-fg)]" : "app-heading"}`}>{theme.label}</p>
+                          <p className={`text-[10px] mt-0.5 ${active ? "opacity-70" : "app-text-faint"}`}>{theme.desc}</p>
                         </div>
                         {active && (
                           <div className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -345,8 +345,8 @@ export default function AlmacenTableroPedidosPage() {
       <div className="flex-1 flex min-h-0 relative overflow-hidden">
         <aside
           className={`
-          absolute inset-0 z-10 bg-[#fafafa] flex flex-col transition-transform duration-300
-          lg:relative lg:translate-x-0 lg:w-[22rem] xl:w-[26rem] lg:border-r lg:border-gray-100
+          absolute inset-0 z-10 bg-[var(--app-bg)] flex flex-col transition-transform duration-300
+          lg:relative lg:translate-x-0 lg:w-[22rem] xl:w-[26rem] lg:border-r lg:border-[var(--app-border)]
           ${seleccionId ? "-translate-x-full lg:translate-x-0" : "translate-x-0"}
         `}
         >
@@ -368,8 +368,8 @@ export default function AlmacenTableroPedidosPage() {
                       onClick={() => setSectorFiltro(sector)}
                       className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
                         sectorFiltro === sector
-                          ? "bg-black text-white shadow-md"
-                          : "bg-white text-gray-500 border border-gray-200 hover:bg-gray-50"
+                          ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-md"
+                          : "bg-[var(--app-surface)] app-text-muted border border-[var(--app-border)] hover:bg-[var(--app-bg-muted)]"
                       }`}
                     >
                       {sector}
@@ -377,8 +377,8 @@ export default function AlmacenTableroPedidosPage() {
                   ))}
                 </div>
               ) : accesoAreaAlmacen?.etiquetaAreaAsignada ? (
-                <div className="px-4 py-3 border-b border-gray-100 shrink-0">
-                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                <div className="px-4 py-3 border-b border-[var(--app-border)] shrink-0">
+                  <p className="text-[9px] font-black app-text-faint uppercase tracking-widest">
                     Cola · {accesoAreaAlmacen.etiquetaAreaAsignada}
                   </p>
                 </div>
@@ -389,7 +389,7 @@ export default function AlmacenTableroPedidosPage() {
 
         <main
           className={`
-          absolute inset-0 bg-[#fafafa] flex flex-col transition-transform duration-300
+          absolute inset-0 bg-[var(--app-bg)] flex flex-col transition-transform duration-300
           lg:relative lg:flex-1 lg:translate-x-0
           ${seleccionId ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
         `}
@@ -405,10 +405,10 @@ export default function AlmacenTableroPedidosPage() {
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-              <div className="h-20 w-20 rounded-[2rem] bg-white border border-gray-100 shadow-sm flex items-center justify-center mb-6">
-                <Inbox className="w-10 h-10 text-gray-200" strokeWidth={1} />
+              <div className="h-20 w-20 rounded-[2rem] bg-[var(--app-surface)] border border-[var(--app-border)] shadow-sm flex items-center justify-center mb-6">
+                <MaterialIcon icon="inbox" className="w-10 h-10 app-text-faint" />
               </div>
-              <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] max-w-[200px]">
+              <p className="text-[10px] font-black app-text-faint uppercase tracking-[0.2em] max-w-[200px]">
                 Selecciona un ticket para comenzar el picking
               </p>
             </div>
