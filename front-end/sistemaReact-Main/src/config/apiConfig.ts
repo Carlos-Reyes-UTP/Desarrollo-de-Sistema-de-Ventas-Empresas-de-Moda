@@ -102,7 +102,9 @@ export const RUTAS_METODOS_PAGO = {
 // Rutas de Métodos de Pago (TODO: Implementar controlador en backend)
 export const RUTAS_VARIANTES = {
   BASE: `${API_BASE_URL}/api/almacenero/variantes`,
-  /** GET: listado completo (alineado con ProductoVarianteController /todas) */
+  /** GET: tallas y colores distintos (ligero, formularios) */
+  SUGERENCIAS: `${API_BASE_URL}/api/almacenero/variantes/sugerencias`,
+  /** @deprecated Solo ADMIN; usar SUGERENCIAS o paginado cajero */
   TODAS: `${API_BASE_URL}/api/almacenero/variantes/todas`,
   POR_ID: (id: number) => `${API_BASE_URL}/api/almacenero/variantes/${id}`,
   POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}`,

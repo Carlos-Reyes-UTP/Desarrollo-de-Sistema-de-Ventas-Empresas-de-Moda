@@ -304,7 +304,17 @@ export const ProductoVarianteService = {    // Crear nueva variante
     }
   },
 
-  // Obtener todas las variantes (optimizado por rol y contexto)
+  obtenerSugerenciasCatalogo: async (): Promise<{ tallas: string[]; colores: string[] }> => {
+    const response = await apiClient.get<{ tallas: string[]; colores: string[] }>(
+      RUTAS_VARIANTES.SUGERENCIAS
+    );
+    return {
+      tallas: response.data.tallas ?? [],
+      colores: response.data.colores ?? [],
+    };
+  },
+
+  /** @deprecated Usar obtenerSugerenciasCatalogo o obtenerVariantesPaginadas */
   obtenerTodasLasVariantes: async (userRole?: string, forSales?: boolean): Promise<ProductoVariante[]> => {
     const normalizedRole = userRole?.toUpperCase();
     

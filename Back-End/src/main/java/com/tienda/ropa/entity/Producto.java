@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
@@ -56,14 +57,17 @@ public class Producto {
 
     @ManyToOne
     @JoinColumn(name = "id_subcategoria", nullable = true)
+    @JsonIgnoreProperties({ "subCategorias", "categoriaPadre", "hibernateLazyInitializer", "handler" })
     private Categoria categoria;
 
     @ManyToOne
     @JoinColumn(name = "id_sub_categoria2", nullable = true)
+    @JsonIgnoreProperties({ "subCategorias", "categoriaPadre", "hibernateLazyInitializer", "handler" })
     private Categoria subCategoria2;
 
     @ManyToOne
     @JoinColumn(name = "id_categoria_padre", nullable = false)
+    @JsonIgnoreProperties({ "subCategorias", "categoriaPadre", "hibernateLazyInitializer", "handler" })
     private Categoria categoriaPadre;
 
     @NotNull
@@ -88,7 +92,8 @@ public class Producto {
     @Column(name = "precio_docena")
     private BigDecimal precioDocena;
 
-    @JsonManagedReference
+    /** No serializar en listados paginados; las variantes se cargan por endpoint dedicado. */
+    @JsonIgnore
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<ProductoVariante> variantes;
 
@@ -114,7 +119,8 @@ public class Producto {
         this.stockAlmacen = stockAlmacen;
     }
 
-    // Método para calcular la cantidad total de producto disponible
+    /** Evita lazy-load de variantes al serializar listados con open-in-view=false. */
+    @JsonIgnore
     public int getCantidadTotal() {
         // Si el producto usa el sistema de variantes, suma las cantidades de todas las
         // variantes

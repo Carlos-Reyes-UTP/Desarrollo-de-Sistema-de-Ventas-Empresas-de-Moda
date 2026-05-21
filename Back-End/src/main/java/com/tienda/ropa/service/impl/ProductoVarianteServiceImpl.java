@@ -2,6 +2,8 @@ package com.tienda.ropa.service.impl;
 
 
 
+import com.tienda.ropa.dto.VarianteSugerenciasDTO;
+
 import com.tienda.ropa.entity.Producto;
 
 import com.tienda.ropa.entity.ProductoVariante;
@@ -252,6 +254,22 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
 
     @Override
 
+    @Transactional(readOnly = true)
+
+    public VarianteSugerenciasDTO obtenerSugerenciasCatalogo() {
+
+        return new VarianteSugerenciasDTO(
+
+                productoVarianteRepository.findDistinctTallas(),
+
+                productoVarianteRepository.findDistinctColores());
+
+    }
+
+
+
+    @Override
+
     public List<Object[]> obtenerTodasLasVariantesParaCajero() {
 
         return productoVarianteRepository.findAllVariantesConInformacionCompleta();
@@ -284,11 +302,13 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
 
     public List<ProductoVariante> obtenerVariantesPorProducto(Long idProducto, Long idUbicacionArea) {
 
-        Producto producto = productoRepository.findById(idProducto)
+        if (!productoRepository.existsById(idProducto)) {
 
-                .orElseThrow(() -> new IllegalArgumentException("No existe un producto con el ID: " + idProducto));
+            throw new IllegalArgumentException("No existe un producto con el ID: " + idProducto);
 
-        List<ProductoVariante> variantes = productoVarianteRepository.findByProductoWithInventarios(producto);
+        }
+
+        List<ProductoVariante> variantes = productoVarianteRepository.findByProducto_IdProducto(idProducto);
 
         if (!variantes.isEmpty()) {
 

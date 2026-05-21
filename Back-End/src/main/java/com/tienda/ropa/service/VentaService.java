@@ -31,8 +31,9 @@ public class VentaService {
     @Autowired
     private ReposicionAutomaticaService reposicionAutomaticaService;
 
+    @Transactional(readOnly = true)
     public List<Venta> obtenerVentas() {
-        return ventaRepository.findAll();
+        return ventaRepository.findAllWithDetalles();
     }
 
     public Optional<Venta> obtenerVentaPorId(Long id) {

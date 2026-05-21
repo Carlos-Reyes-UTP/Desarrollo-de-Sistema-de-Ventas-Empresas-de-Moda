@@ -222,13 +222,8 @@ public class VendedorService {
         for (ProductoVariante pv : variantes) {
             Long idPV = pv.getIdProductoVariante();
             List<Inventario> invPV = porVariante.getOrDefault(idPV, List.of());
-            List<Inventario> noAlmacen = invPV.stream()
-                    .filter(i -> i.getUbicacionArea() != null
-                            && !inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))
-                    .toList();
-            if (noAlmacen.size() == 1) {
-                destinoPorVariante.put(idPV, noAlmacen.get(0).getUbicacionArea());
-            }
+            inventarioService.resolverUbicacionAreaDestinoVariante(invPV)
+                    .ifPresent(ua -> destinoPorVariante.put(idPV, ua));
             int stockAlmacenVariante = invPV.stream()
                     .filter(i -> i.getUbicacionArea() != null
                             && inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))

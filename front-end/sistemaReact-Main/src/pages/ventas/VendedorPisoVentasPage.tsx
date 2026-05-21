@@ -193,13 +193,32 @@ const VendedorPisoVentasPage = () => {
     return () => ac.abort();
   }, []);
 
+  const limpiarAreaDestino = useCallback(() => {
+    setIdUbicacionAreaDestino(null);
+    setNombreUbicacionDestino(null);
+  }, []);
+
+  const aplicarAreaDesdeVariante = useCallback((v: VendedorVarianteStock | null | undefined) => {
+    if (v?.idUbicacionAreaDestino != null) {
+      setIdUbicacionAreaDestino(v.idUbicacionAreaDestino);
+      setNombreUbicacionDestino(v.nombreUbicacion);
+    } else {
+      limpiarAreaDestino();
+    }
+  }, [limpiarAreaDestino]);
+
   const aplicarCatalogo = useCallback((data: VendedorCatalogoPorCodigo) => {
     setCatalogo(data);
     const inicial = elegirVarianteInicial(data);
     setIdVariante(inicial);
     setCantidad(1);
+    const varianteInicial =
+      inicial != null
+        ? data.variantes.find((x) => x.idProductoVariante === inicial) ?? null
+        : null;
+    aplicarAreaDesdeVariante(varianteInicial);
     scrollToVariantes();
-  }, [scrollToVariantes]);
+  }, [aplicarAreaDesdeVariante, scrollToVariantes]);
 
   const ejecutarBusqueda = useCallback(
     async (termino: string) => {
@@ -208,6 +227,7 @@ const VendedorPisoVentasPage = () => {
         setCatalogo(null);
         setCoincidencias([]);
         setIdVariante(null);
+        limpiarAreaDestino();
         return;
       }
       const seq = ++busquedaSeqRef.current;
@@ -225,6 +245,7 @@ const VendedorPisoVentasPage = () => {
           setCoincidencias(res.opciones);
           setCatalogo(null);
           setIdVariante(null);
+          limpiarAreaDestino();
           return;
         }
         setCoincidencias([]);
@@ -233,6 +254,7 @@ const VendedorPisoVentasPage = () => {
         } else {
           setCatalogo(null);
           setIdVariante(null);
+          limpiarAreaDestino();
           setErrorToast("No se encontró el producto");
         }
       } catch (e) {
@@ -245,6 +267,7 @@ const VendedorPisoVentasPage = () => {
         setCatalogo(null);
         setCoincidencias([]);
         setIdVariante(null);
+        limpiarAreaDestino();
         setErrorToast(mensajeErrorBusquedaCatalogo(e));
       } finally {
         if (seq === busquedaSeqRef.current) {
@@ -252,7 +275,7 @@ const VendedorPisoVentasPage = () => {
         }
       }
     },
-    [aplicarCatalogo, setErrorToast]
+    [aplicarCatalogo, limpiarAreaDestino, setErrorToast]
   );
 
   const cancelarPedido = useCallback(
@@ -344,6 +367,7 @@ const VendedorPisoVentasPage = () => {
       setCatalogo(null);
       setCoincidencias([]);
       setIdVariante(null);
+      limpiarAreaDestino();
       return undefined;
     }
     if (t.length < 2) {
@@ -357,7 +381,7 @@ const VendedorPisoVentasPage = () => {
         window.clearTimeout(debounceRef.current);
       }
     };
-  }, [codigo, ejecutarBusqueda]);
+  }, [codigo, ejecutarBusqueda, limpiarAreaDestino]);
 
   useEffect(() => {
     if (stockDisponible > 0 && cantidad > stockDisponible) {
@@ -368,18 +392,21 @@ const VendedorPisoVentasPage = () => {
     }
   }, [stockDisponible, cantidad]);
 
-  /** Selecciona una variante y auto-detecta su área destino desde el cat\u00e1logo. */
+  /** Sincroniza chip de área cuando el catálogo ya trae destino (sin depender de un clic). */
+  useEffect(() => {
+    if (!varianteSeleccionada?.idUbicacionAreaDestino) {
+      return;
+    }
+    setIdUbicacionAreaDestino(varianteSeleccionada.idUbicacionAreaDestino);
+    setNombreUbicacionDestino(varianteSeleccionada.nombreUbicacion);
+  }, [varianteSeleccionada]);
+
+  /** Selecciona una variante y auto-detecta su área destino desde el catálogo. */
   const handleSeleccionarVariante = useCallback((v: VendedorVarianteStock) => {
     setIdVariante(v.idProductoVariante);
     setCantidad(1);
-    if (v.idUbicacionAreaDestino != null) {
-      setIdUbicacionAreaDestino(v.idUbicacionAreaDestino);
-      setNombreUbicacionDestino(v.nombreUbicacion);
-    } else {
-      setIdUbicacionAreaDestino(null);
-      setNombreUbicacionDestino(null);
-    }
-  }, []);
+    aplicarAreaDesdeVariante(v);
+  }, [aplicarAreaDesdeVariante]);
 
   const onEscanear = useCallback(
     (text: string) => {
@@ -521,7 +548,7 @@ const VendedorPisoVentasPage = () => {
                     <div className="flex items-center gap-2">
                       <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Área destino</p>
                       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-600">
-                        Nuevo producto — elige área
+                        Selecciona piso de destino
                       </span>
                     </div>
                     {ubicaciones.length > 0 ? (
@@ -552,7 +579,7 @@ const VendedorPisoVentasPage = () => {
                       <p className="text-[11px] text-gray-400">Cargando áreas...</p>
                     )}
                     <p className="text-[11px] font-semibold text-amber-500">
-                      Esta es la primera vez que se solicita este producto. El área elegida quedará registrada.
+                      Indica a qué piso o área debe enviar almacén este pedido.
                     </p>
                   </div>
                 )

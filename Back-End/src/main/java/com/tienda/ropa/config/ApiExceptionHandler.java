@@ -2,11 +2,13 @@ package com.tienda.ropa.config;
 
 import java.util.Map;
 
+import org.hibernate.LazyInitializationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.persistence.PersistenceException;
@@ -30,6 +32,20 @@ public class ApiExceptionHandler {
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "Solicitud inválida"));
+    }
+
+    @ExceptionHandler(LazyInitializationException.class)
+    public ResponseEntity<Map<String, String>> handleLazyInitialization(LazyInitializationException ex) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("message",
+                        "Error de carga lazy: inicialice las relaciones dentro de la transacción (fetch join o @Transactional)."));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<Map<String, String>> handleTypeMismatch(MethodArgumentTypeMismatchException ex) {
+        String param = ex.getName() != null ? ex.getName() : "parámetro";
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", "ID inválido en " + param + "."));
     }
 
     @ExceptionHandler(PersistenceException.class)

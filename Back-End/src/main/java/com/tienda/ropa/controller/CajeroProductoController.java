@@ -39,14 +39,18 @@ public class CajeroProductoController {
     @Autowired
     private ReposicionAutomaticaService reposicionAutomaticaService;
 
-    // Obtener todas las variantes de productos (método principal para ventas)
+    /**
+     * @deprecated Usar {@code GET /variantes/pagina}. Solo ADMIN (ver seguridad).
+     */
+    @Deprecated
     @GetMapping("/variantes")
     public ResponseEntity<List<Map<String, Object>>> obtenerTodasLasVariantes() {
         List<Object[]> resultados = productoVarianteService.obtenerTodasLasVariantesParaCajero();
-        
         List<Map<String, Object>> variantes = resultados.stream().map(this::mapearResultadoAVariante).collect(Collectors.toList());
-        
-        return ResponseEntity.ok(variantes);
+        return ResponseEntity.ok()
+                .header("Deprecation", "true")
+                .header("Link", "</api/cajero/productos/variantes/pagina>; rel=\"successor-version\"")
+                .body(variantes);
     }
 
     // NUEVO: Variantes paginadas con búsqueda server-side

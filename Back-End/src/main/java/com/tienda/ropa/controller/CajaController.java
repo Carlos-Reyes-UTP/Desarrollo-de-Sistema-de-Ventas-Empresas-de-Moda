@@ -50,9 +50,10 @@ public class CajaController {
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         
         Long uid = usuario.getId();
+        // 204 = sin caja abierta (estado normal al iniciar turno), no usar 404 para no confundir con ruta inexistente
         return cajaService.obtenerCajaAbierta(uid)
                 .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.noContent().build());
     }
 
     @GetMapping("/{idCaja}")

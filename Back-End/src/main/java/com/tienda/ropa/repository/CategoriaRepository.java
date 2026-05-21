@@ -20,4 +20,7 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     List<Categoria> findByNombreContainingIgnoreCase(String nombre);
 
     List<Categoria> findByCategoriaPadreIsNull();
+
+    @Query("SELECT DISTINCT c FROM Categoria c LEFT JOIN FETCH c.subCategorias WHERE c.categoriaPadre IS NULL")
+    List<Categoria> findByCategoriaPadreIsNullWithSubcategorias();
 }

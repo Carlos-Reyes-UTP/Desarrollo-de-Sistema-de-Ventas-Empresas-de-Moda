@@ -35,11 +35,33 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
     @Query("SELECT SUM(pv.cantidad) FROM ProductoVariante pv WHERE pv.producto.idProducto = :idProducto")
     Integer getTotalCantidadByProducto(Long idProducto);
 
+    @Query("SELECT DISTINCT pv.talla FROM ProductoVariante pv "
+            + "WHERE pv.talla IS NOT NULL AND TRIM(pv.talla) <> '' ORDER BY pv.talla")
+    List<String> findDistinctTallas();
+
+    @Query("SELECT DISTINCT pv.color FROM ProductoVariante pv "
+            + "WHERE pv.color IS NOT NULL AND TRIM(pv.color) <> '' ORDER BY pv.color")
+    List<String> findDistinctColores();
+
+    List<ProductoVariante> findByProducto_IdProducto(Long idProducto);
+
+    String VARIANTE_CAJERO_FROM = """
+            FROM producto_variante pv
+            INNER JOIN producto p ON p.id_producto = pv.id_producto
+            LEFT JOIN categoria cat ON cat.id_categoria = p.id_subcategoria
+            LEFT JOIN categoria cat2 ON cat2.id_categoria = p.id_sub_categoria2
+            LEFT JOIN (
+              SELECT id_producto_variante, COALESCE(SUM(stock), 0) AS stock_total
+              FROM inventario
+              GROUP BY id_producto_variante
+            ) inv ON inv.id_producto_variante = pv.id_producto_variante
+            """;
+
     String VARIANTE_CAJERO_SELECT = """
             SELECT
               pv.id_producto_variante,
               COALESCE(pv.codigo_barras, ''),
-              COALESCE((SELECT SUM(i.stock) FROM inventario i WHERE i.id_producto_variante = pv.id_producto_variante), COALESCE(pv.cantidad, 0)),
+              COALESCE(inv.stock_total, COALESCE(pv.cantidad, 0)),
               p.id_producto,
               p.nombre,
               p.sexo,
@@ -53,11 +75,8 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
               COALESCE(cat.nombre, ''),
               COALESCE(cat2.nombre, ''),
               COALESCE(pv.sku, '')
-            FROM producto_variante pv
-            INNER JOIN producto p ON p.id_producto = pv.id_producto
-            LEFT JOIN categoria cat ON cat.id_categoria = p.id_subcategoria
-            LEFT JOIN categoria cat2 ON cat2.id_categoria = p.id_sub_categoria2
-            """;
+            """
+            + VARIANTE_CAJERO_FROM;
 
     String VARIANTE_CAJERO_COUNT_BASE = """
             SELECT COUNT(*)

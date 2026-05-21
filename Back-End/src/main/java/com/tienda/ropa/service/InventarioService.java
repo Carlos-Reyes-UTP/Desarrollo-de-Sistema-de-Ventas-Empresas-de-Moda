@@ -1,6 +1,7 @@
 package com.tienda.ropa.service;
 
 import java.util.List;
+import java.util.Optional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -308,31 +309,47 @@ public class InventarioService {
         sincronizarCantidadVariante(idVariante);
     }
 
+    /**
+     * Área de piso asignada a la variante: exactamente una fila de inventario fuera de almacén.
+     * Si hay cero o varias, devuelve vacío (el vendedor debe elegir en UI).
+     */
     @Transactional(readOnly = true)
-    public UbicacionArea ubicacionAreaDeVarianteOLanzar(Long idVariante) {
-        List<Inventario> filas = inventarioRepository.findByVariante_IdProductoVariante(idVariante);
-        UbicacionArea almacen = ubicacionAreaAlmacen();
+    public Optional<UbicacionArea> resolverUbicacionAreaDestinoVariante(List<Inventario> filas) {
+        if (filas == null || filas.isEmpty()) {
+            return Optional.empty();
+        }
+        UbicacionArea almacenRef = null;
+        try {
+            almacenRef = ubicacionAreaAlmacen();
+        } catch (IllegalStateException ignored) {
+            /* sin almacén configurado: se excluye solo por esUbicacionAlmacen */
+        }
         UbicacionArea encontrada = null;
         for (Inventario f : filas) {
-            if (f.getUbicacionArea() == null) {
+            UbicacionArea ua = f.getUbicacionArea();
+            if (ua == null || esUbicacionAlmacen(ua)) {
                 continue;
             }
-            if (f.getUbicacionArea().getIdUbicacionArea().equals(almacen.getIdUbicacionArea())) {
+            if (almacenRef != null
+                    && ua.getIdUbicacionArea() != null
+                    && ua.getIdUbicacionArea().equals(almacenRef.getIdUbicacionArea())) {
                 continue;
             }
             if (encontrada != null) {
-                throw new IllegalStateException(
-                        "La variante " + idVariante + " tiene registro en múltiples áreas: "
-                                + etiquetaUbicacionArea(encontrada) + " y "
-                                + etiquetaUbicacionArea(f.getUbicacionArea()));
+                return Optional.empty();
             }
-            encontrada = f.getUbicacionArea();
+            encontrada = ua;
         }
-        if (encontrada == null) {
-            throw new IllegalStateException(
-                    "La variante " + idVariante + " no tiene un área asignada fuera de Almacén");
-        }
-        return encontrada;
+        return Optional.ofNullable(encontrada);
+    }
+
+    @Transactional(readOnly = true)
+    public UbicacionArea ubicacionAreaDeVarianteOLanzar(Long idVariante) {
+        List<Inventario> filas = inventarioRepository.findByVariante_IdProductoVariante(idVariante);
+        return resolverUbicacionAreaDestinoVariante(filas)
+                .orElseThrow(() -> new IllegalStateException(
+                        "La variante " + idVariante
+                                + " no tiene un área única asignada fuera de Almacén"));
     }
 
     @Transactional

@@ -72,13 +72,11 @@ export const CajaService = {
   },
 
   obtenerCajaAbierta: async (): Promise<CajaDTO | null> => {
-    try {
-      const response = await apiClient.get<CajaDTO>(RUTAS_CAJA.ABIERTA);
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) return null;
-      throw error;
-    }
+    const response = await apiClient.get<CajaDTO>(RUTAS_CAJA.ABIERTA, {
+      validateStatus: (status) => status === 200 || status === 204 || status === 404,
+    });
+    if (response.status === 204 || response.status === 404) return null;
+    return response.data ?? null;
   },
 
   obtenerCajaPorId: async (idCaja: number): Promise<CajaDTO | null> => {

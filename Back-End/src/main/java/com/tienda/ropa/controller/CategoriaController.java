@@ -38,8 +38,8 @@ public class CategoriaController {
 
     // Obtener todas las categorías principales (sin padre)
     @GetMapping("/principales")
-    public ResponseEntity<List<Categoria>> obtenerCategoriasPrincipales() {
-        List<Categoria> categorias = categoriaService.obtenerCategoriasPrincipales();
+    public ResponseEntity<List<CategoriaDTO>> obtenerCategoriasPrincipales() {
+        List<CategoriaDTO> categorias = CategoriaDTO.convertirLista(categoriaService.obtenerCategoriasPrincipales());
         return ResponseEntity.ok(categorias);
     }
 

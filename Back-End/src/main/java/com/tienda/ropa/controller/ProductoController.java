@@ -42,9 +42,16 @@ public class ProductoController {
         return productoService.obtenerProductoPorId(id);
     }
 
+    /**
+     * @deprecated Usar {@code GET /pagina}. Solo ADMIN (ver seguridad).
+     */
+    @Deprecated
     @GetMapping
-    public List<Producto> obtenerTodosLosProductos() {
-        return productoService.obtenerProductos();
+    public ResponseEntity<List<Producto>> obtenerTodosLosProductos() {
+        return ResponseEntity.ok()
+                .header("Deprecation", "true")
+                .header("Link", "</api/almacenero/productos/pagina>; rel=\"successor-version\"")
+                .body(productoService.obtenerProductos());
     }
 
     // NUEVO: Productos paginados con búsqueda server-side

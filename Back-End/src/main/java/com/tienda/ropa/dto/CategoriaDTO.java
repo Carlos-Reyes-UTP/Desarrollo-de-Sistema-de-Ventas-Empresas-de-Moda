@@ -1,4 +1,5 @@
 package com.tienda.ropa.dto;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.tienda.ropa.entity.Categoria;
 import lombok.Data;
 
@@ -11,7 +12,12 @@ public class CategoriaDTO {
     private Long id;
     private String nombre;
     private List<CategoriaDTO> subcategorias = new ArrayList<>();
-    
+
+    @JsonProperty("idCategoria")
+    public Long getIdCategoria() {
+        return id;
+    }
+
     // Constructor vacío
     public CategoriaDTO() {
     }

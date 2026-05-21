@@ -33,7 +33,12 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByCategoriaPadreAndCategoria(Categoria categoriaPadre, Categoria categoria);
 
     // Paginación sin búsqueda (camino rápido para carga inicial)
-    @Query("SELECT p FROM Producto p ORDER BY p.idProducto DESC")
+    @Query("SELECT p FROM Producto p "
+            + "LEFT JOIN FETCH p.categoria "
+            + "LEFT JOIN FETCH p.subCategoria2 "
+            + "LEFT JOIN FETCH p.categoriaPadre "
+            + "LEFT JOIN FETCH p.proveedor "
+            + "ORDER BY p.idProducto DESC")
     Page<Producto> findProductosPaginadosSinBusqueda(Pageable pageable);
 
     // Stock de Almacén agrupado por producto (todos los sectores)
@@ -121,12 +126,16 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             Pageable pageable);
 
     // Paginación con búsqueda opcional por nombre, código de identificación o código de barras
-    @Query("SELECT p FROM Producto p " +
-           "WHERE (p.codigoIdentificacion = :busqueda " +
-           "   OR p.codigoBarras = :busqueda " +
-           "   OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) " +
-           "   OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%')) " +
-           "   OR LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :busqueda, '%'))) " +
-           "ORDER BY p.idProducto DESC")
+    @Query("SELECT DISTINCT p FROM Producto p "
+            + "LEFT JOIN FETCH p.categoria "
+            + "LEFT JOIN FETCH p.subCategoria2 "
+            + "LEFT JOIN FETCH p.categoriaPadre "
+            + "LEFT JOIN FETCH p.proveedor "
+            + "WHERE (p.codigoIdentificacion = :busqueda "
+            + "   OR p.codigoBarras = :busqueda "
+            + "   OR LOWER(p.nombre) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
+            + "   OR LOWER(p.codigoIdentificacion) LIKE LOWER(CONCAT('%', :busqueda, '%')) "
+            + "   OR LOWER(p.codigoBarras) LIKE LOWER(CONCAT('%', :busqueda, '%'))) "
+            + "ORDER BY p.idProducto DESC")
     Page<Producto> findProductosPaginadosConBusqueda(@Param("busqueda") String busqueda, Pageable pageable);
 }

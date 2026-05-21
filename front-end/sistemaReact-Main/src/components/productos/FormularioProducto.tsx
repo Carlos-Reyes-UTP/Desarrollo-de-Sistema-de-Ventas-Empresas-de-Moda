@@ -293,12 +293,9 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   const cargarSugerenciasCatalogo = async () => {
     try {
       setLoading(true);
-      const todas = await ProductoVarianteService.obtenerTodasLasVariantes(
-        resolveInventarioUserRole(usuario?.roles),
-        false
-      );
-      setSugerenciasTallas(collectTallaNamesFromVariantes(todas));
-      setSugerenciasColores(collectColorNamesFromVariantes(todas));
+      const sugerencias = await ProductoVarianteService.obtenerSugerenciasCatalogo();
+      setSugerenciasTallas(sugerencias.tallas);
+      setSugerenciasColores(sugerencias.colores);
     } catch (err: unknown) {
       console.error('Error al cargar sugerencias de tallas y colores:', err);
       const status = getStatusCode(err);

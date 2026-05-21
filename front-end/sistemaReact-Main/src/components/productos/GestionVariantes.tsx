@@ -3,8 +3,6 @@ import type { Producto } from '../../types/Producto';
 import type { ProductoVariante } from '../../types/ProductoVariante';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
 import {
-  collectTallaNamesFromVariantes,
-  collectColorNamesFromVariantes,
   tallaDesdeNombre,
   colorDesdeNombre,
   mismoParTallaColor,
@@ -12,7 +10,6 @@ import {
 } from '../../utils/varianteCatalogoHelpers';
 import { AlertModal, ConfirmModal, Skeleton, MaterialIcon } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
-import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
 
 interface GestionVariantesProps {
   producto: Producto;
@@ -71,12 +68,9 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       });
       setVariantes(variantesOrdenadas);
 
-      const todas = await ProductoVarianteService.obtenerTodasLasVariantes(
-        resolveInventarioUserRole(usuario?.roles),
-        false
-      );
-      setSugerenciasTallas(collectTallaNamesFromVariantes(todas));
-      setSugerenciasColores(collectColorNamesFromVariantes(todas));
+      const sugerencias = await ProductoVarianteService.obtenerSugerenciasCatalogo();
+      setSugerenciasTallas(sugerencias.tallas);
+      setSugerenciasColores(sugerencias.colores);
     } catch (err: unknown) {
       setError('Error al cargar datos: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
     } finally {

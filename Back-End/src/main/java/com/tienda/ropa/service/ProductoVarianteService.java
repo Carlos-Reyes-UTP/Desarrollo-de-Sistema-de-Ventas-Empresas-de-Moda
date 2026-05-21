@@ -1,5 +1,6 @@
 package com.tienda.ropa.service;
 
+import com.tienda.ropa.dto.VarianteSugerenciasDTO;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.UbicacionArea;
 
@@ -15,6 +16,8 @@ public interface ProductoVarianteService {
     Optional<ProductoVariante> obtenerVariantePorId(Long idVariante);
 
     List<ProductoVariante> obtenerTodasLasVariantes();
+
+    VarianteSugerenciasDTO obtenerSugerenciasCatalogo();
 
     List<Object[]> obtenerTodasLasVariantesParaCajero();
 

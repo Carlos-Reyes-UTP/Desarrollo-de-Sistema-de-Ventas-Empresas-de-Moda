@@ -1,6 +1,7 @@
 package com.tienda.ropa.controller;
 
 import com.tienda.ropa.dto.MigrarVariantesRequest;
+import com.tienda.ropa.dto.VarianteSugerenciasDTO;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Usuario;
@@ -28,12 +29,23 @@ public class ProductoVarianteController {
     private InventarioContextService inventarioContextService;
 
     /**
-     * Listado completo de variantes (sugerencias de talla/color en formularios, inventario).
-     * Ruta explícita para no colisionar con {@code GET /{id}}.
+     * Tallas y colores distintos del catálogo (ligero; usar en formularios en lugar de {@code /todas}).
      */
+    @GetMapping("/sugerencias")
+    public ResponseEntity<VarianteSugerenciasDTO> obtenerSugerenciasCatalogo() {
+        return ResponseEntity.ok(productoVarianteService.obtenerSugerenciasCatalogo());
+    }
+
+    /**
+     * @deprecated Usar {@code GET /sugerencias} o listados paginados. Solo ADMIN (ver seguridad).
+     */
+    @Deprecated
     @GetMapping("/todas")
     public ResponseEntity<List<ProductoVariante>> obtenerTodasLasVariantes() {
-        return ResponseEntity.ok(productoVarianteService.obtenerTodasLasVariantes());
+        return ResponseEntity.ok()
+                .header("Deprecation", "true")
+                .header("Link", "</api/almacenero/variantes/sugerencias>; rel=\"successor-version\"")
+                .body(productoVarianteService.obtenerTodasLasVariantes());
     }
 
     @PostMapping

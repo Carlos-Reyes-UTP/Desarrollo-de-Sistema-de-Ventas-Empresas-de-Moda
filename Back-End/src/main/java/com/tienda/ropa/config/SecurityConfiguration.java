@@ -74,6 +74,15 @@ public class SecurityConfiguration {
                         .requestMatchers(HttpMethod.GET, "/api/almacenero/productos/pagina")
                                 .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR", "CAJERO")
 
+                        // Catálogo ligero talla/color (formularios de inventario)
+                        .requestMatchers(HttpMethod.GET, "/api/almacenero/variantes/sugerencias")
+                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR", "CAJERO")
+
+                        // Endpoints legacy de carga total (solo mantenimiento / migración)
+                        .requestMatchers(HttpMethod.GET, "/api/almacenero/variantes/todas").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/cajero/productos/variantes").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/almacenero/productos").hasRole("ADMIN")
+
                         // Proteger las rutas de almacenero (inventario, productos, categorías, etc.)
                         .requestMatchers("/api/almacenero/**")
                                 .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")

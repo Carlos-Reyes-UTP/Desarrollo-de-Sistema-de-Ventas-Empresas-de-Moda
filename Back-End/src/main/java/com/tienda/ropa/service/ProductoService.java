@@ -20,6 +20,7 @@ import com.tienda.ropa.repository.ProductoRepository;
 import com.tienda.ropa.repository.InventarioRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.ProveedoresRepository;
+import com.tienda.ropa.repository.UsuarioRepository;
 import com.tienda.ropa.service.InventarioService;
 import com.tienda.ropa.service.ProductoVarianteService;
 
@@ -49,6 +50,9 @@ public class ProductoService {
 
     @Autowired
     private InventarioContextService inventarioContextService;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     @Transactional
     public Producto agregarProducto(Producto producto) {
@@ -181,16 +185,21 @@ public class ProductoService {
         return productoRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<Producto> obtenerProductosPaginados(
             String busqueda, org.springframework.data.domain.Pageable pageable) {
         return obtenerProductosPaginados(busqueda, pageable, null, null);
     }
 
+    @Transactional(readOnly = true)
     public org.springframework.data.domain.Page<Producto> obtenerProductosPaginados(
             String busqueda,
             org.springframework.data.domain.Pageable pageable,
             Usuario usuario,
             String sector) {
+        if (usuario != null && usuario.getId() != null) {
+            usuario = usuarioRepository.findByIdWithAreaAsignada(usuario.getId()).orElse(usuario);
+        }
         String termino = busqueda == null ? "" : busqueda.trim();
         boolean sinBusqueda = termino.isEmpty();
         org.springframework.data.domain.Page<Producto> page;

@@ -87,6 +87,7 @@ public class CategoriaService {
     /**
      * Obtiene todas las categorías.
      */
+    @Transactional(readOnly = true)
     public List<Categoria> obtenerCategorias() {
         return categoriaRepository.findAll();
     }
@@ -94,15 +95,15 @@ public class CategoriaService {
     /**
      * Obtiene solo las categorías principales (sin categoría padre).
      */
+    @Transactional(readOnly = true)
     public List<Categoria> obtenerCategoriasPrincipales() {
-        List<Categoria> principales = categoriaRepository.findByCategoriaPadreIsNull();
-
-        return principales;
+        return categoriaRepository.findByCategoriaPadreIsNullWithSubcategorias();
     }
 
     /**
      * Obtiene las subcategorías de una categoría específica.
      */
+    @Transactional(readOnly = true)
     public List<Categoria> obtenerSubcategorias(Long idCategoria) {
         return categoriaRepository.findByCategoriaPadreIdCategoria(idCategoria);
     }
@@ -178,6 +179,7 @@ public class CategoriaService {
     /**
      * Busca categorías por nombre que coincidan parcialmente.
      */
+    @Transactional(readOnly = true)
     public List<Categoria> buscarPorNombre(String nombre) {
         return categoriaRepository.findByNombreContainingIgnoreCase(nombre);
     }
