@@ -57,7 +57,10 @@ const LoginPage = () => {
   };
 
   return (
-    <div data-theme="classic" style={{ colorScheme: 'light' }} className="flex min-h-screen w-full bg-[#fafafa] font-sans text-gray-900 overflow-x-hidden">
+    <div data-theme="classic" style={{ colorScheme: 'light' }} className="flex min-h-screen w-full bg-[#fafafa] font-sans text-gray-900 overflow-x-hidden relative">
+      {/* Barra de arrastre invisible para arrastrar la ventana en modo PWA (Window Controls Overlay) */}
+      <div className="fixed top-0 left-0 right-0 h-8 pointer-events-none z-[9999] md:flex hidden" style={{ WebkitAppRegion: 'drag' } as any}></div>
+
       <style>{`
         @keyframes floatAmbient1 {
           0%, 100% {

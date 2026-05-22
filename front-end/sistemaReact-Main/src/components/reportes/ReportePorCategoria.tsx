@@ -19,6 +19,7 @@ import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
 import type { ReporteCategoriaData, FiltrosReporte } from '../../types/ReporteVentas';
 import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton } from '@/shared/ui';
+import { RoseChart } from './shared/RoseChart';
 
 // Tipos para el estado de navegación
 interface Breadcrumb {
@@ -32,7 +33,7 @@ const ReportePorCategoria: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filtros] = useState<FiltrosReporte>({});
-  const [vistaGrafico, setVistaGrafico] = useState<'barras' | 'pie' | 'tabla'>('barras');
+  const [vistaGrafico, setVistaGrafico] = useState<'barras' | 'pie' | 'rose' | 'tabla'>('barras');
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
   
   // Estados para la navegación drill-down
@@ -401,12 +402,12 @@ const ReportePorCategoria: React.FC = () => {
 
           {/* Selector de vista y visualización principal */}
           <div className="flex bg-gray-100 rounded-lg p-1 w-fit">
-            {['barras', 'pie', 'tabla'].map((vista) => (
+            {['barras', 'pie', 'rose', 'tabla'].map((vista) => (
               <button
                 key={vista}
                 onClick={() => {
                   setVistaGrafico(vista as any);
-                  // Ocultar panel expandible cuando se cambia a gráfico/torta
+                  // Ocultar panel expandible cuando se cambia a gráfico/torta/rose
                   if (vista !== 'tabla') {
                     setPanelExpandido(false);
                   } else {
@@ -422,7 +423,7 @@ const ReportePorCategoria: React.FC = () => {
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                {vista === 'barras' ? 'Barras' : vista === 'pie' ? 'Torta' : 'Tabla'}
+                {vista === 'barras' ? 'Barras' : vista === 'pie' ? 'Torta' : vista === 'rose' ? 'Rose Chart' : 'Tabla'}
               </button>
             ))}
           </div>
@@ -470,6 +471,35 @@ const ReportePorCategoria: React.FC = () => {
                     <Tooltip formatter={(value) => [`S/${Number(value).toLocaleString()}`, 'Ingresos']} />
                   </PieChart>
                 </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {vistaGrafico === 'rose' && (
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">Área Polar por Categoría</h3>
+                  <p className="text-xs text-gray-500">
+                    Navegación drill-down activa: haz clic en cualquier sector para profundizar
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+                  </svg>
+                  <span>Sectores proporcionales a ingresos</span>
+                </div>
+              </div>
+              <div className="min-h-[420px] flex items-center justify-center">
+                <RoseChart
+                  data={reportes}
+                  labelKey="categoria"
+                  valueKey="ingresosTotales"
+                  valueFormatter={(value) => `S/ ${value.toLocaleString()}`}
+                  onSectorClick={(item) => navegarHacia(item)}
+                  height={400}
+                />
               </div>
             </div>
           )}

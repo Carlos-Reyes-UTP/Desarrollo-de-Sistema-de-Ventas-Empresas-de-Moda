@@ -117,6 +117,23 @@
   animation: fadeInUp 0.3s ease-out forwards;
 }
 
+/* Transición entre páginas:
+   - Ocultar: instantáneo (sin transición) → evita ver viejo+nuevo superpuestos
+   - Mostrar: fade-in suave → 240 ms, solo opacidad, sin movimiento */
+.page-transition {
+  /* Solo aplicamos transición en el estado visible */
+}
+
+.page-transition--visible {
+  opacity: 1;
+  transition: opacity 240ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-transition--hidden {
+  opacity: 0;
+  transition: none; /* Instantáneo: no damos tiempo a ver contenido mezclado */
+}
+
 /* Skeleton loading — brillo deslizante */
 @keyframes skeleton-shimmer {
   0% {
@@ -167,6 +184,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-transition {
+    transition: none;
+  }
+
   .skeleton-shimmer,
   .skeleton-shimmer-muted,
   .skeleton-shimmer-dark {

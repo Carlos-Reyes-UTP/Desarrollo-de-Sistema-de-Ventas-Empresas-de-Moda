@@ -31,6 +31,7 @@ import {
   CustomTooltipVariantes,
 } from './productos-mas-vendidos/chartRenderers';
 import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton } from '@/shared/ui';
+import { RoseChart } from './shared/RoseChart';
 
 // Estilos CSS para animaciones
 const animationStyles = `
@@ -101,13 +102,13 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet);
 }
 
-type VistaGraficoReporte = 'barras' | 'linea' | 'tabla';
+type VistaGraficoReporte = 'barras' | 'linea' | 'rose' | 'tabla';
 type FiltrosReporte = {
   idCategoriaPadre?: string;
   fechaInicio?: string;
   fechaFin?: string;
 };
-const VISTAS_GRAFICO: VistaGraficoReporte[] = ['barras', 'linea', 'tabla'];
+const VISTAS_GRAFICO: VistaGraficoReporte[] = ['barras', 'linea', 'rose', 'tabla'];
 
 const ProductosMasVendidos: React.FC = () => {
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
@@ -902,6 +903,7 @@ const ProductosMasVendidos: React.FC = () => {
             let textoVista = 'Tabla';
             if (vista === 'barras') textoVista = 'Barras';
             else if (vista === 'linea') textoVista = 'Línea';
+            else if (vista === 'rose') textoVista = 'Rose Chart';
             
             return (
               <button
@@ -1028,6 +1030,35 @@ const ProductosMasVendidos: React.FC = () => {
                 <Line type="monotone" dataKey="ingresosTotales" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} />
               </LineChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {vistaGrafico === 'rose' && (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Distribución de Ventas por Producto</h3>
+              <p className="text-xs text-gray-500">
+                Análisis radial de los top 10 productos más vendidos (haz clic en cualquier sector para ver variantes)
+              </p>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+              <span>Sectores proporcionales a unidades vendidas</span>
+            </div>
+          </div>
+          <div className="min-h-[420px] flex items-center justify-center">
+            <RoseChart
+              data={productosFiltrados.slice(0, 10)}
+              labelKey="nombreProducto"
+              valueKey="cantidadVendida"
+              valueFormatter={(value) => `${value.toLocaleString()} uds`}
+              onSectorClick={(item) => seleccionarProducto(item)}
+              height={400}
+            />
           </div>
         </div>
       )}

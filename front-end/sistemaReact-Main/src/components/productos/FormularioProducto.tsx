@@ -17,8 +17,6 @@ import { validarJerarquiaPreciosProducto } from '../../utils/validarPreciosProdu
 import { getErrorMessage, getStatusCode } from '@/utils/errorUtils';
 import { extractApiErrorMessage } from '@/utils/handleApiError';
 import { AlertModal, MaterialIcon } from '@/shared/ui';
-import { useAuth } from '@/context/AuthContext';
-import { resolveInventarioUserRole } from '@/hooks/useProductoVarianteService';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
 
 // Subcomponentes especializados
@@ -54,7 +52,6 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   onClose,
   onProductoGuardado
 }) => {
-  const { usuario } = useAuth();
   
   // Acceso al área de almacén
   const {

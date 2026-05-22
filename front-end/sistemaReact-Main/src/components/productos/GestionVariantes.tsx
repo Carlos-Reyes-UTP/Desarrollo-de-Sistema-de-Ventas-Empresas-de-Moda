@@ -9,7 +9,6 @@ import {
   nombresUnicosOrdenados,
 } from '../../utils/varianteCatalogoHelpers';
 import { AlertModal, ConfirmModal, Skeleton, MaterialIcon } from '@/shared/ui';
-import { useAuth } from '@/context/AuthContext';
 
 interface GestionVariantesProps {
   producto: Producto;
@@ -25,7 +24,6 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   onClose,
   onVariantesActualizadas
 }) => {
-  const { usuario } = useAuth();
   const [variantes, setVariantes] = useState<ProductoVariante[]>([]);
   const [sugerenciasTallas, setSugerenciasTallas] = useState<string[]>([]);
   const [sugerenciasColores, setSugerenciasColores] = useState<string[]>([]);

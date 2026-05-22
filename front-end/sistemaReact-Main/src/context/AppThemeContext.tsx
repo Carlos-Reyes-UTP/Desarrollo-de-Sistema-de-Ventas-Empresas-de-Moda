@@ -112,6 +112,23 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', themeId);
     writeStoredTheme(themeId);
+
+    // Sincronizar el color de la barra de título nativa de la ventana (PWA) con el tema actual
+    const themeColors: Record<AppThemeId, string> = {
+      classic: '#fafafa',
+      dark: '#0a0a0a',
+      'pastel-dama': '#fdf6f6',
+      'pastel-caballero': '#f4f7fa',
+      'soft-neutral': '#f7f5f2',
+    };
+
+    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
+    if (!metaThemeColor) {
+      metaThemeColor = document.createElement('meta');
+      metaThemeColor.setAttribute('name', 'theme-color');
+      document.head.appendChild(metaThemeColor);
+    }
+    metaThemeColor.setAttribute('content', themeColors[themeId]);
   }, [themeId]);
 
   const setTheme = useCallback((id: AppThemeId) => {

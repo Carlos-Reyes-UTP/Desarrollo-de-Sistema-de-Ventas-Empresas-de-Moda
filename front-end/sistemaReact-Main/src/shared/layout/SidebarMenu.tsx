@@ -96,14 +96,19 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
       cambiarVista(vista);
     }
 
-    if (onClick) {
-      onClick();
-    } else {
-      if (isCajeroView(vista)) {
-        navigate(APP_PATHS.caja, { state: { view: vista } });
-      }
-    }
+    // Cerrar drawer primero; navegar después de que termine la animación de cierre
+    // Así el usuario no ve el drawer cerrándose Y el contenido cambiando al mismo tiempo
     closeDrawer();
+
+    setTimeout(() => {
+      if (onClick) {
+        onClick();
+      } else {
+        if (isCajeroView(vista)) {
+          navigate(APP_PATHS.caja, { state: { view: vista } });
+        }
+      }
+    }, 220); // coincide con transition={{ duration: 0.22 }} del Drawer
   };
 
   const getRoleLabel = () => {
@@ -167,7 +172,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
         size={300}
         overlayProps={{
           className:
-            "fixed inset-0 z-[45] bg-black/40 backdrop-blur-sm will-change-[opacity] pointer-events-auto " +
+            "fixed inset-0 z-[45] bg-black/40 will-change-[opacity] pointer-events-auto " +
             "[-webkit-tap-highlight-color:transparent]",
         }}
       >

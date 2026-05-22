@@ -30,146 +30,168 @@ import java.util.Arrays;
 @RequiredArgsConstructor
 public class SecurityConfiguration {
 
-    private final JwtAuthenticationFilter jwtAuthenticationFilter;
-    private final UsuarioService usuarioService;
+        private final JwtAuthenticationFilter jwtAuthenticationFilter;
+        private final UsuarioService usuarioService;
 
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // 1. Deshabilitar CSRF: Esencial cuando se usa JWT y no sesiones.
-                .csrf(AbstractHttpConfigurer::disable)
+        @Bean
+        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+                http
+                                // 1. Deshabilitar CSRF: Esencial cuando se usa JWT y no sesiones.
+                                .csrf(AbstractHttpConfigurer::disable)
 
-                // 2. Habilitar CORS: Usa el bean 'corsConfigurationSource' definido más abajo.
-                // Esta es la forma correcta y recomendada de integrar CORS con Spring Security.
-                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 3. Reglas de Autorización de Rutas
-                                                                                   // (Endpoints)
-                .authorizeHttpRequests(request -> request
-                        // Preflight CORS sin credenciales de rol (evita 403 en navegador antes del GET/POST real).
-                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // La regla MÁS IMPORTANTE: Permitir acceso público a los endpoints de
-                        // autenticación.
-                        // Debe ir primero para que no sea sobreescrita por reglas más restrictivas.
-                        .requestMatchers("/api/autenticacion/**").permitAll()
+                                // 2. Habilitar CORS: Usa el bean 'corsConfigurationSource' definido más abajo.
+                                // Esta es la forma correcta y recomendada de integrar CORS con Spring Security.
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // 3. Reglas de
+                                                                                                   // Autorización de
+                                                                                                   // Rutas
+                                                                                                   // (Endpoints)
+                                .authorizeHttpRequests(request -> request
+                                                // Preflight CORS sin credenciales de rol (evita 403 en navegador antes
+                                                // del GET/POST real).
+                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                                // La regla MÁS IMPORTANTE: Permitir acceso público a los endpoints de
+                                                // autenticación.
+                                                // Debe ir primero para que no sea sobreescrita por reglas más
+                                                // restrictivas.
+                                                .requestMatchers("/api/autenticacion/**").permitAll()
 
-                        // Proteger las rutas de administrador. Solo ADMIN puede acceder.
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                                                // Proteger las rutas de administrador. Solo ADMIN puede acceder.
+                                                .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // Permitir acceso a los nuevos endpoints de códigos de barras v1
-                        .requestMatchers("/api/v1/codigosbarras/**").permitAll()
+                                                // Permitir acceso a los nuevos endpoints de códigos de barras v1
+                                                .requestMatchers("/api/v1/codigosbarras/**").permitAll()
 
-                        // Lectura del catálogo POS (productos/variantes): también vendedor de piso (el front
-                        // reutiliza estas rutas; la regla general de /api/cajero/** sigue sin incluir VENDEDOR).
-                        .requestMatchers(HttpMethod.GET, "/api/cajero/productos/**")
-                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
+                                                // Lectura del catálogo POS (productos/variantes): también vendedor de
+                                                // piso (el front
+                                                // reutiliza estas rutas; la regla general de /api/cajero/** sigue sin
+                                                // incluir VENDEDOR).
+                                                .requestMatchers(HttpMethod.GET, "/api/cajero/productos/**")
+                                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
+                                                                "VENDEDOR")
 
-                        // Cajero (ventas, catálogo POS). ALMACENERO comparte flujos de producto/variantes con el front.
-                        .requestMatchers("/api/cajero/**")
-                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
+                                                // Cajero (ventas, catálogo POS). ALMACENERO comparte flujos de
+                                                // producto/variantes con el front.
+                                                .requestMatchers("/api/cajero/**")
+                                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
+                                                                "VENDEDOR")
 
-                        // Proteger las rutas de caja. ADMIN, CAJERO y ALMACENERO pueden acceder.
-                        .requestMatchers("/api/caja/**")
-                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
+                                                // Proteger las rutas de caja. ADMIN, CAJERO y ALMACENERO pueden
+                                                // acceder.
+                                                .requestMatchers("/api/caja/**")
+                                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
+                                                                "VENDEDOR")
 
-                        // Búsqueda paginada de productos (misma query que usa ProductoService del front para varios roles).
-                        .requestMatchers(HttpMethod.GET, "/api/almacenero/productos/pagina")
-                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR", "CAJERO")
+                                                // Búsqueda paginada de productos (misma query que usa ProductoService
+                                                // del front para varios roles).
+                                                .requestMatchers(HttpMethod.GET, "/api/almacenero/productos/pagina")
+                                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
+                                                                "CAJERO")
 
-                        // Catálogo ligero talla/color (formularios de inventario)
-                        .requestMatchers(HttpMethod.GET, "/api/almacenero/variantes/sugerencias")
-                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR", "CAJERO")
+                                                // Catálogo ligero talla/color (formularios de inventario)
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/api/almacenero/variantes/sugerencias")
+                                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
+                                                                "CAJERO")
 
-                        // Endpoints legacy de carga total (solo mantenimiento / migración)
-                        .requestMatchers(HttpMethod.GET, "/api/almacenero/variantes/todas").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/cajero/productos/variantes").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/api/almacenero/productos").hasRole("ADMIN")
+                                                // Endpoints legacy de carga total (solo mantenimiento / migración)
+                                                .requestMatchers(HttpMethod.GET, "/api/almacenero/variantes/todas")
+                                                .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/api/cajero/productos/variantes")
+                                                .hasRole("ADMIN")
+                                                .requestMatchers(HttpMethod.GET, "/api/almacenero/productos")
+                                                .hasRole("ADMIN")
 
-                        // Proteger las rutas de almacenero (inventario, productos, categorías, etc.)
-                        .requestMatchers("/api/almacenero/**")
-                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
+                                                // Proteger las rutas de almacenero (inventario, productos, categorías,
+                                                // etc.)
+                                                .requestMatchers("/api/almacenero/**")
+                                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
 
-                        // Vendedor / admin: catálogo y solicitudes a almacén (mismo contrato API)
-                        .requestMatchers("/api/vendedor/**")
-                                .hasAnyRole("VENDEDOR", "ADMIN")
+                                                // Vendedor / admin: catálogo y solicitudes a almacén (mismo contrato
+                                                // API)
+                                                .requestMatchers("/api/vendedor/**")
+                                                .hasAnyRole("VENDEDOR", "ADMIN")
 
-                        // CUALQUIER OTRA RUTA que no coincida con las anteriores requiere
-                        // autenticación.
-                        .anyRequest().authenticated())
+                                                // CUALQUIER OTRA RUTA que no coincida con las anteriores requiere
+                                                // autenticación.
+                                                .anyRequest().authenticated())
 
-                // 4. Gestión de Sesión: STATELESS (sin estado), ya que cada petición se valida
-                // con el token JWT.
-                .sessionManagement(manager -> manager.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                // 4. Gestión de Sesión: STATELESS (sin estado), ya que cada petición se valida
+                                // con el token JWT.
+                                .sessionManagement(manager -> manager
+                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                .exceptionHandling(ex -> ex
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write(
-                                    "{\"message\":\"No tienes permiso para esta acción\"}");
-                        }))
+                                .exceptionHandling(ex -> ex
+                                                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                                                        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                                                        response.setContentType("application/json;charset=UTF-8");
+                                                        response.getWriter().write(
+                                                                        "{\"message\":\"No tienes permiso para esta acción\"}");
+                                                }))
 
-                // 5. Proveedor de Autenticación: Usa nuestro servicio de usuario y el
-                // codificador de contraseñas.
-                .authenticationProvider(authenticationProvider())
+                                // 5. Proveedor de Autenticación: Usa nuestro servicio de usuario y el
+                                // codificador de contraseñas.
+                                .authenticationProvider(authenticationProvider())
 
-                // 6. Filtro JWT: Añade nuestro filtro personalizado para que se ejecute antes
-                // de la autenticación por defecto.
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                                // 6. Filtro JWT: Añade nuestro filtro personalizado para que se ejecute antes
+                                // de la autenticación por defecto.
+                                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
 
-        // Define los orígenes (URL de tu frontend de React) que tienen permitido hacer
-        // peticiones.
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:5173",
-                "http://localhost:3000",
-                "http://127.0.0.1:5173",
-                "http://127.0.0.1:3000",
-                "http://localhost:1420"));
+                // Define los orígenes (URL de tu frontend de React) que tienen permitido hacer
+                // peticiones.
+                configuration.setAllowedOrigins(Arrays.asList(
+                                "http://localhost:5173",
+                                "http://localhost:3000",
+                                "http://127.0.0.1:5173",
+                                "http://127.0.0.1:3000",
+                                "http://localhost:1420",
+                                "http://localhost:4173"));
 
-        // Define los métodos HTTP que se permitirán (GET, POST, etc.).
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+                // Define los métodos HTTP que se permitirán (GET, POST, etc.).
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
 
-        // Define las cabeceras que el frontend puede enviar. ESTO ES CRUCIAL.
-        // Usar "*" permite todas las cabeceras necesarias
-        configuration.setAllowedHeaders(Arrays.asList("*"));
+                // Define las cabeceras que el frontend puede enviar. ESTO ES CRUCIAL.
+                // Usar "*" permite todas las cabeceras necesarias
+                configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // Exponer cabeceras que el frontend puede leer
-        configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
+                // Exponer cabeceras que el frontend puede leer
+                configuration.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
 
-        // Permite que el navegador envíe credenciales (como cookies o tokens) en las
-        // peticiones.
-        configuration.setAllowCredentials(true);
+                // Permite que el navegador envíe credenciales (como cookies o tokens) en las
+                // peticiones.
+                configuration.setAllowCredentials(true);
 
-        // Cache para peticiones preflight
-        configuration.setMaxAge(3600L);
+                // Cache para peticiones preflight
+                configuration.setMaxAge(3600L);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        // Aplica esta configuración a TODAS las rutas de tu API.
-        source.registerCorsConfiguration("/**", configuration);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                // Aplica esta configuración a TODAS las rutas de tu API.
+                source.registerCorsConfiguration("/**", configuration);
 
-        return source;
-    }
+                return source;
+        }
 
-    @Bean
-    public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(usuarioService.userDetailsService());
-        authProvider.setPasswordEncoder(passwordEncoder());
-        return authProvider;
-    }
+        @Bean
+        public AuthenticationProvider authenticationProvider() {
+                DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+                authProvider.setUserDetailsService(usuarioService.userDetailsService());
+                authProvider.setPasswordEncoder(passwordEncoder());
+                return authProvider;
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
 
-    @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-        return config.getAuthenticationManager();
-    }
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+                return config.getAuthenticationManager();
+        }
 }
