@@ -75,6 +75,7 @@ const GestionProductos: React.FC = () => {
   const datosInicialesCargadosRef = useRef(false);
   const busquedaDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const omitirDebounceBusquedaRef = useRef(true);
+  const tabAnteriorRef = useRef<'catalogo' | 'pisos'>('catalogo');
 
 
 
@@ -230,6 +231,13 @@ const GestionProductos: React.FC = () => {
     datosInicialesCargadosRef.current = true;
     void cargarFiltrosYDatos(0, '');
   }, [cargarFiltrosYDatos]);
+
+  useEffect(() => {
+    if (tabActual === 'catalogo' && tabAnteriorRef.current === 'pisos') {
+      cargarDatos();
+    }
+    tabAnteriorRef.current = tabActual;
+  }, [tabActual, cargarDatos]);
 
   // Verificar si se debe abrir el modal automáticamente
   useEffect(() => {
