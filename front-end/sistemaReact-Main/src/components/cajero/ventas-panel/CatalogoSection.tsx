@@ -121,7 +121,7 @@ export const CatalogoSection = ({
         </div>
         
         {/* Catalog Grid */}
-        <div className="flex-1 overflow-y-auto pr-3 custom-scrollbar">
+        <div className="flex-1 overflow-y-auto pr-3 custom-scrollbar relative">
           {cargandoProductosIniciales ? (
             <CardGridSkeleton count={6} />
           ) : variantesFiltradas.length > 0 ? (
@@ -195,44 +195,44 @@ export const CatalogoSection = ({
                <button onClick={() => { setBusqueda(''); setMensajeInfoVista(null); }} className="caj-heading text-[11px] font-bold uppercase tracking-[0.2em] border-b-2 border-[var(--caj-accent)] pb-1 hover:opacity-50 transition-opacity">Limpiar búsqueda</button>
             </div>
           )}
+
+          {/* PAGINACIÓN - Server-side */}
+          {totalPaginas > 1 && (
+            <div className="sticky bottom-0 px-10 py-6 border-t caj-border-subtle flex items-center justify-between caj-card z-10" style={{ backgroundColor: 'var(--caj-card-bg)' }}>
+              <span className="caj-label text-[10px] font-bold uppercase tracking-[0.2em]">Página {paginaActual + 1} / {totalPaginas} · {totalElementos} productos</span>
+              <div className="caj-segment flex gap-2 p-1.5 rounded-2xl shrink-0">
+                <button onClick={() => handleCambiarPagina(paginaActual - 1)} disabled={paginaActual === 0} className="caj-pagination-btn w-10 h-10 flex items-center justify-center rounded-xl transition-all disabled:opacity-20">
+                  <MaterialIcon icon="chevron_left" className="h-[18px] w-[18px]" />
+                </button>
+                {[...Array(Math.min(totalPaginas, 5))].map((_, i) => {
+                  let n: number;
+                  if (totalPaginas <= 5) {
+                    n = i;
+                  } else if (paginaActual <= 2) {
+                    n = i;
+                  } else if (paginaActual >= totalPaginas - 3) {
+                    n = totalPaginas - 5 + i;
+                  } else {
+                    n = paginaActual - 2 + i;
+                  }
+                  return (
+                    <button 
+                      key={n} 
+                      onClick={() => handleCambiarPagina(n)} 
+                      className={`caj-pagination-btn w-10 h-10 rounded-xl text-[11px] font-bold transition-all ${paginaActual === n ? 'caj-segment-active shadow-xl' : 'caj-segment-inactive'}`}
+                    >
+                      {n + 1}
+                    </button>
+                  );
+                })}
+                <button onClick={() => handleCambiarPagina(paginaActual + 1)} disabled={paginaActual >= totalPaginas - 1} className="caj-pagination-btn w-10 h-10 flex items-center justify-center rounded-xl transition-all disabled:opacity-20">
+                  <MaterialIcon icon="chevron_right" className="h-[18px] w-[18px]" />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* PAGINACIÓN - Server-side */}
-      {totalPaginas > 1 && (
-        <div className="px-10 py-6 border-t caj-border-subtle flex items-center justify-between caj-card text-left relative z-10 transition-all">
-          <span className="caj-label text-[10px] font-bold uppercase tracking-[0.2em]">Página {paginaActual + 1} / {totalPaginas} · {totalElementos} productos</span>
-          <div className="caj-segment flex gap-2 p-1.5 rounded-2xl">
-            <button onClick={() => handleCambiarPagina(paginaActual - 1)} disabled={paginaActual === 0} className="caj-pagination-btn w-10 h-10 flex items-center justify-center rounded-xl transition-all disabled:opacity-20">
-              <MaterialIcon icon="chevron_left" className="h-[18px] w-[18px]" />
-            </button>
-            {[...Array(Math.min(totalPaginas, 5))].map((_, i) => {
-              let n: number;
-              if (totalPaginas <= 5) {
-                n = i;
-              } else if (paginaActual <= 2) {
-                n = i;
-              } else if (paginaActual >= totalPaginas - 3) {
-                n = totalPaginas - 5 + i;
-              } else {
-                n = paginaActual - 2 + i;
-              }
-              return (
-                <button 
-                  key={n} 
-                  onClick={() => handleCambiarPagina(n)} 
-                  className={`caj-pagination-btn w-10 h-10 rounded-xl text-[11px] font-bold transition-all ${paginaActual === n ? 'caj-segment-active shadow-xl' : 'caj-segment-inactive'}`}
-                >
-                  {n + 1}
-                </button>
-              );
-            })}
-            <button onClick={() => handleCambiarPagina(paginaActual + 1)} disabled={paginaActual >= totalPaginas - 1} className="caj-pagination-btn w-10 h-10 flex items-center justify-center rounded-xl transition-all disabled:opacity-20">
-              <MaterialIcon icon="chevron_right" className="h-[18px] w-[18px]" />
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

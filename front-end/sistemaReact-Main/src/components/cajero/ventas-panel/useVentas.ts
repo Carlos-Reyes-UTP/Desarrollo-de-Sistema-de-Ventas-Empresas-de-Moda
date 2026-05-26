@@ -71,7 +71,7 @@ const { isReady, isAuthenticated } = useAuthReady();
   const [paginaActual, setPaginaActual] = useState(0); // 0-indexed para el backend
   const [totalPaginas, setTotalPaginas] = useState(0);
   const [totalElementos, setTotalElementos] = useState(0);
-  const productosPorPagina = 30;
+  const productosPorPagina = 6;
 
   // Función para cargar variantes desde el servidor (paginado + búsqueda)
   const cargarVariantesPaginadas = useCallback(async (page: number, searchTerm?: string) => {
