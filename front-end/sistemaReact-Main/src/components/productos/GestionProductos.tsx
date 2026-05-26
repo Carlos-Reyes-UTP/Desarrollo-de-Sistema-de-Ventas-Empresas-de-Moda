@@ -12,7 +12,6 @@ import GestionVariantes from './GestionVariantes';
 import GestionPisos from '../almacen/GestionPisos';
 import { useAuth } from '@/context/AuthContext';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
-import { SECTOR_ALMACEN_GENERAL } from '@/shared/constants/sectoresAlmacen';
 
 const GestionProductos: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,29 +21,20 @@ const GestionProductos: React.FC = () => {
   const tabActual =
     tabParam === 'pisos' && puedeVerPisos ? 'pisos' : 'catalogo';
   const { acceso: accesoAreaAlmacen, etiquetaStock } = useAccesoAreaAlmacen(true);
-  const [sectorFiltro, setSectorFiltro] = useState<string>(SECTOR_ALMACEN_GENERAL);
 
   const sectorParaApi = useMemo(() => {
-    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
-      return sectorFiltro;
-    }
     if (accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo) {
       return accesoAreaAlmacen.sectoresVisibles[0] ?? undefined;
     }
     return undefined;
-  }, [accesoAreaAlmacen, sectorFiltro]);
+  }, [accesoAreaAlmacen]);
 
   const etiquetaColumnaStock = useMemo(() => {
-    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
-      return sectorFiltro === SECTOR_ALMACEN_GENERAL
-        ? 'Stock almacén (total)'
-        : `Stock (${sectorFiltro})`;
-    }
     if (accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && sectorParaApi) {
       return `Stock (${sectorParaApi})`;
     }
     return 'Nivel de Stock';
-  }, [accesoAreaAlmacen, sectorFiltro, sectorParaApi]);
+  }, [accesoAreaAlmacen, sectorParaApi]);
 
   const rolParaApiProductos = useMemo(() => {
     if (tieneRol('ROLE_ADMIN')) return 'ROLE_ADMIN';
@@ -197,12 +187,6 @@ const GestionProductos: React.FC = () => {
       setLoading(false);
     }
   }, [categorias.length, proveedores.length, rolParaApiProductos, sectorParaApi]);
-
-  useEffect(() => {
-    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
-      setSectorFiltro(SECTOR_ALMACEN_GENERAL);
-    }
-  }, [accesoAreaAlmacen?.esAlmaceneroGeneral]);
 
   useEffect(() => {
     if (!datosInicialesCargadosRef.current) return;
@@ -370,11 +354,6 @@ const GestionProductos: React.FC = () => {
         title="Inventario"
         belowTitle={
           <>
-            {accesoAreaAlmacen?.esAlmaceneroGeneral && (
-              <PageHeaderMetaChip variant="context" icon="inventory_2">
-                Almacenero general · vista por sector
-              </PageHeaderMetaChip>
-            )}
             {accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && etiquetaStock && (
               <PageHeaderMetaChip variant="context" icon="corporate_fare">
                 Sector asignado: {etiquetaStock}
@@ -428,24 +407,6 @@ const GestionProductos: React.FC = () => {
                 </button>
               )}
             </div>
-            {accesoAreaAlmacen?.esAlmaceneroGeneral && tabActual === 'catalogo' && (
-              <div className="flex flex-wrap items-center gap-2">
-                {accesoAreaAlmacen.sectoresVisibles.map((sector) => (
-                  <button
-                    key={sector}
-                    type="button"
-                    onClick={() => setSectorFiltro(sector)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
-                      sectorFiltro === sector
-                        ? 'app-btn-primary shadow-sm'
-                        : 'app-panel app-text-muted border hover:bg-[var(--app-bg-muted)]'
-                    }`}
-                  >
-                    {sector}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         }
         actions={

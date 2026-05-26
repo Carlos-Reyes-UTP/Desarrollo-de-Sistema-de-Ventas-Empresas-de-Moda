@@ -48,7 +48,7 @@ public class Usuario implements UserDetails {
     private UbicacionArea areaAsignado;
 
     @Builder.Default
-    @ManyToMany(fetch = FetchType.EAGER, targetEntity = Rol.class, cascade = CascadeType.ALL)
+    @ManyToMany(fetch = FetchType.EAGER, targetEntity = Rol.class)
     @JoinTable(name = "usuario_rol",
     joinColumns = @JoinColumn(name = "id_usuario"),
     inverseJoinColumns = @JoinColumn(name = "id_rol"))

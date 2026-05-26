@@ -6,7 +6,6 @@ export interface AccesoAreaAlmacen {
   etiquetaAreaAsignada: string | null;
   puedeElegirAreaEntrada: boolean;
   restriccionTrasladoMismaAreaCatalogo: boolean;
-  esAlmaceneroGeneral: boolean;
   sectoresVisibles: string[];
   areasAlmacen: UbicacionArea[];
   destinosTraslado: UbicacionArea[];

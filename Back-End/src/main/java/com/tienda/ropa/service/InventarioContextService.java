@@ -12,7 +12,6 @@ import org.springframework.web.server.ResponseStatusException;
 import com.tienda.ropa.dto.InventarioContextoDTO;
 import com.tienda.ropa.dto.ResumenStockAreaDTO;
 import com.tienda.ropa.dto.UbicacionDTO;
-import com.tienda.ropa.entity.Area;
 import com.tienda.ropa.entity.Role;
 import com.tienda.ropa.entity.Rol;
 import com.tienda.ropa.entity.UbicacionArea;
@@ -26,9 +25,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class InventarioContextService {
 
-    public static final String NOMBRE_AREA_GENERAL = "General";
-    public static final List<String> SECTORES_LINEA = List.of("Damas", "Caballeros", "Niños");
-
     private final InventarioService inventarioService;
     private final UbicacionAreaRepository ubicacionAreaRepository;
     private final InventarioRepository inventarioRepository;
@@ -38,33 +34,21 @@ public class InventarioContextService {
         return listarAreasAlmacenEntidades().stream().map(this::toUbicacionDTO).toList();
     }
 
-    /** Sectores de almacén donde se registra stock (sin fila General). */
-    @Transactional(readOnly = true)
-    public List<UbicacionDTO> listarAreasAlmacenParaEntrada() {
-        return listarAreasAlmacenEntidades().stream()
-                .filter(ua -> !esAreaCatalogoGeneral(ua.getArea()))
-                .map(this::toUbicacionDTO)
-                .toList();
-    }
-
     @Transactional(readOnly = true)
     public InventarioContextoDTO construirContexto(Usuario usuario) {
         if (usuario == null) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Usuario no autenticado");
         }
         Role rol = rolPrincipalInventario(usuario);
-        boolean esAlmaceneroGeneral = esAlmaceneroGeneral(usuario);
         boolean esAlmaceneroLinea = esAlmaceneroDeLinea(usuario);
 
-        List<UbicacionDTO> areasAlmacen = (rol == Role.ADMIN || rol == Role.SUPERVISOR_ALMACEN || esAlmaceneroGeneral)
-                ? listarAreasAlmacenParaEntrada()
-                : listarAreasAlmacen();
+        List<UbicacionDTO> areasAlmacen = listarAreasAlmacen();
 
         UbicacionArea asignada = usuario.getAreaAsignado();
         Long idAsignada = asignada != null ? asignada.getIdUbicacionArea() : null;
         String etiquetaAsignada = asignada != null ? InventarioService.etiquetaUbicacionArea(asignada) : null;
 
-        boolean puedeElegir = rol == Role.ADMIN || rol == Role.SUPERVISOR_ALMACEN || esAlmaceneroGeneral;
+        boolean puedeElegir = rol == Role.ADMIN || rol == Role.SUPERVISOR_ALMACEN;
         boolean restriccionTraslado = esAlmaceneroLinea;
 
         List<UbicacionDTO> destinosTraslado;
@@ -72,15 +56,11 @@ public class InventarioContextService {
             destinosTraslado = listarDestinosTrasladoParaAlmacenero(usuario).stream()
                     .map(this::toUbicacionDTO)
                     .toList();
-        } else if (esAlmaceneroGeneral) {
-            destinosTraslado = listarTodasLasUbicacionesArea().stream()
-                    .map(this::toUbicacionDTO)
-                    .toList();
         } else {
             destinosTraslado = areasAlmacen;
         }
 
-        List<String> sectoresVisibles = sectoresVisiblesParaUsuario(usuario, rol, esAlmaceneroGeneral);
+        List<String> sectoresVisibles = sectoresVisiblesParaUsuario(usuario, rol);
 
         return new InventarioContextoDTO(
                 rol != null ? rol.name() : null,
@@ -88,7 +68,6 @@ public class InventarioContextService {
                 etiquetaAsignada,
                 puedeElegir,
                 restriccionTraslado,
-                esAlmaceneroGeneral,
                 sectoresVisibles,
                 areasAlmacen,
                 destinosTraslado);
@@ -101,10 +80,6 @@ public class InventarioContextService {
         }
         Role rol = rolPrincipalInventario(usuario);
 
-        if (rol == Role.ALMACENERO && esAlmaceneroGeneral(usuario)) {
-            return resolverAreaEntradaSupervisor(idUbicacionAreaSolicitada);
-        }
-
         if (rol == Role.ALMACENERO) {
             UbicacionArea asignada = usuario.getAreaAsignado();
             if (asignada == null) {
@@ -116,11 +91,6 @@ public class InventarioContextService {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
                         "El área asignada no corresponde a un sector de almacén válido.");
-            }
-            if (esAreaCatalogoGeneral(asignada.getArea())) {
-                throw new ResponseStatusException(
-                        HttpStatus.FORBIDDEN,
-                        "Debe elegir un sector concreto (Damas, Caballeros, Niños) para registrar stock.");
             }
             return cargarUbicacionArea(asignada.getIdUbicacionArea());
         }
@@ -144,19 +114,11 @@ public class InventarioContextService {
                     HttpStatus.BAD_REQUEST,
                     "La ubicación indicada no es un área de almacén válida.");
         }
-        if (esAreaCatalogoGeneral(area.getArea())) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "No se registra stock en el sector General; elija Damas, Caballeros o Niños.");
-        }
         return area;
     }
 
     @Transactional(readOnly = true)
     public List<UbicacionArea> listarDestinosTrasladoParaAlmacenero(Usuario usuario) {
-        if (esAlmaceneroGeneral(usuario)) {
-            return listarTodasLasUbicacionesArea();
-        }
         UbicacionArea asignada = usuario.getAreaAsignado();
         if (asignada == null || asignada.getArea() == null) {
             return List.of();
@@ -177,20 +139,7 @@ public class InventarioContextService {
             }
             return List.of(cargarUbicacionArea(asignada.getIdUbicacionArea()));
         }
-        if (esAlmaceneroGeneral(usuario)) {
-            if (sectorOpcional == null || sectorOpcional.isBlank()
-                    || NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorOpcional.trim())) {
-                return inventarioService.listarUbicacionesAreaAlmacen().stream()
-                        .filter(ua -> !esAreaCatalogoGeneral(ua.getArea()))
-                        .toList();
-            }
-            return inventarioService.listarUbicacionesAreaAlmacen().stream()
-                    .filter(ua -> ua.getArea() != null
-                            && sectorOpcional.equalsIgnoreCase(ua.getArea().getNombre()))
-                    .toList();
-        }
-        if (sectorOpcional != null && !sectorOpcional.isBlank()
-                && !NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorOpcional.trim())) {
+        if (sectorOpcional != null && !sectorOpcional.isBlank()) {
             return inventarioService.listarUbicacionesAreaAlmacen().stream()
                     .filter(ua -> ua.getArea() != null
                             && sectorOpcional.equalsIgnoreCase(ua.getArea().getNombre()))
@@ -201,8 +150,7 @@ public class InventarioContextService {
 
     @Transactional(readOnly = true)
     public Long idAreaCatalogoPorNombre(String nombreSector) {
-        if (nombreSector == null || nombreSector.isBlank()
-                || NOMBRE_AREA_GENERAL.equalsIgnoreCase(nombreSector.trim())) {
+        if (nombreSector == null || nombreSector.isBlank()) {
             return null;
         }
         List<UbicacionArea> almacen = inventarioService.listarUbicacionesAreaAlmacen();
@@ -240,24 +188,9 @@ public class InventarioContextService {
                 .toList();
     }
 
-    public boolean esAlmaceneroGeneral(Usuario usuario) {
-        if (usuario == null || rolPrincipalInventario(usuario) != Role.ALMACENERO) {
-            return false;
-        }
-        UbicacionArea asignada = usuario.getAreaAsignado();
-        return asignada != null && esAreaCatalogoGeneral(asignada.getArea());
-    }
-
     public boolean esAlmaceneroDeLinea(Usuario usuario) {
         return usuario != null
-                && rolPrincipalInventario(usuario) == Role.ALMACENERO
-                && !esAlmaceneroGeneral(usuario);
-    }
-
-    public static boolean esAreaCatalogoGeneral(Area area) {
-        return area != null
-                && area.getNombre() != null
-                && NOMBRE_AREA_GENERAL.equalsIgnoreCase(area.getNombre().trim());
+                && rolPrincipalInventario(usuario) == Role.ALMACENERO;
     }
 
     public boolean usuarioTieneRol(Usuario usuario, Role rol) {
@@ -278,18 +211,11 @@ public class InventarioContextService {
         return roles.isEmpty() ? null : roles.iterator().next();
     }
 
-    private List<String> sectoresVisiblesParaUsuario(Usuario usuario, Role rol, boolean esGeneral) {
-        if (esGeneral) {
-            return List.of(NOMBRE_AREA_GENERAL, "Damas", "Caballeros", "Niños");
-        }
+    private List<String> sectoresVisiblesParaUsuario(Usuario usuario, Role rol) {
         if (rol == Role.ALMACENERO && usuario.getAreaAsignado() != null && usuario.getAreaAsignado().getArea() != null) {
             return List.of(usuario.getAreaAsignado().getArea().getNombre());
         }
         return List.of();
-    }
-
-    private List<UbicacionArea> listarTodasLasUbicacionesArea() {
-        return ubicacionAreaRepository.findAllWithUbicacionYArea();
     }
 
     private List<UbicacionArea> listarAreasAlmacenEntidades() {

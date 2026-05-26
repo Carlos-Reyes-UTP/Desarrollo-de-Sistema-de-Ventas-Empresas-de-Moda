@@ -261,7 +261,8 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
           producto.categoria.idCategoria !== producto.categoriaPadre.idCategoria) {
         if (subcategoriaIdFormulario) {
           setSubcategoriaSeleccionada(producto.categoria.nombre);
-          const subcategoriaSeleccionadaObj = producto.categoriaPadre.subCategorias?.find(
+          const catPadre = categorias.find(c => c.idCategoria?.toString() === categoriaIdFormulario);
+          const subcategoriaSeleccionadaObj = catPadre?.subCategorias?.find(
             sc => sc.idCategoria?.toString() === subcategoriaIdFormulario
           );
           if (subcategoriaSeleccionadaObj?.subCategorias) {

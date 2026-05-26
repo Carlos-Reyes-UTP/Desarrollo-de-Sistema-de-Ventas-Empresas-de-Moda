@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAutoSync } from "@/hooks/useAutoSync";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
-import { SECTOR_ALMACEN_GENERAL } from "@/shared/constants/sectoresAlmacen";
 import { MaterialIcon } from "@/shared/ui";
 import { AlmacenColaLateral } from "../../components/almacen-tablero/AlmacenColaLateral";
 import { AlmacenPickingList } from "../../components/almacen-tablero/AlmacenPickingList";
@@ -31,7 +30,6 @@ function esVenta(c: AlmacenSolicitud): boolean {
 
 export default function AlmacenTableroPedidosPage() {
   const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
-  const [sectorFiltro, setSectorFiltro] = useState(SECTOR_ALMACEN_GENERAL);
   const [cards, setCards] = useState<AlmacenSolicitud[]>([]);
   const [seleccionId, setSeleccionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -43,23 +41,12 @@ export default function AlmacenTableroPedidosPage() {
   const [showSettings, setShowSettings] = useState(false);
   const [temaSonido, setTemaSonido] = useState<SoundTheme>(() => getSoundTheme("almacen"));
 
+  const sectorParaCola = undefined;
+
   const prevVentaIdsRef = useRef<Set<number>>(new Set());
   const inicializadoRef = useRef(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const despachoLockRef = useRef(false);
-
-  const sectorParaCola = useMemo(() => {
-    if (!accesoAreaAlmacen?.esAlmaceneroGeneral) {
-      return undefined;
-    }
-    return sectorFiltro === SECTOR_ALMACEN_GENERAL ? undefined : sectorFiltro;
-  }, [accesoAreaAlmacen, sectorFiltro]);
-
-  useEffect(() => {
-    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
-      setSectorFiltro(SECTOR_ALMACEN_GENERAL);
-    }
-  }, [accesoAreaAlmacen?.esAlmaceneroGeneral]);
 
   const aplicarNuevasVentas = useCallback((lista: AlmacenSolicitud[]) => {
     const ventaIds = new Set<number>();
@@ -351,24 +338,7 @@ export default function AlmacenTableroPedidosPage() {
             onTabChange={setActiveTab}
             onSelect={setSeleccionId}
             encabezadoExtra={
-              accesoAreaAlmacen?.esAlmaceneroGeneral ? (
-                <div className="flex flex-wrap gap-2 p-4 border-b border-gray-100 shrink-0">
-                  {accesoAreaAlmacen.sectoresVisibles.map((sector) => (
-                    <button
-                      key={sector}
-                      type="button"
-                      onClick={() => setSectorFiltro(sector)}
-                      className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-                        sectorFiltro === sector
-                          ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-md"
-                          : "bg-[var(--app-surface)] app-text-muted border border-[var(--app-border)] hover:bg-[var(--app-bg-muted)]"
-                      }`}
-                    >
-                      {sector}
-                    </button>
-                  ))}
-                </div>
-              ) : accesoAreaAlmacen?.etiquetaAreaAsignada ? (
+              accesoAreaAlmacen?.etiquetaAreaAsignada ? (
                 <div className="px-4 py-3 border-b border-[var(--app-border)] shrink-0">
                   <p className="text-[9px] font-black app-text-faint uppercase tracking-widest">
                     Cola · {accesoAreaAlmacen.etiquetaAreaAsignada}

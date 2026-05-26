@@ -754,7 +754,7 @@ const GestionUsuariosPage = () => {
             <div className="p-10 text-left">
               <div className="mb-6 w-12 h-1 bg-[var(--app-accent)] rounded-full"></div>
               <h2 className="text-2xl font-bold tracking-tight text-black dark:text-white mb-2 uppercase transition-colors">
-                {modoEdicion ? 'Actualización de Perfil' : 'Registro de Operador'}
+                {modoEdicion ? 'Actualización de Usuario' : 'Registro de Usuario'}
               </h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm mb-10 font-medium transition-colors">Configure los parámetros de autenticación y privilegios.</p>
 
@@ -984,7 +984,7 @@ const GestionUsuariosPage = () => {
                     type="submit" 
                     className="flex-1 py-4 bg-[var(--app-accent)] text-[var(--app-accent-fg)] rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl hover:opacity-90 transition-all hover-scale-google active:scale-[0.98]"
                   >
-                    Sincronizar
+                    Guardar
                   </button>
                 </div>
               </form>

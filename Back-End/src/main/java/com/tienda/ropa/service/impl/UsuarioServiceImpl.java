@@ -79,8 +79,8 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
             }
         }
         
-        // Actualizar nombre de usuario
-        usuario.setUsuario(usuarioDTO.getUsuario());
+        // Actualizar nombre de usuario (todo minúsculas)
+        usuario.setUsuario(usuarioDTO.getUsuario().toLowerCase());
         
         // Actualizar estado activo
         usuario.setActivo(usuarioDTO.isActivo());

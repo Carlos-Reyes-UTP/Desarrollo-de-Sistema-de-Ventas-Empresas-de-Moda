@@ -44,7 +44,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public Usuario signUpAdmin(SignUpRequest signUpRequest) {
-        String username = signUpRequest.usuario();
+        String username = signUpRequest.usuario().toLowerCase();
         String password = signUpRequest.clave();
         Set<Rol> roles = new HashSet<>();
         Rol userRol = rolRepository.findByNombreRol(Role.ADMIN).orElseGet(() -> rolRepository.save(new Rol(null, Role.ADMIN)));
@@ -62,7 +62,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public Usuario signUpUser(SignUpRequest signUpRequest) {
-        String username = signUpRequest.usuario();
+        String username = signUpRequest.usuario().toLowerCase();
         String password = signUpRequest.clave();
         String roleName = signUpRequest.rol();
         Set<Rol> roles = new HashSet<>();
@@ -117,7 +117,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public AuthenticationResponse signin(com.tienda.ropa.agregates.request.SignInRequest signInRequest) {
-        String username = signInRequest.usuario();
+        String username = signInRequest.usuario().toLowerCase();
         String password = signInRequest.clave();
 
         log.info("Intentando iniciar sesión para el usuario: {}", username);

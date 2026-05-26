@@ -100,6 +100,12 @@ public class CategoriaService {
         return categoriaRepository.findByCategoriaPadreIsNullWithSubcategorias();
     }
 
+    @Transactional(readOnly = true)
+    public List<CategoriaDTO> obtenerCategoriasPrincipalesConSubcategorias() {
+        List<Categoria> categorias = categoriaRepository.findByCategoriaPadreIsNullWithSubcategorias();
+        return CategoriaDTO.convertirListaConSubcategorias(categorias);
+    }
+
     /**
      * Obtiene las subcategorías de una categoría específica.
      */
@@ -191,6 +197,7 @@ public class CategoriaService {
      *
      * @return Lista de DTOs que representan el árbol de categorías
      */
+    @Transactional(readOnly = true)
     public List<CategoriaDTO> obtenerCategoriasTree() {
         List<Categoria> categoriasPrincipales = obtenerCategoriasPrincipales();
         return CategoriaDTO.convertirListaConSubcategorias(categoriasPrincipales);
@@ -202,6 +209,7 @@ public class CategoriaService {
      * @param id ID de la categoría
      * @return DTO con la categoría y sus subcategorías, o vacío si no existe
      */
+    @Transactional(readOnly = true)
     public Optional<CategoriaDTO> obtenerCategoriaTree(Long id) {
         return obtenerCategoriaPorId(id)
                 .map(categoria -> new CategoriaDTO(categoria, true));

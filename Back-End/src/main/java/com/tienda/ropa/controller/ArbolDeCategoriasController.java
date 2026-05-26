@@ -38,9 +38,9 @@ public class ArbolDeCategoriasController {
      * @return La categoría creada.
      */
     @PostMapping
-    public ResponseEntity<Categoria> crearCategoria(@RequestBody CategoriaDTO categoriaDTO) {
+    public ResponseEntity<CategoriaDTO> crearCategoria(@RequestBody CategoriaDTO categoriaDTO) {
         Categoria nuevaCategoria = categoriaService.crearCategoria(categoriaDTO);
-        return ResponseEntity.status(201).body(nuevaCategoria);
+        return ResponseEntity.status(201).body(new CategoriaDTO(nuevaCategoria));
     }
 
 

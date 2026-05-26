@@ -138,22 +138,9 @@ public class SolicitudServiceImpl implements SolicitudService {
             }
             return asignada.getArea().getIdArea();
         }
-        if (inventarioContextService.esAlmaceneroGeneral(usuario)) {
-            if (sectorOpcional == null || sectorOpcional.isBlank()
-                    || InventarioContextService.NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorOpcional.trim())) {
-                return null;
-            }
-            Long idArea = inventarioContextService.idAreaCatalogoPorNombre(sectorOpcional.trim());
-            if (idArea == null) {
-                throw new ResponseStatusException(
-                        HttpStatus.BAD_REQUEST, "Sector no válido: " + sectorOpcional);
-            }
-            return idArea;
-        }
         Role rol = inventarioContextService.rolPrincipalInventario(usuario);
         if (rol == Role.ADMIN || rol == Role.SUPERVISOR_ALMACEN) {
-            if (sectorOpcional != null && !sectorOpcional.isBlank()
-                    && !InventarioContextService.NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorOpcional.trim())) {
+            if (sectorOpcional != null && !sectorOpcional.isBlank()) {
                 Long idArea = inventarioContextService.idAreaCatalogoPorNombre(sectorOpcional.trim());
                 if (idArea == null) {
                     throw new ResponseStatusException(

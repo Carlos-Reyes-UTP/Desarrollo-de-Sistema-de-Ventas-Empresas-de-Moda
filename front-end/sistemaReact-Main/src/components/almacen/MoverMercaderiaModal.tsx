@@ -154,7 +154,7 @@ const MoverMercaderiaModal = ({
     if (modoDestinoLibre) {
       setDestinoEfectivo(null);
       setCargandoDestinos(true);
-      if (accesoAreaAlmacen?.esAlmaceneroGeneral || accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo) {
+      if (accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo) {
         setDestinosDisponibles(accesoAreaAlmacen.destinosTraslado);
         setCargandoDestinos(false);
         return;
@@ -227,9 +227,7 @@ const MoverMercaderiaModal = ({
       setError(null);
       const sectorBusqueda = accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo
         ? accesoAreaAlmacen.sectoresVisibles[0]
-        : accesoAreaAlmacen?.esAlmaceneroGeneral
-          ? destinoActivo.area ?? undefined
-          : undefined;
+        : undefined;
       AlmacenService.buscarStockOrigenTraslado(
         terminoBusqueda,
         LIMITE_SUGERENCIAS,

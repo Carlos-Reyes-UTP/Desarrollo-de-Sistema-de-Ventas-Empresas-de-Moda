@@ -87,6 +87,11 @@ public class SecurityConfiguration {
                                                 .hasAnyRole("CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
                                                                 "VENDEDOR")
 
+                                                // Clientes (búsqueda DNI/RUC) — ADMIN también necesita acceso (crear mayoristas)
+                                                .requestMatchers("/api/cajero/clientes/**")
+                                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO",
+                                                                "SUPERVISOR_ALMACEN", "VENDEDOR")
+
                                                 // Cajero (ventas, catálogo POS). Sin ADMIN.
                                                 .requestMatchers("/api/cajero/**")
                                                 .hasAnyRole("CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
@@ -97,9 +102,9 @@ public class SecurityConfiguration {
                                                 .hasAnyRole("CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
                                                                 "VENDEDOR")
 
-                                                // Pisos/áreas: lectura para GERENTE (sin ADMIN ni inventario completo)
+                                                // Pisos/áreas: lectura para ADMIN y GERENTE
                                                 .requestMatchers(HttpMethod.GET, "/api/almacenero/ubicaciones/**")
-                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
+                                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
                                                                 "GERENTE", "CAJERO")
 
                                                 // Búsqueda paginada de productos (misma query que usa ProductoService

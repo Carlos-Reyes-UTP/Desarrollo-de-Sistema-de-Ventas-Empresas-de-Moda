@@ -4,14 +4,22 @@ import type { Categoria} from "../types/Categoria";
 import type { CategoriaDTO } from "../types/CategoriaDTO";
 import { RUTAS_CATEGORIAS } from "../config/apiConfig";
 
+function mapearCategoriaDTO(dto: CategoriaDTO): Categoria {
+  return {
+    idCategoria: dto.id,
+    nombre: dto.nombre,
+    subCategorias: dto.subcategorias?.map(mapearCategoriaDTO),
+  };
+}
+
 export const CategoriaService = {
   obtenerTodasCategorias: async (): Promise<Categoria[]> => {
     const response = await apiClient.get<Categoria[]>(RUTAS_CATEGORIAS.BASE);
     return response.data;
   },
   obtenerCategoriasPrincipales: async (): Promise<Categoria[]> => {
-    const response = await apiClient.get<Categoria[]>(RUTAS_CATEGORIAS.PRINCIPALES);
-    return response.data;
+    const response = await apiClient.get<CategoriaDTO[]>(RUTAS_CATEGORIAS.PRINCIPALES);
+    return (response.data ?? []).map(mapearCategoriaDTO);
   },
 
   obtenerCategoriaPorId: async (id: number): Promise<Categoria> => {

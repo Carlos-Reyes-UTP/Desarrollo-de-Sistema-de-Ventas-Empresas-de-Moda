@@ -216,28 +216,6 @@ public class ProductoService {
             return page;
         }
 
-        if (usuario != null && inventarioContextService.esAlmaceneroGeneral(usuario)) {
-            String sectorNorm = sector == null ? InventarioContextService.NOMBRE_AREA_GENERAL : sector.trim();
-            if (InventarioContextService.NOMBRE_AREA_GENERAL.equalsIgnoreCase(sectorNorm)) {
-                page = sinBusqueda
-                        ? productoRepository.findProductosPaginadosSinBusqueda(pageable)
-                        : productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
-                enriquecerStock(page, productoRepository::findStockAlmacenByProductoIds);
-            } else {
-                Long idArea = inventarioContextService.idAreaCatalogoPorNombre(sectorNorm);
-                if (idArea == null) {
-                    return org.springframework.data.domain.Page.empty(pageable);
-                }
-                // Catálogo completo: el stock por sector puede ser 0 sin ocultar el producto.
-                page = sinBusqueda
-                        ? productoRepository.findProductosPaginadosSinBusqueda(pageable)
-                        : productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
-                Long idAreaFinal = idArea;
-                enriquecerStock(page, ids -> productoRepository.findStockAlmacenByProductoIdsAndAreaCatalogo(ids, idAreaFinal));
-            }
-            return page;
-        }
-
         page = sinBusqueda
                 ? productoRepository.findProductosPaginadosSinBusqueda(pageable)
                 : productoRepository.findProductosPaginadosConBusqueda(termino, pageable);

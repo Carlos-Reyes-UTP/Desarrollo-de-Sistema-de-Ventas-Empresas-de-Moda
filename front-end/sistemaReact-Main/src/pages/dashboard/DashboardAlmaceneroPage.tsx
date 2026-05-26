@@ -9,7 +9,6 @@ import {
 import { AlmacenSolicitudesApi } from '@/services/AlmacenSolicitudesService';
 import type { AlmacenSolicitud } from '@/types/AlmacenSolicitudes';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
-import { SECTOR_ALMACEN_GENERAL } from '@/shared/constants/sectoresAlmacen';
 import { useAuth } from '@/context/AuthContext';
 import { useAuthReady } from '@/hooks/useAuthReady';
 import { MetricCardsSkeleton, ChartSkeleton, PageHeader, PageActionButton, PageActionGroup, SectionHeader } from '@/shared/ui';
@@ -65,21 +64,8 @@ const DashboardAlmaceneroPage = () => {
   const { usuario, tieneRol } = useAuth();
   const puedeVerPisos = tieneRol('ROLE_ALMACENERO');
   const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
-  const [sectorFiltro, setSectorFiltro] = useState(SECTOR_ALMACEN_GENERAL);
+  const sectorParaCola = undefined;
   const navigate = useNavigate();
-
-  const sectorParaCola = useMemo(() => {
-    if (!accesoAreaAlmacen?.esAlmaceneroGeneral) {
-      return undefined;
-    }
-    return sectorFiltro === SECTOR_ALMACEN_GENERAL ? undefined : sectorFiltro;
-  }, [accesoAreaAlmacen, sectorFiltro]);
-
-  useEffect(() => {
-    if (accesoAreaAlmacen?.esAlmaceneroGeneral) {
-      setSectorFiltro(SECTOR_ALMACEN_GENERAL);
-    }
-  }, [accesoAreaAlmacen?.esAlmaceneroGeneral]);
 
   // Estados para datos reales del API - TODOS LOS HOOKS PRIMERO
   const [productosData, setProductosData] = useState<ProductoStats>({

@@ -11,7 +11,6 @@ public record InventarioContextoDTO(
         String etiquetaAreaAsignada,
         boolean puedeElegirAreaEntrada,
         boolean restriccionTrasladoMismaAreaCatalogo,
-        boolean esAlmaceneroGeneral,
         List<String> sectoresVisibles,
         List<UbicacionDTO> areasAlmacen,
         List<UbicacionDTO> destinosTraslado

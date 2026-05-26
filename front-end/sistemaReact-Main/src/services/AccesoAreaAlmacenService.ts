@@ -33,7 +33,6 @@ function normalizarAcceso(raw: unknown): AccesoAreaAlmacen {
       typeof o.etiquetaAreaAsignada === 'string' ? o.etiquetaAreaAsignada : null,
     puedeElegirAreaEntrada: Boolean(o.puedeElegirAreaEntrada),
     restriccionTrasladoMismaAreaCatalogo: Boolean(o.restriccionTrasladoMismaAreaCatalogo),
-    esAlmaceneroGeneral: Boolean(o.esAlmaceneroGeneral),
     sectoresVisibles: Array.isArray(o.sectoresVisibles)
       ? o.sectoresVisibles.filter((s): s is string => typeof s === 'string')
       : [],
