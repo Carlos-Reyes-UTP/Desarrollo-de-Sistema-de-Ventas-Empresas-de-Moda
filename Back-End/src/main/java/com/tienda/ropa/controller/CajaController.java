@@ -35,10 +35,14 @@ public class CajaController {
 
     @PostMapping("/cerrar/{idCaja}")
     public ResponseEntity<CajaDTO> cerrarCaja(
+            Principal principal,
             @PathVariable Long idCaja,
             @RequestBody CierreCajaDTO cierreDTO) {
-        
-        CajaDTO cajaDTO = cajaService.cerrarCaja(idCaja, cierreDTO);
+
+        Usuario usuario = usuarioRepository.findByUsuario(principal.getName())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        CajaDTO cajaDTO = cajaService.cerrarCaja(idCaja, usuario.getId(), cierreDTO);
         return ResponseEntity.ok(cajaDTO);
     }
 

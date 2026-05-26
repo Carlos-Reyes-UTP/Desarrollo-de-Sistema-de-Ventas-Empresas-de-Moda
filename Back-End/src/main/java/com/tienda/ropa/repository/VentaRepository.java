@@ -13,7 +13,7 @@ import com.tienda.ropa.entity.Venta;
 
 public interface VentaRepository extends JpaRepository<Venta, Long> {
 
-    @EntityGraph(attributePaths = { "detalles", "detalles.productoVariante", "usuario", "cliente" })
+    @EntityGraph(attributePaths = { "detalles", "detalles.productoVariante", "detalles.productoVariante.producto", "usuario", "cliente" })
     @Query("SELECT v FROM Venta v ORDER BY v.fechaVenta DESC")
     List<Venta> findAllWithDetalles();
     // Método actualizado para buscar por rango de fechas de un día completo

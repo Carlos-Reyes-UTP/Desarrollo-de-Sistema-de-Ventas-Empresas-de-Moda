@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { MaterialIcon } from '@/shared/ui';
 import { useAutoSync } from '@/hooks/useAutoSync';
+import { useGlobalWebSocket } from '@/context/WebSocketContext';
 
 import { scrollbarStyles } from '@/styles/scrollbarStyles';
 
@@ -14,24 +15,33 @@ import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
 import { DashboardCtaPanel } from '@/shared/ui/dashboard/DashboardCtaPanel';
 import { APP_PATHS } from '@/shared/layout/navigationConfig';
-import { UsuarioService } from '@/services/UsuarioService';
 import { VentaService } from '@/services/VentaService';
+import { AlmacenSolicitudesApi } from '@/services/AlmacenSolicitudesService';
 import type { Venta } from '@/types/Venta';
-import type { Usuario } from '@/types/Usuario';
 import type { Cliente } from '@/types/Cliente';
-import type { RolNombre } from '@/types/enums';
+import {
+  construirActividadDashboard,
+  mergeActividadConEventosLive,
+  type ActividadItem,
+} from '@/utils/dashboardActividad';
+import type { AlmacenSolicitud } from '@/types/AlmacenSolicitudes';
+import {
+  etiquetaPeriodo,
+  filtrarVentasPorPeriodo,
+  guardarPeriodo,
+  leerPeriodoGuardado,
+  procesarDatosGraficoPorPeriodo,
+  subtituloGraficoPeriodo,
+  tituloGraficoPeriodo,
+  type PeriodoDashboard,
+  type PuntoGraficoDashboard,
+} from '@/utils/dashboardPeriodo';
 
-
-interface ActividadVenta {
-  id: number;
-  tipo: string;
-  titulo: string;
-  detalle: string;
-  monto: number;
-  fecha: string;
-  usuario: string;
-  cliente: string;
-}
+const PERIODOS: Array<{ id: PeriodoDashboard; label: string }> = [
+  { id: 'hoy', label: 'Hoy' },
+  { id: '7d', label: '7 días' },
+  { id: '30d', label: '30 días' },
+];
 
 interface ClienteMetrica {
   id: number;
@@ -44,20 +54,44 @@ interface ClienteMetrica {
 
 const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
-const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ value: number, payload: { label: string } }> }) => {
+const formatterEjeY = (valor: number) => {
+  if (valor >= 1000) {
+    return `S/${(valor / 1000).toLocaleString('es-PE', { maximumFractionDigits: 1 })}k`;
+  }
+  return `S/${valor.toLocaleString('es-PE', { maximumFractionDigits: 0 })}`;
+};
+
+const CustomTooltip = ({
+  active,
+  payload,
+  periodo,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number; payload: PuntoGraficoDashboard }>;
+  periodo: PeriodoDashboard;
+}) => {
   if (active && payload && payload.length) {
+    const punto = payload[0].payload;
     return (
-      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-3 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[140px]">
-        <div className="flex items-center space-x-1.5 pb-1.5 mb-1.5 border-b border-gray-100 dark:border-gray-800/60">
-          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-          <span className="font-semibold text-gray-800 dark:text-gray-200 text-[10px] tracking-wider uppercase">{payload[0].payload.label}</span>
+      <div className="app-chart-tooltip backdrop-blur-md p-3 rounded-xl min-w-[140px]">
+        <div className="flex items-center space-x-1.5 pb-1.5 mb-1.5 border-b border-[var(--app-border)]">
+          <span className="w-2 h-2 rounded-full bg-[var(--app-accent)] animate-pulse" />
+          <span className="font-semibold text-[10px] tracking-wider uppercase">
+            {periodo === 'hoy' ? `Hora ${punto.label}` : punto.label}
+          </span>
         </div>
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-500 dark:text-gray-400 mr-3">Ventas:</span>
-          <span className="font-bold text-indigo-650 dark:text-indigo-400">
+          <span className="app-chart-tooltip-muted mr-3">Total:</span>
+          <span className="font-bold app-chart-tooltip-accent">
             {formatterMonedaPE.format(payload[0].value)}
           </span>
         </div>
+        {periodo === 'hoy' && punto.cantidadVentas != null && punto.cantidadVentas > 0 && (
+          <div className="flex justify-between items-center text-xs mt-1">
+            <span className="app-chart-tooltip-muted mr-3">Transacciones:</span>
+            <span className="font-bold app-heading">{punto.cantidadVentas}</span>
+          </div>
+        )}
       </div>
     );
   }
@@ -73,9 +107,6 @@ const DashboardAdminPage = () => {
   const [cargando, setCargando] = useState(true);
   const [errorSync, setErrorSync] = useState<string | null>(null);
 
-  // Estados para datos de API
-  const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-
   // Estados para métricas
   const [metricasVenta, setMetricasVenta] = useState({
     totalVentas: 0,
@@ -84,8 +115,9 @@ const DashboardAdminPage = () => {
     ticketPromedio: 0
   });
 
-  // Estados para actividad reciente
-  const [actividadReciente, setActividadReciente] = useState<ActividadVenta[]>([]);
+  const [actividadReciente, setActividadReciente] = useState<ActividadItem[]>([]);
+  const { messages: wsMessages } = useGlobalWebSocket();
+  const wsProcessedRef = useRef(0);
 
   // Estados para los gráficos
   const [datosGraficoSemanal, setDatosGraficoSemanal] = useState<Array<{ label: string, ventas: number }>>([]);
@@ -98,6 +130,14 @@ const DashboardAdminPage = () => {
   const [topClientes, setTopClientes] = useState<ClienteMetrica[]>([]);
   const [topClientesPorCompras, setTopClientesPorCompras] = useState<ClienteMetrica[]>([]);
   const [modoVisualizacion, setModoVisualizacion] = useState<'monto' | 'cantidad'>('monto');
+  const [periodo, setPeriodo] = useState<PeriodoDashboard>(() => leerPeriodoGuardado());
+  const ventasDataRef = useRef<Venta[]>([]);
+  const colaAlmacenRef = useRef<AlmacenSolicitud[]>([]);
+  const periodoRef = useRef<PeriodoDashboard>(periodo);
+
+  useEffect(() => {
+    periodoRef.current = periodo;
+  }, [periodo]);
 
   // Función para abrir modal con cliente preseleccionado
   const abrirModalConCliente = (cliente: ClienteMetrica) => {
@@ -131,57 +171,6 @@ const DashboardAdminPage = () => {
     ).size;
 
     setMetricasVenta({ totalVentas, productosVendidos, clientesNuevos: clientesUnicos, ticketPromedio });
-  }, []);
-
-  const procesarDatosGraficoSemanal = useCallback((ventasData: Venta[]) => {
-    if (!ventasData || ventasData.length === 0) {
-      setDatosGraficoSemanal(['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map(l => ({ label: l, ventas: 0 })));
-      return;
-    }
-
-    const ahora = new Date();
-    const inicioSemana = new Date(ahora);
-    inicioSemana.setDate(ahora.getDate() - ahora.getDay());
-    inicioSemana.setHours(0, 0, 0, 0);
-
-    const datos = [];
-    const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-
-    for (let dia = 0; dia < 7; dia++) {
-      const fechaDia = new Date(inicioSemana);
-      fechaDia.setDate(inicioSemana.getDate() + dia);
-      fechaDia.setHours(0, 0, 0, 0);
-      const fechaDiaFin = new Date(fechaDia);
-      fechaDiaFin.setHours(23, 59, 59, 999);
-
-      const ventasDia = ventasData.filter(venta => {
-        const fechaVenta = new Date(venta.fechaVenta);
-        return fechaVenta >= fechaDia && fechaVenta <= fechaDiaFin;
-      });
-
-      datos.push({
-        label: diasSemana[dia],
-        ventas: ventasDia.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0)
-      });
-    }
-    setDatosGraficoSemanal(datos);
-  }, []);
-
-  const generarActividadReciente = useCallback((ventas: Venta[]) => {
-    const ventasRecientes: ActividadVenta[] = ventas
-      .toSorted((a, b) => new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime())
-      .slice(0, 10)
-      .map(venta => ({
-        id: venta.idVenta || 0,
-        tipo: 'venta',
-        titulo: 'Venta Registrada',
-        detalle: `Venta #${venta.idVenta}`,
-        monto: venta.totalVentas ?? 0,
-        fecha: new Date(venta.fechaVenta).toLocaleDateString(),
-        usuario: venta.usuario?.usuario ?? 'Sistema',
-        cliente: venta.cliente?.nombreCliente || 'Cliente General'
-      }));
-    setActividadReciente(ventasRecientes);
   }, []);
 
   const calcularTopClientes = useCallback((ventasData: Venta[]) => {
@@ -233,50 +222,63 @@ const DashboardAdminPage = () => {
     setTopClientesPorCompras(Array.from(clientesMap.entries()).map(([id, data]) => ({ id, ...data })).sort((a, b) => (b.cantidadCompras || 0) - (a.cantidadCompras || 0)).slice(0, 10));
   }, []);
 
+  const aplicarPeriodoADatos = useCallback(
+    (ventasData: Venta[], colaAlmacen: AlmacenSolicitud[], p: PeriodoDashboard, ws: unknown[]) => {
+      const ventasFiltradas = filtrarVentasPorPeriodo(ventasData, p);
+      calcularMetricas(ventasFiltradas);
+      setDatosGraficoSemanal(procesarDatosGraficoPorPeriodo(ventasFiltradas, p));
+      calcularTopClientes(ventasFiltradas);
+      calcularTopClientesPorCantidad(ventasFiltradas);
+      const actividadBase = construirActividadDashboard(ventasData, colaAlmacen, p);
+      setActividadReciente(mergeActividadConEventosLive(actividadBase, ws));
+    },
+    [calcularMetricas, calcularTopClientes, calcularTopClientesPorCantidad]
+  );
+
+  const cambiarPeriodo = useCallback(
+    (p: PeriodoDashboard) => {
+      guardarPeriodo(p);
+      setPeriodo(p);
+      aplicarPeriodoADatos(ventasDataRef.current, colaAlmacenRef.current, p, wsMessages);
+    },
+    [aplicarPeriodoADatos, wsMessages]
+  );
+
   const cargarDatos = useCallback(async () => {
     if (!isReady || !isAuthenticated) return;
     setCargando(true);
     setErrorSync(null);
     try {
-      const [todasVentas, usuariosResp] = await Promise.all([
+      const [todasVentas, colaAlmacen] = await Promise.all([
         VentaService.obtenerTodasVentas(),
-        UsuarioService.obtenerUsuariosConRoles()
+        AlmacenSolicitudesApi.cola().catch(() => []),
       ]);
 
       const ventasData = Array.isArray(todasVentas) ? todasVentas : [];
-      
-      // Filtrar por semana por defecto para métricas principales
-      const ahora = new Date();
-      const hace7Dias = new Date();
-      hace7Dias.setDate(ahora.getDate() - 7);
-      const ventasSemana = ventasData.filter(v => new Date(v.fechaVenta) >= hace7Dias);
+      ventasDataRef.current = ventasData;
+      colaAlmacenRef.current = colaAlmacen;
 
-      setUsuarios(Array.isArray(usuariosResp) ? (usuariosResp as Array<{
-        id: number;
-        usuario: string;
-        activo?: boolean;
-        roles?: string[];
-      }>).map(u => ({
-        id: u.id,
-        usuario: u.usuario,
-        activo: u.activo ?? true,
-        roles: Array.isArray(u.roles) ? u.roles.map((r: string) => ({ nombreRol: r as RolNombre })) : []
-      })) : []);
-
-      calcularMetricas(ventasSemana);
-      procesarDatosGraficoSemanal(ventasData);
-      generarActividadReciente(ventasData);
-      calcularTopClientes(ventasData);
-      calcularTopClientesPorCantidad(ventasData);
+      aplicarPeriodoADatos(ventasData, colaAlmacen, periodoRef.current, wsMessages);
     } catch (err) {
       console.error('Error cargando datos:', err);
       setErrorSync('Error al sincronizar con el servidor.');
     } finally {
       setCargando(false);
     }
-  }, [isReady, isAuthenticated, calcularMetricas, procesarDatosGraficoSemanal, generarActividadReciente, calcularTopClientes, calcularTopClientesPorCantidad]);
+  }, [isReady, isAuthenticated, aplicarPeriodoADatos, wsMessages]);
 
-  useAutoSync(cargarDatos, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA'], 2000);
+  useEffect(() => {
+    if (wsMessages.length <= wsProcessedRef.current) return;
+    wsProcessedRef.current = wsMessages.length;
+    const sinLiveBase = construirActividadDashboard(
+      ventasDataRef.current,
+      colaAlmacenRef.current,
+      periodoRef.current
+    );
+    setActividadReciente(mergeActividadConEventosLive(sinLiveBase, wsMessages));
+  }, [wsMessages]);
+
+  useAutoSync(cargarDatos, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA'], 2000);
 
   useEffect(() => {
     if (isReady) {
@@ -289,7 +291,15 @@ const DashboardAdminPage = () => {
     return formatterMonedaPE.format(valor);
   };
 
-
+  const etiquetaPer = etiquetaPeriodo(periodo);
+  const subtituloGrafico = subtituloGraficoPeriodo(periodo);
+  const graficoVacioHoy = periodo === 'hoy' && datosGraficoSemanal.length === 0;
+  const barSizeGrafico =
+    datosGraficoSemanal.length <= 3
+      ? 72
+      : datosGraficoSemanal.length <= 6
+        ? 48
+        : 40;
 
   return (
     <div className="min-h-screen app-canvas p-4 md:p-8">
@@ -309,11 +319,7 @@ const DashboardAdminPage = () => {
                 </span>
               )}
               <PageActionGroup>
-                <PageActionButton grouped variant="secondary" onClick={cargarDatos} disabled={cargando}>
-                  <MaterialIcon icon="sync" className={`w-3.5 h-3.5 ${cargando ? 'animate-spin' : ''}`} />
-                  {cargando ? 'Sincronizando' : 'Actualizar'}
-                </PageActionButton>
-                <PageActionButton grouped onClick={() => navigate(APP_PATHS.caja)}>
+                <PageActionButton grouped onClick={() => navigate(`${APP_PATHS.reportes}?tab=ventas`)}>
                   <MaterialIcon icon="speed" className="w-3.5 h-3.5" />
                   Ver Ventas
                 </PageActionButton>
@@ -322,16 +328,37 @@ const DashboardAdminPage = () => {
           }
         />
 
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-[10px] font-black app-text-faint uppercase tracking-widest">
+            Período de métricas
+          </p>
+          <div className="flex bg-[var(--app-bg-muted)] p-1 rounded-xl border border-[var(--app-border)]">
+            {PERIODOS.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => cambiarPeriodo(p.id)}
+                disabled={cargando}
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black uppercase transition-all ${
+                  periodo === p.id ? 'app-btn-primary shadow-sm' : 'app-text-muted'
+                }`}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Tarjetas métricas - Estilo Dark Premium */}
         {cargando ? (
           <MetricCardsSkeleton />
         ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
           {[
-            { label: 'Ventas Totales', val: formatearMoneda(metricasVenta.totalVentas), sub: 'Últimos 7 días', icon: 'payments', index: 1 as 1 | 2 | 3 | 4 },
-            { label: 'Productos Vendidos', val: metricasVenta.productosVendidos, sub: 'Artículos entregados', icon: 'checkroom', index: 2 as 1 | 2 | 3 | 4 },
-            { label: 'Clientes Nuevos', val: metricasVenta.clientesNuevos, sub: 'Base de datos', icon: 'group', index: 3 as 1 | 2 | 3 | 4 },
-            { label: 'Ticket Promedio', val: formatearMoneda(metricasVenta.ticketPromedio), sub: 'Por transacción', icon: 'trending_up', index: 4 as 1 | 2 | 3 | 4 }
+            { label: 'Ventas Totales', val: formatearMoneda(metricasVenta.totalVentas), sub: etiquetaPer, icon: 'payments', index: 1 as 1 | 2 | 3 | 4 },
+            { label: 'Productos Vendidos', val: metricasVenta.productosVendidos, sub: `Unidades en ${etiquetaPer.toLowerCase()}`, icon: 'checkroom', index: 2 as 1 | 2 | 3 | 4 },
+            { label: 'Clientes Activos', val: metricasVenta.clientesNuevos, sub: `Con compra en ${etiquetaPer.toLowerCase()}`, icon: 'group', index: 3 as 1 | 2 | 3 | 4 },
+            { label: 'Ticket Promedio', val: formatearMoneda(metricasVenta.ticketPromedio), sub: `Por transacción (${etiquetaPer.toLowerCase()})`, icon: 'trending_up', index: 4 as 1 | 2 | 3 | 4 }
           ].map((m, i) => (
             <DashboardMetricCard
               key={i}
@@ -356,22 +383,39 @@ const DashboardAdminPage = () => {
             ) : (
             <DashboardPanel>
               <SectionHeader
-                title="Ventas por Día"
+                title={tituloGraficoPeriodo(periodo)}
                 action={
                   <div className="flex items-center gap-2 text-[10px] font-black app-text-faint uppercase tracking-widest">
                     <MaterialIcon icon="calendar_today" className="w-3.5 h-3.5 app-text-faint" />
-                    Esta Semana
+                    {etiquetaPer}
                   </div>
                 }
               />
 
+              {subtituloGrafico && !graficoVacioHoy && (
+                <p className="text-[10px] font-bold app-text-muted -mt-4 mb-2">{subtituloGrafico}</p>
+              )}
+
               <div className="h-[300px] w-full">
+                {graficoVacioHoy ? (
+                  <div className="h-full flex flex-col items-center justify-center gap-2 text-center px-4">
+                    <MaterialIcon icon="schedule" className="w-10 h-10 app-text-faint" />
+                    <p className="text-sm font-black app-heading">Aún no hay ventas hoy</p>
+                    <p className="text-[10px] font-bold app-text-muted max-w-xs">
+                      Cuando se registren ventas, verás aquí cada hora del día con actividad.
+                    </p>
+                  </div>
+                ) : (
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={datosGraficoSemanal} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                  <BarChart
+                    data={datosGraficoSemanal}
+                    margin={{ top: 10, right: 10, left: 4, bottom: 5 }}
+                    barCategoryGap={periodo === 'hoy' ? '20%' : '10%'}
+                  >
                     <defs>
                       <linearGradient id="colorWeeklySales" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#6366F1" stopOpacity={0.95}/>
-                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.35}/>
+                        <stop offset="0%" stopColor="var(--app-chart-gradient-start)" stopOpacity={0.95}/>
+                        <stop offset="100%" stopColor="var(--app-chart-gradient-end)" stopOpacity={0.35}/>
                       </linearGradient>
                     </defs>
                     <XAxis 
@@ -380,17 +424,26 @@ const DashboardAdminPage = () => {
                       tickLine={false} 
                       tick={{ fill: 'var(--app-text-muted)', fontSize: 10, fontWeight: 700 }}
                       dy={10}
+                      interval={0}
                     />
-                    <YAxis hide />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--app-bg-muted)' }} />
+                    <YAxis
+                      tickFormatter={formatterEjeY}
+                      axisLine={false}
+                      tickLine={false}
+                      width={52}
+                      tick={{ fill: 'var(--app-text-muted)', fontSize: 9, fontWeight: 600 }}
+                    />
+                    <Tooltip content={<CustomTooltip periodo={periodo} />} cursor={{ stroke: 'rgba(255, 255, 255, 0.15)', strokeWidth: 1, strokeDasharray: '4 4' }} />
                     <Bar 
                       dataKey="ventas" 
                       fill="url(#colorWeeklySales)" 
                       radius={[8, 8, 0, 0]} 
-                      barSize={40}
+                      barSize={barSizeGrafico}
+                      minPointSize={4}
                     />
                   </BarChart>
                 </ResponsiveContainer>
+                )}
               </div>
             </DashboardPanel>
             )}
@@ -418,6 +471,11 @@ const DashboardAdminPage = () => {
               />
 
               <div className="space-y-3">
+                {(modoVisualizacion === 'monto' ? topClientes : topClientesPorCompras).length === 0 ? (
+                  <p className="text-xs app-text-muted py-6 text-center">
+                    Sin compras de clientes en {etiquetaPer.toLowerCase()}.
+                  </p>
+                ) : null}
                 {(modoVisualizacion === 'monto' ? topClientes : topClientesPorCompras).map((cliente, idx) => (
                   <div key={cliente.id} className="flex items-center justify-between p-4 rounded-2xl bg-[var(--app-bg-muted)] border border-transparent hover:border-[var(--app-border)] hover:bg-[var(--app-surface)] transition-all group">
                     <div className="flex items-center gap-4">
@@ -454,70 +512,41 @@ const DashboardAdminPage = () => {
           </div>
 
           <div className="lg:col-span-4 space-y-8">
-            
-            {/* Estadísticas de Usuarios */}
-            <DashboardPanel className="text-left transition-all">
-              <SectionHeader
-                title="Personal"
-                action={
-                  <span className="h-5 px-2 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-full flex items-center uppercase">
-                    {usuarios.length} Total
-                  </span>
-                }
-              />
-
-              <div className="space-y-6">
-                {[
-                  { rol: 'ROLE_ADMIN', label: 'Administradores', col: 'bg-amber-500' },
-                  { rol: 'ROLE_ALMACENERO', label: 'Almaceneros', col: 'bg-indigo-500' },
-                  { rol: 'ROLE_CAJERO', label: 'Cajeros', col: 'bg-violet-500' }
-                ].map(r => {
-                  const count = usuarios.filter(u => u.roles && u.roles.some(role => role.nombreRol === r.rol)).length;
-                  const pct = usuarios.length > 0 ? (count / usuarios.length) * 100 : 0;
-                  return (
-                    <div key={r.rol} className="space-y-2">
-                      <div className="flex justify-between items-end">
-                        <span className="text-[10px] font-black app-text-faint uppercase tracking-widest">{r.label}</span>
-                        <span className="text-xs font-black app-heading">{count}</span>
-                      </div>
-                      <div className="h-1.5 w-full bg-[var(--app-bg-muted)] rounded-full overflow-hidden">
-                        <div className={`h-full ${r.col} rounded-full transition-all duration-1000`} style={{ width: `${pct}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className="mt-8 pt-6 border-t border-[var(--app-border)] grid grid-cols-2 gap-4">
-                <div className="text-center">
-                  <p className="text-xl font-black app-heading">{usuarios.filter(u => u.activo).length}</p>
-                  <p className="text-[9px] font-bold app-text-muted uppercase tracking-widest">Activos</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-xl font-black app-heading">{usuarios.filter(u => !u.activo).length}</p>
-                  <p className="text-[9px] font-bold app-text-muted uppercase tracking-widest">Inactivos</p>
-                </div>
-              </div>
-            </DashboardPanel>
 
             {/* Actividad Reciente */}
             <DashboardPanel className="text-left flex flex-col transition-all">
               <SectionHeader title="Actividad" action={<MaterialIcon icon="insights" className="w-4 h-4 app-text-muted" />} />
 
               <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {actividadReciente.map((act, i) => (
-                  <div key={i} className="p-3 rounded-2xl bg-gray-50 border border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 transition-all flex items-center justify-between group">
-                    <div className="flex items-center gap-3 min-w-0">
+                {actividadReciente.length === 0 ? (
+                  <p className="text-xs app-text-muted py-4 text-center">Sin actividad reciente</p>
+                ) : (
+                  actividadReciente.map((act) => (
+                    <div
+                      key={act.id}
+                      className={`p-3 rounded-2xl border transition-all flex items-start gap-3 ${
+                        act.tipo === 'ultima_venta'
+                          ? 'bg-indigo-50/50 border-indigo-100 dark:bg-indigo-950/30 dark:border-indigo-900'
+                          : act.tipo === 'evento_live'
+                            ? 'bg-amber-50/40 border-amber-100 dark:bg-amber-950/20 dark:border-amber-900/50'
+                            : 'bg-gray-50 border-transparent hover:border-indigo-100 hover:bg-indigo-50/30 dark:bg-gray-900/40'
+                      }`}
+                    >
                       <div className="h-8 w-8 rounded-full bg-[var(--app-surface)] border border-[var(--app-border)] text-indigo-600 flex items-center justify-center shrink-0 shadow-sm">
-                        <MaterialIcon icon="receipt_long" className="w-3.5 h-3.5" />
+                        <MaterialIcon icon={act.icono} className="w-3.5 h-3.5" />
                       </div>
-                      <div className="min-w-0">
-                        <p className="text-[11px] font-black app-heading truncate uppercase">{act.cliente}</p>
-                        <p className="text-[9px] font-bold app-text-muted">{act.fecha} • {formatearMoneda(act.monto)}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[11px] font-black app-heading leading-tight">{act.titulo}</p>
+                        <p className="text-[9px] font-bold app-text-muted mt-0.5 line-clamp-2">{act.detalle}</p>
+                        {act.monto != null && act.monto > 0 && (
+                          <p className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 mt-1">
+                            {formatearMoneda(act.monto)}
+                          </p>
+                        )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </DashboardPanel>
 
@@ -525,10 +554,10 @@ const DashboardAdminPage = () => {
                 <button
                   type="button"
                   onClick={() => navigate(APP_PATHS.gestionUsuarios)}
-                  className="w-full h-14 app-cta-btn-primary rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
+                  className="w-full h-14 app-cta-btn-primary rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3 mb-3"
                 >
                   Gestión Usuarios
-                  <MaterialIcon icon="person_add" className="w-4 h-4" />
+                  <MaterialIcon icon="manage_accounts" className="w-4 h-4" />
                 </button>
                 <div className="grid grid-cols-2 gap-3">
                   <button

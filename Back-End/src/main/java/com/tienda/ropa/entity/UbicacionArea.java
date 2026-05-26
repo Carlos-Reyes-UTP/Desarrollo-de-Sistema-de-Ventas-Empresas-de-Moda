@@ -41,4 +41,7 @@ public class UbicacionArea {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "id_area", nullable = false)
     private Area area;
+
+    @Column(name = "activo", nullable = false)
+    private boolean activo = true;
 }

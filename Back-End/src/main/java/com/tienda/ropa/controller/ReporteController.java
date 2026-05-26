@@ -22,7 +22,7 @@ import com.tienda.ropa.service.ReporteService;
 
 @RestController
 @RequestMapping("/api/admin/reportes")
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
 @CrossOrigin(origins = "*")
 public class ReporteController {
 

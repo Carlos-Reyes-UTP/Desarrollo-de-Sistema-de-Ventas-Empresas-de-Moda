@@ -113,6 +113,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
 
   const getRoleLabel = () => {
     if (tieneRol('ROLE_ADMIN')) return 'ADMINISTRADOR';
+    if (tieneRol('ROLE_GERENTE')) return 'GERENTE';
     if (tieneRol('ROLE_SUPERVISOR_ALMACEN')) return 'SUPERVISOR ALMACÉN';
     if (tieneRol('ROLE_ALMACENERO')) return 'GESTOR DE ALMACÉN';
     if (tieneRol('ROLE_VENDEDOR')) return 'VENDEDOR';
@@ -179,7 +180,7 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
         <Card
           color="transparent"
           shadow={false}
-          className="h-full w-full flex flex-col pt-4 overflow-hidden"
+          className="app-drawer-shell h-full w-full flex flex-col pt-4 overflow-hidden !bg-[var(--app-drawer-bg)]"
         >
           {/* Header con Perfil */}
           <div className="px-6 py-8 mb-4 flex items-center justify-between">
@@ -215,6 +216,15 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                   label="Dashboard Admin"
                   selected={vistaActual === 'dashboard-admin'}
                   onClick={() => handleMenuClick('dashboard-admin', () => navigate(APP_PATHS.dashboardAdmin))}
+                />
+              )}
+
+              {tieneRol('ROLE_GERENTE') && (
+                <NavItem
+                  icon="speed"
+                  label="Dashboard Gerente"
+                  selected={vistaActual === 'dashboard-gerente'}
+                  onClick={() => handleMenuClick('dashboard-gerente', () => navigate(APP_PATHS.dashboardGerente))}
                 />
               )}
 
@@ -286,58 +296,84 @@ const SidebarMenu = ({ vistaActual, cambiarVista, usuario, cerrarSesion }: Sideb
                 </div>
               )}
 
-              {/* Administración / Inventario */}
-              {(tieneRol('ROLE_ADMIN') || esRolModuloAlmacen(tieneRol)) && (
+              {/* Usuarios ADMIN */}
+              {tieneRol('ROLE_ADMIN') && (
                 <div className="py-2">
-                  <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">
-                    {tieneRol('ROLE_ADMIN') ? 'Configuración' : 'Gestión'}
-                  </p>
-
-                  {/* Usuarios (Solo Admin) */}
-                  {tieneRol('ROLE_ADMIN') && (
-                    <NavItem
-                      icon="manage_accounts"
-                      label="Usuarios"
-                      selected={vistaActual === 'usuarios'}
-                      onClick={() => handleMenuClick('usuarios', () => navigate(APP_PATHS.gestionUsuarios))}
-                    />
-                  )}
-
-                  {/* Inventario Acordeón (Solo Almacenero) */}
-                  {esRolModuloAlmacen(tieneRol) && !tieneRol('ROLE_ADMIN') && (
-                    <Accordion open={openAccordion === 3} className="border-none mt-2">
-                      <ListItem className="p-0" selected={openAccordion === 3}>
-                        <AccordionHeader onClick={() => handleAccordionOpen(3)} className="border-none p-0">
-                          <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] ${openAccordion === 3 ? "app-drawer-nav-item-selected" : "app-drawer-nav-item"}`}>
-                            <div className="mr-3.5 flex-shrink-0 flex items-center justify-center">
-                              <MaterialIcon icon="checkroom" className="h-[20px] w-[20px] app-drawer-text opacity-90" />
-                            </div>
-                            <span className="text-[14px] font-medium flex-1 text-left tracking-tight">Control Inventario</span>
-                            <MaterialIcon icon="expand_more" className={`h-4 w-4 transition-transform ${openAccordion === 3 ? "rotate-180" : ""}`} />
-                          </div>
-                        </AccordionHeader>
-                      </ListItem>
-                      <AccordionBody className="py-2 pl-4 pr-1">
-                        <List className="p-0 space-y-1.5">
-                          <NavItem icon="checkroom" label="Productos" selected={vistaActual.includes('productos')} onClick={() => handleMenuClick('productos-inventario', () => navigate(APP_PATHS.productos))} />
-                          <NavItem icon="inventory" label="Proveedores" selected={vistaActual.includes('proveedores')} onClick={() => handleMenuClick('proveedores', () => navigate(APP_PATHS.proveedores))} />
-                          <NavItem icon="auto_awesome" label="Categorías" selected={vistaActual.includes('categorias')} onClick={() => handleMenuClick('categorias', () => navigate(APP_PATHS.categorias))} />
-                        </List>
-                      </AccordionBody>
-                    </Accordion>
-                  )}
+                  <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">Configuración</p>
+                  <NavItem
+                    icon="manage_accounts"
+                    label="Usuarios"
+                    selected={vistaActual === 'usuarios'}
+                    onClick={() => handleMenuClick('usuarios', () => navigate(APP_PATHS.gestionUsuarios))}
+                  />
                 </div>
               )}
 
-              {/* Reportes para Admin */}
-              {tieneRol('ROLE_ADMIN') && (
+              {/* Gestión GERENTE */}
+              {tieneRol('ROLE_GERENTE') && (
+                <div className="py-2">
+                  <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">Gestión</p>
+                  <NavItem
+                    icon="manage_accounts"
+                    label="Usuarios"
+                    selected={vistaActual === 'gerente-usuarios'}
+                    onClick={() => handleMenuClick('gerente-usuarios', () => navigate(APP_PATHS.gerenteUsuarios))}
+                  />
+                  <NavItem
+                    icon="corporate_fare"
+                    label="Pisos, áreas y ubicaciones"
+                    selected={vistaActual === 'gerente-pisos'}
+                    onClick={() => handleMenuClick('gerente-pisos', () => navigate(APP_PATHS.gerentePisos))}
+                  />
+                </div>
+              )}
+
+              {/* Inventario (solo personal de almacén) */}
+              {esRolModuloAlmacen(tieneRol) && !tieneRol('ROLE_ADMIN') && (
+                <div className="py-2">
+                  <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">Gestión</p>
+                  <Accordion open={openAccordion === 3} className="border-none mt-2">
+                    <ListItem className="p-0" selected={openAccordion === 3}>
+                      <AccordionHeader onClick={() => handleAccordionOpen(3)} className="border-none p-0">
+                        <div className={`w-full flex items-center py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] ${openAccordion === 3 ? "app-drawer-nav-item-selected" : "app-drawer-nav-item"}`}>
+                          <div className="mr-3.5 flex-shrink-0 flex items-center justify-center">
+                            <MaterialIcon icon="checkroom" className="h-[20px] w-[20px] app-drawer-text opacity-90" />
+                          </div>
+                          <span className="text-[14px] font-medium flex-1 text-left tracking-tight">Control Inventario</span>
+                          <MaterialIcon icon="expand_more" className={`h-4 w-4 transition-transform ${openAccordion === 3 ? "rotate-180" : ""}`} />
+                        </div>
+                      </AccordionHeader>
+                    </ListItem>
+                    <AccordionBody className="py-2 pl-4 pr-1">
+                      <List className="p-0 space-y-1.5">
+                        <NavItem
+                          icon="checkroom"
+                          label="Productos"
+                          selected={vistaActual.includes('productos')}
+                          onClick={() => handleMenuClick('productos-inventario', () => navigate(APP_PATHS.productos))}
+                        />
+                        <NavItem icon="inventory" label="Proveedores" selected={vistaActual.includes('proveedores')} onClick={() => handleMenuClick('proveedores', () => navigate(APP_PATHS.proveedores))} />
+                        <NavItem icon="auto_awesome" label="Categorías" selected={vistaActual.includes('categorias')} onClick={() => handleMenuClick('categorias', () => navigate(APP_PATHS.categorias))} />
+                      </List>
+                    </AccordionBody>
+                  </Accordion>
+                </div>
+              )}
+
+              {/* Reportes Admin + Gerente */}
+              {(tieneRol('ROLE_ADMIN') || tieneRol('ROLE_GERENTE')) && (
                 <div className="py-2">
                   <p className="px-5 pb-3 text-[10px] font-bold app-drawer-muted tracking-[0.15em] uppercase">Análisis</p>
                   <NavItem
                     icon="bar_chart"
                     label="Reportes"
-                    selected={vistaActual === 'reportes-admin'}
-                    onClick={() => handleMenuClick('reportes-admin', () => navigate(APP_PATHS.reportes))}
+                    selected={vistaActual === 'reportes-admin' || vistaActual === 'reportes-gerente'}
+                    onClick={() =>
+                      handleMenuClick(
+                        tieneRol('ROLE_GERENTE') ? 'reportes-gerente' : 'reportes-admin',
+                        () => navigate(APP_PATHS.reportes)
+                      )
+                    }
                   />
                 </div>
               )}

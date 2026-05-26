@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MaterialIcon } from '@/shared/ui';
+import { AppSelect, MaterialIcon } from '@/shared/ui';
 import type { Categoria } from '../../../types/Categoria';
 import type { Proveedor } from '../../../types/Proveedor';
 
@@ -176,35 +176,39 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
           <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
             Sexo <span className="text-red-500">*</span>
           </label>
-          <select
-            name="sexo"
+          <AppSelect
             value={formData.sexo}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
-            required
-          >
-            <option value="">Seleccionar sexo</option>
-            <option value="Hombre">Hombre</option>
-            <option value="Mujer">Mujer</option>
-            <option value="Unisex">Unisex</option>
-          </select>
+            onChange={(value) =>
+              handleInputChange({
+                target: { name: 'sexo', value },
+              } as React.ChangeEvent<HTMLSelectElement>)
+            }
+            placeholder="Seleccionar sexo"
+            options={[
+              { value: 'Hombre', label: 'Hombre' },
+              { value: 'Mujer', label: 'Mujer' },
+              { value: 'Unisex', label: 'Unisex' },
+            ]}
+          />
         </div>
 
         <div>
           <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
             Tipo de público <span className="text-red-500">*</span>
           </label>
-          <select
-            name="tipoPublico"
+          <AppSelect
             value={formData.tipoPublico}
-            onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
-            required
-          >
-            <option value="">Seleccionar tipo de público</option>
-            <option value="NIÑO">Niño</option>
-            <option value="ADULTO">Adulto</option>
-          </select>
+            onChange={(value) =>
+              handleInputChange({
+                target: { name: 'tipoPublico', value },
+              } as React.ChangeEvent<HTMLSelectElement>)
+            }
+            placeholder="Seleccionar tipo de público"
+            options={[
+              { value: 'NIÑO', label: 'Niño' },
+              { value: 'ADULTO', label: 'Adulto' },
+            ]}
+          />
         </div>
 
         <div>

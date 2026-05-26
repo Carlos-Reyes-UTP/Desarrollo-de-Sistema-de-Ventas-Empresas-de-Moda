@@ -64,7 +64,11 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
   const esVendedorPisoKiosk = vistaActual === "vendedor-piso";
 
   return (
-    <div className="flex h-screen overflow-hidden relative app-layout-bg caj-layout-bg">
+    <div 
+      className="flex h-screen overflow-hidden relative app-layout-bg caj-layout-bg"
+      data-view={vistaActual}
+      data-user-role={usuario?.roles?.[0]?.nombreRol}
+    >
       {/* Barra de arrastre invisible para arrastrar la ventana en modo PWA (Window Controls Overlay) */}
       <div className="fixed top-0 left-0 right-0 h-8 pointer-events-none z-[9999] md:flex hidden" style={{ WebkitAppRegion: 'drag' } as any}></div>
 

@@ -393,7 +393,7 @@ Métodos de pago en `VentaController.mapearMetodoPago`: `1=EFECTIVO`, `2=TARJETA
 
 **Precio por cantidad / mayorista:** `calcularPrecioSegunCantidad` — tramos ≥3, ≥6, ≥12; si `esMayorista`, usa `precioDocena`. El backend **acepta `precioUnitario` enviado** sin recalcular.
 
-**Validación DNI tarjeta > S/ 100:** **no implementada**. Solo validación de formato DNI (8 dígitos) / RUC (11) en `handleBuscarCliente`; no hay condicional `metodoPago === TARJETA && total > 100`.
+**Validación DNI según monto (≥ S/ 100):** **implementada** en front (`validarIdentificacionCliente.ts`, `useVentas`) y back (`IdentificacionClienteValidator` en `VentaController`). Aplica a **todo método de pago**. Ventas &lt; S/ 100 permiten nombre completo (mín. 2 palabras) sin documento; documento sintético interno prefijo `NN` para clientes anónimos.
 
 **PDF:** **no implementado**. `imprimirBoletaVenta` (`printBoleta.ts`) genera HTML en ventana nueva y `window.print()` — no usa jsPDF ni binario PDF.
 
@@ -608,7 +608,7 @@ No hay endpoints `/api/.../prediccion`, `/ml`, ni similares.
 | MOD-04 | Bloqueo POS sin caja abierta | **No implementado** |
 | MOD-04 | Venta actualiza movimiento de caja | **No implementado** |
 | MOD-05 | Cascada automática de precios al editar | **No** (solo validación) |
-| MOD-06 | DNI obligatorio tarjeta > S/ 100 | **No implementado** |
+| MOD-06 | DNI obligatorio venta ≥ S/ 100 (todo pago) | **Implementado** |
 | MOD-06 | PDF de venta | **No** (HTML + print) |
 | MOD-06 | HID nativo | **Parcial** (teclado wedge) |
 | MOD-07 | Prioridad persistida en ticket | **Parcial** (urgencia calculada en UI) |

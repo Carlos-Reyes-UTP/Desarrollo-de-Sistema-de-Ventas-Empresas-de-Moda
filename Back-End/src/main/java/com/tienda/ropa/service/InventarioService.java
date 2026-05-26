@@ -26,9 +26,9 @@ public class InventarioService {
 
     public static final String UBICACION_ALMACEN_NOMBRE = "Almacen";
 
-    private static final String[] NOMBRES_ALMACEN_CANDIDATOS = {
-            "Almacen", "Almacén", "ALMACEN", "Bodega", "Depósito", "Deposito"
-    };
+    // private static final String[] NOMBRES_ALMACEN_CANDIDATOS = {
+    //         "Almacen", "Almacén", "ALMACEN", "Bodega", "Depósito", "Deposito"
+    // };
 
     private static final List<String> NOMBRES_ALMACEN_LOWER = List.of(
             "almacén", "almacen", "bodega", "depósito", "deposito");

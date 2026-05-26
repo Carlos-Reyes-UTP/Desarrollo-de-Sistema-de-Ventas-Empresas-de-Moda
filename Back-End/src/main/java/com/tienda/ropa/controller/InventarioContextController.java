@@ -9,7 +9,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.dto.InventarioContextoDTO;
 import com.tienda.ropa.dto.ResumenStockAreaDTO;
-import com.tienda.ropa.dto.UbicacionDTO;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.service.InventarioContextService;
 

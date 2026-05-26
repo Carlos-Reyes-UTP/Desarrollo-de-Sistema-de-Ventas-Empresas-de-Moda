@@ -91,7 +91,7 @@ const ComboBox: React.FC<ComboBoxProps> = ({
             {selectedOption?.label || placeholder}
           </span>
         </div>
-        <MaterialIcon icon="expand_more" className={`w-4 h-4 app-text-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+        <MaterialIcon icon="arrow_drop_down" className={`w-5 h-5 app-text-muted transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {isOpen && (
@@ -114,7 +114,7 @@ const ComboBox: React.FC<ComboBoxProps> = ({
                 } ${index === 0 ? '' : 'border-t border-[var(--app-border)]'}`}
               >
                 <span>{option.label}</span>
-                {option.value === value && <MaterialIcon icon="check" className="w-4 h-4" />}
+                {option.value === value && <MaterialIcon icon="done" fill className="w-5 h-5" />}
               </button>
             ))}
           </div>

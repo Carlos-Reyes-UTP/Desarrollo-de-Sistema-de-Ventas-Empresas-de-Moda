@@ -18,6 +18,13 @@ import { imprimirBoletaVenta } from './printBoleta';
 import type { DatosVentaBoleta, PrecioCalculado } from './types';
 import { FACTOR_IGV } from '../../../shared/constants/impuestos';
 import { METODO_PAGO_ID, METODOS_PAGO_QR } from '../../../shared/constants/metodosPago';
+import {
+  evaluarIdentificacionCliente,
+  esDniValido,
+  esRucValido,
+  generarDocumentoAnonimo,
+  UMBRAL_DNI_OBLIGATORIO,
+} from '../../../utils/validarIdentificacionCliente';
 
 export const useVentas = () => {
 const { isReady, isAuthenticated } = useAuthReady();
@@ -33,6 +40,7 @@ const { isReady, isAuthenticated } = useAuthReady();
   const [cliente, setCliente] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
   const [inputNombreDebeParpadear, setInputNombreDebeParpadear] = useState(false);
+  const [inputDocumentoDebeParpadear, setInputDocumentoDebeParpadear] = useState(false);
   const [clienteCreadoManualmente, setClienteCreadoManualmente] = useState(false);
   const [esMayorista, setEsMayorista] = useState(false);
   const [verificandoMayorista, setVerificandoMayorista] = useState(false);
@@ -480,12 +488,6 @@ const { isReady, isAuthenticated } = useAuthReady();
     setCargandoAgregarProducto(true);
     
     try {
-      // Verificar que hay un cliente válido (buscado o manual) antes de agregar productos
-      if (!clienteValidoParaVenta) {
-        setErrorGlobal('Debe seleccionar o ingresar un cliente válido antes de agregar productos al carrito.');
-        return;
-      }
-
       // Asegurarnos que la variante tiene cantidad y no está agotada
       const cantidad = variante.cantidad || 0;
       if (cantidad <= 0) {
@@ -639,17 +641,67 @@ const { isReady, isAuthenticated } = useAuthReady();
   const igvVenta = totalConIgvIncluido - subtotalVenta;
   const totalGeneralVenta = totalConIgvIncluido;
 
+  const identificacionEval = useMemo(
+    () =>
+      evaluarIdentificacionCliente({
+        totalVenta: totalGeneralVenta,
+        tipoDocumento,
+        documento: documentoCliente,
+        nombre: cliente,
+        clienteSeleccionado,
+      }),
+    [
+      totalGeneralVenta,
+      tipoDocumento,
+      documentoCliente,
+      cliente,
+      clienteSeleccionado,
+    ]
+  );
+
+  const clienteValidoParaVenta = identificacionEval.valido;
+  const requiereDocumentoCliente = identificacionEval.requiereDocumento;
+
+  const totalAnteriorRef = useRef(0);
+  useEffect(() => {
+    const cruzoUmbral =
+      totalGeneralVenta >= UMBRAL_DNI_OBLIGATORIO &&
+      totalAnteriorRef.current < UMBRAL_DNI_OBLIGATORIO;
+    if (
+      productosSeleccionadosVenta.length > 0 &&
+      cruzoUmbral &&
+      !identificacionEval.docValido
+    ) {
+      setInputDocumentoDebeParpadear(true);
+      setMensajeInfoVista(
+        `El total superó S/ ${UMBRAL_DNI_OBLIGATORIO}. Ingrese DNI o RUC del cliente.`
+      );
+      setTimeout(() => setMensajeInfoVista(null), 5000);
+      document
+        .getElementById('pos-cliente-cobro')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    totalAnteriorRef.current = totalGeneralVenta;
+  }, [
+    totalGeneralVenta,
+    identificacionEval.docValido,
+    productosSeleccionadosVenta.length,
+  ]);
+
+  const resolverDocumentoBoleta = (): string | null => {
+    const doc =
+      clienteSeleccionado?.numeroDocumento ?? documentoCliente.trim();
+    if (!doc) return null;
+    if (esDniValido(doc) || esRucValido(doc)) return doc;
+    return null;
+  };
+
   // --------------------------------------------------------------------------------------------
   // D. MANEJADORES DE LÓGICA DE PAGO Y FINALIZACIÓN
   // --------------------------------------------------------------------------------------------
   const handleProcesarVentaFinal = async () => {
     setErrorGlobal(null);
-    
-    if (!cliente.trim()) { 
-      setErrorGlobal('Ingrese el nombre del cliente.'); 
-      return; 
-    }
-    
+
     if (!metodoPago) { 
       setErrorGlobal('Seleccione un método de pago.'); 
       return; 
@@ -658,6 +710,22 @@ const { isReady, isAuthenticated } = useAuthReady();
     if (productosSeleccionadosVenta.length === 0) { 
       setErrorGlobal('Agregue productos a la venta.'); 
       return; 
+    }
+
+    if (!clienteValidoParaVenta) {
+      setErrorGlobal(
+        identificacionEval.mensaje ??
+          'Complete los datos del cliente según el monto de la venta.'
+      );
+      if (identificacionEval.requiereDocumento && !identificacionEval.docValido) {
+        setInputDocumentoDebeParpadear(true);
+      } else {
+        setInputNombreDebeParpadear(true);
+      }
+      document
+        .getElementById('pos-cliente-cobro')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
     }
 
     setCargandoProcesoVenta(true);
@@ -682,50 +750,41 @@ const { isReady, isAuthenticated } = useAuthReady();
       const usuarioActual = await VentaService.obtenerUsuarioActual();
       logger.debug('Usuario actual obtenido:', usuarioActual.usuario);
       
+      if (!clienteValidoParaVenta) {
+        setErrorGlobal(
+          identificacionEval.mensaje ??
+            'Complete los datos del cliente antes de registrar la venta.'
+        );
+        return;
+      }
+
       let clienteId = clienteSeleccionado?.idCliente;
-      
-      // Si no hay cliente seleccionado pero tenemos nombre, intentamos crear uno nuevo
+
       if (!clienteId && cliente.trim()) {
-        try {
-          const numeroDocumento = documentoCliente.trim();
-          let documentoValido = true;
-          let valorDocumento = numeroDocumento;
-          
-          // Validación del documento según tipo
-          if (tipoDocumento === 'DNI') {
-            if (numeroDocumento && (numeroDocumento.length !== 8 || !/^\d+$/.test(numeroDocumento))) {
-              documentoValido = false;
-              valorDocumento = '00000000'; // DNI por defecto
-              console.warn('Se usará un DNI por defecto porque el valor ingresado no es válido');
-            } else if (!numeroDocumento) {
-              valorDocumento = '00000000'; // DNI por defecto
-            }
-          } else { // RUC
-            if (numeroDocumento && (numeroDocumento.length !== 11 || !/^\d+$/.test(numeroDocumento))) {
-              documentoValido = false;
-              valorDocumento = '00000000000'; // RUC por defecto
-              console.warn('Se usará un RUC por defecto porque el valor ingresado no es válido');
-            } else if (!numeroDocumento) {
-              valorDocumento = '00000000000'; // RUC por defecto
-            }
-          }
-          
-          // Crear cliente nuevo con datos básicos
-          const nuevoCliente = await ClienteService.crearCliente({
-            nombreCliente: cliente,
-            tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
-            numeroDocumento: valorDocumento
-          });
-          
-          clienteId = nuevoCliente.idCliente;
-          
-          if (!documentoValido) {
-            console.warn('Se creó el cliente con un documento por defecto debido a formato inválido');
-          }
-        } catch (err) {
-          console.error('Error al crear cliente nuevo:', err);
-          // Seguimos adelante con clienteId en null, el backend deberá manejar este caso
-        }
+        const numeroDocumento = documentoCliente.trim();
+        const docValido =
+          (tipoDocumento === 'DNI' && esDniValido(numeroDocumento)) ||
+          (tipoDocumento === 'RUC' && esRucValido(numeroDocumento));
+
+        const valorDocumento = docValido
+          ? numeroDocumento
+          : generarDocumentoAnonimo();
+
+        const nuevoCliente = await ClienteService.crearCliente({
+          nombreCliente: cliente.trim().toUpperCase(),
+          tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
+          numeroDocumento: valorDocumento,
+        });
+
+        clienteId = nuevoCliente.idCliente;
+        setClienteSeleccionado(nuevoCliente);
+      }
+
+      if (!clienteId) {
+        setErrorGlobal(
+          'No se pudo asociar un cliente a la venta. Verifique los datos ingresados.'
+        );
+        return;
       }
       
       // Preparamos los detalles de la venta según la interfaz DetalleVentaInput actualizada
@@ -738,7 +797,7 @@ const { isReady, isAuthenticated } = useAuthReady();
       // Creamos el objeto de venta según la interfaz VentaInput actualizada
       // El usuario se obtiene automáticamente del contexto de seguridad en el backend
       const ventaParaEnviar: VentaInput = {
-        cliente: { idCliente: clienteId || 1 }, // Usamos el ID obtenido o uno por defecto
+        cliente: { idCliente: clienteId },
         metodoPago: { idMetodoPago: obtenerIdMetodoPago(metodoPago) },
         tipoComprobante: 'BOLETA', // Por defecto
         fechaVenta: new Date().toISOString(), // Formato ISO completo: YYYY-MM-DDTHH:mm:ss.sssZ
@@ -758,7 +817,8 @@ const { isReady, isAuthenticated } = useAuthReady();
       
       // Preparamos datos para la boleta con información de descuentos
       const datosBoletaVista = {
-        cliente,
+        cliente: cliente.trim().toUpperCase(),
+        documentoCliente: resolverDocumentoBoleta(),
         metodoPago,
         usuarioVendedor: usuarioActual.usuario, // Incluimos el usuario que realizó la venta
         productos: productosSeleccionadosVenta.map(item => {
@@ -814,6 +874,7 @@ const { isReady, isAuthenticated } = useAuthReady();
     setErrorBusquedaCliente(null);
     setCargandoBusquedaCliente(false);
     setInputNombreDebeParpadear(false);
+    setInputDocumentoDebeParpadear(false);
   };
 
   // Función para limpiar solo el cliente y carrito (mantener búsqueda de productos)
@@ -830,6 +891,7 @@ const { isReady, isAuthenticated } = useAuthReady();
     setErrorBusquedaCliente(null);
     setCargandoBusquedaCliente(false);
     setInputNombreDebeParpadear(false);
+    setInputDocumentoDebeParpadear(false);
     setMensajeInfoVista('Cliente y carrito limpiados correctamente');
     setTimeout(() => setMensajeInfoVista(null), 3000);
   };
@@ -845,18 +907,6 @@ const { isReady, isAuthenticated } = useAuthReady();
     imprimirBoletaVenta(datosVentaParaBoleta);
     setMostrarModalBoleta(false);
   };
-
-  // --------------------------------------------------------------------------------------------
-  // E. DEFINICIÓN DE MÉTODOS DE PAGO (Para la UI)
-  // --------------------------------------------------------------------------------------------
-    const clienteValidoParaVenta = useMemo(() => {
-    if (clienteSeleccionado) return true;
-    const docValido =
-      (tipoDocumento === 'DNI' && documentoCliente.length === 8 && /^\d+$/.test(documentoCliente)) ||
-      (tipoDocumento === 'RUC' && documentoCliente.length === 11 && /^\d+$/.test(documentoCliente));
-    const nombreValido = cliente.trim().length > 0;
-    return docValido && nombreValido;
-  }, [clienteSeleccionado, documentoCliente, tipoDocumento, cliente]);
 
   // Handler para cambiar de página (server-side)
   const handleCambiarPagina = useCallback((nuevaPagina: number) => {
@@ -885,7 +935,11 @@ const { isReady, isAuthenticated } = useAuthReady();
     cargandoProcesoVenta,
     inputNombreDebeParpadear,
     setInputNombreDebeParpadear,
+    inputDocumentoDebeParpadear,
+    setInputDocumentoDebeParpadear,
     clienteCreadoManualmente,
+    requiereDocumentoCliente,
+    identificacionMensaje: identificacionEval.mensaje,
     errorGlobal, setErrorGlobal,
     errorBusquedaCliente, setErrorBusquedaCliente,
     mensajeInfoVista, setMensajeInfoVista,

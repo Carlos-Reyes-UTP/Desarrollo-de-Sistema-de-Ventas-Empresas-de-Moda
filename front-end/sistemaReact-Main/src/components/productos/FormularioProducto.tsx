@@ -16,7 +16,7 @@ import {
 import { validarJerarquiaPreciosProducto } from '../../utils/validarPreciosProducto';
 import { getErrorMessage, getStatusCode } from '@/utils/errorUtils';
 import { extractApiErrorMessage } from '@/utils/handleApiError';
-import { AlertModal, MaterialIcon } from '@/shared/ui';
+import { AlertModal, MaterialIcon, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
 
 // Subcomponentes especializados
@@ -60,6 +60,8 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
     idUbicacionAreaEntrada: idAreaAsignadaAlmacenero,
     etiquetaStock: etiquetaAreaStock,
   } = useAccesoAreaAlmacen(true);
+
+  useModalBodyScrollLock(true);
 
   const [idAreaEntradaSupervisor, setIdAreaEntradaSupervisor] = useState<number | ''>('');
   
@@ -812,7 +814,8 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   ];
 
   return (
-    <div className={`fixed inset-0 bg-[#0c0c0e]/80 backdrop-blur-md flex items-center justify-center z-[100] transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <ModalPortal>
+    <div className={`app-modal-overlay fixed inset-0 bg-[#0c0c0e]/80 backdrop-blur-md flex items-center justify-center transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
       <div className={`bg-neutral-50 rounded-[2.5rem] shadow-[0_32px_80px_rgba(0,0,0,0.25)] w-full max-w-6xl max-h-[92vh] overflow-hidden border border-neutral-100 relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
         {/* Elegant Modal Header with Luxury Accents */}
         <div className="relative bg-white border-b border-neutral-100 px-10 py-7">
@@ -1080,6 +1083,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
         onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
       />
     </div>
+    </ModalPortal>
   );
 };
 

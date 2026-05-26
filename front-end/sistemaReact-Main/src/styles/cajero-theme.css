@@ -171,3 +171,72 @@
   border-color: var(--caj-border-strong);
   color: var(--caj-text);
 }
+
+/* Banner de confirmación (apertura/cierre/modales) */
+.caj-banner {
+  background-color: var(--caj-accent);
+  color: var(--caj-accent-fg);
+}
+
+.caj-banner-muted {
+  color: color-mix(in srgb, var(--caj-accent-fg) 65%, transparent);
+}
+
+.caj-banner-icon-wrap {
+  background-color: color-mix(in srgb, var(--caj-accent-fg) 12%, var(--caj-accent));
+  color: var(--caj-accent-fg);
+}
+
+.caj-icon-chip {
+  background-color: var(--caj-accent);
+  color: var(--caj-accent-fg);
+}
+
+.caj-detail-tile {
+  background-color: var(--caj-surface-elevated);
+  border-color: var(--caj-border);
+  color: var(--caj-text);
+}
+
+.caj-highlight-panel {
+  background-color: var(--caj-bg-muted);
+  border-color: var(--caj-border);
+  color: var(--caj-text);
+}
+
+.caj-btn-secondary {
+  background-color: var(--caj-input);
+  border-color: var(--caj-border);
+  color: var(--caj-text-muted);
+}
+
+.caj-btn-secondary:hover {
+  background-color: var(--caj-surface-elevated);
+  color: var(--caj-text);
+}
+
+.caj-error-banner {
+  background-color: var(--caj-accent);
+  color: var(--caj-accent-fg);
+}
+
+.caj-icon-muted {
+  color: var(--caj-icon-muted);
+}
+
+.caj-pulse-dot {
+  background-color: var(--caj-accent-fg);
+}
+
+.caj-accent-dot {
+  background-color: var(--caj-accent);
+}
+
+.caj-accent-fg {
+  color: var(--caj-accent-fg);
+}
+
+.caj-badge-on-banner {
+  background-color: color-mix(in srgb, var(--caj-accent-fg) 18%, var(--caj-accent));
+  color: var(--caj-accent-fg);
+}

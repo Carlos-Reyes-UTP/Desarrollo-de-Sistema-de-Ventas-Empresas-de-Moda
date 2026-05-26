@@ -41,15 +41,16 @@ const STATUS_COLORS = {
 const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ name: string, value: number }> }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-3 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[140px]">
-        <div className="flex items-center space-x-1.5 pb-1.5 mb-1.5 border-b border-gray-100 dark:border-gray-800/60">
-          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
-          <span className="font-semibold text-gray-850 dark:text-gray-200 text-[10px] tracking-wider uppercase">{payload[0].name}</span>
+      <div className="app-chart-tooltip backdrop-blur-md p-3 rounded-xl min-w-[140px]">
+        <div className="flex items-center space-x-1.5 pb-1.5 mb-1.5 border-b border-[var(--app-border)]">
+          <span className="w-2 h-2 rounded-full bg-[var(--app-accent)] animate-pulse" />
+          <span className="font-semibold text-[10px] tracking-wider uppercase">{payload[0].name}</span>
         </div>
         <div className="flex justify-between items-center text-xs">
-          <span className="text-gray-500 dark:text-gray-400 mr-3">Cantidad:</span>
-          <span className="font-bold text-indigo-650 dark:text-indigo-400">
-            {payload[0].value} <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase ml-0.5">uds</span>
+          <span className="app-chart-tooltip-muted mr-3">Cantidad:</span>
+          <span className="font-bold app-chart-tooltip-accent">
+            {payload[0].value}{' '}
+            <span className="text-[10px] font-medium app-chart-tooltip-muted uppercase ml-0.5">uds</span>
           </span>
         </div>
       </div>
@@ -61,7 +62,8 @@ const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<
 const DashboardAlmaceneroPage = () => {
   const { themeId } = useAppTheme();
   const { isReady, isAuthenticated } = useAuthReady();
-  const { usuario } = useAuth();
+  const { usuario, tieneRol } = useAuth();
+  const puedeVerPisos = tieneRol('ROLE_ALMACENERO');
   const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
   const [sectorFiltro, setSectorFiltro] = useState(SECTOR_ALMACEN_GENERAL);
   const navigate = useNavigate();
@@ -133,10 +135,10 @@ const DashboardAlmaceneroPage = () => {
   }, [sectorParaCola]);
 
   useEffect(() => {
-    cargarCola();
-    const id = setInterval(cargarCola, 3000);
-    return () => clearInterval(id);
+    void cargarCola();
   }, [cargarCola]);
+
+  useAutoSync(cargarCola, ['SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA', 'NUEVA_VENTA'], 800);
 
   // Cargar datos del dashboard solo cuando la autenticación esté lista  // ===== FUNCIONES DEFINIDAS ANTES DE LOS useEffect =====
 
@@ -224,10 +226,6 @@ const DashboardAlmaceneroPage = () => {
 
   useAutoSync(cargarDatosDashboard, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA'], 2000);
 
-  const actualizarDatos = async () => {
-    await cargarDatosDashboard();
-  };
-
   const getEstadoBadge = (estado: string) => {
     const config: Record<string, string> = {
       normal: "bg-emerald-50 text-emerald-600",
@@ -270,10 +268,6 @@ const DashboardAlmaceneroPage = () => {
                 </span>
               )}
               <PageActionGroup>
-                <PageActionButton grouped variant="secondary" onClick={actualizarDatos} disabled={cargando}>
-                  <MaterialIcon icon="sync" className={`w-3.5 h-3.5 ${cargando ? 'animate-spin' : ''}`} />
-                  {cargando ? 'Sincronizando' : 'Actualizar'}
-                </PageActionButton>
                 <PageActionButton grouped onClick={() => navigate(`${APP_PATHS.productos}?openModal=true`)}>
                   <MaterialIcon icon="add_circle" className="w-3.5 h-3.5" />
                   Nuevo Producto
@@ -558,14 +552,16 @@ const DashboardAlmaceneroPage = () => {
             </DashboardPanel>
 
             <DashboardCtaPanel title="Acciones Rápidas" subtitle="Centro de Control Operativo">
-                <button
-                  type="button"
-                  onClick={() => navigate(`${APP_PATHS.productos}?tab=pisos`)}
-                  className="w-full h-14 app-cta-btn-primary rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
-                >
-                  Nuevo Traslado
-                  <MaterialIcon icon="arrow_right_alt" className="w-4 h-4" />
-                </button>
+                {puedeVerPisos && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`${APP_PATHS.productos}?tab=pisos`)}
+                    className="w-full h-14 app-cta-btn-primary rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
+                  >
+                    Nuevo Traslado
+                    <MaterialIcon icon="arrow_right_alt" className="w-4 h-4" />
+                  </button>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"

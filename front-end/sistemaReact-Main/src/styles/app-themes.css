@@ -1,5 +1,22 @@
 /* Temas globales DK-SYSTEM — data-theme en <html> */
 
+/* Capas de apilamiento (independientes del tema) */
+:root {
+  --app-z-sidebar-rail: 30;
+  --app-z-drawer-overlay: 45;
+  --app-z-drawer: 50;
+  --app-z-modal: 200;
+  --app-z-modal-nested: 210;
+}
+
+html.modal-open {
+  overflow: hidden;
+}
+
+.app-modal-overlay {
+  z-index: var(--app-z-modal);
+}
+
 /* --- Classic (monocromo DK, default) --- */
 :root,
 [data-theme="classic"] {
@@ -27,11 +44,11 @@
   --app-panel: #ffffff;
   --app-panel-border: #e5e7eb;
   --app-shadow-panel: 0 1px 3px rgb(0 0 0 / 0.02), 0 4px 12px rgb(0 0 0 / 0.04);
-  --app-metric-bg: #0d0d0d;
-  --app-metric-border: #1f1f1f;
-  --app-metric-text: #f8fafc;
-  --app-metric-label: #9ca3af;
-  --app-metric-glow: rgb(255 255 255 / 0.02);
+  --app-metric-bg: #f4f4f5;
+  --app-metric-border: #e4e4e7;
+  --app-metric-text: #09090b;
+  --app-metric-label: #71717a;
+  --app-metric-glow: rgba(0, 0, 0, 0.02);
   --app-drawer-bg: #0a0a0a;
   --app-drawer-text: #ffffff;
   --app-drawer-muted: #9ca3af;
@@ -40,6 +57,7 @@
   --app-drawer-border: rgb(255 255 255 / 0.05);
   --app-theme-menu-bg: #1a1a1a;
   --app-theme-menu-text: #f3f4f6;
+  --app-theme-menu-hover: #262626;
   --app-theme-menu-active: #2d2d2d;
   --app-cta-bg: #000000;
   --app-cta-text: #ffffff;
@@ -50,6 +68,16 @@
   --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.1);
   --app-cta-btn-secondary-text: #ffffff;
   --app-dashboard-accent-border: #6366f1;
+  --app-modal-header-bg: var(--app-accent);
+  --app-modal-header-fg: var(--app-accent-fg);
+  --app-modal-header-muted: #9ca3af;
+  --app-modal-header-icon-wrap: rgb(255 255 255 / 0.12);
+  --app-modal-btn-primary-bg: var(--app-accent);
+  --app-modal-btn-primary-fg: var(--app-accent-fg);
+  --app-modal-callout-bg: var(--app-bg-muted);
+  --app-modal-callout-border: var(--app-border-strong);
+  --app-select-selected-bg: var(--app-accent);
+  --app-select-selected-fg: var(--app-accent-fg);
 
   --caj-bg: #fafafa;
   --caj-bg-muted: #f8f8f8;
@@ -80,6 +108,16 @@
   --app-metric-icon-4-fg: #d97706;
   --app-metric-icon-5-bg: #fce8e6;
   --app-metric-icon-5-fg: #c5221f;
+
+  /* Metric charts & roles — Classic */
+  --app-chart-gradient-start: #6366f1;
+  --app-chart-gradient-end: #38bdf8;
+  --app-role-admin: #f59e0b;
+  --app-role-gerente: #f43f5e;
+  --app-role-supervisor: #0ea5e9;
+  --app-role-almacenero: #6366f1;
+  --app-role-cajero: #8b5cf6;
+  --app-role-vendedor: #10b981;
 }
 
 /* --- Dark --- */
@@ -121,6 +159,7 @@
   --app-drawer-border: rgb(255 255 255 / 0.06);
   --app-theme-menu-bg: #171717;
   --app-theme-menu-text: #e8e8e8;
+  --app-theme-menu-hover: #222222;
   --app-theme-menu-active: rgb(255 255 255 / 0.08);
   --app-cta-bg: #131313;
   --app-cta-text: #f5f5f5;
@@ -131,6 +170,16 @@
   --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.07);
   --app-cta-btn-secondary-text: #e8e8e8;
   --app-dashboard-accent-border: rgb(255 255 255 / 0.15);
+  --app-modal-header-bg: #252525;
+  --app-modal-header-fg: var(--app-text);
+  --app-modal-header-muted: var(--app-text-muted);
+  --app-modal-header-icon-wrap: rgb(255 255 255 / 0.1);
+  --app-modal-btn-primary-bg: #3d3d3d;
+  --app-modal-btn-primary-fg: var(--app-text);
+  --app-modal-callout-bg: var(--app-bg-muted);
+  --app-modal-callout-border: var(--app-border);
+  --app-select-selected-bg: #4a4a4a;
+  --app-select-selected-fg: var(--app-text);
 
   --caj-bg: #0a0a0a;
   --caj-bg-muted: #111111;
@@ -161,6 +210,16 @@
   --app-metric-icon-4-fg: #fbbf24;
   --app-metric-icon-5-bg: rgba(248, 113, 113, 0.15);
   --app-metric-icon-5-fg: #f87171;
+
+  /* Metric charts & roles — Dark */
+  --app-chart-gradient-start: #818cf8;
+  --app-chart-gradient-end: #38bdf8;
+  --app-role-admin: #fbbf24;
+  --app-role-gerente: #fb7185;
+  --app-role-supervisor: #38bdf8;
+  --app-role-almacenero: #818cf8;
+  --app-role-cajero: #a78bfa;
+  --app-role-vendedor: #34d399;
 }
 
 /* --- Pastel Dama --- */
@@ -202,6 +261,7 @@
   --app-drawer-border: rgb(255 255 255 / 0.1);
   --app-theme-menu-bg: #5c4a4e;
   --app-theme-menu-text: #fff9fa;
+  --app-theme-menu-hover: #6a565a;
   --app-theme-menu-active: #6e5a5e;
   --app-cta-bg: #8b6b6f;
   --app-cta-text: #fffbfc;
@@ -212,6 +272,16 @@
   --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.12);
   --app-cta-btn-secondary-text: #fffbfc;
   --app-dashboard-accent-border: #a88a8e;
+  --app-modal-header-bg: var(--app-accent);
+  --app-modal-header-fg: var(--app-accent-fg);
+  --app-modal-header-muted: #f5e4e8;
+  --app-modal-header-icon-wrap: rgb(255 255 255 / 0.15);
+  --app-modal-btn-primary-bg: var(--app-accent);
+  --app-modal-btn-primary-fg: var(--app-accent-fg);
+  --app-modal-callout-bg: var(--app-bg-muted);
+  --app-modal-callout-border: var(--app-border-strong);
+  --app-select-selected-bg: var(--app-accent);
+  --app-select-selected-fg: var(--app-accent-fg);
 
   --caj-bg: #fdf6f6;
   --caj-bg-muted: #faf0f2;
@@ -231,17 +301,27 @@
   --caj-icon-muted: #c4b0b5;
   --caj-hover-overlay: rgb(139 107 111 / 0.06);
 
-  /* Themed metric icons */
-  --app-metric-icon-1-bg: #eaf5ea;
-  --app-metric-icon-1-fg: #5a7d5a;
-  --app-metric-icon-2-bg: #e6effa;
-  --app-metric-icon-2-fg: #50719e;
-  --app-metric-icon-3-bg: #f5ebfa;
-  --app-metric-icon-3-fg: #80529c;
-  --app-metric-icon-4-bg: #faf0e6;
-  --app-metric-icon-4-fg: #a6723c;
-  --app-metric-icon-5-bg: #fdf2f2;
-  --app-metric-icon-5-fg: #c81e1e;
+  /* Themed metric icons — rosa */
+  --app-metric-icon-1-bg: #f8e8ec;
+  --app-metric-icon-1-fg: #9b5a6a;
+  --app-metric-icon-2-bg: #f5e0e8;
+  --app-metric-icon-2-fg: #b86b82;
+  --app-metric-icon-3-bg: #f0d4e4;
+  --app-metric-icon-3-fg: #a84d7a;
+  --app-metric-icon-4-bg: #fce8f0;
+  --app-metric-icon-4-fg: #c45a88;
+  --app-metric-icon-5-bg: #fde8ef;
+  --app-metric-icon-5-fg: #b83d6b;
+
+  /* Metric charts & roles — Pastel Dama */
+  --app-chart-gradient-start: #be185d;
+  --app-chart-gradient-end: #fda4af;
+  --app-role-admin: #e5989b;
+  --app-role-gerente: #b56576;
+  --app-role-supervisor: #83c5be;
+  --app-role-almacenero: #95b8d1;
+  --app-role-cajero: #b8a3c4;
+  --app-role-vendedor: #b7b5a3;
 }
 
 /* --- Pastel Caballero --- */
@@ -283,6 +363,7 @@
   --app-drawer-border: rgb(255 255 255 / 0.1);
   --app-theme-menu-bg: #4a5d6b;
   --app-theme-menu-text: #f5f8fb;
+  --app-theme-menu-hover: #556a78;
   --app-theme-menu-active: #5a6f7f;
   --app-cta-bg: #6b8499;
   --app-cta-text: #fafbfc;
@@ -293,6 +374,16 @@
   --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.12);
   --app-cta-btn-secondary-text: #fafbfc;
   --app-dashboard-accent-border: #7a94a8;
+  --app-modal-header-bg: var(--app-accent);
+  --app-modal-header-fg: var(--app-accent-fg);
+  --app-modal-header-muted: #dce6ef;
+  --app-modal-header-icon-wrap: rgb(255 255 255 / 0.15);
+  --app-modal-btn-primary-bg: var(--app-accent);
+  --app-modal-btn-primary-fg: var(--app-accent-fg);
+  --app-modal-callout-bg: var(--app-bg-muted);
+  --app-modal-callout-border: var(--app-border-strong);
+  --app-select-selected-bg: var(--app-accent);
+  --app-select-selected-fg: var(--app-accent-fg);
 
   --caj-bg: #f4f7fa;
   --caj-bg-muted: #eef3f7;
@@ -312,17 +403,27 @@
   --caj-icon-muted: #9aabb8;
   --caj-hover-overlay: rgb(107 132 153 / 0.06);
 
-  /* Themed metric icons */
-  --app-metric-icon-1-bg: #ebf7ee;
-  --app-metric-icon-1-fg: #3d8c55;
-  --app-metric-icon-2-bg: #e8f2fc;
-  --app-metric-icon-2-fg: #4682b4;
-  --app-metric-icon-3-bg: #ede9fe;
-  --app-metric-icon-3-fg: #6d28d9;
-  --app-metric-icon-4-bg: #fef3c7;
-  --app-metric-icon-4-fg: #b45309;
-  --app-metric-icon-5-bg: #fee2e2;
-  --app-metric-icon-5-fg: #dc2626;
+  /* Themed metric icons — azul */
+  --app-metric-icon-1-bg: #e4eef8;
+  --app-metric-icon-1-fg: #3d6a8c;
+  --app-metric-icon-2-bg: #dce8f5;
+  --app-metric-icon-2-fg: #4a7aa8;
+  --app-metric-icon-3-bg: #d4e2f2;
+  --app-metric-icon-3-fg: #356294;
+  --app-metric-icon-4-bg: #e8f0fa;
+  --app-metric-icon-4-fg: #5a88b0;
+  --app-metric-icon-5-bg: #eef4fc;
+  --app-metric-icon-5-fg: #2d5a82;
+
+  /* Metric charts & roles — Pastel Caballero */
+  --app-chart-gradient-start: #2563eb;
+  --app-chart-gradient-end: #60a5fa;
+  --app-role-admin: #c4a482;
+  --app-role-gerente: #2a6f97;
+  --app-role-supervisor: #48cae4;
+  --app-role-almacenero: #8d99ae;
+  --app-role-cajero: #7b6b8d;
+  --app-role-vendedor: #52b788;
 }
 
 /* --- Soft Neutral --- */
@@ -356,15 +457,16 @@
   --app-metric-text: #3a3835;
   --app-metric-label: #7a756d;
   --app-metric-glow: rgb(110 104 96 / 0.1);
-  --app-drawer-bg: #4a4743;
+  --app-drawer-bg: #3f3c38;
   --app-drawer-text: #fcfaf7;
-  --app-drawer-muted: #d8d2c8;
-  --app-drawer-hover: rgb(255 255 255 / 0.08);
-  --app-drawer-selected: rgb(255 255 255 / 0.14);
-  --app-drawer-border: rgb(255 255 255 / 0.1);
-  --app-theme-menu-bg: #5c5854;
+  --app-drawer-muted: #c9c2b8;
+  --app-drawer-hover: rgb(255 255 255 / 0.1);
+  --app-drawer-selected: rgb(255 255 255 / 0.16);
+  --app-drawer-border: rgb(255 255 255 / 0.12);
+  --app-theme-menu-bg: #4f4b47;
   --app-theme-menu-text: #fcfaf7;
-  --app-theme-menu-active: #6e6a64;
+  --app-theme-menu-hover: #5c5854;
+  --app-theme-menu-active: #686460;
   --app-cta-bg: #6e6860;
   --app-cta-text: #fcfaf7;
   --app-cta-subtitle: #e8e4dd;
@@ -374,6 +476,16 @@
   --app-cta-btn-secondary-bg: rgb(255 255 255 / 0.12);
   --app-cta-btn-secondary-text: #fcfaf7;
   --app-dashboard-accent-border: #8a847c;
+  --app-modal-header-bg: var(--app-accent);
+  --app-modal-header-fg: var(--app-accent-fg);
+  --app-modal-header-muted: #e8e4dd;
+  --app-modal-header-icon-wrap: rgb(255 255 255 / 0.12);
+  --app-modal-btn-primary-bg: var(--app-accent);
+  --app-modal-btn-primary-fg: var(--app-accent-fg);
+  --app-modal-callout-bg: var(--app-bg-muted);
+  --app-modal-callout-border: var(--app-border-strong);
+  --app-select-selected-bg: var(--app-accent);
+  --app-select-selected-fg: var(--app-accent-fg);
 
   --caj-bg: #f7f5f2;
   --caj-bg-muted: #f0ede8;
@@ -393,17 +505,27 @@
   --caj-icon-muted: #a8a299;
   --caj-hover-overlay: rgb(110 104 96 / 0.06);
 
-  /* Themed metric icons */
-  --app-metric-icon-1-bg: #edf3ec;
-  --app-metric-icon-1-fg: #4d7c47;
-  --app-metric-icon-2-bg: #e8ecf3;
-  --app-metric-icon-2-fg: #4b6b94;
-  --app-metric-icon-3-bg: #ece8f3;
-  --app-metric-icon-3-fg: #67477c;
-  --app-metric-icon-4-bg: #f3ece4;
-  --app-metric-icon-4-fg: #94674b;
-  --app-metric-icon-5-bg: #fbebeb;
-  --app-metric-icon-5-fg: #a84444;
+  /* Themed metric icons — arena */
+  --app-metric-icon-1-bg: #ebe8df;
+  --app-metric-icon-1-fg: #6b7a4a;
+  --app-metric-icon-2-bg: #e8e4dc;
+  --app-metric-icon-2-fg: #8a7355;
+  --app-metric-icon-3-bg: #e4dfd6;
+  --app-metric-icon-3-fg: #7a6848;
+  --app-metric-icon-4-bg: #f0ebe2;
+  --app-metric-icon-4-fg: #9a7a52;
+  --app-metric-icon-5-bg: #f5ece4;
+  --app-metric-icon-5-fg: #a06848;
+
+  /* Metric charts & roles — Soft Neutral */
+  --app-chart-gradient-start: #854d0e;
+  --app-chart-gradient-end: #d97706;
+  --app-role-admin: #d48c46;
+  --app-role-gerente: #b2533e;
+  --app-role-supervisor: #8f8e74;
+  --app-role-almacenero: #a07158;
+  --app-role-cajero: #6e6860;
+  --app-role-vendedor: #7c8a77;
 }
 
 /* Utilidades app (layout / shell) */
@@ -427,6 +549,45 @@
   backdrop-filter: blur(12px);
   border-color: var(--app-border);
   color: var(--app-text);
+}
+
+/* Filas de listas (catálogo, ubicaciones): sin borde lateral */
+.app-catalogo-row {
+  background-color: var(--app-surface);
+  color: var(--app-text);
+  border: none;
+  border-inline-width: 0;
+  box-shadow: var(--app-shadow-panel);
+}
+
+.app-catalogo-row--muted {
+  background-color: var(--app-bg-muted);
+  opacity: 0.8;
+}
+
+.app-catalogo-row-icon {
+  background-color: var(--app-bg-muted);
+  color: var(--app-text);
+  border: none;
+  border-inline-width: 0;
+}
+
+.app-catalogo-row:hover .app-catalogo-row-icon {
+  background-color: var(--app-accent);
+  color: var(--app-accent-fg);
+}
+
+.app-catalogo-row-action {
+  background-color: var(--app-surface);
+  color: var(--app-text-muted);
+  border: none;
+  border-inline-width: 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.06);
+}
+
+.app-catalogo-row-action:hover {
+  background-color: var(--app-accent);
+  color: var(--app-accent-fg);
 }
 
 .app-heading {
@@ -491,6 +652,67 @@
 
 .app-modal-cancel:hover {
   background-color: var(--app-bg-muted);
+}
+
+.app-modal-header {
+  background-color: var(--app-modal-header-bg);
+  color: var(--app-modal-header-fg);
+}
+
+.app-modal-header-muted {
+  color: var(--app-modal-header-muted);
+}
+
+.app-modal-header-icon-wrap {
+  background-color: var(--app-modal-header-icon-wrap);
+}
+
+.app-modal-btn-primary {
+  background-color: var(--app-modal-btn-primary-bg);
+  color: var(--app-modal-btn-primary-fg);
+}
+
+.app-modal-btn-primary:hover {
+  opacity: 0.92;
+}
+
+.app-modal-panel .app-btn-primary {
+  background-color: var(--app-modal-btn-primary-bg);
+  color: var(--app-modal-btn-primary-fg);
+}
+
+.app-modal-callout {
+  background-color: var(--app-modal-callout-bg);
+  border: none;
+}
+
+.app-select-trigger {
+  background-color: var(--app-input);
+  border: 1px solid var(--app-border-strong);
+  color: var(--app-text);
+}
+
+.app-select-trigger:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--app-ring);
+}
+
+.app-select-dropdown {
+  background-color: var(--app-surface);
+  border: 1px solid var(--app-border-strong);
+}
+
+.app-select-option {
+  color: var(--app-text);
+}
+
+.app-select-option:hover {
+  background-color: var(--app-hover-overlay);
+}
+
+.app-select-option-selected {
+  background-color: var(--app-select-selected-bg);
+  color: var(--app-select-selected-fg);
 }
 
 [data-theme="dark"] .app-page-header-default {
@@ -617,7 +839,8 @@
   color: var(--app-metric-icon-5-fg) !important;
 }
 
-.app-drawer {
+.app-drawer,
+.app-drawer-shell {
   background-color: var(--app-drawer-bg);
   color: var(--app-drawer-text);
 }
@@ -646,6 +869,12 @@
 
 .app-drawer-theme-trigger:hover {
   background-color: var(--app-drawer-hover);
+  color: var(--app-drawer-text);
+}
+
+.app-drawer-theme-trigger[aria-expanded="true"] {
+  background-color: var(--app-drawer-selected);
+  color: var(--app-drawer-text);
 }
 
 .app-drawer-theme-icon-wrap {
@@ -665,7 +894,7 @@
 }
 
 .app-theme-menu-item:hover {
-  background-color: var(--app-drawer-hover);
+  background-color: var(--app-theme-menu-hover);
 }
 
 .app-theme-menu-item-active {
@@ -711,7 +940,7 @@
 .app-dashboard-header-shell {
   background-color: var(--app-surface-glass);
   border-color: var(--app-panel-border);
-  border-left-color: var(--app-dashboard-accent-border);
+  border-inline-width: 0;
 }
 
 .chart-tick-muted {
@@ -720,6 +949,22 @@
 
 .chart-tick-main {
   fill: var(--app-text);
+}
+
+/* Tooltips de gráficos (Recharts) */
+.app-chart-tooltip {
+  background-color: var(--app-surface-glass);
+  color: var(--app-text);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--app-shadow-panel);
+}
+
+.app-chart-tooltip-muted {
+  color: var(--app-text-muted);
+}
+
+.app-chart-tooltip-accent {
+  color: var(--app-accent);
 }
 
 /* Herencia base por tema en documento */

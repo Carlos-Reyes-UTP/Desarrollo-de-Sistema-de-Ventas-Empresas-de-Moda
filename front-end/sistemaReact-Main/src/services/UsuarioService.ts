@@ -1,23 +1,29 @@
 import apiClient from '../config/apiClient';
 import type { Usuario, UsuarioBackend, ActualizarUsuarioDTO } from '../types/Usuario';
-import { RUTAS_USUARIOS, RUTAS_AUTENTICACION } from '../config/apiConfig';
+import { RUTAS_USUARIOS, RUTAS_GERENTE_USUARIOS, RUTAS_AUTENTICACION } from '../config/apiConfig';
+import type { RolNombre } from '../types/enums';
 import { logger } from '../utils/logger';
 
+export type RutasUsuariosApi = typeof RUTAS_USUARIOS;
+
+export function resolveRutasUsuarios(tieneRol: (r: RolNombre) => boolean): RutasUsuariosApi {
+  return tieneRol('ROLE_ADMIN') ? RUTAS_USUARIOS : RUTAS_GERENTE_USUARIOS;
+}
+
 export const UsuarioService = {
-  verificarDisponibilidadUsuario: async (nombreUsuario: string, idUsuarioActual?: number): Promise<boolean> => {
+  verificarDisponibilidadUsuario: async (
+    nombreUsuario: string,
+    idUsuarioActual?: number,
+    rutas: RutasUsuariosApi = RUTAS_GERENTE_USUARIOS
+  ): Promise<boolean> => {
     logger.debug('Verificando disponibilidad de nombre de usuario:', nombreUsuario);
     try {
-      const usuarios = await UsuarioService.obtenerUsuariosConRoles();
-      logger.debug('Total de usuarios obtenidos:', usuarios.length);
-      
-      const usuarioExistente = usuarios.find(u => {
+      const usuarios = await UsuarioService.obtenerUsuariosConRoles(rutas);
+      const usuarioExistente = usuarios.find((u) => {
         const mismoNombre = u.usuario?.toLowerCase() === nombreUsuario.toLowerCase();
         const esElMismo = u.id === idUsuarioActual;
-        logger.debug(`Comparando: "${u.usuario}" (ID: ${u.id}) vs "${nombreUsuario}" (ID actual: ${idUsuarioActual})`, { mismoNombre, esElMismo });
         return mismoNombre && !esElMismo;
       });
-      
-      logger.debug('Usuario existente encontrado:', usuarioExistente);
       return !usuarioExistente;
     } catch (error) {
       logger.error('Error al verificar disponibilidad de usuario:', error);
@@ -30,7 +36,7 @@ export const UsuarioService = {
     try {
       const respuesta = await apiClient.post(RUTAS_AUTENTICACION.INICIAR_SESION, {
         usuario,
-        clave: contrasena
+        clave: contrasena,
       });
       return respuesta.status === 200 && respuesta.data?.status === true;
     } catch (error) {
@@ -38,99 +44,104 @@ export const UsuarioService = {
       return false;
     }
   },
-  
-  obtenerTodos: async (): Promise<Usuario[]> => {
-    logger.debug('Obteniendo todos los usuarios...');
-    const respuesta = await apiClient.get<Usuario[]>(RUTAS_USUARIOS.BASE);
-    logger.debug('Respuesta obtenerTodos:', respuesta.data);
+
+  obtenerTodos: async (rutas: RutasUsuariosApi = RUTAS_GERENTE_USUARIOS): Promise<Usuario[]> => {
+    const respuesta = await apiClient.get<Usuario[]>(rutas.BASE);
     return respuesta.data;
-  },  obtenerUsuariosConRoles: async (): Promise<UsuarioBackend[]> => {
-    logger.debug('Obteniendo usuarios con roles...');
+  },
+
+  obtenerUsuariosConRoles: async (
+    rutas: RutasUsuariosApi = RUTAS_GERENTE_USUARIOS
+  ): Promise<UsuarioBackend[]> => {
     try {
-      const respuesta = await apiClient.get<UsuarioBackend[]>(`${RUTAS_USUARIOS.BASE}/with-roles`);
-      logger.debug('Respuesta obtenerUsuariosConRoles:', respuesta.data);
+      const respuesta = await apiClient.get<UsuarioBackend[]>(`${rutas.BASE}/with-roles`);
       return respuesta.data;
     } catch (error) {
       logger.error('Error en obtenerUsuariosConRoles:', error);
-      logger.debug('Usando fallback al endpoint base...');
-      const usuariosBase = await UsuarioService.obtenerTodos();
-      return usuariosBase.map(usuario => ({
+      const usuariosBase = await UsuarioService.obtenerTodos(rutas);
+      return usuariosBase.map((usuario) => ({
         ...usuario,
-        roles: []
+        roles: [],
       })) as unknown as UsuarioBackend[];
     }
   },
-  
-  crear: async (datosUsuario: {
-    usuario: string;
-    clave: string;
-    rol: string;
-    activo?: boolean;
-    idUbicacionAreaAsignada?: number | null;
-  }): Promise<Usuario> => {
-    const rolNormalizado = datosUsuario.rol.startsWith('ROLE_') 
-      ? datosUsuario.rol 
+
+  crear: async (
+    datosUsuario: {
+      usuario: string;
+      clave: string;
+      rol: string;
+      activo?: boolean;
+      idUbicacionAreaAsignada?: number | null;
+    },
+    rutas: RutasUsuariosApi = RUTAS_GERENTE_USUARIOS
+  ): Promise<Usuario> => {
+    const rolNormalizado = datosUsuario.rol.startsWith('ROLE_')
+      ? datosUsuario.rol
       : `ROLE_${datosUsuario.rol}`;
-    
-    try {
-      logger.debug('Datos que se enviaran al backend:', {
-        ...datosUsuario,
-        rol: rolNormalizado,
-        activo: datosUsuario.activo
-      });
-      
-      const respuesta = await apiClient.post<Usuario>(RUTAS_USUARIOS.CREAR, {
-        ...datosUsuario,
-        rol: rolNormalizado,
-        activo: datosUsuario.activo
-      });
 
-      if (!respuesta.data) {
-        throw new Error('No se recibio respuesta del servidor');
-      }
+    const respuesta = await apiClient.post<Usuario>(rutas.CREAR, {
+      ...datosUsuario,
+      rol: rolNormalizado,
+      activo: datosUsuario.activo,
+    });
 
-      logger.debug('Usuario creado exitosamente:', respuesta.data);
-      return respuesta.data;
-    } catch (error: any) {
-      if (error.response?.status === 401) {
-        throw error;
-      }
-      logger.error('Error al crear usuario:', error.response?.data ?? error.message);
-      throw error;
+    if (!respuesta.data) {
+      throw new Error('No se recibio respuesta del servidor');
     }
+    return respuesta.data;
   },
-  actualizar: async (id: number, datosUsuario: ActualizarUsuarioDTO): Promise<UsuarioBackend> => {
-    logger.debug('Actualizando usuario:', id, datosUsuario);
+
+  actualizar: async (
+    id: number,
+    datosUsuario: ActualizarUsuarioDTO,
+    rutas: RutasUsuariosApi = RUTAS_GERENTE_USUARIOS
+  ): Promise<UsuarioBackend> => {
     try {
-      const respuesta = await apiClient.put<UsuarioBackend>(RUTAS_USUARIOS.POR_ID(id), datosUsuario);
-      logger.debug('Respuesta actualizar:', respuesta.data);
+      const respuesta = await apiClient.put<UsuarioBackend>(rutas.POR_ID(id), datosUsuario);
       return respuesta.data;
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        const mensaje = error.response?.data || 'No se puede quitar el rol de administrador al ultimo usuario administrador del sistema';
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number; data?: string } };
+      if (err.response?.status === 409 || err.response?.status === 403) {
+        const mensaje =
+          typeof err.response?.data === 'string'
+            ? err.response.data
+            : 'No se puede modificar al usuario por restricciones del sistema';
         throw new Error(mensaje);
       }
       throw error;
     }
   },
-  
-  deshabilitar: async (id: number): Promise<void> => {
-    logger.debug('Deshabilitando usuario:', id);
+
+  deshabilitar: async (id: number, rutas: RutasUsuariosApi = RUTAS_GERENTE_USUARIOS): Promise<void> => {
     try {
-      await apiClient.put(RUTAS_USUARIOS.DESHABILITAR(id));
-      logger.debug('Usuario deshabilitado exitosamente');
-    } catch (error: any) {
-      if (error.response?.status === 409) {
-        const mensaje = error.response?.data || 'No se puede deshabilitar al ultimo usuario administrador del sistema';
+      await apiClient.put(rutas.DESHABILITAR(id));
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number; data?: string } };
+      if (err.response?.status === 409 || err.response?.status === 403) {
+        const mensaje =
+          typeof err.response?.data === 'string'
+            ? err.response.data
+            : 'No se puede deshabilitar al usuario por restricciones del sistema';
         throw new Error(mensaje);
       }
       throw error;
     }
   },
-  
-  habilitar: async (id: number): Promise<void> => {
-    logger.debug('Habilitando usuario:', id);
-    await apiClient.put(RUTAS_USUARIOS.HABILITAR(id));
-    logger.debug('Usuario habilitado exitosamente');
-  }
+
+  habilitar: async (id: number, rutas: RutasUsuariosApi = RUTAS_GERENTE_USUARIOS): Promise<void> => {
+    try {
+      await apiClient.put(rutas.HABILITAR(id));
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number; data?: string } };
+      if (err.response?.status === 403) {
+        const mensaje =
+          typeof err.response?.data === 'string'
+            ? err.response.data
+            : 'No se puede modificar a este usuario';
+        throw new Error(mensaje);
+      }
+      throw error;
+    }
+  },
 };

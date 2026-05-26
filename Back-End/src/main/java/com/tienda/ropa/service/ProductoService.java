@@ -21,8 +21,6 @@ import com.tienda.ropa.repository.InventarioRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.ProveedoresRepository;
 import com.tienda.ropa.repository.UsuarioRepository;
-import com.tienda.ropa.service.InventarioService;
-import com.tienda.ropa.service.ProductoVarianteService;
 
 @Service
 public class ProductoService {

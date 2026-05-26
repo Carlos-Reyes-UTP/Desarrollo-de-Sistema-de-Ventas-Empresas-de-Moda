@@ -3,7 +3,6 @@ package com.tienda.ropa.service;
 import com.tienda.ropa.dto.TrasladoInventarioDTO;
 import com.tienda.ropa.entity.MovimientoInventario;
 import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.entity.Role;
 import com.tienda.ropa.entity.TipoMovimientoInventario;
 import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Usuario;
@@ -16,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Map;
+
 @Service
 @RequiredArgsConstructor
 public class TrasladoInventarioService {
@@ -25,6 +26,7 @@ public class TrasladoInventarioService {
     private final UbicacionAreaRepository ubicacionAreaRepository;
     private final ProductoVarianteRepository productoVarianteRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final NotificationService notificationService;
 
     @Transactional
     public void mover(TrasladoInventarioDTO dto, Usuario usuario) {
@@ -51,6 +53,8 @@ public class TrasladoInventarioService {
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Ubicación-área destino no encontrada: " + dto.idUbicacionAreaDestino()));
 
+        validarUbicacionesActivas(origen, destino);
+
         if (usuario != null && inventarioContextService.esAlmaceneroDeLinea(usuario)) {
             validarTrasladoAlmacenero(usuario, origen, destino, variante.getIdProductoVariante());
         }
@@ -73,6 +77,32 @@ public class TrasladoInventarioService {
         movimiento.setCantidad(dto.cantidad());
         movimiento.setTipoMovimiento(TipoMovimientoInventario.TRASLADO);
         movimientoInventarioRepository.save(movimiento);
+
+        notificationService.sendNotificationObject(Map.of(
+                "type", "INVENTARIO_TRASLADO",
+                "idVariante", dto.idVariante(),
+                "idUbicacionAreaOrigen", dto.idUbicacionAreaOrigen(),
+                "idUbicacionAreaDestino", dto.idUbicacionAreaDestino(),
+                "cantidad", dto.cantidad()));
+    }
+
+    private static void validarUbicacionesActivas(UbicacionArea origen, UbicacionArea destino) {
+        if (!origen.isActivo()
+                || origen.getUbicacion() == null
+                || !origen.getUbicacion().isActivo()
+                || origen.getArea() == null
+                || !origen.getArea().isActivo()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "La ubicación de origen no está activa.");
+        }
+        if (!destino.isActivo()
+                || destino.getUbicacion() == null
+                || !destino.getUbicacion().isActivo()
+                || destino.getArea() == null
+                || !destino.getArea().isActivo()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "La ubicación de destino no está activa.");
+        }
     }
 
     private void validarTrasladoAlmacenero(

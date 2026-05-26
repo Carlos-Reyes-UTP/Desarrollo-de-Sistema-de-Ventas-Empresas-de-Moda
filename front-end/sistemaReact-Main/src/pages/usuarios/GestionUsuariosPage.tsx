@@ -1,17 +1,41 @@
-import { useState, useEffect, useRef } from 'react';
-import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon } from '@/shared/ui';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
-import { UsuarioService } from '@/services/UsuarioService';
+import { UsuarioService, resolveRutasUsuarios } from '@/services/UsuarioService';
 import { AccesoAreaAlmacenService } from '@/services/AccesoAreaAlmacenService';
 import type { UbicacionArea } from '@/types/Almacen';
 import type { RolNombre } from '@/types/enums';
-import type { ActualizarUsuarioDTO, Usuario, UsuarioBackend } from '@/types/Usuario';
+import type { ActualizarUsuarioDTO, Usuario } from '@/types/Usuario';
 import { getErrorMessage, getResponseMessage } from '@/utils/errorUtils';
+import { normalizarUsuario } from '@/utils/normalizarUsuario';
 import { SECTORES_ALMACEN_TEXTO } from '@/shared/constants/sectoresAlmacen';
 
+const TODOS_LOS_ROLES: RolNombre[] = [
+  'ROLE_ADMIN',
+  'ROLE_GERENTE',
+  'ROLE_CAJERO',
+  'ROLE_ALMACENERO',
+  'ROLE_VENDEDOR',
+  'ROLE_SUPERVISOR_ALMACEN',
+];
+
 const GestionUsuariosPage = () => {
-  // Contexto de autenticación
-  const { usuario: usuarioActual, cerrarSesion } = useAuth();
+  const { usuario: usuarioActual, cerrarSesion, tieneRol } = useAuth();
+  const esAdmin = tieneRol('ROLE_ADMIN');
+  const esGerente = tieneRol('ROLE_GERENTE');
+  const rutasApi = useMemo(() => resolveRutasUsuarios(tieneRol), [tieneRol]);
+  const rolesAsignables = useMemo(() => {
+    let roles = esAdmin ? TODOS_LOS_ROLES : TODOS_LOS_ROLES.filter((r) => r !== 'ROLE_ADMIN');
+    if (esGerente) {
+      roles = roles.filter((r) => r !== 'ROLE_SUPERVISOR_ALMACEN');
+    }
+    return roles;
+  }, [esAdmin, esGerente]);
+
+  const esUsuarioAdministrador = useCallback(
+    (u: Usuario) => u.roles?.some((rol) => rol.nombreRol === 'ROLE_ADMIN') ?? false,
+    []
+  );
   
   // Estados para la lista de usuarios
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -76,6 +100,8 @@ const GestionUsuariosPage = () => {
   
   // Ref para el campo de nombre de usuario
   const usuarioInputRef = useRef<HTMLInputElement>(null);
+
+  useModalBodyScrollLock(mostrarModal || mostrarModalPassword);
   
   useEffect(() => {
     cargarUsuarios();
@@ -107,6 +133,19 @@ const GestionUsuariosPage = () => {
     return totalAdministradoresActivos === 1;
   };
 
+  const esUltimoGerenteActivo = (usuario: Usuario): boolean => {
+    const esGerenteActivo =
+      usuario.activo && usuario.roles?.some((rol) => rol.nombreRol === 'ROLE_GERENTE');
+
+    if (!esGerenteActivo) return false;
+
+    const totalGerentesActivos = usuarios.filter(
+      (u) => u.activo && u.roles?.some((rol) => rol.nombreRol === 'ROLE_GERENTE')
+    ).length;
+
+    return totalGerentesActivos === 1;
+  };
+
   const esUsuarioActual = (usuario: Usuario): boolean => {
     return usuarioActual?.usuario === usuario.usuario;
   };
@@ -122,45 +161,6 @@ const GestionUsuariosPage = () => {
     if (cambiaNombreUsuario || cambianRoles) {
       cerrarSesion();
     }
-  };
-
-  const normalizarUsuario = (usuarioBackend: UsuarioBackend): Usuario => {
-    const usuario: Usuario = {
-      id: usuarioBackend.id,
-      usuario: usuarioBackend.usuario,
-      password: usuarioBackend.password,
-      activo: usuarioBackend.activo,
-      roles: []
-    };
-
-    if (usuarioBackend.roles) {
-      let rawRoles: any[] = [];
-      if (usuarioBackend.roles instanceof Set) {
-        rawRoles = Array.from(usuarioBackend.roles);
-      } else if (Array.isArray(usuarioBackend.roles)) {
-        rawRoles = usuarioBackend.roles;
-      } else if (typeof usuarioBackend.roles === 'object' && usuarioBackend.roles !== null) {
-        if (typeof (usuarioBackend.roles as any).forEach === 'function') {
-          (usuarioBackend.roles as any).forEach((val: any) => rawRoles.push(val));
-        } else {
-          rawRoles = Object.values(usuarioBackend.roles);
-        }
-      }
-
-      usuario.roles = rawRoles.map(rol => {
-        let nombre: string = '';
-        if (typeof rol === 'string') {
-          nombre = rol;
-        } else if (rol && typeof rol === 'object') {
-          nombre = (rol as any).nombreRol || (rol as any).authority || '';
-        }
-        const nombreRol = nombre.startsWith('ROLE_') ? nombre as RolNombre : `ROLE_${nombre}` as RolNombre;
-        return { nombreRol };
-      }).filter(r => r.nombreRol && (r.nombreRol as string) !== 'ROLE_');
-    }
-    usuario.idUbicacionAreaAsignada = usuarioBackend.idUbicacionAreaAsignada ?? null;
-    usuario.etiquetaAreaAsignada = usuarioBackend.etiquetaAreaAsignada ?? null;
-    return usuario;
   };
 
   const cargarAreasAlmacen = async () => {
@@ -213,7 +213,7 @@ const GestionUsuariosPage = () => {
     setCargando(true);
     setError(null);
     try {
-      const data = await UsuarioService.obtenerUsuariosConRoles();
+      const data = await UsuarioService.obtenerUsuariosConRoles(rutasApi);
       const usuariosNormalizados = data.map(normalizarUsuario);
       setUsuarios(usuariosNormalizados);
       setUsuariosFiltrados(usuariosNormalizados);
@@ -384,7 +384,7 @@ const GestionUsuariosPage = () => {
         const datosOriginales = usuarioEditando!;
         const esCambioPasswordPropio = cambiarPassword && esUsuarioActual(datosOriginales);
         
-        await UsuarioService.actualizar(usuarioEditando.id!, usuarioParaActualizar);
+        await UsuarioService.actualizar(usuarioEditando.id!, usuarioParaActualizar, rutasApi);
         mostrarMensaje('Usuario actualizado exitosamente', 'success');
         
         const usuarioActualizado: Usuario = {
@@ -402,15 +402,18 @@ const GestionUsuariosPage = () => {
         }
       } else {
         const rolSeleccionado = formUsuario.roles[0];
-        await UsuarioService.crear({
-          usuario: formUsuario.usuario,
-          clave: formUsuario.password,
-          rol: rolSeleccionado,
-          activo: formUsuario.activo,
-          idUbicacionAreaAsignada: esAlmacenero
-            ? Number(formUsuario.idUbicacionAreaAsignada)
-            : undefined,
-        });
+        await UsuarioService.crear(
+          {
+            usuario: formUsuario.usuario,
+            clave: formUsuario.password,
+            rol: rolSeleccionado,
+            activo: formUsuario.activo,
+            idUbicacionAreaAsignada: esAlmacenero
+              ? Number(formUsuario.idUbicacionAreaAsignada)
+              : undefined,
+          },
+          rutasApi
+        );
         mostrarMensaje('Usuario creado exitosamente', 'success');
       }
       cerrarModalConAnimacion();
@@ -429,10 +432,10 @@ const GestionUsuariosPage = () => {
         return;
       }
       if (activo) {
-        await UsuarioService.deshabilitar(id);
+        await UsuarioService.deshabilitar(id, rutasApi);
         mostrarMensaje('Usuario deshabilitado correctamente', 'success');
       } else {
-        await UsuarioService.habilitar(id);
+        await UsuarioService.habilitar(id, rutasApi);
         mostrarMensaje('Usuario habilitado correctamente', 'success');
       }
       await cargarUsuarios();
@@ -457,8 +460,9 @@ const GestionUsuariosPage = () => {
     setVerificandoUsuario(true);
     try {
       const estaDisponible = await UsuarioService.verificarDisponibilidadUsuario(
-        nombreUsuario, 
-        modoEdicion && usuarioEditando ? usuarioEditando.id : undefined
+        nombreUsuario,
+        modoEdicion && usuarioEditando ? usuarioEditando.id : undefined,
+        rutasApi
       );
       setUsuarioDisponible(estaDisponible);
     } catch {
@@ -558,12 +562,21 @@ const GestionUsuariosPage = () => {
                 onChange={(e) => setFiltroRol(e.target.value as RolNombre | 'TODOS')}
               >
                 <option value="TODOS">Todos los roles</option>
-                <option value="ROLE_ADMIN">Administrador</option>
-                <option value="ROLE_CAJERO">Cajero</option>
-                <option value="ROLE_ALMACENERO">Almacenero</option>
-                <option value="ROLE_VENDEDOR">Vendedor</option>
-                <option value="ROLE_GERENTE">Gerente</option>
-                <option value="ROLE_SUPERVISOR_ALMACEN">Supervisor almacén</option>
+                {TODOS_LOS_ROLES.map((rol) => (
+                  <option key={rol} value={rol}>
+                    {rol === 'ROLE_ADMIN'
+                      ? 'Administrador'
+                      : rol === 'ROLE_GERENTE'
+                        ? 'Gerente'
+                        : rol === 'ROLE_CAJERO'
+                          ? 'Cajero'
+                          : rol === 'ROLE_ALMACENERO'
+                            ? 'Almacenero'
+                            : rol === 'ROLE_VENDEDOR'
+                              ? 'Vendedor'
+                              : 'Supervisor almacén'}
+                  </option>
+                ))}
               </select>
                <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -635,7 +648,7 @@ const GestionUsuariosPage = () => {
                   <div className="flex items-center gap-4 text-left">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-md transition-colors ${
                       usuario.activo 
-                        ? 'bg-black text-white dark:bg-gray-800 dark:text-gray-200' 
+                        ? 'bg-[var(--app-accent)] text-[var(--app-accent-fg)]' 
                         : 'bg-gray-100 text-gray-400 dark:bg-gray-900 dark:text-gray-600'
                     }`}>
                       <MaterialIcon icon="person" className="w-5 h-5" />
@@ -648,7 +661,7 @@ const GestionUsuariosPage = () => {
                       }`}>
                         {usuario.usuario}
                         {esUsuarioActual(usuario) && (
-                          <span className="ml-2 text-[9px] bg-black text-white dark:bg-white dark:text-black px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wide">
+                          <span className="ml-2 text-[9px] bg-[var(--app-accent)] text-[var(--app-accent-fg)] px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wide">
                             Tú
                           </span>
                         )}
@@ -679,18 +692,24 @@ const GestionUsuariosPage = () => {
                 <td className="px-8 py-6 text-right">
                   <div className="flex justify-end gap-2 text-gray-400 dark:text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity">
                     <button 
-                      onClick={() => abrirModalEdicion(usuario)} 
-                      className="p-2.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-xl transition-all border border-transparent shadow-sm bg-transparent dark:bg-transparent"
+                      onClick={() => abrirModalEdicion(usuario)}
+                      disabled={esGerente && !esAdmin && esUsuarioAdministrador(usuario)}
+                      title={esGerente && esUsuarioAdministrador(usuario) ? 'No puede editar administradores' : undefined}
+                      className="p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100/70 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-[var(--app-accent)] hover:text-[var(--app-accent-fg)] hover:border-transparent rounded-xl transition-all shadow-sm hover-scale-google active:scale-[0.95] disabled:opacity-20"
                     >
                       <MaterialIcon icon="edit" className="w-4 h-4" />
                     </button>
                     <button 
                       onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)} 
-                      disabled={(esUltimoAdministradorActivo(usuario) && usuario.activo) || (esUsuarioActual(usuario) && usuario.activo)} 
-                      className={`p-2.5 rounded-xl transition-all border border-transparent shadow-sm disabled:opacity-20 ${
+                      disabled={
+                        ((esUltimoAdministradorActivo(usuario) || esUltimoGerenteActivo(usuario)) && usuario.activo) ||
+                        (esUsuarioActual(usuario) && usuario.activo) ||
+                        (esGerente && !esAdmin && esUsuarioAdministrador(usuario))
+                      } 
+                      className={`p-2.5 rounded-xl transition-all border shadow-sm disabled:opacity-20 hover-scale-google active:scale-[0.95] ${
                         usuario.activo 
-                          ? 'hover:bg-red-500 dark:hover:bg-red-650 hover:text-white text-gray-400 dark:text-gray-500' 
-                          : 'hover:bg-[#10b981] dark:hover:bg-emerald-650 hover:text-white text-gray-400 dark:text-gray-500'
+                          ? 'bg-gray-50 dark:bg-gray-900 border-gray-100/70 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-red-500 dark:hover:bg-red-650 hover:text-white hover:border-transparent' 
+                          : 'bg-gray-50 dark:bg-gray-900 border-gray-100/70 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-[#10b981] dark:hover:bg-emerald-650 hover:text-white hover:border-transparent'
                       }`}
                     >
                       {usuario.activo ? (
@@ -715,9 +734,9 @@ const GestionUsuariosPage = () => {
             <button
               key={n}
               onClick={() => setPaginaActual(n)}
-              className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${
+              className={`w-10 h-10 rounded-xl text-xs font-bold transition-all hover-scale-google active:scale-[0.9] ${
                 paginaActual === n 
-                  ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl' 
+                  ? 'bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-xl' 
                   : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/60'
               }`}
             >
@@ -729,10 +748,11 @@ const GestionUsuariosPage = () => {
 
       {/* Modal: Creation/Edit */}
       {mostrarModal && (
-        <div className={`fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+        <ModalPortal>
+        <div className={`app-modal-overlay fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
           <div className={`bg-white dark:bg-gray-950 rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden border border-transparent dark:border-gray-800/80 transition-colors ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="p-10 text-left">
-              <div className="mb-6 w-12 h-1 bg-black dark:bg-white rounded-full"></div>
+              <div className="mb-6 w-12 h-1 bg-[var(--app-accent)] rounded-full"></div>
               <h2 className="text-2xl font-bold tracking-tight text-black dark:text-white mb-2 uppercase transition-colors">
                 {modoEdicion ? 'Actualización de Perfil' : 'Registro de Operador'}
               </h2>
@@ -871,7 +891,7 @@ const GestionUsuariosPage = () => {
                     <button type="button" onClick={() => {
                         if (esUsuarioActual(usuarioEditando as Usuario)) setMostrarModalPassword(true);
                         else setCambiarPassword(true);
-                    }} className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest flex items-center gap-2 hover:opacity-50 transition-opacity">
+                    }} className="text-[10px] font-bold text-gray-700 dark:text-gray-300 hover:text-[var(--app-accent)] uppercase tracking-widest flex items-center gap-2 transition-colors">
                       <MaterialIcon icon="refresh" className="w-4 h-4" /> Resetear Credenciales de Seguridad
                     </button>
                 )}
@@ -879,12 +899,25 @@ const GestionUsuariosPage = () => {
                 <div className="space-y-4">
                   <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Niveles de Autorización</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    {['ROLE_ADMIN', 'ROLE_CAJERO', 'ROLE_ALMACENERO', 'ROLE_VENDEDOR', 'ROLE_GERENTE', 'ROLE_SUPERVISOR_ALMACEN'].map(rol => (
+                    {rolesAsignables.map(rol => (
                       <button
                         key={rol}
                         type="button"
                         onClick={() => {
-                            if (modoEdicion && esUltimoAdministradorActivo(usuarioEditando as Usuario) && rol !== 'ROLE_ADMIN') return;
+                            if (
+                              modoEdicion &&
+                              esUltimoAdministradorActivo(usuarioEditando as Usuario) &&
+                              rol !== 'ROLE_ADMIN'
+                            ) {
+                              return;
+                            }
+                            if (
+                              modoEdicion &&
+                              esUltimoGerenteActivo(usuarioEditando as Usuario) &&
+                              rol !== 'ROLE_GERENTE'
+                            ) {
+                              return;
+                            }
                             setFormUsuario({
                               ...formUsuario,
                               roles: [rol as RolNombre],
@@ -894,13 +927,15 @@ const GestionUsuariosPage = () => {
                                   : '',
                             });
                         }}
-                        className={`py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                        className={`py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all hover-scale-google ${
                           formUsuario.roles.includes(rol as RolNombre) 
-                            ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl scale-105' 
+                            ? 'bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-xl scale-105' 
                             : 'bg-gray-100 text-gray-400 dark:bg-gray-900 dark:text-gray-450 hover:bg-gray-200 dark:hover:bg-gray-800'
                         }`}
                       >
-                        {rol.replace('ROLE_', '')}
+                        {rol === 'ROLE_SUPERVISOR_ALMACEN'
+                          ? 'Supervisor almacén'
+                          : rol.replace('ROLE_', '')}
                       </button>
                     ))}
                   </div>
@@ -937,7 +972,7 @@ const GestionUsuariosPage = () => {
                   </div>
                 )}
 
-                <div className="flex gap-4 pt-6 border-t border-gray-100 dark:border-gray-800/80 transition-colors">
+                <div className="flex gap-4 pt-6 transition-colors">
                   <button 
                     type="button" 
                     onClick={cerrarModalConAnimacion} 
@@ -947,7 +982,7 @@ const GestionUsuariosPage = () => {
                   </button>
                   <button 
                     type="submit" 
-                    className="flex-1 py-4 bg-black text-white dark:bg-white dark:text-black rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all active:scale-[0.98]"
+                    className="flex-1 py-4 bg-[var(--app-accent)] text-[var(--app-accent-fg)] rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl hover:opacity-90 transition-all hover-scale-google active:scale-[0.98]"
                   >
                     Sincronizar
                   </button>
@@ -956,20 +991,22 @@ const GestionUsuariosPage = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Modal: Password Verification */}
       {mostrarModalPassword && (
-        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-fadeIn">
-          <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] border border-gray-100 dark:border-gray-800/80 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn transition-colors">
+        <ModalPortal>
+        <div className="app-modal-overlay fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn" style={{ zIndex: 'calc(var(--app-z-modal) + 10)' }}>
+          <div className="bg-white dark:bg-gray-955 rounded-[2.5rem] border border-transparent dark:border-gray-800/40 shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn transition-colors">
             {/* Header */}
-            <div className="bg-black dark:bg-gray-900 px-8 py-6 flex items-center gap-4 border-b border-transparent dark:border-gray-800/50">
-              <div className="w-10 h-10 bg-white/10 dark:bg-white/5 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <MaterialIcon icon="lock" className="w-5 h-5 text-white" />
+            <div className="bg-[var(--app-surface)] px-8 pt-8 pb-2 flex items-center gap-4 transition-colors">
+              <div className="w-10 h-10 bg-[var(--app-bg-muted)] text-[var(--app-accent)] rounded-2xl flex items-center justify-center flex-shrink-0">
+                <MaterialIcon icon="lock" className="w-5 h-5" />
               </div>
               <div>
-                <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Verificar Identidad</h3>
-                <p className="text-gray-400 dark:text-gray-500 text-[10px] font-medium uppercase tracking-widest mt-0.5 transition-colors">Confirme su contraseña para continuar</p>
+                <h3 className="text-base font-bold text-[var(--app-text)] uppercase tracking-tight leading-tight">Verificar Identidad</h3>
+                <p className="text-[var(--app-text-muted)] text-[10px] font-bold uppercase tracking-widest mt-1 transition-colors">Confirme su contraseña para continuar</p>
               </div>
             </div>
             {/* Body */}
@@ -1007,20 +1044,21 @@ const GestionUsuariosPage = () => {
               <button
                 type="button"
                 onClick={() => setMostrarModalPassword(false)}
-                className="flex-1 py-4 bg-[#f8f8f8] dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-850 transition-all"
+                className="flex-1 py-4 bg-[#f8f8f8] dark:bg-gray-900 border border-transparent rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-855 transition-all hover-scale-google"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={verificarContrasenaActual}
-                className="flex-1 py-4 bg-black text-white dark:bg-white dark:text-black rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:shadow-none active:scale-[0.97]"
+                className="flex-1 py-4 bg-[var(--app-accent)] text-[var(--app-accent-fg)] border border-transparent rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.1)] active:scale-[0.97] hover-scale-google"
               >
                 Verificar
               </button>
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
     </div>
   );

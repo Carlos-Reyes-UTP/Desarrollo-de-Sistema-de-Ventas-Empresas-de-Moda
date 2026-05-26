@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -32,4 +33,15 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     @Query("SELECT COUNT(DISTINCT u) FROM Usuario u JOIN u.roles r "
             + "WHERE u.activo = true AND r.nombreRol = com.tienda.ropa.entity.Role.ADMIN")
     long countActiveAdmins();
+
+    @Query("SELECT COUNT(DISTINCT u) FROM Usuario u JOIN u.roles r "
+            + "WHERE u.activo = true AND r.nombreRol = com.tienda.ropa.entity.Role.GERENTE")
+    long countActiveGerentes();
+
+    @Query("SELECT DISTINCT u FROM Usuario u "
+            + "LEFT JOIN FETCH u.roles "
+            + "LEFT JOIN FETCH u.areaAsignado aa "
+            + "LEFT JOIN FETCH aa.ubicacion "
+            + "LEFT JOIN FETCH aa.area")
+    List<Usuario> findAllWithRolesAndArea();
 }

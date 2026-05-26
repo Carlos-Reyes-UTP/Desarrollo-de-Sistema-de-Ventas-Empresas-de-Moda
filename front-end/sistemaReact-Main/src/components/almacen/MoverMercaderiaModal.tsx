@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { MaterialIcon } from "@/shared/ui";
+import { MaterialIcon, ModalPortal, useModalBodyScrollLock } from "@/shared/ui";
 import axios from "axios";
 import { AlmacenService } from "@/services/AlmacenService";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
@@ -393,19 +393,22 @@ const MoverMercaderiaModal = ({
     ? formatoUbicacion(destinoActivo)
     : "Seleccionar Destino";
 
+  useModalBodyScrollLock(abierto);
+
   if (!abierto) {
     return null;
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn">
+    <ModalPortal>
+    <div className="app-modal-overlay fixed inset-0 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn">
       {/* Backdrop de cierre */}
       <div className="absolute inset-0 -z-10" onClick={onCerrar} />
 
       <div
-        className="app-modal-panel w-full border shadow-2xl transition-all duration-300 ease-out rounded-t-3xl sm:rounded-3xl max-h-[94dvh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-scaleIn max-w-lg sm:mx-auto"
+        className="app-modal-panel w-full border border-transparent dark:border-gray-800/40 shadow-2xl transition-all duration-300 ease-out rounded-t-3xl sm:rounded-3xl max-h-[94dvh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-scaleIn max-w-lg sm:mx-auto"
       >
-        <header className="flex items-start justify-between gap-3 px-4 py-4 sm:px-8 sm:py-6 border-b border-[var(--app-border)] shrink-0">
+        <header className="flex items-start justify-between gap-3 px-4 pt-6 pb-2 sm:px-8 sm:pt-8 sm:pb-3 shrink-0 bg-[var(--app-surface)]">
           <div className="min-w-0 pr-2">
             <h2 className="text-xl sm:text-2xl font-bold app-heading">Transferir Stock</h2>
             <p className="text-xs sm:text-sm app-text-muted mt-1 font-medium">
@@ -479,7 +482,7 @@ const MoverMercaderiaModal = ({
             </div>
           </div>
 
-          <div className="border-t border-[var(--app-border)] pt-6">
+          <div className="pt-4">
             <label
               htmlFor="busqueda-traslado-producto"
               className="block text-xs font-bold app-heading mb-2"
@@ -611,7 +614,7 @@ const MoverMercaderiaModal = ({
           )}
         </div>
 
-        <footer className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:py-5 border-t border-[var(--app-border)] flex flex-col-reverse sm:flex-row justify-stretch sm:justify-end items-stretch sm:items-center gap-2 sm:gap-4 bg-[var(--app-bg-muted)] shrink-0">
+        <footer className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-8 flex flex-col-reverse sm:flex-row justify-stretch sm:justify-end items-stretch sm:items-center gap-2 sm:gap-4 bg-[var(--app-surface)] shrink-0">
           <button
             type="button"
             onClick={onCerrar}
@@ -633,6 +636,7 @@ const MoverMercaderiaModal = ({
         </footer>
       </div>
     </div>
+    </ModalPortal>
   );
 };
 

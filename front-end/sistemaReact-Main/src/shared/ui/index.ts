@@ -10,11 +10,15 @@ export { default as ConfirmModal } from './ConfirmModal';
 export { default as AlertModal } from './AlertModal';
 export { default as AppModal } from './AppModal';
 export type { AppModalProps, AppModalMaxWidth } from './AppModal';
+export { default as ModalPortal } from './ModalPortal';
+export { useModalBodyScrollLock } from './useModalBodyScrollLock';
 export { default as ComboBox } from './ComboBox';
+export { default as AppSelect } from './AppSelect';
 export { Card } from './Card';
 export type { ConfirmModalProps } from './ConfirmModal';
 export type { AlertModalProps } from './AlertModal';
 export type { ComboBoxOption, ComboBoxProps } from './ComboBox';
+export type { AppSelectOption, AppSelectProps } from './AppSelect';
 export {
   Skeleton,
   SkeletonText,

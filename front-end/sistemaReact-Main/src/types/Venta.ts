@@ -17,7 +17,8 @@ export interface Venta {
   idVenta?: number;
   usuario?: Usuario; // Opcional porque puede estar undefined en algunos casos
   cliente?: Cliente; // Opcional porque puede estar undefined en algunos casos
-  metodoPago: MetodoPago;
+  /** En listados el backend devuelve string (EFECTIVO, TARJETA…); en otros flujos puede ser objeto. */
+  metodoPago: MetodoPago | string;
   tipoComprobante: string;
   fechaVenta: string; // Formato ISO completo con fecha y hora: YYYY-MM-DDTHH:mm:ss.sssZ
   totalVentas: number;

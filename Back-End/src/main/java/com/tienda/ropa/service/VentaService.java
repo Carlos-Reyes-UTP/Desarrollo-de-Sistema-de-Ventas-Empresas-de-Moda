@@ -11,7 +11,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.tienda.ropa.dto.OrigenVentaResult;
+import com.tienda.ropa.dto.VentaListadoDTO;
 import com.tienda.ropa.entity.DetalleVenta;
+import com.tienda.ropa.mapper.VentaListadoMapper;
 import com.tienda.ropa.entity.OrigenVenta;
 import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Venta;
@@ -36,9 +38,13 @@ public class VentaService {
     @Autowired
     private NotificationService notificationService;
 
+    @Autowired
+    private CajaService cajaService;
+
     @Transactional(readOnly = true)
-    public List<Venta> obtenerVentas() {
-        return ventaRepository.findAllWithDetalles();
+    public List<VentaListadoDTO> obtenerVentas() {
+        List<Venta> ventas = ventaRepository.findAllWithDetalles();
+        return VentaListadoMapper.toListadoDTOs(ventas);
     }
 
     public Optional<Venta> obtenerVentaPorId(Long id) {
@@ -88,6 +94,8 @@ public class VentaService {
                 "idVenta", ventaGuardada.getIdVenta()
             )
         );
+
+        cajaService.registrarVentaEnCaja(ventaGuardada.getUsuario().getId(), ventaGuardada);
 
         return ventaGuardada;
     }

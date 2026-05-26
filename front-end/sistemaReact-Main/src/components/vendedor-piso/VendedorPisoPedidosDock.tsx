@@ -20,9 +20,6 @@ export interface VendedorAlmacenActualizacion {
 
 interface VendedorPisoPedidosDockProps {
   pedidos: VendedorSolicitudResumen[];
-  onRefresh: () => void | Promise<void>;
-  /** Solo true cuando el usuario pulsa «Actualizar» (no en el polling en segundo plano). */
-  refrescando?: boolean;
   onNuevaRespuestaAlmacen?: (items: VendedorAlmacenActualizacion[]) => void;
   onCancelarPedido?: (idSolicitud: number) => void | Promise<void>;
   cancelandoSolicitudId?: number | null;
@@ -59,8 +56,6 @@ function formatearHora(iso: string): string {
 
 export const VendedorPisoPedidosDock = ({
   pedidos,
-  onRefresh,
-  refrescando = false,
   onNuevaRespuestaAlmacen,
   onCancelarPedido,
   cancelandoSolicitudId = null,
@@ -194,10 +189,6 @@ export const VendedorPisoPedidosDock = ({
     }
   }, [abierto]);
 
-  const handleRefrescar = useCallback(() => {
-    void onRefresh();
-  }, [onRefresh]);
-
   const panelContent = (
     <div
       ref={panelRef}
@@ -219,21 +210,6 @@ export const VendedorPisoPedidosDock = ({
           )}
         </div>
         <div className="flex shrink-0 items-center gap-1">
-          <button
-            type="button"
-            onClick={handleRefrescar}
-            disabled={refrescando}
-            className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-bold text-[var(--app-text-muted)] transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
-            aria-label="Actualizar lista de pedidos"
-          >
-            {refrescando ? (
-              <MaterialIcon icon="sync" className="h-3.5 w-3.5 animate-spin" aria-hidden />
-            ) : (
-              <MaterialIcon icon="refresh" className="h-3.5 w-3.5" aria-hidden />
-            )}
-            <span className="hidden sm:inline">Actualizar</span>
-          </button>
-          
           {/* BOTÓN CONFIGURACIÓN SONIDO */}
           <button
             type="button"

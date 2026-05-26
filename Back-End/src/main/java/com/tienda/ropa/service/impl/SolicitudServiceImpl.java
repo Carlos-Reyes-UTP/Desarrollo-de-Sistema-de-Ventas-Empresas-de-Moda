@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.tienda.ropa.dto.AlmacenAtenderLoteResultDTO;
+import com.tienda.ropa.dto.SolicitudAccionResponseDTO;
 import com.tienda.ropa.dto.AlmacenSolicitudCardDTO;
 import com.tienda.ropa.dto.AlmacenSolicitudLineaDTO;
 import com.tienda.ropa.dto.CrearSolicitudDTO;
@@ -241,7 +242,7 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     @Transactional
-    public Solicitud atenderSolicitud(Long idSolicitud, Usuario usuario) {
+    public SolicitudAccionResponseDTO atenderSolicitud(Long idSolicitud, Usuario usuario) {
         Solicitud s = solicitudRepository.findByIdWithUbicaciones(idSolicitud)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
         if (s.getEstado() != EstadoSolicitud.PENDIENTE) {
@@ -268,7 +269,8 @@ public class SolicitudServiceImpl implements SolicitudService {
                 int stockOrigen = inventarioService.stockEnUbicacionArea(
                         v.getIdProductoVariante(), origen.getIdUbicacionArea());
                 if (stockOrigen < cant) {
-                    return rechazarSolicitud(idSolicitud, MotivoRechazoSolicitud.SIN_STOCK_FISICO, usuario);
+                    return rechazarSolicitud(
+                            idSolicitud, MotivoRechazoSolicitud.SIN_STOCK_FISICO, usuario);
                 }
             }
             for (DetalleSolicitud d : detalles) {
@@ -292,7 +294,7 @@ public class SolicitudServiceImpl implements SolicitudService {
         notificationService.sendNotificationObject(java.util.Map.of(
                 "type", "SOLICITUD_ATENDIDA",
                 "idSolicitud", resultado.getIdSolicitud()));
-        return resultado;
+        return SolicitudAccionResponseDTO.from(resultado);
     }
 
     @Override
@@ -305,8 +307,8 @@ public class SolicitudServiceImpl implements SolicitudService {
         List<Long> atendidos = new ArrayList<>();
         List<Long> rechazados = new ArrayList<>();
         for (Long id : unicos) {
-            Solicitud resultado = atenderSolicitud(id, usuario);
-            if (resultado.getEstado() == EstadoSolicitud.ATENDIDO) {
+            SolicitudAccionResponseDTO resultado = atenderSolicitud(id, usuario);
+            if ("ATENDIDO".equals(resultado.estado())) {
                 atendidos.add(id);
             } else {
                 rechazados.add(id);
@@ -317,7 +319,7 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     @Transactional
-    public Solicitud rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, Usuario usuario) {
+    public SolicitudAccionResponseDTO rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, Usuario usuario) {
         Solicitud s = solicitudRepository.findByIdWithUbicaciones(idSolicitud)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
         if (s.getEstado() != EstadoSolicitud.PENDIENTE) {
@@ -331,7 +333,7 @@ public class SolicitudServiceImpl implements SolicitudService {
         notificationService.sendNotificationObject(java.util.Map.of(
                 "type", "SOLICITUD_RECHAZADA",
                 "idSolicitud", s.getIdSolicitud()));
-        return s;
+        return SolicitudAccionResponseDTO.from(s);
     }
 
     @Override

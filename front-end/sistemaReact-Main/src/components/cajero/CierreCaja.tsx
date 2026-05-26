@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
-import { VentaService } from '../../services/VentaService';
-import { CajaService, type CierreCajaRequest } from '../../services/CajaService';
-import { obtenerDatosApertura, limpiarDatosApertura, guardarDatosApertura, type DatosAperturaCaja } from '../../utils/cajaUtils';
+import { CajaService, type CajaDTO, type CierreCajaRequest } from '../../services/CajaService';
+import {
+  obtenerDatosApertura,
+  limpiarDatosApertura,
+  persistirAperturaDesdeCajaDTO,
+  datosAperturaDesdeCajaDTO,
+} from '../../utils/cajaUtils';
+import { logger } from '../../utils/logger';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
 import { PageHeader, MaterialIcon } from '@/shared/ui';
 import axios from 'axios';
@@ -47,6 +52,8 @@ const CierreCaja = () => {
   const [yapeContado, setYapeContado] = useState<string>('');
   const [observaciones, setObservaciones] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
+  const [cargandoInicial, setCargandoInicial] = useState<boolean>(true);
+  const [sinCajaAbierta, setSinCajaAbierta] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [cierreExitoso, setCierreExitoso] = useState<boolean>(false);
   const [datosCierre, setDatosCierre] = useState<DatosCierreCaja | null>(null);
@@ -62,120 +69,54 @@ const CierreCaja = () => {
     return `${dia}/${mes}/${año} — ${horas}:${minutos}:${segundos}`;
   };
 
+  const aplicarDatosDesdeCaja = (caja: CajaDTO) => {
+    const datos = datosAperturaDesdeCajaDTO(caja, usuario?.usuario);
+    persistirAperturaDesdeCajaDTO(caja, usuario?.usuario);
+    setFechaApertura(datos.fechaHoraApertura ?? new Date(caja.fechaApertura).toLocaleString('es-ES'));
+    setMontoInicial(String(caja.montoApertura ?? 0));
+    setTotalVentas(caja.totalVentas ?? 0);
+    setEfectivoVentas(caja.montoVentasEfectivo ?? 0);
+    setTarjetaVentas(caja.montoVentasTarjeta ?? 0);
+    setYapeVentas(caja.montoVentasYape ?? 0);
+    setSinCajaAbierta(false);
+  };
+
   useEffect(() => {
     const cargarDatosIniciales = async () => {
-      let datosApertura: DatosAperturaCaja | null = null;
+      setCargandoInicial(true);
+      setError(null);
+      setFechaCierre(obtenerFechaHoraActual());
+
       try {
-        datosApertura = obtenerDatosApertura();
-
-        if (datosApertura?.idCaja) {
-          const caja = await CajaService.obtenerCajaPorId(datosApertura.idCaja);
-          if (caja && caja.estado === 'ABIERTA') {
-            setFechaApertura(new Date(caja.fechaApertura).toLocaleString('es-ES'));
-            setMontoInicial(caja.montoApertura.toString());
-            setTotalVentas(caja.totalVentas || 0);
-            setEfectivoVentas(caja.montoVentasEfectivo || 0);
-            setTarjetaVentas(caja.montoVentasTarjeta || 0);
-            setYapeVentas(caja.montoVentasYape || 0);
-            return;
-          }
-        }
-
         const cajaAbierta = await CajaService.obtenerCajaAbierta();
         if (cajaAbierta) {
-          setFechaApertura(new Date(cajaAbierta.fechaApertura).toLocaleString('es-ES'));
-          setMontoInicial(cajaAbierta.montoApertura.toString());
-          setTotalVentas(cajaAbierta.totalVentas || 0);
-          setEfectivoVentas(cajaAbierta.montoVentasEfectivo || 0);
-          setTarjetaVentas(cajaAbierta.montoVentasTarjeta || 0);
-          setYapeVentas(cajaAbierta.montoVentasYape || 0);
-          const datosAperturaActualizados = {
-            usuario: cajaAbierta.usuario,
-            fechaHoraApertura: new Date(cajaAbierta.fechaApertura).toLocaleString('es-ES'),
-            timestampApertura: new Date(cajaAbierta.fechaApertura).toISOString(),
-            montoApertura: cajaAbierta.montoApertura,
-            numeroOperacionApertura: cajaAbierta.numeroOperacion,
-            idCaja: cajaAbierta.idCaja,
-            fechaApertura: new Date(cajaAbierta.fechaApertura).toLocaleDateString('es-ES'),
-            horaApertura: new Date(cajaAbierta.fechaApertura).toLocaleTimeString('es-ES'),
-          };
-          guardarDatosApertura(datosAperturaActualizados);
-        } else if (datosApertura) {
-          setFechaApertura(datosApertura.fechaHoraApertura || '');
-          setMontoInicial(datosApertura.montoApertura?.toString() || '0');
+          aplicarDatosDesdeCaja(cajaAbierta);
         } else {
-          setFechaApertura(obtenerFechaHoraActual());
-        }
-
-        // Cargar ventas del día
-        try {
-          setFechaCierre(obtenerFechaHoraActual());
-          const fechaActual = new Date();
-          const yyyy = fechaActual.getFullYear();
-          const mm = String(fechaActual.getMonth() + 1).padStart(2, '0');
-          const dd = String(fechaActual.getDate()).padStart(2, '0');
-          const fechaFiltro = `${yyyy}-${mm}-${dd}`;
-
-          let ventasDelDia: import('../../types/Venta').Venta[] = [];
-          try {
-            const ventasResponse = await VentaService.obtenerVentasPorFecha(fechaFiltro);
-            ventasDelDia = Array.isArray(ventasResponse) ? ventasResponse : [];
-            if (ventasDelDia.length === 0) {
-              const todasLasVentas = await VentaService.obtenerTodasVentas();
-              ventasDelDia = todasLasVentas.filter((venta) => {
-                if (!venta.fechaVenta) return false;
-                const fechaVentaStr = venta.fechaVenta.split(/[ T]/)[0];
-                return fechaVentaStr === fechaFiltro;
-              });
-            }
-          } catch {
-            ventasDelDia = [];
+          setSinCajaAbierta(true);
+          const locales = obtenerDatosApertura();
+          if (locales) {
+            limpiarDatosApertura();
           }
-
-          const totalVentasCalculado = ventasDelDia.reduce((sum, venta) => sum + (venta.totalVentas ?? 0), 0);
-          setTotalVentas(totalVentasCalculado);
-
-          let efectivoVentasCalc = 0;
-          let tarjetaVentasCalc = 0;
-          let yapeVentasCalc = 0;
-
-          ventasDelDia.forEach((venta) => {
-            let metodoPagoStr = '';
-            if (typeof venta.metodoPago === 'string') metodoPagoStr = venta.metodoPago;
-            else if (venta.metodoPago?.nombre) metodoPagoStr = venta.metodoPago.nombre;
-            metodoPagoStr = metodoPagoStr.toUpperCase().replace(/\s+/g, '');
-            const monto = venta.totalVentas ?? 0;
-            if (metodoPagoStr.includes('EFECTIVO') || metodoPagoStr.includes('CASH')) efectivoVentasCalc += monto;
-            else if (metodoPagoStr.includes('TARJETA') || metodoPagoStr.includes('VISA') || metodoPagoStr.includes('MASTERCARD') || metodoPagoStr.includes('CARD')) tarjetaVentasCalc += monto;
-            else if (metodoPagoStr.includes('YAPE') || metodoPagoStr.includes('PLIN') || metodoPagoStr.includes('DIGITAL')) yapeVentasCalc += monto;
-            else efectivoVentasCalc += monto;
-          });
-
-          setEfectivoVentas(efectivoVentasCalc);
-          setTarjetaVentas(tarjetaVentasCalc);
-          setYapeVentas(yapeVentasCalc);
-        } catch {
-          // silently fail
+          setTotalVentas(0);
+          setEfectivoVentas(0);
+          setTarjetaVentas(0);
+          setYapeVentas(0);
+          setMontoInicial('');
+          setFechaApertura('');
         }
-      } catch {
-        if (datosApertura) {
-          setFechaApertura(datosApertura.fechaHoraApertura || '');
-          setMontoInicial(datosApertura.montoApertura?.toString() || '0');
-        } else {
-          setFechaApertura(obtenerFechaHoraActual());
-        }
-        setTotalVentas(0);
-        setEfectivoVentas(0);
-        setTarjetaVentas(0);
-        setYapeVentas(0);
-        setFechaCierre(obtenerFechaHoraActual());
+      } catch (err) {
+        logger.error('Error al cargar caja abierta para cierre:', err);
+        setError('No se pudo cargar la información de la caja. Intente de nuevo.');
+        setSinCajaAbierta(true);
+      } finally {
+        setCargandoInicial(false);
       }
     };
 
     cargarDatosIniciales();
     const intervalo = setInterval(() => setFechaCierre(obtenerFechaHoraActual()), 1000);
     return () => clearInterval(intervalo);
-  }, []);
+  }, [usuario?.usuario]);
 
   const validarCampos = () => {
     if (!fechaApertura.trim()) { setError('La fecha de apertura es obligatoria.'); return false; }
@@ -186,46 +127,57 @@ const CierreCaja = () => {
     return true;
   };
 
-  const calcularDiferencias = () => {
-    const efecContado = parseFloat(efectivoContado) || 0;
-    const tarjContado = parseFloat(tarjetaContado) || 0;
-    const yapeContadoNum = parseFloat(yapeContado) || 0;
-    const montoInicialNum = parseFloat(montoInicial) || 0;
-    const diferenciasEfectivo = efecContado - efectivoVentas;
-    const diferenciasTarjeta = tarjContado - tarjetaVentas;
-    const diferenciasYape = yapeContadoNum - yapeVentas;
-    const efectivoEsperado = montoInicialNum + efectivoVentas;
-    const discrepanciaCaja = efecContado - efectivoEsperado;
-    return { diferenciasEfectivo, diferenciasTarjeta, diferenciasYape, efectivoEsperado, discrepanciaCaja };
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     if (!validarCampos()) return;
     try {
       setCargando(true);
-      const diferencias = calcularDiferencias();
-      const datosApertura = obtenerDatosApertura();
-      const idCaja = datosApertura?.idCaja;
-      if (!idCaja) { setError('No se encontró el ID de caja. Debe abrir la caja primero.'); setCargando(false); return; }
+      const cajaAbierta = await CajaService.obtenerCajaAbierta();
+      const idCaja = cajaAbierta?.idCaja ?? obtenerDatosApertura()?.idCaja;
+      if (!idCaja) {
+        setError('No hay caja abierta. Debe abrir la caja antes de cerrar.');
+        setCargando(false);
+        return;
+      }
+
       const cierreRequest: CierreCajaRequest = {
         efectivoContado: parseFloat(efectivoContado),
         tarjetaContado: parseFloat(tarjetaContado),
         yapeContado: parseFloat(yapeContado),
         observaciones: observaciones || undefined,
       };
-      await CajaService.cerrarCaja(idCaja, cierreRequest);
+      const cajaCerrada = await CajaService.cerrarCaja(idCaja, cierreRequest);
+
+      const efectivoVentasFinal = cajaCerrada.montoVentasEfectivo ?? efectivoVentas;
+      const tarjetaVentasFinal = cajaCerrada.montoVentasTarjeta ?? tarjetaVentas;
+      const yapeVentasFinal = cajaCerrada.montoVentasYape ?? yapeVentas;
+      const totalVentasFinal = cajaCerrada.totalVentas ?? totalVentas;
+      const montoInicialFinal = cajaCerrada.montoApertura ?? parseFloat(montoInicial);
+      const efectivoContadoNum = parseFloat(efectivoContado);
+      const efectivoEsperadoFinal =
+        cajaCerrada.efectivoEsperado ?? montoInicialFinal + efectivoVentasFinal;
+      const discrepanciaFinal =
+        cajaCerrada.discrepancia ?? efectivoContadoNum - efectivoEsperadoFinal;
+
+      const diferencias = {
+        diferenciasEfectivo: efectivoContadoNum - efectivoVentasFinal,
+        diferenciasTarjeta: parseFloat(tarjetaContado) - tarjetaVentasFinal,
+        diferenciasYape: parseFloat(yapeContado) - yapeVentasFinal,
+        efectivoEsperado: efectivoEsperadoFinal,
+        discrepanciaCaja: discrepanciaFinal,
+      };
+
       const datosCierreCalculados = {
-        usuario: usuario?.usuario ?? 'Usuario actual',
+        usuario: usuario?.usuario ?? cajaCerrada.usuario ?? 'Usuario actual',
         fechaApertura,
         fechaCierre,
-        montoInicial: parseFloat(montoInicial),
-        totalVentas,
-        efectivoVentas,
-        tarjetaVentas,
-        yapeVentas,
-        efectivoContado: parseFloat(efectivoContado),
+        montoInicial: montoInicialFinal,
+        totalVentas: totalVentasFinal,
+        efectivoVentas: efectivoVentasFinal,
+        tarjetaVentas: tarjetaVentasFinal,
+        yapeVentas: yapeVentasFinal,
+        efectivoContado: efectivoContadoNum,
         tarjetaContado: parseFloat(tarjetaContado),
         yapeContado: parseFloat(yapeContado),
         observaciones,
@@ -234,7 +186,8 @@ const CierreCaja = () => {
       setDatosCierre(datosCierreCalculados);
       setCierreExitoso(true);
       limpiarDatosApertura();
-    } catch (err: any) {
+    } catch (err: unknown) {
+      logger.error('Error al cerrar caja:', err);
       const errorMsg = axios.isAxiosError(err)
         ? (err.response?.data?.message ?? err.message)
         : (err instanceof Error ? err.message : String(err));
@@ -258,6 +211,44 @@ const CierreCaja = () => {
     if (ventanaImpresion) ventanaImpresion.document.body.innerHTML = comprobanteHtml;
   };
 
+  const irAApertura = () => {
+    navigate(APP_PATHS.caja, { state: { view: 'apertura' } });
+  };
+
+  if (cargandoInicial) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1100px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
+        <PageHeader variant="cajero" title="Cierre de caja" />
+        <div className="caj-card rounded-[3rem] border caj-border shadow-sm p-10 text-center">
+          <MaterialIcon icon="progress_activity" className="animate-spin h-8 w-8 mx-auto mb-4 caj-icon-muted" />
+          <p className="text-[11px] font-bold uppercase tracking-widest caj-text-muted">Cargando datos del turno...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (sinCajaAbierta && !cierreExitoso) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
+        <PageHeader variant="cajero" title="Cierre de caja" />
+        <div className="caj-card rounded-[3rem] border caj-border shadow-sm overflow-hidden p-10 text-center">
+          <MaterialIcon icon="lock" className="h-12 w-12 mx-auto mb-6 caj-icon-muted" />
+          <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase mb-3">No hay caja abierta</h2>
+          <p className="text-[11px] caj-text-muted font-medium mb-8 max-w-md mx-auto">
+            Debe abrir la caja e iniciar su turno antes de poder realizar el cierre.
+          </p>
+          <button
+            type="button"
+            onClick={irAApertura}
+            className="caj-btn-primary px-8 py-4 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.3em] transition-all"
+          >
+            Ir a apertura de caja
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── VISTA ÉXITO ───────────────────────────────────────────────────────────────
   if (cierreExitoso && datosCierre) {
     const discrepancia = datosCierre.diferencias.discrepanciaCaja;
@@ -265,18 +256,18 @@ const CierreCaja = () => {
       <div className="p-4 sm:p-6 max-w-[900px] mx-auto caj-page min-h-screen animate-fadeIn text-left font-sans">
         <PageHeader variant="cajero" title="Cierre de caja" />
 
-        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden mb-8">
+        <div className="caj-card rounded-[3rem] border caj-border shadow-sm overflow-hidden mb-8">
           {/* Banner */}
-          <div className="bg-black px-10 py-8 flex items-center gap-6">
-            <div className="w-12 h-12 caj-card rounded-2xl flex items-center justify-center flex-shrink-0">
-              <MaterialIcon icon="check_circle" className="h-6 w-6 caj-heading" />
+          <div className="caj-banner px-10 py-8 flex items-center gap-6">
+            <div className="w-12 h-12 caj-banner-icon-wrap rounded-2xl flex items-center justify-center flex-shrink-0">
+              <MaterialIcon icon="check_circle" className="h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-[11px] font-bold tracking-[0.4em] text-white uppercase mb-1">¡Turno finalizado!</h2>
-              <p className="text-gray-400 text-[11px] font-medium uppercase tracking-widest">La caja ha sido cerrada correctamente</p>
+              <h2 className="text-[11px] font-bold tracking-[0.4em] uppercase mb-1">¡Turno finalizado!</h2>
+              <p className="caj-banner-muted text-[11px] font-medium uppercase tracking-widest">La caja ha sido cerrada correctamente</p>
             </div>
             <div className="ml-auto">
-              <span className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest ${discrepancia === 0 ? 'caj-card caj-heading' : discrepancia > 0 ? 'bg-gray-600 text-white' : 'bg-gray-700 text-white'}`}>
+              <span className="caj-badge-on-banner px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest">
                 {discrepancia === 0 ? 'CAJA CUADRADA' : discrepancia > 0 ? 'HAY SOBRANTE' : 'HAY FALTANTE'}
               </span>
             </div>
@@ -284,35 +275,35 @@ const CierreCaja = () => {
 
           {/* Summary Grid */}
           <div className="p-10 grid grid-cols-2 gap-6">
-            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
-              <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Cajero</span>
+            <div className="caj-detail-tile rounded-[2rem] p-7 border">
+              <span className="caj-label block text-[10px] font-bold uppercase tracking-[0.3em] mb-3">Cajero</span>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-black rounded-xl flex items-center justify-center">
-                  <MaterialIcon icon="person" className="h-4 w-4 text-white" />
+                <div className="w-9 h-9 caj-icon-chip rounded-xl flex items-center justify-center">
+                  <MaterialIcon icon="person" className="h-4 w-4" />
                 </div>
                 <span className="text-[14px] font-bold caj-heading uppercase tracking-tight">{datosCierre.usuario}</span>
               </div>
             </div>
 
-            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
-              <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Ventas realizadas</span>
+            <div className="caj-detail-tile rounded-[2rem] p-7 border">
+              <span className="caj-label block text-[10px] font-bold uppercase tracking-[0.3em] mb-3">Ventas realizadas</span>
               <span className="text-[28px] font-extrabold caj-heading tracking-tighter">S/{datosCierre.totalVentas.toFixed(2)}</span>
             </div>
 
-            <div className="caj-page rounded-[2rem] p-7 border border-gray-50">
-              <span className="block text-[10px] font-bold text-gray-300 uppercase tracking-[0.3em] mb-3">Efectivo Esperado</span>
+            <div className="caj-detail-tile rounded-[2rem] p-7 border">
+              <span className="caj-label block text-[10px] font-bold uppercase tracking-[0.3em] mb-3">Efectivo Esperado</span>
               <span className="text-[24px] font-extrabold caj-heading tracking-tighter">S/{datosCierre.diferencias.efectivoEsperado.toFixed(2)}</span>
             </div>
 
-            <div className={`rounded-[2rem] p-7 border transition-all ${discrepancia === 0 ? 'bg-[#fcfcfc] border-black shadow-sm' : 'caj-page border-gray-50'}`}>
-              <span className={`block text-[10px] font-bold uppercase tracking-[0.3em] mb-3 ${discrepancia === 0 ? 'text-gray-400' : 'text-gray-300'}`}>Diferencia de dinero</span>
+            <div className={`rounded-[2rem] p-7 border transition-all ${discrepancia === 0 ? 'caj-highlight-panel shadow-sm' : 'caj-detail-tile'}`}>
+              <span className="caj-label block text-[10px] font-bold uppercase tracking-[0.3em] mb-3">Diferencia de dinero</span>
               <span className={`text-[28px] font-extrabold tracking-tighter caj-heading`}>
                 {discrepancia === 0 ? (
-                  <span className="flex items-center gap-2"><MaterialIcon icon="check_circle" className="h-7 w-7 caj-heading" /> Cuadrada</span>
+                  <span className="flex items-center gap-2"><MaterialIcon icon="check_circle" className="h-7 w-7 caj-icon-muted" /> Cuadrada</span>
                 ) : `S/${Math.abs(discrepancia).toFixed(2)}`}
               </span>
               {discrepancia !== 0 && (
-                <span className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">{discrepancia > 0 ? 'Hay un sobrante' : 'Hay un faltante'}</span>
+                <span className="block text-[10px] font-bold caj-text-muted uppercase tracking-widest mt-1">{discrepancia > 0 ? 'Hay un sobrante' : 'Hay un faltante'}</span>
               )}
             </div>
           </div>
@@ -320,15 +311,17 @@ const CierreCaja = () => {
           {/* Actions */}
           <div className="px-10 pb-10 flex gap-4">
             <button
+              type="button"
               onClick={imprimirComprobante}
-              className="flex items-center gap-3 px-7 py-4 caj-input border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] text-gray-600 hover:bg-gray-100 transition-all"
+              className="caj-btn-secondary flex items-center gap-3 px-7 py-4 border rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.25em] transition-all"
             >
-              <MaterialIcon icon="print" className="h-4 w-4" />
+              <MaterialIcon icon="print" className="h-4 w-4 caj-icon-muted" />
               Imprimir recibo
             </button>
             <button
+              type="button"
               onClick={finalizarCierre}
-              className="flex-1 flex items-center justify-center gap-3 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.3em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] group"
+              className="caj-btn-primary flex-1 flex items-center justify-center gap-3 py-4 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.3em] transition-all shadow-lg active:scale-[0.98] group"
             >
               Siguiente turno
               <MaterialIcon icon="arrow_forward" className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
@@ -360,21 +353,21 @@ const CierreCaja = () => {
 
       {/* Error Banner */}
       {error && (
-        <div className="mb-8 px-8 py-5 bg-black text-white rounded-[2rem] flex items-center justify-between animate-fadeIn">
+        <div className="mb-8 px-8 py-5 caj-error-banner rounded-[2rem] flex items-center justify-between animate-fadeIn">
           <div className="flex items-center gap-4">
             <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse"></div>
             <span className="text-[11px] font-bold uppercase tracking-[0.2em]">{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-gray-400 hover:text-white transition-colors text-[11px] font-bold uppercase tracking-widest">Cerrar</button>
+          <button type="button" onClick={() => setError(null)} className="caj-banner-muted hover:opacity-100 transition-opacity text-[11px] font-bold uppercase tracking-widest">Cerrar</button>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* ─ SECCIÓN A: INFORMACIÓN GENERAL ─────────────────────────────────── */}
-        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
-            <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-              <MaterialIcon icon="person" className="h-5 w-5 text-white" />
+        <div className="caj-card rounded-[3rem] border caj-border shadow-sm overflow-hidden">
+          <div className="px-10 py-8 border-b caj-border-subtle flex items-center gap-4">
+            <div className="w-10 h-10 caj-icon-chip rounded-2xl flex items-center justify-center shadow-lg">
+              <MaterialIcon icon="person" className="h-5 w-5" />
             </div>
             <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Datos del Cajero</h2>
           </div>
@@ -382,10 +375,10 @@ const CierreCaja = () => {
           <div className="p-10 grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Operador */}
             <div>
-              <label className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Cajero actual</label>
+              <label className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Cajero actual</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <MaterialIcon icon="person" className="h-4 w-4 text-gray-300" />
+                  <MaterialIcon icon="person" className="h-4 w-4 caj-icon-muted" />
                 </div>
                 <input type="text" value={usuario?.usuario ?? 'Usuario actual'} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading tracking-wider focus:outline-none shadow-inner" />
@@ -394,26 +387,26 @@ const CierreCaja = () => {
 
             {/* Fecha Apertura */}
             <div>
-              <label className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Fecha de Apertura</label>
+              <label className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Fecha de Apertura</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <MaterialIcon icon="schedule" className="h-4 w-4 text-gray-300" />
+                  <MaterialIcon icon="schedule" className="h-4 w-4 caj-icon-muted" />
                 </div>
                 <input id="fecha-apertura" type="text" value={fechaApertura}
                   onChange={(e) => setFechaApertura(e.target.value)}
                   placeholder="dd/mm/yyyy — hh:mm:ss" required
-                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading font-mono tracking-wider focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading font-mono tracking-wider focus:caj-card focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all shadow-inner" />
               </div>
             </div>
 
             {/* Fecha Cierre */}
             <div>
-              <label className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">
-                <span className="flex items-center gap-2">Fecha de Cierre <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-black animate-pulse"></span><span className="text-[8px]">Hora actual</span></span></span>
+              <label className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">
+                <span className="flex items-center gap-2">Fecha de Cierre <span className="inline-flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full caj-accent-dot animate-pulse"></span><span className="text-[8px] caj-text-muted">Hora actual</span></span></span>
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                  <MaterialIcon icon="schedule" className="h-4 w-4 text-gray-300" />
+                  <MaterialIcon icon="schedule" className="h-4 w-4 caj-icon-muted" />
                 </div>
                 <input id="fecha-cierre" type="text" value={fechaCierre} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-sm font-bold caj-heading font-mono tracking-wider focus:outline-none shadow-inner" />
@@ -423,32 +416,32 @@ const CierreCaja = () => {
         </div>
 
         {/* ─ SECCIÓN B: RESUMEN DE VENTAS ────────────────────────────────────── */}
-        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
-            <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-              <MaterialIcon icon="calculate" className="h-5 w-5 text-white" />
+        <div className="caj-card rounded-[3rem] border caj-border shadow-sm overflow-hidden">
+          <div className="px-10 py-8 border-b caj-border-subtle flex items-center gap-4">
+            <div className="w-10 h-10 caj-icon-chip rounded-2xl flex items-center justify-center shadow-lg">
+              <MaterialIcon icon="calculate" className="h-5 w-5" />
             </div>
             <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Ventas del turno</h2>
-            <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest caj-page px-4 py-2 rounded-xl border border-gray-100">Calculado automáticamente</span>
+            <span className="ml-auto text-[10px] font-bold caj-label uppercase tracking-widest caj-surface-elevated px-4 py-2 rounded-xl border caj-border">Calculado automáticamente</span>
           </div>
 
           <div className="p-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Monto Inicial */}
             <div>
-              <label htmlFor="monto-inicial" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Dinero inicial</label>
+              <label htmlFor="monto-inicial" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Dinero inicial</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="monto-inicial" type="number" min="0" step="0.01" placeholder="0.00" value={montoInicial}
                   onChange={(e) => setMontoInicial(e.target.value)} required
-                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:caj-card focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all shadow-inner" />
               </div>
             </div>
 
             {/* Total Ventas */}
             <div>
-              <label htmlFor="total-ventas" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Ventas totales</label>
+              <label htmlFor="total-ventas" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Ventas totales</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="total-ventas" type="text" value={totalVentas.toFixed(2)} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
@@ -456,9 +449,9 @@ const CierreCaja = () => {
 
             {/* Efectivo Ventas */}
             <div>
-              <label htmlFor="efectivo-ventas" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">En Efectivo</label>
+              <label htmlFor="efectivo-ventas" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">En Efectivo</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="efectivo-ventas" type="text" value={efectivoVentas.toFixed(2)} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
@@ -466,9 +459,9 @@ const CierreCaja = () => {
 
             {/* Tarjeta Ventas */}
             <div>
-              <label htmlFor="tarjeta-ventas" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">En Tarjeta</label>
+              <label htmlFor="tarjeta-ventas" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">En Tarjeta</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="tarjeta-ventas" type="text" value={tarjetaVentas.toFixed(2)} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
@@ -476,9 +469,9 @@ const CierreCaja = () => {
 
             {/* Yape Ventas */}
             <div>
-              <label htmlFor="yape-ventas" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">En Yape / Plin</label>
+              <label htmlFor="yape-ventas" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">En Yape / Plin</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="yape-ventas" type="text" value={yapeVentas.toFixed(2)} readOnly
                   className="w-full pl-12 pr-5 py-4 caj-input border-none rounded-[1.5rem] text-base font-bold caj-heading focus:outline-none shadow-inner" />
               </div>
@@ -487,46 +480,46 @@ const CierreCaja = () => {
         </div>
 
         {/* ─ SECCIÓN C: CONTEO FÍSICO ────────────────────────────────────────── */}
-        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-10 py-8 border-b border-gray-50 flex items-center gap-4">
-            <div className="w-10 h-10 bg-black rounded-2xl flex items-center justify-center shadow-lg">
-              <MaterialIcon icon="trending_down" className="h-5 w-5 text-white" />
+        <div className="caj-card rounded-[3rem] border caj-border shadow-sm overflow-hidden">
+          <div className="px-10 py-8 border-b caj-border-subtle flex items-center gap-4">
+            <div className="w-10 h-10 caj-icon-chip rounded-2xl flex items-center justify-center shadow-lg">
+              <MaterialIcon icon="trending_down" className="h-5 w-5" />
             </div>
             <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Dinero contado</h2>
-            <span className="ml-auto text-[10px] font-bold text-gray-300 uppercase tracking-widest caj-page px-4 py-2 rounded-xl border border-gray-100">Completar manualmente</span>
+            <span className="ml-auto text-[10px] font-bold caj-label uppercase tracking-widest caj-surface-elevated px-4 py-2 rounded-xl border caj-border">Completar manualmente</span>
           </div>
 
           <div className="p-10 grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Efectivo */}
             <div>
-              <label htmlFor="efectivo-contado" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Efectivo físico</label>
+              <label htmlFor="efectivo-contado" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Efectivo físico</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="efectivo-contado" type="number" step="0.01" min="0" value={efectivoContado}
                   onChange={(e) => setEfectivoContado(e.target.value)} placeholder="0.00" required
-                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:text-gray-200 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:caj-text-faint focus:caj-card focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all shadow-inner" />
               </div>
             </div>
 
             {/* Tarjeta */}
             <div>
-              <label htmlFor="tarjeta-contado" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Vouchers de Tarjeta</label>
+              <label htmlFor="tarjeta-contado" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Vouchers de Tarjeta</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="tarjeta-contado" type="number" step="0.01" min="0" value={tarjetaContado}
                   onChange={(e) => setTarjetaContado(e.target.value)} placeholder="0.00" required
-                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:text-gray-200 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:caj-text-faint focus:caj-card focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all shadow-inner" />
               </div>
             </div>
 
             {/* Yape */}
             <div>
-              <label htmlFor="yape-contado" className="block text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-4 pl-1">Vouchers de Yape / Plin</label>
+              <label htmlFor="yape-contado" className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Vouchers de Yape / Plin</label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="text-gray-400 font-extrabold text-base">S/</span></div>
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none"><span className="caj-text-muted font-extrabold text-base">S/</span></div>
                 <input id="yape-contado" type="number" step="0.01" min="0" value={yapeContado}
                   onChange={(e) => setYapeContado(e.target.value)} placeholder="0.00" required
-                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:text-gray-200 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner" />
+                  className="w-full pl-12 pr-5 py-5 caj-input border-none rounded-[1.5rem] text-lg font-extrabold caj-heading placeholder:caj-text-faint focus:caj-card focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all shadow-inner" />
               </div>
             </div>
           </div>
@@ -534,25 +527,25 @@ const CierreCaja = () => {
 
         {/* ─ SECCIÓN D: PREVIEW DISCREPANCIA ────────────────────────────────── */}
         {hayConteo && (
-          <div className={`rounded-[3rem] border overflow-hidden transition-all duration-500 ${discrepanciaPreview === 0 ? 'bg-[#fcfcfc] border-black shadow-lg translate-y-[-4px]' : 'caj-card border-gray-100'}`}>
+          <div className={`rounded-[3rem] border overflow-hidden transition-all duration-500 ${discrepanciaPreview === 0 ? 'caj-highlight-panel shadow-lg translate-y-[-4px]' : 'caj-card border caj-border'}`}>
             <div className="px-10 py-8 flex items-center justify-between">
               <div>
-                <span className={`block text-[10px] font-bold uppercase tracking-[0.3em] mb-3 text-gray-400`}>
+                <span className="caj-label block text-[10px] font-bold uppercase tracking-[0.3em] mb-3">
                   Diferencia de dinero
                 </span>
                 <span className={`text-[36px] font-extrabold tracking-tighter leading-none caj-heading`}>
                   {discrepanciaPreview === 0 ? (
-                    <span className="flex items-center gap-3"><MaterialIcon icon="check_circle" className="h-8 w-8 caj-heading" /> CAJA CUADRADA</span>
+                    <span className="flex items-center gap-3"><MaterialIcon icon="check_circle" className="h-8 w-8 caj-icon-muted" /> CAJA CUADRADA</span>
                   ) : `S/${Math.abs(discrepanciaPreview).toFixed(2)}`}
                 </span>
                 {discrepanciaPreview !== 0 && (
-                  <span className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mt-2">
+                  <span className="block text-[11px] font-bold caj-text-muted uppercase tracking-widest mt-2">
                     {discrepanciaPreview > 0 ? 'Hay un sobrante' : 'Hay un faltante'} — Verifique el conteo
                   </span>
                 )}
               </div>
-              <div className={`px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 ${discrepanciaPreview === 0 ? 'bg-black text-white' : 'caj-page text-gray-600 border border-gray-100'}`}>
-                {discrepanciaPreview === 0 ? <MaterialIcon icon="check_circle" className="h-4 w-4" /> : <MaterialIcon icon="error" className="h-4 w-4" />}
+              <div className={`px-6 py-3 rounded-2xl text-[10px] font-bold uppercase tracking-[0.2em] flex items-center gap-2 ${discrepanciaPreview === 0 ? 'caj-icon-chip' : 'caj-btn-secondary border'}`}>
+                {discrepanciaPreview === 0 ? <MaterialIcon icon="check_circle" className="h-4 w-4" /> : <MaterialIcon icon="error" className="h-4 w-4 caj-icon-muted" />}
                 {discrepanciaPreview === 0 ? 'Correcto' : 'Revisar'}
               </div>
             </div>
@@ -560,10 +553,10 @@ const CierreCaja = () => {
         )}
 
         {/* ─ SECCIÓN E: OBSERVACIONES ────────────────────────────────────────── */}
-        <div className="caj-card rounded-[3rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-10 py-8 border-b border-gray-50">
+        <div className="caj-card rounded-[3rem] border caj-border shadow-sm overflow-hidden">
+          <div className="px-10 py-8 border-b caj-border-subtle">
             <h2 className="text-[12px] font-bold tracking-[0.3em] caj-heading uppercase">Observaciones</h2>
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-widest mt-1">Opcional — algún comentario adicional</p>
+            <p className="text-[10px] caj-text-muted font-medium uppercase tracking-widest mt-1">Opcional — algún comentario adicional</p>
           </div>
           <div className="p-10">
             <textarea
@@ -572,7 +565,7 @@ const CierreCaja = () => {
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
               placeholder="Ingrese cualquier observación sobre el cierre de caja..."
-              className="w-full px-7 py-5 caj-input border-none rounded-[1.5rem] text-sm font-medium caj-heading placeholder:text-gray-300 focus:caj-card focus:ring-[4px] focus:ring-gray-100 transition-all resize-none shadow-inner leading-relaxed"
+              className="w-full px-7 py-5 caj-input border-none rounded-[1.5rem] text-sm font-medium caj-heading placeholder:caj-text-faint focus:caj-card focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all resize-none shadow-inner leading-relaxed"
             />
           </div>
         </div>
@@ -580,8 +573,8 @@ const CierreCaja = () => {
         {/* ─ SUBMIT ──────────────────────────────────────────────────────────── */}
         <button
           type="submit"
-          disabled={cargando || !efectivoContado.trim() || !tarjetaContado.trim() || !yapeContado.trim()}
-          className="w-full py-6 bg-black text-white rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] hover:bg-gray-800 transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
+          disabled={cargando || sinCajaAbierta || !efectivoContado.trim() || !tarjetaContado.trim() || !yapeContado.trim()}
+          className="caj-btn-primary w-full py-6 rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-lg transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
         >
           <div className="absolute inset-0 caj-card/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
           {cargando ? <MaterialIcon icon="progress_activity" className="animate-spin h-5 w-5" /> : <MaterialIcon icon="check_circle" className="w-5 h-5" />}

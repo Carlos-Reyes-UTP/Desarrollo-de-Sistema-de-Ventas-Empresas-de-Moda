@@ -28,4 +28,7 @@ public class Area {
     @NotBlank
     @Column(name = "nombre", nullable = false, length = 120)
     private String nombre;
+
+    @Column(name = "activo", nullable = false)
+    private boolean activo = true;
 }

@@ -71,8 +71,13 @@ export const VentaService = {
       let yape = 0;
       
       ventas.forEach(venta => {
-        if (venta.metodoPago?.nombre) {
-          const metodo = venta.metodoPago.nombre.toLowerCase();
+        let metodoPagoStr = '';
+        if (typeof venta.metodoPago === 'string') metodoPagoStr = venta.metodoPago;
+        else if (venta.metodoPago?.nombre) metodoPagoStr = venta.metodoPago.nombre;
+        metodoPagoStr = metodoPagoStr.toUpperCase().replace(/\s+/g, '');
+
+        if (metodoPagoStr) {
+          const metodo = metodoPagoStr.toLowerCase();
           if (metodo.includes('efectivo') || metodo.includes('cash')) {
             efectivo += venta.totalVentas;
           } else if (metodo.includes('tarjeta') || metodo.includes('visa') || metodo.includes('mastercard') || metodo.includes('card')) {

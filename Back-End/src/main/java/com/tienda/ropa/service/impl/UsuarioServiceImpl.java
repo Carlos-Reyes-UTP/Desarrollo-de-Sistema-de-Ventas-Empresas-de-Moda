@@ -64,10 +64,18 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
     public UsuarioDTO actualizarUsuario(Long id, UsuarioDTO usuarioDTO) {
         Usuario usuario = usuarioRepository.findById(id).orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
         
-        // Validar si es el último administrador y se intenta cambiar sus roles
+        // Validar si es el último administrador o gerente y se intenta cambiar sus roles
         if (usuarioDTO.getRoles() != null) {
-            if (!validarCambioRoles(id, usuarioDTO.getRoles().stream().collect(Collectors.toList()))) {
-                throw new RuntimeException("No se puede quitar el rol de administrador al último usuario administrador del sistema");
+            List<String> nuevosRoles = usuarioDTO.getRoles().stream().collect(Collectors.toList());
+            if (!validarCambioRoles(id, nuevosRoles)) {
+                if (esUltimoAdministrador(id)) {
+                    throw new RuntimeException(
+                            "No se puede quitar el rol de administrador al último usuario administrador del sistema");
+                }
+                if (esUltimoGerente(id)) {
+                    throw new RuntimeException(
+                            "No se puede quitar el rol de gerente al último usuario gerente del sistema");
+                }
             }
         }
         
@@ -120,9 +128,11 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
             
-            // Validar si es el último administrador activo
             if (esUltimoAdministrador(id)) {
                 throw new RuntimeException("No se puede deshabilitar al último usuario administrador del sistema");
+            }
+            if (esUltimoGerente(id)) {
+                throw new RuntimeException("No se puede deshabilitar al último usuario gerente del sistema");
             }
             
             usuario.setActivo(false);
@@ -153,7 +163,7 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
 
     }
     public List<UsuarioDTO> obtenerUsuariosConRoles() {
-        return usuarioRepository.findAll().stream()
+        return usuarioRepository.findAllWithRolesAndArea().stream()
                 .map(this::convertirADTOConRoles)
                 .collect(Collectors.toList());
     }
@@ -246,22 +256,41 @@ public class UsuarioServiceImpl implements UsuarioService {    @Autowired
     }
     
     @Override
+    public boolean esUltimoGerente(Long usuarioId) {
+        Usuario usuarioActual = usuarioRepository.findById(usuarioId).orElse(null);
+        if (usuarioActual == null) {
+            return false;
+        }
+
+        boolean esGerente = usuarioActual.getRoles().stream()
+                .anyMatch(rol -> rol.getNombreRol() == Role.GERENTE);
+        if (!esGerente) {
+            return false;
+        }
+
+        long cantidadGerentesActivos = usuarioRepository.countActiveGerentes();
+        return cantidadGerentesActivos == 1;
+    }
+
+    @Override
     public boolean validarCambioRoles(Long usuarioId, List<String> nuevosRoles) {
-        // Si es el último administrador, debe mantener su rol de admin
         if (esUltimoAdministrador(usuarioId)) {
-            // Verificar si los nuevos roles incluyen ADMIN
             boolean tieneRolAdmin = nuevosRoles.stream()
-                    .anyMatch(rol -> {
-                        String rolSinPrefijo = rol.replace("ROLE_", "");
-                        return "ADMIN".equals(rolSinPrefijo);
-                    });
-            
+                    .anyMatch(rol -> "ADMIN".equals(rol.replace("ROLE_", "")));
             if (!tieneRolAdmin) {
-                return false; // No se permite quitar el rol de admin al último administrador
+                return false;
             }
         }
-        
-        return true; // Cambio permitido
+
+        if (esUltimoGerente(usuarioId)) {
+            boolean tieneRolGerente = nuevosRoles.stream()
+                    .anyMatch(rol -> "GERENTE".equals(rol.replace("ROLE_", "")));
+            if (!tieneRolGerente) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

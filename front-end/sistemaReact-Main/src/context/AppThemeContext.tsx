@@ -21,6 +21,7 @@ export interface AppThemeMeta {
   label: string;
   description: string;
   swatch: string;
+  icon: string;
 }
 
 const STORAGE_KEY = 'dakani:app-theme';
@@ -38,33 +39,38 @@ const THEME_IDS: AppThemeId[] = [
 export const APP_THEMES: AppThemeMeta[] = [
   {
     id: 'classic',
-    label: 'Clásico',
-    description: 'Monocromo DK',
+    label: 'Claro',
+    description: 'Blanco y negro',
     swatch: '#fafafa',
+    icon: 'light_mode',
   },
   {
     id: 'dark',
     label: 'Oscuro',
-    description: 'Grises neutros',
+    description: 'Modo noche',
     swatch: '#252526',
+    icon: 'dark_mode',
   },
   {
     id: 'pastel-dama',
-    label: 'Pastel Dama',
-    description: 'Rosa y nude suave',
+    label: 'Rosa',
+    description: 'Tono cálido suave',
     swatch: '#f5e4e8',
+    icon: 'favorite',
   },
   {
     id: 'pastel-caballero',
-    label: 'Pastel Caballero',
-    description: 'Azul niebla suave',
+    label: 'Azul',
+    description: 'Tono frío suave',
     swatch: '#dce6ef',
+    icon: 'water_drop',
   },
   {
     id: 'soft-neutral',
-    label: 'Neutro',
-    description: 'Arena cálida',
+    label: 'Arena',
+    description: 'Beige neutro',
     swatch: '#e8e4dd',
+    icon: 'terrain',
   },
 ];
 

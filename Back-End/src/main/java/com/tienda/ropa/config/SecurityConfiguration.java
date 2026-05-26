@@ -58,61 +58,77 @@ public class SecurityConfiguration {
                                                 // Permitir acceso al endpoint de WebSockets
                                                 .requestMatchers("/ws/**").permitAll()
 
-                                                // Proteger las rutas de administrador. Solo ADMIN puede acceder.
+                                                // GERENTE: gestión de usuarios
+                                                .requestMatchers("/api/gerente/user/**").hasRole("GERENTE")
+
+                                                // GERENTE: estructura almacén (pisos, áreas, ubicaciones)
+                                                .requestMatchers("/api/gerente/estructura-almacen/**").hasRole("GERENTE")
+
+                                                // Reportes: ADMIN + GERENTE (antes de /api/admin/**)
+                                                .requestMatchers(HttpMethod.GET, "/api/admin/reportes/**")
+                                                .hasAnyRole("ADMIN", "GERENTE")
+
+                                                // ADMIN: resto de /api/admin/** (mayoristas, etc.)
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                                                 // Permitir acceso a los nuevos endpoints de códigos de barras v1
                                                 .requestMatchers("/api/v1/codigosbarras/**").permitAll()
 
+                                                // Lectura de ventas para dashboards (ADMIN + GERENTE + operativos)
+                                                .requestMatchers(HttpMethod.GET, "/api/cajero/ventas/**")
+                                                .hasAnyRole("ADMIN", "GERENTE", "CAJERO", "ALMACENERO",
+                                                                "SUPERVISOR_ALMACEN", "VENDEDOR")
+
                                                 // Lectura del catálogo POS (productos/variantes): también vendedor de
                                                 // piso (el front
                                                 // reutiliza estas rutas; la regla general de /api/cajero/** sigue sin
-                                                // incluir VENDEDOR).
+                                                // incluir VENDEDOR ni ADMIN).
                                                 .requestMatchers(HttpMethod.GET, "/api/cajero/productos/**")
-                                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
+                                                .hasAnyRole("CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
                                                                 "VENDEDOR")
 
-                                                // Cajero (ventas, catálogo POS). ALMACENERO comparte flujos de
-                                                // producto/variantes con el front.
+                                                // Cajero (ventas, catálogo POS). Sin ADMIN.
                                                 .requestMatchers("/api/cajero/**")
-                                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
+                                                .hasAnyRole("CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
                                                                 "VENDEDOR")
 
-                                                // Proteger las rutas de caja. ADMIN, CAJERO y ALMACENERO pueden
-                                                // acceder.
+                                                // Caja. Sin ADMIN.
                                                 .requestMatchers("/api/caja/**")
-                                                .hasAnyRole("ADMIN", "CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
+                                                .hasAnyRole("CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
                                                                 "VENDEDOR")
+
+                                                // Pisos/áreas: lectura para GERENTE (sin ADMIN ni inventario completo)
+                                                .requestMatchers(HttpMethod.GET, "/api/almacenero/ubicaciones/**")
+                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
+                                                                "GERENTE", "CAJERO")
 
                                                 // Búsqueda paginada de productos (misma query que usa ProductoService
                                                 // del front para varios roles).
                                                 .requestMatchers(HttpMethod.GET, "/api/almacenero/productos/pagina")
-                                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
+                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
                                                                 "CAJERO")
 
                                                 // Catálogo ligero talla/color (formularios de inventario)
                                                 .requestMatchers(HttpMethod.GET,
                                                                 "/api/almacenero/variantes/sugerencias")
-                                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
+                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR",
                                                                 "CAJERO")
 
-                                                // Endpoints legacy de carga total (solo mantenimiento / migración)
+                                                // Endpoints legacy de carga total (mantenimiento / migración)
                                                 .requestMatchers(HttpMethod.GET, "/api/almacenero/variantes/todas")
-                                                .hasRole("ADMIN")
+                                                .hasRole("SUPERVISOR_ALMACEN")
                                                 .requestMatchers(HttpMethod.GET, "/api/cajero/productos/variantes")
-                                                .hasRole("ADMIN")
+                                                .hasRole("SUPERVISOR_ALMACEN")
                                                 .requestMatchers(HttpMethod.GET, "/api/almacenero/productos")
-                                                .hasRole("ADMIN")
+                                                .hasRole("SUPERVISOR_ALMACEN")
 
-                                                // Proteger las rutas de almacenero (inventario, productos, categorías,
-                                                // etc.)
+                                                // Inventario (productos, categorías, proveedores, etc.) — sin ADMIN
                                                 .requestMatchers("/api/almacenero/**")
-                                                .hasAnyRole("ADMIN", "ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
+                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
 
-                                                // Vendedor / admin: catálogo y solicitudes a almacén (mismo contrato
-                                                // API)
+                                                // Catálogo y solicitudes a almacén (vendedor)
                                                 .requestMatchers("/api/vendedor/**")
-                                                .hasAnyRole("VENDEDOR", "ADMIN")
+                                                .hasRole("VENDEDOR")
 
                                                 // CUALQUIER OTRA RUTA que no coincida con las anteriores requiere
                                                 // autenticación.

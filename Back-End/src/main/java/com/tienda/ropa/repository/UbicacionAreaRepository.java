@@ -23,13 +23,26 @@ public interface UbicacionAreaRepository extends JpaRepository<UbicacionArea, Lo
 
     @Query("SELECT ua FROM UbicacionArea ua "
             + "JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
-            + "WHERE LOWER(TRIM(u.nombre)) = LOWER(TRIM(:nombrePiso)) "
+            + "WHERE ua.activo = true AND u.activo = true AND a.activo = true "
+            + "AND LOWER(TRIM(u.nombre)) = LOWER(TRIM(:nombrePiso)) "
             + "ORDER BY a.nombre, ua.idUbicacionArea")
     List<UbicacionArea> findByPisoNombre(@Param("nombrePiso") String nombrePiso);
 
+    Optional<UbicacionArea> findByUbicacion_IdUbicacionAndArea_IdArea(Long idUbicacion, Long idArea);
+
+    long countByUbicacion_IdUbicacionAndActivoTrue(Long idUbicacion);
+
+    long countByArea_IdAreaAndActivoTrue(Long idArea);
+
     @Query("SELECT ua FROM UbicacionArea ua "
             + "JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
-            + "WHERE ua.idUbicacionArea <> :idDestino "
+            + "ORDER BY u.nombre, a.nombre, ua.idUbicacionArea")
+    List<UbicacionArea> findAllWithUbicacionYAreaForGerente();
+
+    @Query("SELECT ua FROM UbicacionArea ua "
+            + "JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
+            + "WHERE ua.activo = true AND u.activo = true AND a.activo = true "
+            + "AND ua.idUbicacionArea <> :idDestino "
             + "AND LOWER(TRIM(u.nombre)) NOT IN :reservadasLower "
             + "ORDER BY u.nombre, a.nombre")
     List<UbicacionArea> findOrigenesPosibles(
@@ -38,7 +51,8 @@ public interface UbicacionAreaRepository extends JpaRepository<UbicacionArea, Lo
 
     @Query("SELECT ua FROM UbicacionArea ua "
             + "JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
-            + "WHERE LOWER(TRIM(u.nombre)) IN :nombresAlmacenLower "
+            + "WHERE ua.activo = true AND u.activo = true AND a.activo = true "
+            + "AND LOWER(TRIM(u.nombre)) IN :nombresAlmacenLower "
             + "ORDER BY a.nombre, ua.idUbicacionArea")
     List<UbicacionArea> findAreasAlmacen(@Param("nombresAlmacenLower") List<String> nombresAlmacenLower);
 
@@ -49,12 +63,14 @@ public interface UbicacionAreaRepository extends JpaRepository<UbicacionArea, Lo
 
     @Query("SELECT ua FROM UbicacionArea ua "
             + "JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
-            + "WHERE a.idArea = :idAreaCatalogo "
+            + "WHERE ua.activo = true AND u.activo = true AND a.activo = true "
+            + "AND a.idArea = :idAreaCatalogo "
             + "ORDER BY u.nombre, a.nombre, ua.idUbicacionArea")
     List<UbicacionArea> findByCatalogoAreaId(@Param("idAreaCatalogo") Long idAreaCatalogo);
 
     @Query("SELECT ua FROM UbicacionArea ua "
             + "JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
+            + "WHERE ua.activo = true AND u.activo = true AND a.activo = true "
             + "ORDER BY u.nombre, a.nombre, ua.idUbicacionArea")
     List<UbicacionArea> findAllWithUbicacionYArea();
 }

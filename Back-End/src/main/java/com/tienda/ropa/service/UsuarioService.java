@@ -26,8 +26,10 @@ public interface UsuarioService {
 
     public boolean validarContrasenaSegura(String password);
     
-    // Métodos para validar protección del último admin
+    // Métodos para validar protección del último admin / gerente
     public boolean esUltimoAdministrador(Long usuarioId);
+
+    public boolean esUltimoGerente(Long usuarioId);
     
     public boolean validarCambioRoles(Long usuarioId, List<String> nuevosRoles);
 }

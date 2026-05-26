@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MaterialIcon } from '@/shared/ui';
 import type { CategoriaDTO } from '../../types/CategoriaDTO';
 import { CategoriaService } from '../../services/CategoriaService';
-import { ConfirmModal, ListItemSkeleton, PageHeader, PageActionButton, PageActionGroup } from '@/shared/ui';
+import { ConfirmModal, ListItemSkeleton, PageHeader, PageActionButton, PageActionGroup, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
 
 interface ArbolCategoriaProps {
   categoria: CategoriaDTO;
@@ -167,6 +167,8 @@ const GestionCategorias: React.FC = () => {
   const [formData, setFormData] = useState({
     nombre: ''
   });
+
+  useModalBodyScrollLock(showFormulario);
 
   useEffect(() => {
     cargarCategorias();
@@ -445,7 +447,8 @@ const GestionCategorias: React.FC = () => {
 
       {/* Modal Rediseñado (Strict Monochrome as per AGENTE.md) */}
       {showFormulario && (
-        <div className={`fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+        <ModalPortal>
+        <div className={`app-modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
           <div className={`bg-white rounded-[2.5rem] shadow-xl w-full max-w-lg relative overflow-hidden border border-gray-200 ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="p-12">
               <div className="flex justify-between items-start mb-10">
@@ -512,6 +515,7 @@ const GestionCategorias: React.FC = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Confirm Modal for Delete */}

@@ -49,5 +49,22 @@ public class DataInitializer implements CommandLineRunner {
             usuarioRepository.save(vendedor);
             System.out.println("[DK-SYSTEM] Usuario 'vendedor' creado exitosamente con rol VENDEDOR.");
         }
+
+        // 3. Usuario gerente de prueba si no existe
+        if (usuarioRepository.findByUsuario("gerente").isEmpty()) {
+            Set<Rol> roles = new HashSet<>();
+            Rol gerenteRol = rolRepository.findByNombreRol(Role.GERENTE).orElseThrow();
+            roles.add(gerenteRol);
+
+            Usuario gerente = Usuario.builder()
+                    .usuario("gerente")
+                    .password(passwordEncoder.encode("Gerente123*"))
+                    .roles(roles)
+                    .activo(true)
+                    .build();
+
+            usuarioRepository.save(gerente);
+            System.out.println("[DK-SYSTEM] Usuario 'gerente' creado exitosamente con rol GERENTE.");
+        }
     }
 }

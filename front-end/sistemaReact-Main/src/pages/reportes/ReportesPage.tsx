@@ -27,10 +27,9 @@ const ReportesPage: React.FC = () => {
     }
   }, [searchParams]);
 
-  // Verificar permisos de administrador o almacenero
   useEffect(() => {
-    if (!tieneRol('ROLE_ADMIN') && !tieneRol('ROLE_ALMACENERO')) {
-      console.warn('Acceso denegado: Se requieren permisos de administrador o almacenero');
+    if (!tieneRol('ROLE_ADMIN') && !tieneRol('ROLE_GERENTE')) {
+      console.warn('Acceso denegado: Se requieren permisos de administrador o gerente');
     }
   }, [tieneRol]);
 
@@ -76,7 +75,7 @@ const ReportesPage: React.FC = () => {
     }
   };
 
-  if (!tieneRol('ROLE_ADMIN') && !tieneRol('ROLE_ALMACENERO')) {
+  if (!tieneRol('ROLE_ADMIN') && !tieneRol('ROLE_GERENTE')) {
     return (
       <div className="app-page min-h-screen flex items-center justify-center p-4">
         <div className="app-panel rounded-xl shadow-lg p-8 max-w-md w-full text-center">
@@ -85,7 +84,7 @@ const ReportesPage: React.FC = () => {
           </div>
           <h2 className="text-xl font-bold app-heading mb-2">Acceso Restringido</h2>
           <p className="app-text-muted">
-            Los reportes están disponibles únicamente para administradores y almaceneros.
+            Los reportes están disponibles para administradores y gerentes.
           </p>
         </div>
       </div>

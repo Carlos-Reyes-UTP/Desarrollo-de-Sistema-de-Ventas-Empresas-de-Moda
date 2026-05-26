@@ -23,20 +23,20 @@ export const QrPaymentModal = ({
 
   return (
     <div className="caj-modal-overlay fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="caj-modal-panel rounded-[3rem] shadow-sm w-full max-w-sm overflow-hidden animate-scaleIn border">
+      <div className="caj-modal-panel rounded-[3rem] shadow-2xl w-full max-w-sm overflow-hidden animate-scaleIn border caj-border">
 
-        <div className="bg-black px-8 py-6 flex items-center justify-between">
+        <div className="caj-banner px-8 py-6 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <MaterialIcon icon="smartphone" className="w-5 h-5 text-white" />
+            <div className="w-10 h-10 caj-banner-icon-wrap rounded-2xl flex items-center justify-center flex-shrink-0">
+              <MaterialIcon icon="smartphone" className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Pago con {tipo}</h3>
-              <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">Escanea el código QR</p>
+              <h3 className="text-[11px] font-bold tracking-[0.3em] uppercase">Pago con {tipo}</h3>
+              <p className="caj-banner-muted text-[10px] font-medium uppercase tracking-widest mt-0.5">Escanea el código QR</p>
             </div>
           </div>
-          <button onClick={onCancel} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
-            <MaterialIcon icon="close" className="w-4 h-4 text-white" />
+          <button type="button" onClick={onCancel} className="w-8 h-8 caj-banner-icon-wrap rounded-xl flex items-center justify-center hover:opacity-80 transition-all">
+            <MaterialIcon icon="close" className="w-4 h-4" />
           </button>
         </div>
 
@@ -46,7 +46,7 @@ export const QrPaymentModal = ({
         </div>
 
         <div className="px-8 py-5">
-          <div className="caj-page rounded-[2rem] p-5 border caj-border">
+          <div className="caj-detail-tile rounded-[2rem] p-5 border">
             <img
               src={`https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(qrUrl)}`}
               alt="Código QR de pago"

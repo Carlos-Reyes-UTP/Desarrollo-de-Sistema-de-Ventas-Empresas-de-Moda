@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MaterialIcon } from '@/shared/ui';
 import type { Proveedor } from '../../types/Proveedor';
 import { ProveedorService } from '../../services/ProveedorService';
-import { ConfirmModal, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup } from '@/shared/ui';
+import { ConfirmModal, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
 
 const GestionProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -27,6 +27,8 @@ const GestionProveedores: React.FC = () => {
   const [paginaActual, setPaginaActual] = useState(1);
   const proveedoresPorPagina = 10;
   const totalPaginas = Math.ceil(proveedores.length / proveedoresPorPagina);
+
+  useModalBodyScrollLock(showFormulario);
 
   useEffect(() => {
     cargarProveedores();
@@ -452,7 +454,8 @@ const GestionProveedores: React.FC = () => {
       </div>
 
       {showFormulario && (
-        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+        <ModalPortal>
+        <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
           <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="p-10">
               <div className="mb-6 w-12 h-1 bg-black"></div>
@@ -538,6 +541,7 @@ const GestionProveedores: React.FC = () => {
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Confirm Modal for Delete */}

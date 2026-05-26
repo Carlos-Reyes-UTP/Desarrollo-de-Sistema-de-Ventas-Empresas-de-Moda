@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { useAppTheme } from '@/context/AppThemeContext';
+import { useAppTheme, type AppThemeId } from '@/context/AppThemeContext';
 import { MaterialIcon } from '@/shared/ui';
+
+function iconColorOnSwatch(themeId: AppThemeId): string {
+  return themeId === 'dark' ? '#e8e8e8' : '#2d2d2d';
+}
 
 export const ThemeMenuButton = () => {
   const { themeId, setTheme, themes } = useAppTheme();
@@ -28,8 +32,18 @@ export const ThemeMenuButton = () => {
         aria-haspopup="listbox"
         className="app-drawer-theme-trigger w-full flex items-center gap-3 rounded-xl py-3.5 px-4 transition-all duration-200 active:scale-[0.98] border border-transparent"
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl app-drawer-theme-icon-wrap">
-          <MaterialIcon icon="palette" className="h-5 w-5" />
+        <span
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl app-drawer-theme-icon-wrap"
+          style={
+            activeTheme
+              ? {
+                  backgroundColor: activeTheme.swatch,
+                  color: iconColorOnSwatch(activeTheme.id),
+                }
+              : undefined
+          }
+        >
+          <MaterialIcon icon={activeTheme?.icon ?? 'palette'} className="h-5 w-5" />
         </span>
         <span className="flex-1 min-w-0 text-left">
           <span className="block text-[14px] font-bold tracking-tight app-drawer-text">
@@ -68,10 +82,15 @@ export const ThemeMenuButton = () => {
                 }`}
               >
                 <span
-                  className="h-6 w-6 shrink-0 rounded-full border border-black/10"
-                  style={{ backgroundColor: theme.swatch }}
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-black/10"
+                  style={{
+                    backgroundColor: theme.swatch,
+                    color: iconColorOnSwatch(theme.id),
+                  }}
                   aria-hidden
-                />
+                >
+                  <MaterialIcon icon={theme.icon} className="h-4 w-4" />
+                </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-[13px] font-bold leading-tight">{theme.label}</span>
                   <span className="block text-[10px] font-medium opacity-70">{theme.description}</span>

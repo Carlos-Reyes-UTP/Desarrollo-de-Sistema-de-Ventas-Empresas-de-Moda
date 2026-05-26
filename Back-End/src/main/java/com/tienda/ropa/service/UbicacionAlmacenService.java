@@ -19,7 +19,6 @@ import com.tienda.ropa.dto.StockUbicacionDTO;
 import com.tienda.ropa.dto.UbicacionDTO;
 import com.tienda.ropa.entity.Inventario;
 import com.tienda.ropa.entity.ProductoVariante;
-import com.tienda.ropa.entity.Role;
 import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.repository.InventarioRepository;
@@ -180,6 +179,17 @@ public class UbicacionAlmacenService {
     public List<StockUbicacionDTO> stockPorUbicacionArea(Long idUbicacionArea) {
         if (idUbicacionArea == null) {
             throw new IllegalArgumentException("La ubicación-área es obligatoria");
+        }
+        UbicacionArea ua = ubicacionAreaRepository.findByIdWithUbicacionYArea(idUbicacionArea)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Ubicación no encontrada."));
+        if (!ua.isActivo()
+                || ua.getUbicacion() == null
+                || !ua.getUbicacion().isActivo()
+                || ua.getArea() == null
+                || !ua.getArea().isActivo()) {
+            throw new ResponseStatusException(
+                    HttpStatus.GONE, "La ubicación no está activa.");
         }
         return inventarioRepository.findStockPositivoByUbicacionArea(idUbicacionArea).stream()
                 .map(UbicacionAlmacenService::toStockDTO)

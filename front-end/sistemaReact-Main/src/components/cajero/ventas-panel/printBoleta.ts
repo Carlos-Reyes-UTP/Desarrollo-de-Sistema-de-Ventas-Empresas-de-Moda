@@ -72,6 +72,7 @@ export const imprimirBoletaVenta = (datos: DatosVentaBoleta) => {
           </div>
           <div class="info-row"><span>Fecha y Hora:</span><span>${fechaFormateada}</span></div>
           <div class="info-row"><span>Cliente:</span><span>${datos.cliente ?? 'Público General'}</span></div>
+          <div class="info-row"><span>Documento:</span><span>${datos.documentoCliente ?? '—'}</span></div>
           <div class="info-row"><span>Método de Pago:</span><span>${datos.metodoPago.charAt(0).toUpperCase() + datos.metodoPago.slice(1)}</span></div>
           <div class="info-row"><span>Atendido por:</span><span>${datos.usuarioVendedor}</span></div>
 

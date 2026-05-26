@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { API_BASE_URL } from '../config/apiConfig';
 
 interface WebSocketMessage {
     type: string;
@@ -18,7 +19,7 @@ export function useWebSocket(topic: string = '/topic/notifications') {
 
         const client = new Client({
             // Endpoint del servidor backend
-            webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+            webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws`),
             connectHeaders: {
                 Authorization: token ? `Bearer ${token}` : '',
             },

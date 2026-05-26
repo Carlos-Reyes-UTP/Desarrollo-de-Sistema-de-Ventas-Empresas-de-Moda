@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.entity.Cliente;
-import com.tienda.ropa.service.ApiExternoService;
 import com.tienda.ropa.service.ClienteService;
 import com.tienda.ropa.service.MayoristaService;
 
@@ -24,14 +23,11 @@ import com.tienda.ropa.service.MayoristaService;
 public class ClienteController {
 
     private final ClienteService clienteService;
-    private final ApiExternoService apiExternoService;
     private final MayoristaService mayoristaService;
 
     public ClienteController(ClienteService clienteService, 
-                           ApiExternoService apiExternoService,
                            MayoristaService mayoristaService) {
         this.clienteService = clienteService;
-        this.apiExternoService = apiExternoService;
         this.mayoristaService = mayoristaService;
     }
 

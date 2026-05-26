@@ -20,6 +20,7 @@ export interface ProductoBoleta {
 
 export interface DatosVentaBoleta {
   cliente: string;
+  documentoCliente?: string | null;
   metodoPago: string;
   usuarioVendedor: string;
   productos: ProductoBoleta[];

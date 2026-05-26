@@ -14,6 +14,11 @@ interface AreaConStock {
 
 interface GestionPisosProps {
   embedded?: boolean;
+  /** Si false, solo consulta pisos/áreas/stock (sin traslados). */
+  puedeTrasladar?: boolean;
+  variant?: "almacen" | "gerente";
+  /** Incrementar para recargar datos (p. ej. tras evento WebSocket). */
+  refreshKey?: number;
 }
 
 type DotEstado = {
@@ -67,24 +72,35 @@ const AreaOperativaCard = ({
   totalVariantes,
   dot,
   onVer,
+  puedeTrasladar = true,
+  etiquetasGerente = false,
+  index = 0,
 }: {
   ubicacion: UbicacionArea;
   totalUnidades: number;
   totalVariantes: number;
   dot: DotEstado;
   onVer: () => void;
+  puedeTrasladar?: boolean;
+  etiquetasGerente?: boolean;
+  index?: number;
 }) => (
   <button
     type="button"
     onClick={onVer}
-    className="w-full text-left rounded-2xl border app-card bg-[var(--app-surface)] p-4 shadow-sm active:scale-[0.99] transition-transform touch-manipulation"
+    className="animate-stagger-item w-full text-left rounded-2xl border app-card bg-[var(--app-surface)] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 touch-manipulation"
+    style={{ animationDelay: `${index * 60}ms` }}
   >
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-bold app-heading truncate">
-          {ubicacion.area ?? "Sin área específica"}
+          {etiquetasGerente
+            ? `Sector: ${ubicacion.area ?? "—"}`
+            : (ubicacion.area ?? "Sin área específica")}
         </p>
-        <p className="text-xs app-text-muted mt-0.5 font-medium truncate">{ubicacion.nombre}</p>
+        <p className="text-xs app-text-muted mt-0.5 font-medium truncate">
+          {etiquetasGerente ? `Piso: ${ubicacion.nombre}` : ubicacion.nombre}
+        </p>
       </div>
       <span
         className={`inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide ${dot.badgeClass}`}
@@ -101,16 +117,23 @@ const AreaOperativaCard = ({
           <span className="text-[10px] app-text-faint uppercase">/ {totalVariantes} vars.</span>
         </p>
       </div>
-      <span className="inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-[var(--app-accent)] text-[var(--app-accent-fg)] text-[10px] font-bold uppercase tracking-wider">
-        Ver y trasladar
+      <span className={`inline-flex min-h-11 items-center justify-center gap-2 px-4 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+        puedeTrasladar
+          ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)]"
+          : "bg-[var(--app-bg-muted)] app-text-muted"
+      }`}>
+        {puedeTrasladar ? "Ver y trasladar" : "Ver stock"}
         <MaterialIcon icon="arrow_forward" className="h-3.5 w-3.5" />
       </span>
     </div>
   </button>
 );
 
-const StockVarianteCard = ({ item }: { item: StockUbicacion }) => (
-  <div className="rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm">
+const StockVarianteCard = ({ item, index = 0 }: { item: StockUbicacion; index?: number }) => (
+  <div
+    className="animate-stagger-item rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+    style={{ animationDelay: `${index * 40}ms` }}
+  >
     <p className="font-semibold app-heading text-sm leading-snug">{item.nombreProducto}</p>
     {item.codigoIdentificacion && (
       <p className="text-[11px] app-text-faint font-mono font-bold mt-1">{item.codigoIdentificacion}</p>
@@ -129,7 +152,13 @@ const StockVarianteCard = ({ item }: { item: StockUbicacion }) => (
   </div>
 );
 
-const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
+const GestionPisos = ({
+  embedded = false,
+  puedeTrasladar = true,
+  variant = "almacen",
+  refreshKey = 0,
+}: GestionPisosProps) => {
+  const etiquetasGerente = variant === "gerente";
   const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
   const esAlmaceneroRestringido = Boolean(accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo);
   const nombreAreaAsignada = useMemo(() => {
@@ -195,7 +224,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
 
   useEffect(() => {
     void cargarPisos();
-  }, [cargarPisos]);
+  }, [cargarPisos, refreshKey]);
 
   const cargarAreasDePiso = useCallback(async (piso: string, opts?: { silent?: boolean }) => {
     const silent = opts?.silent ?? false;
@@ -231,7 +260,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
       setAreaDetalle(null); // Resetear detalle si se cambia de piso
       cargarAreasDePiso(pisoSeleccionado);
     }
-  }, [pisoSeleccionado, cargarAreasDePiso]);
+  }, [pisoSeleccionado, cargarAreasDePiso, refreshKey]);
 
   const cargarDetalleArea = async (ubicacion: UbicacionArea) => {
     setAreaDetalle(ubicacion);
@@ -276,15 +305,17 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                 <MaterialIcon icon="sync" className={`h-4 w-4 ${cargandoAreas ? "animate-spin" : ""}`} />
                 Refrescar
               </PageActionButton>
-              <PageActionButton
-                grouped
-                onClick={() => {
-                  setOrigenAreaModal(null);
-                  setTrasladoGlobalAbierto(true);
-                }}
-              >
-                Mover Mercadería
-              </PageActionButton>
+              {puedeTrasladar && (
+                <PageActionButton
+                  grouped
+                  onClick={() => {
+                    setOrigenAreaModal(null);
+                    setTrasladoGlobalAbierto(true);
+                  }}
+                >
+                  Mover Mercadería
+                </PageActionButton>
+              )}
             </PageActionGroup>
           }
         />
@@ -328,11 +359,11 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                       className={`
                         shrink-0 snap-start md:shrink md:w-full flex items-center justify-center md:justify-start gap-2 md:gap-3
                         min-h-11 px-4 md:px-5 py-2.5 md:py-3.5 rounded-xl md:rounded-2xl text-sm font-bold text-left
-                        transition-all duration-200 active:scale-[0.98] touch-manipulation
+                        transition-all duration-300 active:scale-[0.96] touch-manipulation
                         ${
                           isSelected
-                            ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-md border border-[var(--app-accent)]"
-                            : "app-text-muted bg-[var(--app-surface)] md:bg-transparent border border-[var(--app-border)] md:border-transparent hover:bg-[var(--app-bg-muted)] hover:app-heading"
+                            ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-lg border border-[var(--app-accent)] scale-[1.02]"
+                            : "app-text-muted bg-[var(--app-surface)] md:bg-transparent border border-[var(--app-border)] md:border-transparent hover:bg-[var(--app-bg-muted)] hover:app-heading hover:scale-[1.01]"
                         }
                       `}
                     >
@@ -365,13 +396,15 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                     <h3 className="text-xl sm:text-2xl font-bold app-heading break-words">
                       Detalle: {areaDetalle.area ?? "Sin área específica"}
                     </h3>
-                    <button
-                      type="button"
-                      onClick={() => setOrigenAreaModal(areaDetalle)}
-                      className="inline-flex min-h-11 w-full sm:w-auto shrink-0 items-center justify-center gap-2 px-5 py-2.5 rounded-xl sm:rounded-full bg-[var(--app-accent)] text-[var(--app-accent-fg)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all shadow-sm touch-manipulation"
-                    >
-                      Mover desde aquí
-                    </button>
+                    {puedeTrasladar && (
+                      <button
+                        type="button"
+                        onClick={() => setOrigenAreaModal(areaDetalle)}
+                        className="inline-flex min-h-11 w-full sm:w-auto shrink-0 items-center justify-center gap-2 px-5 py-2.5 rounded-xl sm:rounded-full bg-[var(--app-accent)] text-[var(--app-accent-fg)] text-sm font-bold hover:opacity-90 active:scale-[0.98] transition-all shadow-sm touch-manipulation"
+                      >
+                        Mover desde aquí
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -391,8 +424,8 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                 ) : (
                   <>
                     <div className="md:hidden flex flex-col gap-3">
-                      {stockDetalle.map((item) => (
-                        <StockVarianteCard key={`${item.idVariante}-${item.idUbicacionArea}`} item={item} />
+                      {stockDetalle.map((item, idx) => (
+                        <StockVarianteCard key={`${item.idVariante}-${item.idUbicacionArea}`} item={item} index={idx} />
                       ))}
                     </div>
                     <div className="hidden md:block overflow-x-auto rounded-2xl border border-[var(--app-border)]">
@@ -414,10 +447,11 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                           </tr>
                         </thead>
                         <tbody className="bg-[var(--app-surface)] divide-y divide-[var(--app-border)]">
-                          {stockDetalle.map((item) => (
+                          {stockDetalle.map((item, idx) => (
                             <tr
                               key={`${item.idVariante}-${item.idUbicacionArea}`}
-                              className="hover:bg-[var(--app-hover-overlay)] transition-colors duration-150"
+                              className="animate-stagger-item hover:bg-[var(--app-hover-overlay)] transition-colors duration-150"
+                              style={{ animationDelay: `${idx * 30}ms` }}
                             >
                               <td className="px-5 py-4">
                                 <span className="font-semibold app-heading text-sm">{item.nombreProducto}</span>
@@ -454,15 +488,17 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                           <MaterialIcon icon="sync" className={`h-4 w-4 ${cargandoAreas ? "animate-spin" : ""}`} />
                           Refrescar
                         </PageActionButton>
-                        <PageActionButton
-                          grouped
-                          onClick={() => {
-                            setOrigenAreaModal(null);
-                            setTrasladoGlobalAbierto(true);
-                          }}
-                        >
-                          Mover Mercadería
-                        </PageActionButton>
+                        {puedeTrasladar && (
+                          <PageActionButton
+                            grouped
+                            onClick={() => {
+                              setOrigenAreaModal(null);
+                              setTrasladoGlobalAbierto(true);
+                            }}
+                          >
+                            Mover Mercadería
+                          </PageActionButton>
+                        )}
                       </PageActionGroup>
                     ) : undefined
                   }
@@ -470,13 +506,13 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
 
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,305px)] gap-4 sm:gap-6 lg:gap-8 items-start min-w-0">
                   {/* Resumen compacto primero en móvil */}
-                  <div className="order-1 xl:order-2 app-metric-card rounded-2xl sm:rounded-[20px] border p-5 sm:p-8 shadow-xl flex flex-row xl:flex-col items-center xl:items-stretch justify-between gap-4 xl:gap-0 xl:min-h-[360px] min-w-0">
+                  <div className="order-1 xl:order-2 app-metric-card rounded-2xl sm:rounded-[20px] border p-5 sm:p-8 shadow-xl flex flex-row xl:flex-col items-center xl:items-stretch justify-between gap-4 xl:gap-0 xl:min-h-[360px] min-w-0 animate-fadeIn">
                     <div className="min-w-0 xl:mb-0">
                       <h3 className="text-base sm:text-xl font-bold app-metric-value mb-0.5 sm:mb-1">Total Productos</h3>
                       <p className="text-xs sm:text-sm app-metric-label truncate">Stock global · {pisoSeleccionado}</p>
                     </div>
                     <div className="flex flex-col items-end xl:items-stretch xl:flex-1 xl:justify-center xl:py-6 shrink-0">
-                      <div className="text-4xl sm:text-6xl xl:text-7xl font-black tracking-tight leading-none app-metric-value">
+                      <div className="text-4xl sm:text-6xl xl:text-7xl font-black tracking-tight leading-none app-metric-value animate-countUp">
                         {totalStockPiso}
                       </div>
                       <div className="text-xs sm:text-sm app-metric-label font-medium mt-0.5 sm:mt-2 text-right xl:text-left">
@@ -495,7 +531,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                   </div>
 
                   {/* Áreas Operativas */}
-                  <div className="order-2 xl:order-1 bg-[var(--app-surface-glass)] backdrop-blur-md rounded-2xl sm:rounded-[20px] border border-[var(--app-border)] shadow-sm p-4 sm:p-6 lg:p-8 min-w-0">
+                  <div className="order-2 xl:order-1 bg-[var(--app-surface-glass)] backdrop-blur-md rounded-2xl sm:rounded-[20px] border border-[var(--app-border)] shadow-sm p-4 sm:p-6 lg:p-8 min-w-0 animate-slideUpFade">
                     <SectionHeader title={`Áreas operativas · ${pisoSeleccionado}`} />
 
                     {cargandoAreas ? (
@@ -511,7 +547,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                     ) : (
                       <>
                         <div className="md:hidden flex flex-col gap-3">
-                          {areas.map(({ ubicacion, totalUnidades, totalVariantes }) => (
+                          {areas.map(({ ubicacion, totalUnidades, totalVariantes }, idx) => (
                             <AreaOperativaCard
                               key={ubicacion.idUbicacionArea}
                               ubicacion={ubicacion}
@@ -519,6 +555,9 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                               totalVariantes={totalVariantes}
                               dot={obtenerDotEstado(ubicacion.area, ubicacion.nombre, totalUnidades)}
                               onVer={() => cargarDetalleArea(ubicacion)}
+                              puedeTrasladar={puedeTrasladar}
+                              etiquetasGerente={etiquetasGerente}
+                              index={idx}
                             />
                           ))}
                         </div>
@@ -541,7 +580,7 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-[var(--app-border)]">
-                              {areas.map(({ ubicacion, totalUnidades, totalVariantes }) => {
+                              {areas.map(({ ubicacion, totalUnidades, totalVariantes }, idx) => {
                                 const dot = obtenerDotEstado(
                                   ubicacion.area,
                                   ubicacion.nombre,
@@ -550,7 +589,8 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                                 return (
                                   <tr
                                     key={ubicacion.idUbicacionArea}
-                                    className="group hover:bg-[var(--app-hover-overlay)] transition-colors duration-200 cursor-pointer"
+                                    className="animate-stagger-item group hover:bg-[var(--app-hover-overlay)] transition-colors duration-200 cursor-pointer"
+                                    style={{ animationDelay: `${idx * 50}ms` }}
                                     onClick={() => cargarDetalleArea(ubicacion)}
                                   >
                                     <td className="py-5 px-2">
@@ -584,9 +624,9 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
                                           cargarDetalleArea(ubicacion);
                                         }}
                                         className="inline-flex min-h-10 items-center justify-center gap-2 px-4 py-2 rounded-full bg-[var(--app-accent)] text-[var(--app-accent-fg)] text-[10px] font-bold uppercase tracking-wider shadow hover:opacity-90 active:scale-[0.98] transition-all touch-manipulation"
-                                        title="Ver stock y trasladar mercadería"
+                                        title={puedeTrasladar ? "Ver stock y trasladar mercadería" : "Ver stock del área"}
                                       >
-                                        Ver y Trasladar
+                                        {puedeTrasladar ? "Ver y Trasladar" : "Ver stock"}
                                         <MaterialIcon icon="arrow_forward" className="h-3.5 w-3.5" />
                                       </button>
                                     </td>
@@ -611,16 +651,18 @@ const GestionPisos = ({ embedded = false }: GestionPisosProps) => {
         </div>
       </section>
 
-      <MoverMercaderiaModal
-        abierto={trasladoGlobalAbierto || origenAreaModal !== null}
-        modoDestinoLibre={trasladoGlobalAbierto}
-        ubicacionOrigenStock={origenAreaModal}
-        onCerrar={() => {
-          setOrigenAreaModal(null);
-          setTrasladoGlobalAbierto(false);
-        }}
-        onExito={refrescar}
-      />
+      {puedeTrasladar && (
+        <MoverMercaderiaModal
+          abierto={trasladoGlobalAbierto || origenAreaModal !== null}
+          modoDestinoLibre={trasladoGlobalAbierto}
+          ubicacionOrigenStock={origenAreaModal}
+          onCerrar={() => {
+            setOrigenAreaModal(null);
+            setTrasladoGlobalAbierto(false);
+          }}
+          onExito={refrescar}
+        />
+      )}
     </div>
   );
 };

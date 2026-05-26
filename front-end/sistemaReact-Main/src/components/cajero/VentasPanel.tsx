@@ -13,15 +13,26 @@ const VentasPanel = () => {
 
   return (
     <div className="caj-page p-4 sm:p-6 max-w-[1600px] mx-auto lg:bg-transparent min-h-screen animate-fadeIn text-left font-sans">
-      {ventas.errorGlobal && <NotificationToast title="Error" message={ventas.errorGlobal} variant="error" topClassName="top-4" onClose={() => ventas.setErrorGlobal(null)} />}
-      
+      {ventas.errorGlobal && (
+        <NotificationToast
+          title="Error"
+          message={ventas.errorGlobal}
+          variant="error"
+          topClassName="top-4"
+          onClose={() => ventas.setErrorGlobal(null)}
+        />
+      )}
+
       {ventas.mensajeInfoVista && (
-        <div className="mb-8 p-4 bg-black text-white rounded-[1.5rem] shadow-xl animate-fadeIn flex items-center justify-between border border-gray-800">
+        <div className="mb-8 p-4 caj-error-banner rounded-[1.5rem] shadow-xl animate-fadeIn flex items-center justify-between border caj-border">
           <div className="flex items-center gap-4 px-2">
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+            <div className="w-2 h-2 rounded-full caj-pulse-dot animate-pulse" />
             <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{ventas.mensajeInfoVista}</span>
           </div>
-          <button onClick={() => ventas.setMensajeInfoVista(null)} className="hover:opacity-60 transition-opacity p-1 flex items-center justify-center">
+          <button
+            onClick={() => ventas.setMensajeInfoVista(null)}
+            className="hover:opacity-60 transition-opacity p-1 flex items-center justify-center"
+          >
             <MaterialIcon icon="close" className="h-[18px] w-[18px]" />
           </button>
         </div>
@@ -33,7 +44,9 @@ const VentasPanel = () => {
         actions={
           <>
             <div className="caj-card px-4 py-2.5 border rounded-xl shadow-sm">
-              <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-0.5">Caja actual</span>
+              <span className="caj-label text-[9px] font-bold uppercase tracking-widest block mb-0.5">
+                Caja actual
+              </span>
               <span className="caj-heading text-xs font-bold uppercase">Caja Principal 01</span>
             </div>
           </>
@@ -77,6 +90,13 @@ const VentasPanel = () => {
           setInputNombreDebeParpadear={ventas.setInputNombreDebeParpadear}
           handleActualizarClienteNombre={ventas.handleActualizarClienteNombre}
           clienteCreadoManualmente={ventas.clienteCreadoManualmente}
+          totalGeneralVenta={ventas.totalGeneralVenta}
+          requiereDocumentoCliente={ventas.requiereDocumentoCliente}
+          clienteValidoParaVenta={ventas.clienteValidoParaVenta}
+          identificacionMensaje={ventas.identificacionMensaje}
+          inputDocumentoDebeParpadear={ventas.inputDocumentoDebeParpadear}
+          setInputDocumentoDebeParpadear={ventas.setInputDocumentoDebeParpadear}
+          tieneProductosEnCarrito={ventas.productosSeleccionadosVenta.length > 0}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
@@ -92,7 +112,6 @@ const VentasPanel = () => {
             setMensajeInfoVista={ventas.setMensajeInfoVista}
             cargandoProductosIniciales={ventas.cargandoProductosIniciales}
             variantesPaginadas={ventas.variantesPaginadas}
-            clienteValidoParaVenta={ventas.clienteValidoParaVenta}
             handleSeleccionarVarianteDeLista={ventas.handleSeleccionarVarianteDeLista}
             totalPaginas={ventas.totalPaginas}
             paginaActual={ventas.paginaActual}
@@ -115,6 +134,7 @@ const VentasPanel = () => {
             totalGeneralVenta={ventas.totalGeneralVenta}
             handleProcesarVentaFinal={ventas.handleProcesarVentaFinal}
             cargandoProcesoVenta={ventas.cargandoProcesoVenta}
+            clienteValidoParaVenta={ventas.clienteValidoParaVenta}
           />
         </div>
       </div>

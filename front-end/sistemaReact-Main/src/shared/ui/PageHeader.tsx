@@ -47,7 +47,7 @@ const elevatedShellCajero =
   "caj-card rounded-2xl lg:rounded-[1.5rem] border caj-border shadow-sm px-5 py-4 lg:px-8 lg:py-5";
 
 const elevatedShellDashboard =
-  "app-dashboard-header-shell backdrop-blur-md rounded-2xl lg:rounded-[1.5rem] border shadow-[0_4px_20px_rgba(0,0,0,0.03)] px-5 py-4 lg:px-8 lg:py-5 lg:border-l-4 lg:pl-6";
+  "app-dashboard-header-shell backdrop-blur-md rounded-2xl lg:rounded-[1.5rem] border shadow-[0_4px_20px_rgba(0,0,0,0.03)] px-5 py-4 lg:px-8 lg:py-5";
 
 /**
  * Chrome de página: título, acciones y toolbar opcional.

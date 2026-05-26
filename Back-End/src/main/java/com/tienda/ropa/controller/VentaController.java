@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tienda.ropa.dto.VentaListadoDTO;
 import com.tienda.ropa.entity.Cliente;
 import com.tienda.ropa.entity.DetalleVenta;
 import com.tienda.ropa.entity.ProductoVariante;
@@ -25,6 +26,7 @@ import com.tienda.ropa.repository.ClienteRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.UsuarioRepository;
 import com.tienda.ropa.service.VentaService;
+import com.tienda.ropa.util.IdentificacionClienteValidator;
 
 @RestController
 @RequestMapping("/api/cajero/ventas")
@@ -118,6 +120,11 @@ public class VentaController {
         
         venta.setDetalles(detalles);
 
+        BigDecimal totalCalculado = detalles.stream()
+            .map(DetalleVenta::getSubtotal)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+        IdentificacionClienteValidator.validarClienteParaVenta(cliente, totalCalculado);
+
         Venta ventaGuardada = ventaService.registrarVenta(venta);
 
         List<Map<String, Object>> detallesResp = ventaGuardada.getDetalles().stream().map(d -> {
@@ -149,7 +156,7 @@ public class VentaController {
     }
 
     @GetMapping
-    public List<Venta> obtenerVentas() {
+    public List<VentaListadoDTO> obtenerVentas() {
         return ventaService.obtenerVentas();
     }
 

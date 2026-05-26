@@ -153,7 +153,7 @@ public class ProductoController {
                 // Convertir el mapa a un objeto Producto
                 // Nota: En una implementación real, se usaría un ObjectMapper o similar
                 // para una deserialización más robusta
-                Map<String, Object> productData = (Map<String, Object>) datosActualizacion.get("producto");
+                // Map<String, Object> productData = (Map<String, Object>) datosActualizacion.get("producto");
 
                 // Setear propiedades manualmente basadas en el mapa
                 // Aquí iría el código para extraer y setear cada propiedad
@@ -175,7 +175,7 @@ public class ProductoController {
             // Obtener lista de variantes
             List<ProductoVariante> variantes = new ArrayList<>();
             if (datosActualizacion.containsKey("variantes")) {
-                List<Map<String, Object>> variantesData = (List<Map<String, Object>>) datosActualizacion.get("variantes");
+                // List<Map<String, Object>> variantesData = (List<Map<String, Object>>) datosActualizacion.get("variantes");
 
                 // Convertir cada mapa a un objeto ProductoVariante
                 // Igual que antes, en una implementación real se usaría una deserialización más robusta

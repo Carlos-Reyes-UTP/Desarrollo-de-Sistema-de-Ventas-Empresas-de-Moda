@@ -18,19 +18,19 @@ export const VentaCompletadaModal = ({
 
   return (
     <div className="caj-modal-overlay fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="caj-modal-panel rounded-[3rem] shadow-sm w-full max-w-md overflow-hidden animate-scaleIn border">
+      <div className="caj-modal-panel rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn border caj-border">
 
-        <div className="bg-black px-8 py-6 flex items-center gap-4">
-          <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
-            <MaterialIcon icon="check_circle" className="w-5 h-5 text-white" />
+        <div className="caj-banner px-8 py-6 flex items-center gap-4">
+          <div className="w-10 h-10 caj-banner-icon-wrap rounded-2xl flex items-center justify-center flex-shrink-0">
+            <MaterialIcon icon="check_circle" className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Venta Registrada</h3>
-            <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">Transacción completada exitosamente</p>
+            <h3 className="text-[11px] font-bold tracking-[0.3em] uppercase">Venta Registrada</h3>
+            <p className="caj-banner-muted text-[10px] font-medium uppercase tracking-widest mt-0.5">Transacción completada exitosamente</p>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-white animate-pulse"></div>
-            <span className="text-[10px] font-bold text-white uppercase tracking-widest">OK</span>
+            <div className="w-2 h-2 rounded-full caj-pulse-dot animate-pulse"></div>
+            <span className="text-[10px] font-bold uppercase tracking-widest">OK</span>
           </div>
         </div>
 
@@ -42,9 +42,9 @@ export const VentaCompletadaModal = ({
         </div>
 
         <div className="px-8 pb-2 grid grid-cols-1 gap-3">
-          <div className="caj-page rounded-[1.5rem] p-5 border caj-border-subtle flex items-center gap-4">
-            <div className="w-8 h-8 caj-btn-primary rounded-xl flex items-center justify-center flex-shrink-0">
-              <MaterialIcon icon="person" className="h-4 w-4 text-[var(--caj-accent-fg)]" />
+          <div className="caj-detail-tile rounded-[1.5rem] p-5 border flex items-center gap-4">
+            <div className="w-8 h-8 caj-icon-chip rounded-xl flex items-center justify-center flex-shrink-0">
+              <MaterialIcon icon="person" className="h-4 w-4" />
             </div>
             <div className="min-w-0">
               <span className="caj-text-faint block text-[9px] font-bold uppercase tracking-[0.3em] mb-0.5">Cliente</span>
@@ -53,20 +53,20 @@ export const VentaCompletadaModal = ({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <div className="caj-page rounded-[1.5rem] p-5 border caj-border-subtle">
+            <div className="caj-detail-tile rounded-[1.5rem] p-5 border">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 caj-btn-primary rounded-lg flex items-center justify-center">
-                  <MaterialIcon icon="credit_card" className="h-3.5 w-3.5 text-[var(--caj-accent-fg)]" />
+                <div className="w-7 h-7 caj-icon-chip rounded-lg flex items-center justify-center">
+                  <MaterialIcon icon="credit_card" className="h-3.5 w-3.5" />
                 </div>
               </div>
               <span className="caj-text-faint block text-[9px] font-bold uppercase tracking-[0.25em] mb-1">Método de Pago</span>
               <span className="caj-heading text-[12px] font-bold capitalize">{datos.metodoPago}</span>
             </div>
 
-            <div className="caj-page rounded-[1.5rem] p-5 border caj-border-subtle">
+            <div className="caj-detail-tile rounded-[1.5rem] p-5 border">
               <div className="flex items-center gap-2 mb-2">
-                <div className="w-7 h-7 caj-btn-primary rounded-lg flex items-center justify-center">
-                  <MaterialIcon icon="badge" className="h-3.5 w-3.5 text-[var(--caj-accent-fg)]" />
+                <div className="w-7 h-7 caj-icon-chip rounded-lg flex items-center justify-center">
+                  <MaterialIcon icon="badge" className="h-3.5 w-3.5" />
                 </div>
               </div>
               <span className="caj-text-faint block text-[9px] font-bold uppercase tracking-[0.25em] mb-1">Vendedor</span>

@@ -5,6 +5,7 @@ import com.tienda.ropa.dto.AlmacenAtenderLoteResultDTO;
 import com.tienda.ropa.dto.AlmacenRechazarSolicitudRequest;
 import com.tienda.ropa.dto.AlmacenSolicitudCardDTO;
 import com.tienda.ropa.dto.CrearSolicitudDTO;
+import com.tienda.ropa.dto.SolicitudAccionResponseDTO;
 import com.tienda.ropa.entity.MotivoRechazoSolicitud;
 import com.tienda.ropa.entity.Solicitud;
 import com.tienda.ropa.entity.Usuario;
@@ -65,7 +66,7 @@ public class SolicitudController {
     }
 
     @PostMapping("/{id}/atender")
-    public Solicitud atender(
+    public SolicitudAccionResponseDTO atender(
             @PathVariable Long id,
             @AuthenticationPrincipal Usuario usuario) {
         return solicitudService.atenderSolicitud(id, usuario);
@@ -81,7 +82,7 @@ public class SolicitudController {
     }
 
     @PostMapping("/{id}/rechazar")
-    public Solicitud rechazar(
+    public SolicitudAccionResponseDTO rechazar(
             @PathVariable Long id,
             @Valid @RequestBody AlmacenRechazarSolicitudRequest body,
             @AuthenticationPrincipal Usuario usuario) {

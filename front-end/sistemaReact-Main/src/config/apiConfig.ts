@@ -15,6 +15,27 @@ export const RUTAS_USUARIOS = {
   HABILITAR: (id: number) => `${API_BASE_URL}/api/admin/user/habilitar/${id}`,
 };
 
+export const RUTAS_GERENTE_USUARIOS = {
+  BASE: `${API_BASE_URL}/api/gerente/user`,
+  CREAR: `${API_BASE_URL}/api/gerente/user/createUser`,
+  POR_ID: (id: number) => `${API_BASE_URL}/api/gerente/user/${id}`,
+  DESHABILITAR: (id: number) => `${API_BASE_URL}/api/gerente/user/deshabilitar/${id}`,
+  HABILITAR: (id: number) => `${API_BASE_URL}/api/gerente/user/habilitar/${id}`,
+};
+
+export const RUTAS_GERENTE_ESTRUCTURA = {
+  PISOS: `${API_BASE_URL}/api/gerente/estructura-almacen/pisos`,
+  PISO: (id: number) => `${API_BASE_URL}/api/gerente/estructura-almacen/pisos/${id}`,
+  PISO_ACTIVO: (id: number) => `${API_BASE_URL}/api/gerente/estructura-almacen/pisos/${id}/activo`,
+  AREAS: `${API_BASE_URL}/api/gerente/estructura-almacen/areas`,
+  AREA: (id: number) => `${API_BASE_URL}/api/gerente/estructura-almacen/areas/${id}`,
+  AREA_ACTIVO: (id: number) => `${API_BASE_URL}/api/gerente/estructura-almacen/areas/${id}/activo`,
+  UBICACIONES: `${API_BASE_URL}/api/gerente/estructura-almacen/ubicaciones`,
+  UBICACIONES_RESUMEN: `${API_BASE_URL}/api/gerente/estructura-almacen/ubicaciones/resumen`,
+  UBICACION_ACTIVO: (id: number) =>
+    `${API_BASE_URL}/api/gerente/estructura-almacen/ubicaciones/${id}/activo`,
+};
+
 // Rutas de Productos
 export const RUTAS_PRODUCTOS = {
   // Almacenero endpoints (full CRUD)

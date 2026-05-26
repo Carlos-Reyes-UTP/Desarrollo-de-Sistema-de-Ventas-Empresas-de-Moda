@@ -17,9 +17,10 @@ import { SECTOR_ALMACEN_GENERAL } from '@/shared/constants/sectoresAlmacen';
 const GestionProductos: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
-  const tabActual = tabParam === 'pisos' ? 'pisos' : 'catalogo';
-
   const { tieneRol } = useAuth();
+  const puedeVerPisos = tieneRol('ROLE_ALMACENERO');
+  const tabActual =
+    tabParam === 'pisos' && puedeVerPisos ? 'pisos' : 'catalogo';
   const { acceso: accesoAreaAlmacen, etiquetaStock } = useAccesoAreaAlmacen(true);
   const [sectorFiltro, setSectorFiltro] = useState<string>(SECTOR_ALMACEN_GENERAL);
 
@@ -409,21 +410,23 @@ const GestionProductos: React.FC = () => {
               >
                 Catálogo principal
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const newParams = new URLSearchParams(searchParams);
-                  newParams.set('tab', 'pisos');
-                  setSearchParams(newParams);
-                }}
-                className={`shrink-0 snap-start min-h-10 px-4 py-2 text-xs sm:text-sm font-bold tracking-wide uppercase transition-all rounded-lg touch-manipulation whitespace-nowrap ${
-                  tabActual === 'pisos'
-                    ? 'app-btn-primary shadow-sm'
-                    : 'app-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-surface)]'
-                }`}
-              >
-                Pisos y áreas
-              </button>
+              {puedeVerPisos && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('tab', 'pisos');
+                    setSearchParams(newParams);
+                  }}
+                  className={`shrink-0 snap-start min-h-10 px-4 py-2 text-xs sm:text-sm font-bold tracking-wide uppercase transition-all rounded-lg touch-manipulation whitespace-nowrap ${
+                    tabActual === 'pisos'
+                      ? 'app-btn-primary shadow-sm'
+                      : 'app-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+                  }`}
+                >
+                  Pisos y áreas
+                </button>
+              )}
             </div>
             {accesoAreaAlmacen?.esAlmaceneroGeneral && tabActual === 'catalogo' && (
               <div className="flex flex-wrap items-center gap-2">

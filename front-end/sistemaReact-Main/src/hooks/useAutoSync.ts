@@ -1,7 +1,15 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useGlobalWebSocket } from '../context/WebSocketContext';
+import {
+  hasRelevantSyncMessage,
+  normalizeTriggers,
+  shouldRunDebouncedSync,
+  sliceUnprocessedMessages,
+  type SyncTrigger,
+  type WebSocketSyncMessage,
+} from './syncTriggers';
 
-type SyncTrigger = string | string[];
+export type { SyncTrigger };
 
 /**
  * Escucha mensajes WebSocket y dispara la función de recarga automáticamente
@@ -16,33 +24,59 @@ export function useAutoSync(
   triggers: SyncTrigger,
   debounceMs: number = 1000
 ) {
-  const { messages } = useGlobalWebSocket();
+  const { messages, isConnected } = useGlobalWebSocket();
   const lastSyncRef = useRef<number>(0);
-  const triggerSet = useRef<Set<string>>(new Set());
+  const triggerSetRef = useRef<Set<string>>(normalizeTriggers(triggers));
   const processedCountRef = useRef<number>(0);
+  const onSyncRef = useRef(onSync);
+  const wasConnectedRef = useRef(false);
+  const hadDisconnectRef = useRef(false);
+
+  onSyncRef.current = onSync;
 
   useEffect(() => {
-    const list = Array.isArray(triggers) ? triggers : [triggers];
-    triggerSet.current = new Set(list);
+    triggerSetRef.current = normalizeTriggers(triggers);
   }, [triggers]);
+
+  const runSyncIfDebounced = useCallback(() => {
+    const { run, nextLastSyncAt } = shouldRunDebouncedSync(
+      lastSyncRef.current,
+      debounceMs
+    );
+    if (!run) return;
+    lastSyncRef.current = nextLastSyncAt;
+    void onSyncRef.current();
+  }, [debounceMs]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      if (wasConnectedRef.current) {
+        hadDisconnectRef.current = true;
+      }
+      wasConnectedRef.current = false;
+      return;
+    }
+
+    if (hadDisconnectRef.current) {
+      hadDisconnectRef.current = false;
+      runSyncIfDebounced();
+    }
+    wasConnectedRef.current = true;
+  }, [isConnected, runSyncIfDebounced]);
 
   useEffect(() => {
     if (messages.length === 0) return;
-    if (messages.length <= processedCountRef.current) return;
 
-    const newMessages = messages.slice(processedCountRef.current);
-    processedCountRef.current = messages.length;
-
-    const hasRelevant = newMessages.some(
-      (msg: any) => msg.type && triggerSet.current.has(msg.type)
+    const { newMessages, nextProcessedCount } = sliceUnprocessedMessages(
+      messages as WebSocketSyncMessage[],
+      processedCountRef.current
     );
+    processedCountRef.current = nextProcessedCount;
 
-    if (!hasRelevant) return;
+    if (newMessages.length === 0) return;
 
-    const now = Date.now();
-    if (now - lastSyncRef.current < debounceMs) return;
+    if (!hasRelevantSyncMessage(newMessages, triggerSetRef.current)) return;
 
-    lastSyncRef.current = now;
-    onSync();
-  }, [messages, onSync, debounceMs]);
+    runSyncIfDebounced();
+  }, [messages, runSyncIfDebounced]);
 }

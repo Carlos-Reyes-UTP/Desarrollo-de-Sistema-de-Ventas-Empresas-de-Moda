@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { MaterialIcon } from '@/shared/ui';
+import { AppSelect, MaterialIcon } from '@/shared/ui';
 import { aplicarMatrizAlVariantes } from '../../../utils/aplicarMatrizVariantes';
 import {
   mismoParTallaColor,
@@ -518,18 +518,18 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
               <label className="block text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-2">
                 Seleccione el área de stock <span className="text-red-500">*</span>
               </label>
-              <select
+              <AppSelect
                 value={idAreaEntradaSupervisor}
-                onChange={(e) => setIdAreaEntradaSupervisor(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-black/10 focus:border-black transition-all outline-none"
-              >
-                <option value="">-- Seleccionar área destino --</option>
-                {accesoAreaAlmacen.areasAlmacen.map((a) => (
-                  <option key={a.idUbicacionArea} value={a.idUbicacionArea}>
-                    {a.descripcion ?? (a.area ? `${a.nombre} · ${a.area}` : a.nombre)}
-                  </option>
-                ))}
-              </select>
+                onChange={(v) =>
+                  setIdAreaEntradaSupervisor(v === '' ? '' : Number(v))
+                }
+                placeholder="Seleccionar área destino"
+                options={accesoAreaAlmacen.areasAlmacen.map((a) => ({
+                  value: a.idUbicacionArea,
+                  label:
+                    a.descripcion ?? (a.area ? `${a.nombre} · ${a.area}` : a.nombre),
+                }))}
+              />
             </div>
             <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-white p-4 rounded-xl border border-slate-100">
               <MaterialIcon icon="info" className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />

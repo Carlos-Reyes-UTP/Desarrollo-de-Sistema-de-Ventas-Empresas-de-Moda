@@ -91,7 +91,6 @@ const VendedorPisoVentasPage = () => {
   const [scannerAbierto, setScannerAbierto] = useState(false);
   const [sheetAbierto, setSheetAbierto] = useState(false);
   const [pedidos, setPedidos] = useState<VendedorSolicitudResumen[]>([]);
-  const [pedidosRefrescandoManual, setPedidosRefrescandoManual] = useState(false);
   const [cancelandoSolicitudId, setCancelandoSolicitudId] = useState<number | null>(null);
   const [estaEnfocado, setEstaEnfocado] = useState(false);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -163,19 +162,12 @@ const VendedorPisoVentasPage = () => {
   const stockReservado = varianteSeleccionada?.stockReservado ?? 0;
   const stockFisico = varianteSeleccionada?.stockAlmacen ?? 0;
 
-  const cargarPedidos = useCallback(async (opts?: { manual?: boolean }) => {
-    if (opts?.manual) {
-      setPedidosRefrescandoManual(true);
-    }
+  const cargarPedidos = useCallback(async () => {
     try {
       const lista = await VendedorService.misSolicitudesHoy();
       setPedidos(lista);
     } catch {
       /* silencioso */
-    } finally {
-      if (opts?.manual) {
-        setPedidosRefrescandoManual(false);
-      }
     }
   }, []);
 
@@ -183,8 +175,6 @@ const VendedorPisoVentasPage = () => {
 
   useEffect(() => {
     void cargarPedidos();
-    const t = window.setInterval(() => void cargarPedidos(), 30000);
-    return () => window.clearInterval(t);
   }, [cargarPedidos]);
 
   // Cargar ubicaciones disponibles (para el selector fallback de productos nuevos)
@@ -569,7 +559,7 @@ const VendedorPisoVentasPage = () => {
                               }}
                               className={`rounded-2xl border px-4 py-2 text-xs font-bold transition-all ${
                                 sel
-                                  ? "border-white bg-white text-black shadow-md font-black"
+                                  ? "border-[var(--app-accent)] bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-md font-black"
                                   : "border-white/10 bg-white/[0.03] text-[var(--app-text)] hover:border-white/20 hover:bg-white/[0.08]"
                               }`}
                             >
@@ -671,21 +661,27 @@ const VendedorPisoVentasPage = () => {
                             className={`flex flex-col items-start gap-1 overflow-hidden rounded-[1.5rem] border-2 p-4 text-left transition-all ${disabled
                                 ? "cursor-not-allowed border-white/5 bg-white/[0.01] opacity-30 text-[var(--app-text-faint)]"
                                 : sel
-                                  ? "border-white bg-white text-black shadow-xl"
+                                  ? "border-[var(--app-accent)] bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-xl"
                                   : "border-white/10 bg-white/[0.03] text-[var(--app-text)] hover:border-white/20 hover:bg-white/[0.08]"
                               }`}
                           >
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${sel ? "text-black/60" : "text-[var(--app-text-faint)]"}`}>
-                              {v.talla}
+                            <span
+                              className={`inline-flex rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
+                                sel
+                                  ? "bg-[var(--app-accent-fg)]/15 text-[var(--app-accent-fg)]"
+                                  : "bg-white/10 text-white/90 border border-white/15"
+                              }`}
+                            >
+                              Talla {v.talla}
                             </span>
                             <span className="text-sm font-black truncate w-full">
                               {v.color}
                             </span>
-                            <span className={`mt-2 text-[10px] font-black tabular-nums ${disabled ? "text-[var(--app-text-faint)]" : sel ? "text-black" : "text-emerald-400 font-black"}`}>
+                            <span className={`mt-2 text-[10px] font-black tabular-nums ${disabled ? "text-[var(--app-text-faint)]" : sel ? "text-[var(--app-accent-fg)]" : "text-emerald-400 font-black"}`}>
                               {disp > 0 ? `${disp} DISPONIBLE` : "AGOTADO"}
                             </span>
                             {v.stockReservado > 0 && disp > 0 ? (
-                              <span className={`text-[9px] font-bold ${sel ? "text-black/50" : "text-amber-400"}`}>
+                              <span className={`text-[9px] font-bold ${sel ? "text-[var(--app-accent-fg)]/70" : "text-amber-400"}`}>
                                 {v.stockReservado} en pedidos
                               </span>
                             ) : null}
@@ -776,8 +772,6 @@ const VendedorPisoVentasPage = () => {
 
       <VendedorPisoPedidosDock
         pedidos={pedidos}
-        onRefresh={() => void cargarPedidos({ manual: true })}
-        refrescando={pedidosRefrescandoManual}
         onNuevaRespuestaAlmacen={onNuevaRespuestaAlmacen}
         onCancelarPedido={cancelarPedido}
         cancelandoSolicitudId={cancelandoSolicitudId}

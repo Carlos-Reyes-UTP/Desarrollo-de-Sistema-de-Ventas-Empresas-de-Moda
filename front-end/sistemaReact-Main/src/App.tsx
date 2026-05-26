@@ -13,11 +13,15 @@ import { BandejaSolicitudProvider } from "./context/BandejaSolicitudContext";
 import { WebSocketProvider } from "./context/WebSocketContext";
 
 const DashboardAdminPage = lazy(() => import("./pages/dashboard/DashboardAdminPage"));
+const DashboardGerentePage = lazy(() => import("./pages/dashboard/DashboardGerentePage"));
 const DashboardAlmaceneroPage = lazy(() => import("./pages/dashboard/DashboardAlmaceneroPage"));
 const PuntoDeVentaPage = lazy(() => import("./pages/ventas/PuntoDeVentaPage"));
 const VendedorPisoVentasPage = lazy(() => import("./pages/ventas/VendedorPisoVentasPage"));
 const AlmacenTableroPedidosPage = lazy(() => import("./pages/almacen/AlmacenTableroPedidosPage"));
 const GestionUsuariosPage = lazy(() => import("./pages/usuarios/GestionUsuariosPage"));
+const GestionEstructuraAlmacenPage = lazy(
+  () => import("./pages/gerente/GestionEstructuraAlmacenPage")
+);
 const GestionCategoriasPage = lazy(() => import("./pages/inventario/GestionCategoriasPage"));
 const GestionProductosPage = lazy(() => import("./pages/inventario/GestionProductosPage"));
 const GestionProveedoresPage = lazy(() => import("./pages/inventario/GestionProveedoresPage"));
@@ -37,13 +41,14 @@ const ROLES_DASHBOARD_ALMACENERO: RolNombre[] = [
   "ROLE_ALMACENERO",
   "ROLE_SUPERVISOR_ALMACEN",
 ];
-const ROLES_CAJERO_O_ADMIN: RolNombre[] = ["ROLE_CAJERO", "ROLE_ADMIN"];
+const ROLES_CAJERO: RolNombre[] = ["ROLE_CAJERO"];
+
+const ROLES_REPORTES: RolNombre[] = ["ROLE_ADMIN", "ROLE_GERENTE"];
 
 /** Tablero de pedidos (almacén ↔ vendedor) — personal de almacén y admin */
 const ROLES_TABLERO_ALMACEN: RolNombre[] = [
   "ROLE_ALMACENERO",
   "ROLE_SUPERVISOR_ALMACEN",
-  "ROLE_ADMIN",
 ];
 
 /** Quién puede usar la pantalla y la API de solicitud desde piso de ventas */
@@ -58,6 +63,11 @@ const RedirectToDashboard = () => {
   if (tieneRol("ROLE_ADMIN")) {
     logger.debug("RedirectToDashboard - redirigiendo a /dashboard/admin");
     return <Navigate to={APP_PATHS.dashboardAdmin} />;
+  }
+
+  if (tieneRol("ROLE_GERENTE")) {
+    logger.debug("RedirectToDashboard - redirigiendo a /dashboard/gerente");
+    return <Navigate to={APP_PATHS.dashboardGerente} />;
   }
 
   if (tieneRol("ROLE_ALMACENERO") || tieneRol("ROLE_SUPERVISOR_ALMACEN")) {
@@ -153,6 +163,15 @@ function App() {
       />
 
       <Route
+        path={APP_PATHS.dashboardGerente}
+        element={
+          <RutaProtegidaConLayout rolRequerido="ROLE_GERENTE">
+            <DashboardGerentePage />
+          </RutaProtegidaConLayout>
+        }
+      />
+
+      <Route
         path={APP_PATHS.dashboardAlmacenero}
         element={
           <RutaProtegidaConLayout rolRequerido={ROLES_DASHBOARD_ALMACENERO}>
@@ -173,7 +192,7 @@ function App() {
       <Route
         path={APP_PATHS.caja}
         element={
-          <RutaProtegidaConLayout rolRequerido={ROLES_CAJERO_O_ADMIN}>
+          <RutaProtegidaConLayout rolRequerido={ROLES_CAJERO}>
             <PuntoDeVentaPage />
           </RutaProtegidaConLayout>
         }
@@ -195,6 +214,24 @@ function App() {
         element={
           <RutaProtegidaConLayout rolRequerido="ROLE_ADMIN">
             <GestionUsuariosPage />
+          </RutaProtegidaConLayout>
+        }
+      />
+
+      <Route
+        path={APP_PATHS.gerenteUsuarios}
+        element={
+          <RutaProtegidaConLayout rolRequerido="ROLE_GERENTE">
+            <GestionUsuariosPage />
+          </RutaProtegidaConLayout>
+        }
+      />
+
+      <Route
+        path={APP_PATHS.gerentePisos}
+        element={
+          <RutaProtegidaConLayout rolRequerido="ROLE_GERENTE">
+            <GestionEstructuraAlmacenPage />
           </RutaProtegidaConLayout>
         }
       />
@@ -229,7 +266,7 @@ function App() {
       <Route
         path={APP_PATHS.reportes}
         element={
-          <RutaProtegidaConLayout rolRequerido="ROLE_ADMIN">
+          <RutaProtegidaConLayout rolRequerido={ROLES_REPORTES}>
             <ReportesPage />
           </RutaProtegidaConLayout>
         }

@@ -23,10 +23,13 @@ interface RouteViewConfig {
 
 export const APP_PATHS = {
   dashboardAdmin: "/dashboard/admin",
+  dashboardGerente: "/dashboard/gerente",
   dashboardAlmacenero: "/dashboard/almacenero",
   caja: "/ventas/punto-de-venta",
   vendedorPiso: "/ventas/vendedor-solicitud-almacen",
   gestionUsuarios: "/admin/usuarios",
+  gerenteUsuarios: "/gerente/usuarios",
+  gerentePisos: "/gerente/pisos",
   productos: "/inventario/productos",
   proveedores: "/inventario/proveedores",
   categorias: "/inventario/categorias",
@@ -84,6 +87,10 @@ export const resolveRouteView = ({
     return "dashboard-admin";
   }
 
+  if (pathname.includes(APP_PATHS.dashboardGerente)) {
+    return "dashboard-gerente";
+  }
+
   if (pathname.includes(APP_PATHS.dashboardAlmacenero)) {
     return "dashboard-almacenero";
   }
@@ -104,19 +111,21 @@ export const resolveRouteView = ({
     return "usuarios";
   }
 
-  if (pathname.includes(APP_PATHS.reportes) && hasRole("ROLE_ADMIN")) {
-    return "reportes-admin";
+  if (pathname.includes(APP_PATHS.gerenteUsuarios)) {
+    return "gerente-usuarios";
+  }
+
+  if (pathname.includes(APP_PATHS.gerentePisos)) {
+    return "gerente-pisos";
+  }
+
+  if (pathname.includes(APP_PATHS.reportes) && (hasRole("ROLE_ADMIN") || hasRole("ROLE_GERENTE"))) {
+    return hasRole("ROLE_GERENTE") ? "reportes-gerente" : "reportes-admin";
   }
 
   const matchingConfig = INVENTORY_ROUTE_CONFIG.find(config => pathname.includes(config.ruta));
-  if (matchingConfig) {
-    if (hasRole("ROLE_ADMIN")) {
-      return matchingConfig.admin;
-    }
-
-    if (esPersonalAlmacen(hasRole)) {
-      return matchingConfig.almacenero;
-    }
+  if (matchingConfig && esPersonalAlmacen(hasRole)) {
+    return matchingConfig.almacenero;
   }
 
   return getDefaultCajeroView();
@@ -141,15 +150,25 @@ export const resolveSidebarState = (input: ResolveViewInput) => {
     return { view, accordion: 2 };
   }
 
-  for (const config of INVENTORY_ROUTE_CONFIG) {
-    if (input.pathname.includes(config.ruta)) {
-      if (input.hasRole("ROLE_ADMIN")) {
-        return { view, accordion: config.accordionAdmin };
-      }
+  if (input.pathname.includes(APP_PATHS.gerenteUsuarios)) {
+    return { view, accordion: 2 };
+  }
 
-      if (esPersonalAlmacen(input.hasRole)) {
-        return { view, accordion: config.accordionAlmacenero };
-      }
+  if (input.pathname.includes(APP_PATHS.gerentePisos)) {
+    return { view, accordion: 0 };
+  }
+
+  if (input.pathname.includes(APP_PATHS.dashboardGerente)) {
+    return { view, accordion: 0 };
+  }
+
+  if (input.pathname.includes(APP_PATHS.reportes) && input.hasRole("ROLE_GERENTE")) {
+    return { view, accordion: 0 };
+  }
+
+  for (const config of INVENTORY_ROUTE_CONFIG) {
+    if (input.pathname.includes(config.ruta) && esPersonalAlmacen(input.hasRole)) {
+      return { view, accordion: config.accordionAlmacenero };
     }
   }
 

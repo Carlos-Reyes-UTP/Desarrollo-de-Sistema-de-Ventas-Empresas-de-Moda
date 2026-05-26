@@ -48,8 +48,8 @@ public class VendedorService {
     private static final int MAX_COINCIDENCIAS = 25;
 
     /** Nombres reservados que NO son áreas de piso vendible. */
-    private static final List<String> RESERVADAS_LOWER = List.of(
-            "almacén", "almacen", "bodega", "depósito", "deposito");
+    // private static final List<String> RESERVADAS_LOWER = List.of(
+    //         "almacén", "almacen", "bodega", "depósito", "deposito");
 
     private final CodigoBarrasService codigoBarrasService;
     private final ProductoService productoService;

@@ -1,6 +1,7 @@
 import { MaterialIcon } from '@/shared/ui';
 import type { Cliente } from '../../../types/Cliente';
 import { useRef, useEffect, useState } from 'react';
+import { UMBRAL_DNI_OBLIGATORIO } from '../../../utils/validarIdentificacionCliente';
 
 interface ClienteSectionProps {
   tipoDocumento: 'DNI' | 'RUC';
@@ -19,8 +20,16 @@ interface ClienteSectionProps {
   limpiarCliente: () => void;
   inputNombreDebeParpadear: boolean;
   setInputNombreDebeParpadear: (val: boolean) => void;
+  inputDocumentoDebeParpadear: boolean;
+  setInputDocumentoDebeParpadear: (val: boolean) => void;
   handleActualizarClienteNombre: (nombre: string) => Promise<void>;
   clienteCreadoManualmente: boolean;
+  totalGeneralVenta: number;
+  requiereDocumentoCliente: boolean;
+  clienteValidoParaVenta: boolean;
+  identificacionMensaje: string | null;
+  tieneProductosEnCarrito: boolean;
+  compact?: boolean;
 }
 
 export const ClienteSection = ({
@@ -40,10 +49,19 @@ export const ClienteSection = ({
   limpiarCliente,
   inputNombreDebeParpadear,
   setInputNombreDebeParpadear,
+  inputDocumentoDebeParpadear,
+  setInputDocumentoDebeParpadear,
   handleActualizarClienteNombre,
-  clienteCreadoManualmente
+  clienteCreadoManualmente,
+  totalGeneralVenta,
+  requiereDocumentoCliente,
+  clienteValidoParaVenta,
+  identificacionMensaje,
+  tieneProductosEnCarrito,
+  compact = false,
 }: ClienteSectionProps) => {
   const nombreInputRef = useRef<HTMLInputElement>(null);
+  const documentoInputRef = useRef<HTMLInputElement>(null);
   const [editandoCliente, setEditandoCliente] = useState(false);
   const [nombreEditado, setNombreEditado] = useState('');
 
@@ -55,10 +73,22 @@ export const ClienteSection = ({
   }, [inputNombreDebeParpadear]);
 
   useEffect(() => {
+    if (inputDocumentoDebeParpadear && documentoInputRef.current) {
+      documentoInputRef.current.focus();
+      documentoInputRef.current.select();
+    }
+  }, [inputDocumentoDebeParpadear]);
+
+  useEffect(() => {
     setEditandoCliente(false);
   }, [clienteSeleccionado]);
   return (
-    <div className="caj-card rounded-[2.5rem] p-10 mb-10 shadow-sm border transition-all duration-300">
+    <div
+      id="pos-cliente-cobro"
+      className={`caj-card shadow-sm border transition-all duration-300 ${
+        compact ? 'rounded-[1.25rem] p-4' : 'rounded-[2.5rem] p-10 mb-10'
+      }`}
+    >
       <style>{`
         @keyframes glow-pulse {
           0%, 100% {
@@ -88,47 +118,90 @@ export const ClienteSection = ({
                       0 0 15px var(--caj-accent) !important;
         }
       `}</style>
-      <div className="flex items-center gap-4 mb-10">
-        <div className="w-12 h-12 caj-btn-primary rounded-2xl flex items-center justify-center shadow-[0_10px_20px_rgba(0,0,0,0.1)]">
-          <MaterialIcon icon="group" className="h-6 w-6 text-[var(--caj-accent-fg)]" />
+      <div className={`flex items-center gap-3 ${compact ? 'mb-4' : 'mb-10'}`}>
+        <div className={`caj-btn-primary rounded-xl flex items-center justify-center shadow-md ${compact ? 'w-9 h-9' : 'w-12 h-12 rounded-2xl'}`}>
+          <MaterialIcon icon="group" className={`caj-accent-fg ${compact ? 'h-5 w-5' : 'h-6 w-6'}`} />
         </div>
         <div>
-          <h2 className="caj-heading text-[12px] font-bold tracking-[0.25em] uppercase">Datos del Cliente</h2>
-          <p className="caj-label text-[10px] font-medium uppercase tracking-widest mt-1">Busca o registra al cliente aquí</p>
+          <h2 className="caj-heading text-[11px] font-bold tracking-[0.2em] uppercase">Datos del cliente</h2>
+          <p className="caj-label text-[9px] font-medium uppercase tracking-widest mt-0.5">
+            Complete al cobrar según el total de la venta
+          </p>
         </div>
       </div>
+
+      <div
+        className={`${compact ? 'mb-3 px-3 py-2.5' : 'mb-8 px-6 py-4'} rounded-xl border text-[9px] font-bold uppercase tracking-[0.12em] ${
+          !tieneProductosEnCarrito
+            ? 'caj-highlight-panel caj-text-muted'
+            : requiereDocumentoCliente
+              ? 'bg-amber-50/80 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-200'
+              : 'bg-emerald-50/60 dark:bg-emerald-950/15 border-emerald-100 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-300'
+        }`}
+      >
+        {!tieneProductosEnCarrito
+          ? 'Agregue productos; luego complete el cliente al cobrar'
+          : requiereDocumentoCliente
+            ? `Venta desde S/ ${UMBRAL_DNI_OBLIGATORIO} — DNI o RUC obligatorio`
+            : `Venta menor a S/ ${UMBRAL_DNI_OBLIGATORIO} — puede registrar solo nombre completo (DNI opcional)`}
+        {tieneProductosEnCarrito && totalGeneralVenta > 0 && (
+          <span className="block mt-1 font-medium opacity-80 normal-case tracking-normal">
+            Total actual: S/ {totalGeneralVenta.toFixed(2)}
+          </span>
+        )}
+      </div>
+
+      {tieneProductosEnCarrito &&
+        requiereDocumentoCliente &&
+        !clienteValidoParaVenta &&
+        identificacionMensaje && (
+        <div className={`${compact ? 'mb-3 px-3 py-2' : 'mb-8 px-6 py-3'} rounded-xl border border-amber-300/60 bg-amber-100/40 dark:bg-amber-950/30 text-[9px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-100`}>
+          {identificacionMensaje}
+        </div>
+      )}
       
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-10 items-end">
-        <div className="md:col-span-3">
-          <label className="caj-label block text-[10px] font-bold tracking-[0.2em] uppercase mb-4 pl-1">Tipo de Documento</label>
-          <div className="caj-segment grid grid-cols-2 gap-2 p-1.5 rounded-[1.25rem]">
+      <div className={`grid grid-cols-1 gap-4 items-end ${compact ? '' : 'md:grid-cols-12 gap-10'}`}>
+        <div className={compact ? '' : 'md:col-span-3'}>
+          <label className={`caj-label block text-[10px] font-bold tracking-[0.2em] uppercase pl-1 ${compact ? 'mb-2' : 'mb-4'}`}>Tipo de Documento</label>
+          <div className="caj-segment grid grid-cols-2 gap-2 p-1.5 rounded-xl">
             <button 
               onClick={() => { setTipoDocumento('DNI'); setDocumentoCliente(''); }}
-              className={`py-3 rounded-xl text-[10px] font-bold transition-all uppercase tracking-[0.2em] ${tipoDocumento === 'DNI' ? 'caj-segment-active shadow-lg' : 'caj-segment-inactive'}`}
+              className={`${compact ? 'py-2' : 'py-3'} rounded-lg text-[10px] font-bold transition-all uppercase tracking-[0.2em] ${tipoDocumento === 'DNI' ? 'caj-segment-active shadow-lg' : 'caj-segment-inactive'}`}
             >
               DNI
             </button>
             <button 
               onClick={() => { setTipoDocumento('RUC'); setDocumentoCliente(''); }}
-              className={`py-3 rounded-xl text-[10px] font-bold transition-all uppercase tracking-[0.2em] ${tipoDocumento === 'RUC' ? 'caj-segment-active shadow-lg' : 'caj-segment-inactive'}`}
+              className={`${compact ? 'py-2' : 'py-3'} rounded-lg text-[10px] font-bold transition-all uppercase tracking-[0.2em] ${tipoDocumento === 'RUC' ? 'caj-segment-active shadow-lg' : 'caj-segment-inactive'}`}
             >
               RUC
             </button>
           </div>
         </div>
         
-        <div className="md:col-span-4">
-          <label className="caj-label block text-[10px] font-bold tracking-[0.2em] uppercase mb-4 pl-1">Número de documento</label>
+        <div className={compact ? '' : 'md:col-span-4'}>
+          <label className={`caj-label block text-[10px] font-bold tracking-[0.2em] uppercase pl-1 ${compact ? 'mb-2' : 'mb-4'}`}>
+            Número de documento
+            <span className={`ml-2 ${requiereDocumentoCliente ? 'text-amber-600' : 'caj-text-faint'}`}>
+              {requiereDocumentoCliente ? '(obligatorio)' : '(opcional)'}
+            </span>
+          </label>
           <div className="relative group flex items-center">
             <input 
+              ref={documentoInputRef}
               type="text" 
               autoComplete="off"
-              className="caj-input w-full pl-6 pr-16 py-4 border-none rounded-[1.25rem] text-sm font-bold focus:ring-[3px] focus:ring-[var(--caj-ring)] transition-all placeholder:caj-text-faint tracking-[0.1em]"
+              className={`caj-input w-full pl-4 pr-14 border-none rounded-xl text-sm font-bold focus:ring-[3px] focus:ring-[var(--caj-ring)] transition-all placeholder:caj-text-faint tracking-[0.1em] ${compact ? 'py-2.5' : 'py-4 pl-6 pr-16 rounded-[1.25rem]'} ${
+                inputDocumentoDebeParpadear ? 'caj-glow-pulse' : ''
+              }`}
               value={documentoCliente}
               onChange={(e) => {
                 const value = e.target.value.replace(/\D/g, '');
                 if ((tipoDocumento === 'DNI' && value.length <= 8) || (tipoDocumento === 'RUC' && value.length <= 11)) {
                   setDocumentoCliente(value);
+                  if (value.length > 0) {
+                    setInputDocumentoDebeParpadear(false);
+                  }
                 }
               }}
               onKeyPress={(e) => {
@@ -146,12 +219,15 @@ export const ClienteSection = ({
           </div>
         </div>
         
-        <div className="md:col-span-5">
-          <label className="caj-label block text-[10px] font-bold tracking-[0.2em] uppercase mb-4 pl-1">Nombre del Cliente</label>
+        <div className={compact ? '' : 'md:col-span-5'}>
+          <label className={`caj-label block text-[10px] font-bold tracking-[0.2em] uppercase pl-1 ${compact ? 'mb-2' : 'mb-4'}`}>
+            Nombre del cliente
+            <span className="ml-2 text-amber-600">(obligatorio)</span>
+          </label>
           <input 
             ref={nombreInputRef}
             type="text" 
-            className={`caj-input w-full px-6 py-4 border-none rounded-[1.25rem] text-sm font-bold focus:ring-[3px] focus:ring-[var(--caj-ring)] transition-all uppercase placeholder:caj-text-faint tracking-wide ${
+            className={`caj-input w-full px-4 border-none rounded-xl text-sm font-bold focus:ring-[3px] focus:ring-[var(--caj-ring)] transition-all uppercase placeholder:caj-text-faint tracking-wide ${compact ? 'py-2.5' : 'px-6 py-4 rounded-[1.25rem]'} ${
               inputNombreDebeParpadear ? 'caj-glow-pulse' : ''
             }`}
             value={cliente} 
@@ -160,25 +236,28 @@ export const ClienteSection = ({
               setCliente(val);
               if (val.trim().length > 0) {
                 setInputNombreDebeParpadear(false);
-              } else {
-                setInputNombreDebeParpadear(true);
               }
             }} 
-            placeholder="ESCRIBIR NOMBRE DEL CLIENTE..." 
+            placeholder="EJ: MARIA (OPCIONALMENTE APELLIDO)" 
           />
+          {tieneProductosEnCarrito && !requiereDocumentoCliente && !documentoCliente.trim() && !cliente.trim() && (
+            <p className="mt-2 pl-1 text-[9px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-300">
+              Ingrese al menos un nombre del cliente
+            </p>
+          )}
         </div>
       </div>
       
       {/* Estado de carga de búsqueda de cliente inline */}
       {cargandoBusquedaCliente && (
-        <div className="mt-10 p-8 rounded-[2rem] border border-dashed border-[var(--caj-border)] bg-[var(--caj-card-bg)] animate-pulse flex flex-col sm:flex-row items-center justify-between gap-6">
+        <div className={`${compact ? 'mt-3 p-4' : 'mt-10 p-8'} rounded-xl border border-dashed border-[var(--caj-border)] bg-[var(--caj-card-bg)] animate-pulse flex flex-col sm:flex-row items-center justify-between gap-4`}>
           <div className="flex items-center gap-6 w-full">
-            <div className="w-14 h-14 rounded-2xl bg-gray-200 dark:bg-gray-800 flex items-center justify-center shadow-inner">
-              <MaterialIcon icon="progress_activity" className="animate-spin h-6 w-6 text-gray-400" />
+            <div className="w-14 h-14 rounded-2xl caj-surface-muted flex items-center justify-center shadow-inner">
+              <MaterialIcon icon="progress_activity" className="animate-spin h-6 w-6 caj-icon-muted" />
             </div>
             <div className="flex-1 space-y-3">
-              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded-lg w-1/3"></div>
-              <div className="h-3 bg-gray-200 dark:bg-gray-800 rounded-lg w-1/4"></div>
+              <div className="h-4 caj-surface-muted rounded-lg w-1/3"></div>
+              <div className="h-3 caj-surface-muted rounded-lg w-1/4"></div>
             </div>
           </div>
         </div>
@@ -186,7 +265,7 @@ export const ClienteSection = ({
 
       {/* Alerta de error de búsqueda inline */}
       {errorBusquedaCliente && !cargandoBusquedaCliente && (
-        <div className="mt-10 p-6 rounded-[2rem] border border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 animate-fadeIn flex items-center justify-between gap-4">
+        <div className={`${compact ? 'mt-3 p-3' : 'mt-10 p-6'} rounded-xl border border-red-100 dark:border-red-900/30 bg-red-50/50 dark:bg-red-950/10 animate-fadeIn flex items-center justify-between gap-3`}>
           <div className="flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 shadow-sm">
               <MaterialIcon icon="info" className="h-5 w-5" />
@@ -221,16 +300,16 @@ export const ClienteSection = ({
       )}
 
       {clienteSeleccionado && !cargandoBusquedaCliente && (
-        <div className={`mt-10 p-8 rounded-[2rem] border animate-fadeIn transition-all duration-500 overflow-hidden relative ${esMayorista ? 'bg-black border-gray-800 text-white shadow-2xl' : 'caj-page caj-border-subtle border'}`}>
+        <div className={`${compact ? 'mt-3 p-4 rounded-xl' : 'mt-10 p-8 rounded-[2rem]'} border animate-fadeIn transition-all duration-500 overflow-hidden relative ${esMayorista ? 'caj-banner shadow-2xl' : 'caj-detail-tile caj-border-subtle border'}`}>
           {esMayorista && (
             <div className="absolute top-0 right-0 p-4 opacity-10">
-               <MaterialIcon icon="add" className="w-32 h-32 text-white" />
+               <MaterialIcon icon="add" className="w-32 h-32 caj-banner-muted" />
             </div>
           )}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 relative z-10 w-full">
             <div className="flex items-center gap-6 flex-1 w-full sm:w-auto">
-              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${esMayorista ? 'bg-white shadow-[0_0_30px_rgba(255,255,255,0.2)] animate-pulse' : 'caj-btn-primary shadow-lg'}`}>
-                <MaterialIcon icon="check_circle" className={`h-8 w-8 ${esMayorista ? 'text-black' : 'text-[var(--caj-accent-fg)]'}`} />
+              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg ${esMayorista ? 'caj-banner-icon-wrap animate-pulse' : 'caj-icon-chip'}`}>
+                <MaterialIcon icon="check_circle" className="h-8 w-8" />
               </div>
               <div className="text-left flex-1 w-full">
                 {editandoCliente ? (
@@ -263,11 +342,11 @@ export const ClienteSection = ({
                       autoFocus
                     />
                     <div className="flex items-center gap-3">
-                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-lg ${esMayorista ? 'bg-white/10 text-gray-300' : 'caj-surface-muted caj-text-muted'}`}>
+                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-lg ${esMayorista ? 'caj-badge-on-banner' : 'caj-surface-muted caj-text-muted'}`}>
                         {tipoDocumento}: {documentoCliente}
                       </span>
                       {esMayorista && (
-                        <span className="text-[10px] font-bold bg-white text-black px-3 py-1 rounded-lg uppercase tracking-[0.2em] shadow-xl animate-pulse">
+                        <span className="text-[10px] font-bold caj-banner-icon-wrap px-3 py-1 rounded-lg uppercase tracking-[0.2em] shadow-xl animate-pulse">
                           TARIFA MAYORISTA ACTIVA
                         </span>
                       )}
@@ -275,15 +354,15 @@ export const ClienteSection = ({
                   </div>
                 ) : (
                   <>
-                    <h3 className={`text-lg font-bold uppercase tracking-widest ${esMayorista ? 'text-white' : 'caj-heading'}`}>
+                    <h3 className={`text-lg font-bold uppercase tracking-widest ${esMayorista ? '' : 'caj-heading'}`}>
                       {clienteSeleccionado.nombreCliente}
                     </h3>
                     <div className="flex items-center gap-3 mt-2">
-                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-lg ${esMayorista ? 'bg-white/10 text-gray-300' : 'caj-surface-muted caj-text-muted'}`}>
+                      <span className={`text-[10px] font-bold uppercase tracking-[0.2em] px-3 py-1 rounded-lg ${esMayorista ? 'caj-badge-on-banner' : 'caj-surface-muted caj-text-muted'}`}>
                         {tipoDocumento}: {documentoCliente}
                       </span>
                       {esMayorista && (
-                        <span className="text-[10px] font-bold bg-white text-black px-3 py-1 rounded-lg uppercase tracking-[0.2em] shadow-xl animate-pulse">
+                        <span className="text-[10px] font-bold caj-banner-icon-wrap px-3 py-1 rounded-lg uppercase tracking-[0.2em] shadow-xl animate-pulse">
                           TARIFA MAYORISTA ACTIVA
                         </span>
                       )}
@@ -314,10 +393,10 @@ export const ClienteSection = ({
                   className={`flex items-center gap-2 px-6 py-3 text-[11px] font-bold uppercase tracking-[0.2em] rounded-xl transition-all shadow-sm active:scale-95 ${
                     esMayorista
                       ? 'bg-zinc-800 hover:bg-zinc-700 text-gray-200 border border-zinc-700'
-                      : 'bg-gray-50/80 dark:bg-gray-800/40 hover:bg-gray-100 dark:hover:bg-gray-700/50 text-gray-500 dark:text-gray-400 border border-gray-100 dark:border-gray-700/30 shadow-inner'
+                      : 'caj-btn-secondary border shadow-inner'
                   }`}
                 >
-                  <MaterialIcon icon="close" className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                  <MaterialIcon icon="close" className="h-4 w-4 caj-icon-muted" />
                   Cancelar
                 </button>
               </div>

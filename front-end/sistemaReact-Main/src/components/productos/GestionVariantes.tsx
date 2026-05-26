@@ -8,7 +8,7 @@ import {
   mismoParTallaColor,
   nombresUnicosOrdenados,
 } from '../../utils/varianteCatalogoHelpers';
-import { AlertModal, ConfirmModal, Skeleton, MaterialIcon } from '@/shared/ui';
+import { AlertModal, ConfirmModal, Skeleton, MaterialIcon, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
 
 interface GestionVariantesProps {
   producto: Producto;
@@ -42,6 +42,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' | 'warning' }>({ open: false, message: '', variant: 'info' });
 
   const [isModalVisible, setIsModalVisible] = useState(true);
+
+  useModalBodyScrollLock(true);
 
   useEffect(() => {
     cargarDatos();
@@ -175,7 +177,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   const totalStock = variantes.reduce((sum, v) => sum + (v.stockAlmacen ?? v.cantidad), 0);
 
   return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${isModalVisible ? 'animate-fadeIn' : 'animate-fadeOut'}`}>
+    <ModalPortal>
+    <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${isModalVisible ? 'animate-fadeIn' : 'animate-fadeOut'}`}>
       <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${isModalVisible ? 'animate-scaleIn' : 'animate-scaleOut'}`}>
 
         <div className="p-10 pb-6 border-b border-gray-100">
@@ -279,7 +282,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       </div>
 
       {showNuevaVariante && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-fadeIn">
+        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn" style={{ zIndex: 'calc(var(--app-z-modal) + 10)' }}>
           <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden animate-scaleIn">
             <div className="p-10">
               <div className="mb-6 w-12 h-1 bg-black"></div>
@@ -428,6 +431,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
       />
     </div>
+    </ModalPortal>
   );
 };
 

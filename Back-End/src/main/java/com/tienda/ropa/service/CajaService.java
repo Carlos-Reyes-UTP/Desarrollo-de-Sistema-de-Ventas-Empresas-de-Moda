@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +76,7 @@ public class CajaService {
     }
 
     @Transactional
-    public CajaDTO cerrarCaja(Long idCaja, CierreCajaDTO cierreDTO) {
+    public CajaDTO cerrarCaja(Long idCaja, Long idUsuarioAutenticado, CierreCajaDTO cierreDTO) {
         Optional<Caja> cajaOpt = cajaRepository.findById(idCaja);
         if (cajaOpt.isEmpty()) {
             throw new RuntimeException("Caja no encontrada");
@@ -86,47 +85,31 @@ public class CajaService {
         Caja caja = cajaOpt.get();
         final Long idUsuarioCaja = caja.getUsuario().getId();
 
+        if (!idUsuarioCaja.equals(idUsuarioAutenticado)) {
+            throw new RuntimeException("No tiene permiso para cerrar esta caja");
+        }
+
         if (!"ABIERTA".equals(caja.getEstado())) {
             throw new RuntimeException("La caja ya está cerrada");
         }
 
-        LocalDateTime fechaApertura = caja.getFechaApertura();
-        LocalDate fechaSolo = fechaApertura.toLocalDate();
-        LocalDateTime inicioDia = fechaSolo.atStartOfDay();
-        LocalDateTime finDia = fechaSolo.plusDays(1).atStartOfDay();
+        List<Venta> ventasDelTurno = ventaRepository.findByUsuarioIdAndFechaVentaBetween(
+                idUsuarioCaja, caja.getFechaApertura(), LocalDateTime.now());
 
-        List<Venta> ventasDelDia = ventaRepository.findByUsuarioIdAndFechaVentaBetween(
-                idUsuarioCaja, inicioDia, finDia);
+        TotalesPorMetodoPago totales = calcularTotalesPorMetodoPago(ventasDelTurno);
 
-        BigDecimal ventasEfectivo = BigDecimal.ZERO;
-        BigDecimal ventasTarjeta = BigDecimal.ZERO;
-        BigDecimal ventasYape = BigDecimal.ZERO;
+        caja.setMontoVentasEfectivo(totales.efectivo);
+        caja.setMontoVentasTarjeta(totales.tarjeta);
+        caja.setMontoVentasYape(totales.yape);
 
-        for (Venta venta : ventasDelDia) {
-            BigDecimal monto = venta.getTotalVentas();
-            String metodoPago = venta.getMetodoPago().toUpperCase();
+        BigDecimal efectivoContado = valorSeguro(cierreDTO.getEfectivoContado());
+        BigDecimal tarjetaContado = valorSeguro(cierreDTO.getTarjetaContado());
+        BigDecimal yapeContado = valorSeguro(cierreDTO.getYapeContado());
 
-            if (metodoPago.contains("EFECTIVO") || metodoPago.contains("CASH")) {
-                ventasEfectivo = ventasEfectivo.add(monto);
-            } else if (metodoPago.contains("TARJETA") || metodoPago.contains("VISA") || metodoPago.contains("CARD")) {
-                ventasTarjeta = ventasTarjeta.add(monto);
-            } else if (metodoPago.contains("YAPE") || metodoPago.contains("PLIN")) {
-                ventasYape = ventasYape.add(monto);
-            } else {
-                ventasEfectivo = ventasEfectivo.add(monto);
-            }
-        }
+        BigDecimal montoCierreTotal = efectivoContado.add(tarjetaContado).add(yapeContado);
 
-        caja.setMontoVentasEfectivo(ventasEfectivo);
-        caja.setMontoVentasTarjeta(ventasTarjeta);
-        caja.setMontoVentasYape(ventasYape);
-
-        BigDecimal montoCierreTotal = cierreDTO.getEfectivoContado()
-                .add(cierreDTO.getTarjetaContado())
-                .add(cierreDTO.getYapeContado());
-
-        BigDecimal montoEsperado = caja.getMontoApertura().add(ventasEfectivo);
-        BigDecimal discrepancia = cierreDTO.getEfectivoContado().subtract(montoEsperado);
+        BigDecimal montoEsperado = caja.getMontoApertura().add(totales.efectivo);
+        BigDecimal discrepancia = efectivoContado.subtract(montoEsperado);
 
         caja.setFechaCierre(LocalDateTime.now());
         caja.setMontoCierre(montoCierreTotal);
@@ -192,16 +175,12 @@ public class CajaService {
 
         Caja caja = cajaAbierta.get();
         BigDecimal monto = venta.getTotalVentas();
-        String metodoPago = venta.getMetodoPago().toUpperCase();
+        MetodoPagoCaja categoria = clasificarMetodoPago(venta.getMetodoPago());
 
-        if (metodoPago.contains("EFECTIVO") || metodoPago.contains("CASH")) {
-            caja.setMontoVentasEfectivo(caja.getMontoVentasEfectivo().add(monto));
-        } else if (metodoPago.contains("TARJETA") || metodoPago.contains("VISA") || metodoPago.contains("CARD")) {
-            caja.setMontoVentasTarjeta(caja.getMontoVentasTarjeta().add(monto));
-        } else if (metodoPago.contains("YAPE") || metodoPago.contains("PLIN")) {
-            caja.setMontoVentasYape(caja.getMontoVentasYape().add(monto));
-        } else {
-            caja.setMontoVentasEfectivo(caja.getMontoVentasEfectivo().add(monto));
+        switch (categoria) {
+            case EFECTIVO -> caja.setMontoVentasEfectivo(caja.getMontoVentasEfectivo().add(monto));
+            case TARJETA -> caja.setMontoVentasTarjeta(caja.getMontoVentasTarjeta().add(monto));
+            case YAPE -> caja.setMontoVentasYape(caja.getMontoVentasYape().add(monto));
         }
 
         cajaRepository.save(caja);
@@ -216,6 +195,50 @@ public class CajaService {
         movimiento.setReferenciaId(venta.getIdVenta());
 
         movimientoCajaRepository.save(movimiento);
+    }
+
+    private static BigDecimal valorSeguro(BigDecimal valor) {
+        return valor != null ? valor : BigDecimal.ZERO;
+    }
+
+    private enum MetodoPagoCaja {
+        EFECTIVO, TARJETA, YAPE
+    }
+
+    private static final class TotalesPorMetodoPago {
+        private BigDecimal efectivo = BigDecimal.ZERO;
+        private BigDecimal tarjeta = BigDecimal.ZERO;
+        private BigDecimal yape = BigDecimal.ZERO;
+    }
+
+    private MetodoPagoCaja clasificarMetodoPago(String metodoPago) {
+        if (metodoPago == null) {
+            return MetodoPagoCaja.EFECTIVO;
+        }
+        String normalizado = metodoPago.toUpperCase();
+        if (normalizado.contains("EFECTIVO") || normalizado.contains("CASH")) {
+            return MetodoPagoCaja.EFECTIVO;
+        }
+        if (normalizado.contains("TARJETA") || normalizado.contains("VISA") || normalizado.contains("CARD")) {
+            return MetodoPagoCaja.TARJETA;
+        }
+        if (normalizado.contains("YAPE") || normalizado.contains("PLIN")) {
+            return MetodoPagoCaja.YAPE;
+        }
+        return MetodoPagoCaja.EFECTIVO;
+    }
+
+    private TotalesPorMetodoPago calcularTotalesPorMetodoPago(List<Venta> ventas) {
+        TotalesPorMetodoPago totales = new TotalesPorMetodoPago();
+        for (Venta venta : ventas) {
+            BigDecimal monto = venta.getTotalVentas();
+            switch (clasificarMetodoPago(venta.getMetodoPago())) {
+                case EFECTIVO -> totales.efectivo = totales.efectivo.add(monto);
+                case TARJETA -> totales.tarjeta = totales.tarjeta.add(monto);
+                case YAPE -> totales.yape = totales.yape.add(monto);
+            }
+        }
+        return totales;
     }
 
     private CajaDTO convertirADTO(Caja caja) {

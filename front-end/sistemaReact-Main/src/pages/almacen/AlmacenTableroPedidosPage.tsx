@@ -23,7 +23,6 @@ import type { AlmacenSolicitud, AlmacenTicketConsolidado, MotivoRechazoApi } fro
 import { mensajeErrorApi } from "../../utils/apiErrors";
 import { destinosUnicosEnLote } from "../../utils/solicitudUbicacion";
 
-const POLL_MS = 30000;
 const PULSE_MS = 8000;
 
 function esVenta(c: AlmacenSolicitud): boolean {
@@ -108,8 +107,6 @@ export default function AlmacenTableroPedidosPage() {
 
   useEffect(() => {
     void cargar();
-    const id = window.setInterval(() => void cargar(), POLL_MS);
-    return () => window.clearInterval(id);
   }, [cargar]);
 
   useEffect(() => {
@@ -241,14 +238,6 @@ export default function AlmacenTableroPedidosPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => void cargar()}
-            className="p-2.5 rounded-xl hover:bg-[var(--app-hover-overlay)] app-text-faint transition-all active:rotate-180 duration-500"
-            title="Actualizar"
-          >
-            <MaterialIcon icon="refresh" className="w-5 h-5" />
-          </button>
           <div ref={settingsRef} className="relative">
             <button
               type="button"

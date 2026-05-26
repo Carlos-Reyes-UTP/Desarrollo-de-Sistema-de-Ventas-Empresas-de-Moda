@@ -35,8 +35,22 @@ export function MaterialIcon({
     sizeStyle.height = `${pxSize}px`;
   }
 
-  // Set fontVariationSettings for material symbol features (like FILL)
-  const fillStyle = fill ? { fontVariationSettings: "'FILL' 1", ...sizeStyle } : sizeStyle;
+  const fontFamily =
+    variant === 'outlined'
+      ? '"Material Symbols Outlined"'
+      : variant === 'sharp'
+        ? '"Material Symbols Sharp"'
+        : '"Material Symbols Rounded"';
+
+  const variationSettings = fill ? "'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24" : "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24";
+
+  const iconStyle: React.CSSProperties = {
+    fontFamily,
+    fontWeight: 'normal',
+    fontVariationSettings: variationSettings,
+    lineHeight: 1,
+    ...sizeStyle,
+  };
 
   // Clean Tailwind sizing classes so they do not conflict with our dynamic inline sizing
   const cleanClassName = className
@@ -46,8 +60,9 @@ export function MaterialIcon({
 
   return (
     <span
-      className={`material-symbols-${variant} select-none flex items-center justify-center shrink-0 ${cleanClassName}`}
-      style={fillStyle}
+      className={`material-symbols-${variant} select-none inline-flex items-center justify-center shrink-0 font-normal leading-none ${cleanClassName}`}
+      style={iconStyle}
+      aria-hidden={props['aria-label'] ? undefined : true}
       {...props}
     >
       {icon}

@@ -5,7 +5,7 @@ import type { ProductoVariante } from '../../types/ProductoVariante';
 import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../types/CodigoBarras';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
-import { ConfirmModal, TableSkeleton } from '@/shared/ui';
+import { ConfirmModal, TableSkeleton, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
 
 interface GestionCodigosBarrasProps {
   producto?: Producto;
@@ -47,6 +47,14 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
 
   const [scannerInput, setScannerInput] = useState('');
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; codigoId: number | null }>({ open: false, codigoId: null });
+
+  const modalOverlayAbierto =
+    Boolean(producto && onClose) ||
+    showGenerarCodigo ||
+    showAsignarCodigo ||
+    showScannerModal;
+
+  useModalBodyScrollLock(modalOverlayAbierto);
 
   useEffect(() => {
     if (producto) {
@@ -556,7 +564,8 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
   // Si hay producto específico, mostrar como modal
   if (producto && onClose) {
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <ModalPortal>
+      <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div className="bg-white rounded-[3rem] border border-gray-100 shadow-sm w-full max-w-6xl max-h-[90vh] overflow-y-auto">
           <div className="flex items-center justify-between px-10 py-7 border-b border-gray-50">
             <div>
@@ -577,6 +586,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
           </div>
         </div>
       </div>
+      </ModalPortal>
     );
   }
 
@@ -590,7 +600,8 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
 
       {/* Modales */}
       {showGenerarCodigo && entidadSeleccionada && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+        <ModalPortal>
+        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
             <div className="bg-black px-8 py-6 flex items-center justify-between">
               <div>
@@ -629,10 +640,12 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {showAsignarCodigo && entidadSeleccionada && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+        <ModalPortal>
+        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
             <div className="bg-black px-8 py-6 flex items-center justify-between">
               <div>
@@ -692,10 +705,12 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {showScannerModal && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-fadeIn">
+        <ModalPortal>
+        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
           <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
             <div className="bg-black px-8 py-6 flex items-center justify-between">
               <div>
@@ -729,6 +744,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
             </div>
           </div>
         </div>
+        </ModalPortal>
       )}
 
       {/* Confirm Modal for Delete */}
