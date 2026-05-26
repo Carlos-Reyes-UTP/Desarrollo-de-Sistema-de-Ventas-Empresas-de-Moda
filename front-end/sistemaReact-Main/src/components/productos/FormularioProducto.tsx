@@ -812,46 +812,52 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   ];
 
   return (
-    <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] overflow-hidden border border-gray-200 relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
-        {/* Header */}
-        <div className="relative bg-white border-b border-gray-100 p-8">
+    <div className={`fixed inset-0 bg-[#0c0c0e]/80 backdrop-blur-md flex items-center justify-center z-[100] transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
+      <div className={`bg-neutral-50 rounded-[2.5rem] shadow-[0_32px_80px_rgba(0,0,0,0.25)] w-full max-w-6xl max-h-[92vh] overflow-hidden border border-neutral-100 relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+        {/* Elegant Modal Header with Luxury Accents */}
+        <div className="relative bg-white border-b border-neutral-100 px-10 py-7">
+          {/* Subtle gold line accent for premium luxury look */}
+          <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 via-neutral-900 to-amber-600" />
+          
           <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gray-50 rounded-xl border border-gray-100">
-                <MaterialIcon icon="save" className="w-6 h-6 text-black" />
+            <div className="flex items-center space-x-5">
+              <div className="p-3 bg-neutral-900 rounded-2xl border border-neutral-800 shadow-sm flex items-center justify-center">
+                <MaterialIcon icon="inventory_2" className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold tracking-tight text-black uppercase mb-1">
+                <h2 className="text-[1.5rem] font-black tracking-tight text-neutral-900 uppercase leading-none mb-1.5">
                   {producto ? 'Editar Producto' : 'Crear Nuevo Producto'}
                 </h2>
-                <p className="text-gray-500 text-sm font-medium">
-                  {producto ? 'Modifica la información del producto' : 'Complete la información para crear el producto'}
+                <p className="text-neutral-400 text-xs font-semibold uppercase tracking-widest">
+                  {producto ? 'Modifica la información exclusiva de la prenda' : 'Registra una nueva prenda en el catálogo de moda'}
                 </p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-500 hover:text-black rounded-xl flex items-center justify-center transition-all"
+              className="w-10 h-10 bg-neutral-50 hover:bg-neutral-900 border border-neutral-100 hover:border-neutral-950 text-neutral-500 hover:text-white rounded-2xl flex items-center justify-center transition-all duration-200"
             >
-              <MaterialIcon icon="close" className="w-5 h-5" />
+              <MaterialIcon icon="close" className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1 bg-white">
-          <div className="px-8 py-6 bg-white">
+        {/* Scrollable content container with luxury neutral background */}
+        <div className="overflow-y-auto flex-1 bg-neutral-50">
+          <div className="px-10 py-8">
             {error && (
-               <div className="mb-6 p-4 bg-rose-50/60 border border-rose-100 rounded-2xl flex items-center gap-3">
-                <MaterialIcon icon="error" className="w-5 h-5 text-rose-500 shrink-0" />
-                <p className="text-xs font-black uppercase tracking-widest text-rose-700">{error}</p>
+               <div className="mb-8 p-5 bg-rose-50 border border-rose-100/50 rounded-3xl flex items-start gap-4 shadow-sm">
+                <MaterialIcon icon="error" className="w-5 h-5 text-rose-500 shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-rose-800 mb-1">Por favor revise los campos</h4>
+                  <p className="text-xs font-semibold text-rose-600 leading-relaxed uppercase tracking-wider">{error}</p>
+                </div>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Stepper tipo píldora */}
-              <div className="flex items-center gap-1 md:gap-2 overflow-x-auto border-b border-gray-100 pb-8 mb-8">
+              {/* Premium Floating Stepper */}
+              <div className="flex items-center gap-2 overflow-x-auto bg-white p-2.5 rounded-3xl border border-neutral-100 shadow-sm mb-10">
                 {steps.map((step, idx) => {
                   const isActive = tabActiva === step.id;
                   const isCompleted = step.isValid;
@@ -861,43 +867,46 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva(step.id)}
-                        className={`shrink-0 flex items-center gap-2.5 px-4 py-2.5 rounded-2xl border transition-all duration-200 ease-in-out text-left relative focus:outline-none min-w-[140px] md:min-w-0 md:flex-1 ${
+                        className={`shrink-0 flex items-center gap-3 px-5 py-3 rounded-2xl transition-all duration-300 ease-out text-left relative focus:outline-none min-w-[150px] md:min-w-0 md:flex-1 ${
                           isActive
-                            ? 'bg-black border-black text-white'
-                            : 'bg-white hover:bg-gray-50 border-gray-200 text-gray-800'
+                            ? 'bg-neutral-950 text-white shadow-lg shadow-neutral-950/20 translate-y-[-1px]'
+                            : 'bg-white hover:bg-neutral-50 text-neutral-800'
                         }`}
                       >
-                        <div className="relative flex-shrink-0 flex items-center gap-1">
-                          <span className={`text-xs font-bold tabular-nums ${
-                            isActive ? 'text-white/80' : 'text-gray-400'
-                          }`}>
-                            {step.number}
-                          </span>
-                          {isCompleted && (
-                            <MaterialIcon
-                              icon="check"
-                              className={`w-3.5 h-3.5 ${isActive ? 'text-emerald-300' : 'text-emerald-600'}`}
-                            />
+                        {/* Circle step indicator */}
+                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-all duration-300 ${
+                          isActive 
+                            ? 'bg-white text-black' 
+                            : isCompleted 
+                              ? 'bg-emerald-50 text-emerald-700' 
+                              : 'bg-neutral-100 text-neutral-400'
+                        }`}>
+                          {isCompleted ? (
+                            <MaterialIcon icon="check" className="w-4 h-4 font-bold" />
+                          ) : (
+                            step.number
                           )}
                           {step.hasError && (
-                            <span className="absolute -top-1 -right-2 flex h-2.5 w-2.5">
-                              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500 border border-white" />
+                            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                              <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500 border-2 border-white" />
                             </span>
                           )}
                         </div>
+
                         <div className="flex-1 min-w-0">
-                          <span className={`block text-[9px] font-bold tracking-[0.12em] uppercase leading-tight ${
-                            isActive ? 'text-white/50' : 'text-gray-400'
+                          <span className={`block text-[9px] font-black tracking-[0.18em] uppercase leading-none mb-1 ${
+                            isActive ? 'text-neutral-400' : 'text-neutral-400'
                           }`}>
-                            Paso {step.number}
+                            FASE {step.number}
                           </span>
-                          <span className="block text-xs md:text-sm font-semibold truncate leading-tight">
+                          <span className="block text-xs font-bold tracking-wide truncate leading-none">
                             {step.label}
                           </span>
                         </div>
                       </button>
                       {idx < steps.length - 1 && (
-                        <div className="hidden md:block h-px flex-1 min-w-[12px] max-w-[32px] bg-gray-200 shrink" aria-hidden />
+                        <div className="hidden md:block h-0.5 w-6 bg-neutral-100 shrink" aria-hidden />
                       )}
                     </React.Fragment>
                   );
@@ -978,12 +987,12 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
               )}
 
               {/* Premium Sticky Footer Glassmorphic */}
-              <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white px-8 py-6 border-t border-gray-100 z-10">
-                <div className="flex gap-3 w-full sm:w-auto">
+              <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white/90 backdrop-blur-md px-10 py-6 border-t border-neutral-100/85 z-25 shadow-[0_-12px_32px_rgba(0,0,0,0.03)] -mx-10 -mb-8">
+                <div className="flex gap-3.5 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="flex-1 sm:flex-initial px-6 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
+                    className="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl border border-neutral-200 bg-white text-neutral-850 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                   >
                     Cancelar
                   </button>
@@ -997,7 +1006,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                           else if (tabActiva === 'precios') setTabActiva('variantes');
                           else if (tabActiva === 'codigosBarras') setTabActiva('precios');
                         }}
-                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
+                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Anterior
                       </button>
@@ -1007,7 +1016,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('variantes')}
-                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
+                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Siguiente
                       </button>
@@ -1017,7 +1026,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('precios')}
-                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
+                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Siguiente
                       </button>
@@ -1027,7 +1036,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('codigosBarras')}
-                        className="px-5 py-3.5 rounded-xl border border-gray-200 bg-white text-gray-900 hover:bg-gray-100 font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out"
+                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Siguiente
                       </button>
@@ -1035,13 +1044,13 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                   </div>
                 </div>
 
-                <div className="flex gap-3 w-full sm:w-auto">
+                <div className="flex gap-3.5 w-full sm:w-auto">
                   {/* "Guardar y Siguiente" button: Only shown when creating a new product */}
                   {!producto && (
                     <button
                       type="submit"
                       onClick={() => setCrearSiguiente(true)}
-                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-black border border-gray-300 bg-white hover:bg-gray-50 rounded-xl transition-all duration-200 ease-in-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-neutral-900 border border-neutral-300 bg-white hover:bg-neutral-50 rounded-2xl transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                       disabled={loading}
                     >
                       Guardar y Siguiente
@@ -1051,10 +1060,10 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                   <button
                     type="submit"
                     onClick={() => setCrearSiguiente(false)}
-                    className="flex-1 sm:flex-initial px-8 py-3.5 text-xs font-bold text-white bg-black hover:bg-gray-800 rounded-xl shadow-md active:scale-[0.98] transition-all duration-200 ease-in-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    className="flex-1 sm:flex-initial px-8 py-3.5 text-xs font-bold text-white bg-neutral-950 hover:bg-neutral-800 rounded-2xl shadow-lg shadow-neutral-950/15 active:scale-[0.98] transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     disabled={loading}
                   >
-                    <MaterialIcon icon="save" className="w-4 h-4" />
+                    <MaterialIcon icon="save" className="w-4 h-4 text-amber-500" />
                     {loading ? 'Guardando...' : (producto ? 'Guardar Cambios' : 'Crear Producto')}
                   </button>
                 </div>

@@ -91,7 +91,6 @@ const COLOR_MAP: Record<string, string> = {
 const PLANTILLAS_TALLAS = {
   letras: ['XS', 'S', 'M', 'L', 'XL', 'XXL'],
   numerosRopa: ['28', '30', '32', '34', '36', '38', '40', '42'],
-  calzado: ['35', '36', '37', '38', '39', '40', '41', '42', '43', '44'],
   unica: ['UNICA'],
 } as const;
 
@@ -125,7 +124,6 @@ export const ColorSwatch: React.FC<{ colorName: string; size?: string }> = ({ co
 const PLANTILLA_ICONOS: Record<keyof typeof PLANTILLAS_TALLAS, string> = {
   letras: 'format_size',
   numerosRopa: 'numbers',
-  calzado: 'steps',
   unica: 'block',
 };
 
@@ -666,7 +664,6 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     [
                       { key: 'letras', label: 'Letras', tallas: PLANTILLAS_TALLAS.letras },
                       { key: 'numerosRopa', label: 'Números (ropa)', tallas: PLANTILLAS_TALLAS.numerosRopa },
-                      { key: 'calzado', label: 'Números (calzado)', tallas: PLANTILLAS_TALLAS.calzado },
                       { key: 'unica', label: 'Única', tallas: PLANTILLAS_TALLAS.unica },
                     ] as const
                   ).map(({ key, label, tallas }) => (
