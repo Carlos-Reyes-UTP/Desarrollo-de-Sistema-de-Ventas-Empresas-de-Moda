@@ -85,6 +85,10 @@
 [data-theme="pastel-dama"] .bg-white\/95,
 [data-theme="pastel-caballero"] .bg-white\/95,
 [data-theme="soft-neutral"] .bg-white\/95,
+[data-theme="dark"] .bg-white\/60,
+[data-theme="pastel-dama"] .bg-white\/60,
+[data-theme="pastel-caballero"] .bg-white\/60,
+[data-theme="soft-neutral"] .bg-white\/60,
 [data-theme="dark"] .bg-\[\#fafafa\],
 [data-theme="pastel-dama"] .bg-\[\#fafafa\],
 [data-theme="pastel-caballero"] .bg-\[\#fafafa\],
@@ -131,7 +135,11 @@
 [data-theme="dark"] .bg-slate-100,
 [data-theme="pastel-dama"] .bg-slate-100,
 [data-theme="pastel-caballero"] .bg-slate-100,
-[data-theme="soft-neutral"] .bg-slate-100 {
+[data-theme="soft-neutral"] .bg-slate-100,
+[data-theme="dark"] .bg-white\/40,
+[data-theme="pastel-dama"] .bg-white\/40,
+[data-theme="pastel-caballero"] .bg-white\/40,
+[data-theme="soft-neutral"] .bg-white\/40 {
   background-color: var(--app-bg-muted) !important;
 }
 
@@ -150,7 +158,31 @@
 [data-theme="dark"] .hover\:bg-slate-50:hover,
 [data-theme="pastel-dama"] .hover\:bg-slate-50:hover,
 [data-theme="pastel-caballero"] .hover\:bg-slate-50:hover,
-[data-theme="soft-neutral"] .hover\:bg-slate-50:hover {
+[data-theme="soft-neutral"] .hover\:bg-slate-50:hover,
+[data-theme="dark"] .hover\:bg-gray-200:hover,
+[data-theme="pastel-dama"] .hover\:bg-gray-200:hover,
+[data-theme="pastel-caballero"] .hover\:bg-gray-200:hover,
+[data-theme="soft-neutral"] .hover\:bg-gray-200:hover,
+[data-theme="dark"] .hover\:bg-slate-200:hover,
+[data-theme="pastel-dama"] .hover\:bg-slate-200:hover,
+[data-theme="pastel-caballero"] .hover\:bg-slate-200:hover,
+[data-theme="soft-neutral"] .hover\:bg-slate-200:hover,
+[data-theme="dark"] .hover\:bg-gray-800:hover,
+[data-theme="pastel-dama"] .hover\:bg-gray-800:hover,
+[data-theme="pastel-caballero"] .hover\:bg-gray-800:hover,
+[data-theme="soft-neutral"] .hover\:bg-gray-800:hover,
+[data-theme="dark"] .hover\:bg-slate-100\/60:hover,
+[data-theme="pastel-dama"] .hover\:bg-slate-100\/60:hover,
+[data-theme="pastel-caballero"] .hover\:bg-slate-100\/60:hover,
+[data-theme="soft-neutral"] .hover\:bg-slate-100\/60:hover,
+[data-theme="dark"] .hover\:bg-gray-50\/70:hover,
+[data-theme="pastel-dama"] .hover\:bg-gray-50\/70:hover,
+[data-theme="pastel-caballero"] .hover\:bg-gray-50\/70:hover,
+[data-theme="soft-neutral"] .hover\:bg-gray-50\/70:hover,
+[data-theme="dark"] .hover\:bg-gray-50\/50:hover,
+[data-theme="pastel-dama"] .hover\:bg-gray-50\/50:hover,
+[data-theme="pastel-caballero"] .hover\:bg-gray-50\/50:hover,
+[data-theme="soft-neutral"] .hover\:bg-gray-50\/50:hover {
   background-color: var(--app-surface-elevated) !important;
 }
 
@@ -307,8 +339,15 @@
   background-color: rgb(249 115 22 / 0.12) !important;
 }
 
-[data-theme="dark"] .bg-slate-200 {
-  background-color: rgb(255 255 255 / 0.08) !important;
+[data-theme="dark"] .bg-gray-200,
+[data-theme="pastel-dama"] .bg-gray-200,
+[data-theme="pastel-caballero"] .bg-gray-200,
+[data-theme="soft-neutral"] .bg-gray-200,
+[data-theme="dark"] .bg-slate-200,
+[data-theme="pastel-dama"] .bg-slate-200,
+[data-theme="pastel-caballero"] .bg-slate-200,
+[data-theme="soft-neutral"] .bg-slate-200 {
+  background-color: var(--app-border) !important;
 }
 
 /* Hover states for activity cards in dark */
@@ -429,3 +468,68 @@
 [data-theme="soft-neutral"] .app-drawer .text-gray-500 {
   color: var(--app-drawer-text) !important;
 }
+
+/* === Categorías & Foco Inputs overrides === */
+[data-theme="dark"] .border-gray-100\/50,
+[data-theme="pastel-dama"] .border-gray-100\/50,
+[data-theme="pastel-caballero"] .border-gray-100\/50,
+[data-theme="soft-neutral"] .border-gray-100\/50 {
+  border-color: var(--app-border) !important;
+}
+
+[data-theme="dark"] .focus\:bg-white:focus,
+[data-theme="pastel-dama"] .focus\:bg-white:focus,
+[data-theme="pastel-caballero"] .focus\:bg-white:focus,
+[data-theme="soft-neutral"] .focus\:bg-white:focus {
+  background-color: var(--app-surface-elevated) !important;
+}
+
+[data-theme="dark"] .focus\:border-black:focus,
+[data-theme="pastel-dama"] .focus\:border-black:focus,
+[data-theme="pastel-caballero"] .focus\:border-black:focus,
+[data-theme="soft-neutral"] .focus\:border-black:focus {
+  border-color: var(--app-accent) !important;
+}
+
+[data-theme="dark"] .focus\:ring-gray-100:focus,
+[data-theme="pastel-dama"] .focus\:ring-gray-100:focus,
+[data-theme="pastel-caballero"] .focus\:ring-gray-100:focus,
+[data-theme="soft-neutral"] .focus\:ring-gray-100:focus {
+  --tw-ring-color: var(--app-ring) !important;
+}
+
+[data-theme="dark"] .hover\:bg-black:hover,
+[data-theme="pastel-dama"] .hover\:bg-black:hover,
+[data-theme="pastel-caballero"] .hover\:bg-black:hover,
+[data-theme="soft-neutral"] .hover\:bg-black:hover {
+  background-color: var(--app-accent) !important;
+}
+
+[data-theme="dark"] .hover\:text-white:hover,
+[data-theme="pastel-dama"] .hover\:text-white:hover,
+[data-theme="pastel-caballero"] .hover\:text-white:hover,
+[data-theme="soft-neutral"] .hover\:text-white:hover {
+  color: var(--app-accent-fg) !important;
+}
+
+/* === Scrollbar global y elegante adaptado a todos los temas === */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+[data-theme] .custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--app-bg-muted) !important;
+  border-radius: 10px;
+}
+
+[data-theme] .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--app-border-strong) !important;
+  border-radius: 10px;
+}
+
+[data-theme] .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--app-text-faint) !important;
+}
+
+

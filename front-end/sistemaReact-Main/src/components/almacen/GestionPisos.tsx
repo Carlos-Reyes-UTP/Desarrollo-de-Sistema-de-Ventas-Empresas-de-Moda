@@ -88,7 +88,7 @@ const AreaOperativaCard = ({
   <button
     type="button"
     onClick={onVer}
-    className="animate-stagger-item w-full text-left rounded-2xl border app-card bg-[var(--app-surface)] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 touch-manipulation"
+    className="animate-stagger-item w-full text-left rounded-2xl border app-card bg-[var(--app-surface)] p-4 shadow-sm hover:shadow-md active:scale-[0.98] transition-all duration-200 touch-manipulation"
     style={{ animationDelay: `${index * 60}ms` }}
   >
     <div className="flex items-start justify-between gap-3">
@@ -131,7 +131,7 @@ const AreaOperativaCard = ({
 
 const StockVarianteCard = ({ item, index = 0 }: { item: StockUbicacion; index?: number }) => (
   <div
-    className="animate-stagger-item rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+    className="animate-stagger-item rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm hover:shadow-md transition-all duration-200"
     style={{ animationDelay: `${index * 40}ms` }}
   >
     <p className="font-semibold app-heading text-sm leading-snug">{item.nombreProducto}</p>
@@ -362,8 +362,8 @@ const GestionPisos = ({
                         transition-all duration-300 active:scale-[0.96] touch-manipulation
                         ${
                           isSelected
-                            ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-lg border border-[var(--app-accent)] scale-[1.02]"
-                            : "app-text-muted bg-[var(--app-surface)] md:bg-transparent border border-[var(--app-border)] md:border-transparent hover:bg-[var(--app-bg-muted)] hover:app-heading hover:scale-[1.01]"
+                            ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-lg border border-[var(--app-accent)]"
+                            : "app-text-muted bg-[var(--app-surface)] md:bg-transparent border border-[var(--app-border)] md:border-transparent hover:bg-[var(--app-bg-muted)] hover:app-heading"
                         }
                       `}
                     >
