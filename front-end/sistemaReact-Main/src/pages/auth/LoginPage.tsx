@@ -1,24 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MaterialIcon } from '@/shared/ui';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 
 const LoginPage = () => {
-  const [usuario, setUsuario] = useState('');
+  const [usuario, setUsuario] = useState(() => sessionStorage.getItem('login_usuario') ?? '');
   const [clave, setClave] = useState('');
   const [mostrarClave, setMostrarClave] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [recordarme, setRecordarme] = useState(false);
   const [iniciando, setIniciando] = useState(false);
+  const claveInputRef = useRef<HTMLInputElement>(null);
   const { iniciarSesion, error: authError } = useAuth();
   const navegar = useNavigate();
+
+  const enfocarClave = () => {
+    globalThis.requestAnimationFrame(() => {
+      claveInputRef.current?.focus();
+    });
+  };
 
   // Actualizamos el estado de error local si cambia en el contexto de autenticación
   useEffect(() => {
     if (authError) {
       setError(authError);
       setIniciando(false);
+      enfocarClave();
     }
   }, [authError]);
 
@@ -36,23 +44,28 @@ const LoginPage = () => {
       return;
     }
 
+    sessionStorage.setItem('login_usuario', usuario);
+
     try {
       setIniciando(true);
       console.log('Intentando iniciar sesión con:', { usuario });
       const exito = await iniciarSesion({ usuario, clave });
       
       if (exito) {
+        sessionStorage.removeItem('login_usuario');
         console.log('Inicio de sesión exitoso, redirigiendo...');
         navegar('/');
       } else {
         // Si iniciarSesion devuelve false pero no hay error en authError
         setError('Credenciales incorrectas. Por favor, intente nuevamente.');
         setIniciando(false);
+        enfocarClave();
       }
     } catch (err: any) {
       console.error('Error en el manejo de inicio de sesión:', err);
       setError('Error al intentar iniciar sesión. Inténtelo más tarde.');
       setIniciando(false);
+      enfocarClave();
     }
   };
 
@@ -200,6 +213,7 @@ const LoginPage = () => {
                 <input
                   type={mostrarClave ? "text" : "password"}
                   id="clave"
+                  ref={claveInputRef}
                   className="w-full px-6 py-4 bg-[#f2f2f2] border border-transparent rounded-[2rem] text-gray-800 text-base focus:outline-none focus:bg-white focus:border-gray-200 focus:ring-4 focus:ring-gray-100 transition-all font-medium tracking-[0.25em] placeholder:tracking-normal placeholder:text-gray-400 pr-14"
                   placeholder="••••••••••••"
                   value={clave}
