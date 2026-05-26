@@ -20,7 +20,7 @@ export function useAccesoAreaAlmacen(enabled = true) {
     try {
       const data = await AccesoAreaAlmacenService.obtenerMiAcceso();
       setAcceso(data);
-    } catch (e: unknown) {
+    } catch (e: any) {
       setError(e instanceof Error ? e.message : 'No se pudo cargar el acceso a áreas de almacén');
       setAcceso(null);
     } finally {

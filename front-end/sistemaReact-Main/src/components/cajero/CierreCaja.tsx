@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import { VentaService } from '../../services/VentaService';
 import { CajaService, type CierreCajaRequest } from '../../services/CajaService';
-import { obtenerDatosApertura, limpiarDatosApertura, guardarDatosApertura } from './AperturaCaja';
+import { obtenerDatosApertura, limpiarDatosApertura, guardarDatosApertura, type DatosAperturaCaja } from '../../utils/cajaUtils';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
 import { PageHeader, MaterialIcon } from '@/shared/ui';
+import axios from 'axios';
 
 interface DiferenciasCierreCaja {
   diferenciasEfectivo: number;
@@ -63,7 +64,7 @@ const CierreCaja = () => {
 
   useEffect(() => {
     const cargarDatosIniciales = async () => {
-      let datosApertura: any = null;
+      let datosApertura: DatosAperturaCaja | null = null;
       try {
         datosApertura = obtenerDatosApertura();
 
@@ -100,7 +101,7 @@ const CierreCaja = () => {
           };
           guardarDatosApertura(datosAperturaActualizados);
         } else if (datosApertura) {
-          setFechaApertura(datosApertura.fechaHoraApertura);
+          setFechaApertura(datosApertura.fechaHoraApertura || '');
           setMontoInicial(datosApertura.montoApertura?.toString() || '0');
         } else {
           setFechaApertura(obtenerFechaHoraActual());
@@ -158,7 +159,7 @@ const CierreCaja = () => {
         }
       } catch {
         if (datosApertura) {
-          setFechaApertura(datosApertura.fechaHoraApertura);
+          setFechaApertura(datosApertura.fechaHoraApertura || '');
           setMontoInicial(datosApertura.montoApertura?.toString() || '0');
         } else {
           setFechaApertura(obtenerFechaHoraActual());
@@ -234,7 +235,10 @@ const CierreCaja = () => {
       setCierreExitoso(true);
       limpiarDatosApertura();
     } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Error al registrar el cierre de caja.');
+      const errorMsg = axios.isAxiosError(err)
+        ? (err.response?.data?.message ?? err.message)
+        : (err instanceof Error ? err.message : String(err));
+      setError(errorMsg || 'Error al registrar el cierre de caja.');
     } finally {
       setCargando(false);
     }

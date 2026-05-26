@@ -66,20 +66,20 @@ export function throwAuthError(error: unknown, action: string): never {
   throw new Error(`Error al ${action}. Intente de nuevo o contacte al administrador.`);
 }
 
-export function throwAuthErrorShort(error: unknown, _action: string): never {
+export function throwAuthErrorShort(error: unknown, action: string): never {
   const status = httpStatus(error);
   const serverMsg = extractServerMessage(error);
 
   if (status === 401) {
-    throw new Error(serverMsg ?? 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.');
+    throw new Error(serverMsg ?? `Tu sesión ha expirado. Inicia sesión nuevamente para ${action}.`);
   }
   if (status === 403) {
-    throw new Error(serverMsg ?? 'No tienes permisos para acceder a esta información.');
+    throw new Error(serverMsg ?? `No tienes permisos para ${action}.`);
   }
   if (serverMsg) {
     throw new Error(serverMsg);
   }
-  throw error instanceof Error ? error : new Error('Error de comunicación con el servidor.');
+  throw error instanceof Error ? error : new Error(`Error al ${action}. Problema de comunicación con el servidor.`);
 }
 
 export function extractApiErrorMessage(error: unknown, fallback: string): string {

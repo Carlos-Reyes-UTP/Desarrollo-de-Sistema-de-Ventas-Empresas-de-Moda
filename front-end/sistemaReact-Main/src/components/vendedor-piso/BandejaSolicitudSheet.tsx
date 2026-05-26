@@ -102,25 +102,25 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={!enviando ? onClose : undefined}
       />
 
       {/* Sheet */}
       <div
         ref={sheetRef}
-        className={`absolute bottom-0 left-0 right-0 mx-auto max-w-xl rounded-t-[2.5rem] bg-white shadow-2xl transition-transform duration-350 ease-out ${
+        className={`absolute bottom-0 left-0 right-0 mx-auto max-w-xl rounded-t-[2.5rem] border-t border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/98 backdrop-blur-xl shadow-2xl transition-transform duration-350 ease-out ${
           open ? "translate-y-0" : "translate-y-full"
         }`}
         style={{ maxHeight: "88dvh", display: "flex", flexDirection: "column" }}
       >
         {/* Handle + Header */}
         <div className="flex-shrink-0 px-6 pt-5 pb-4">
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-gray-200" />
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/10" />
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-black tracking-tight text-black">Resumen del Pedido</h2>
-              <p className="text-[11px] font-semibold text-gray-400 mt-0.5">
+              <h2 className="text-xl font-black tracking-tight text-white">Resumen del Pedido</h2>
+              <p className="text-[11px] font-semibold text-[var(--app-text-muted)] mt-0.5">
                 {items.length} {items.length === 1 ? "producto" : "productos"} en la lista
               </p>
             </div>
@@ -128,7 +128,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
               type="button"
               onClick={onClose}
               disabled={enviando}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200 disabled:opacity-40"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-[var(--app-text-muted)] transition hover:bg-white/20 hover:text-white disabled:opacity-40"
               aria-label="Cerrar"
             >
               <MaterialIcon icon="close" className="h-5 w-5" />
@@ -137,14 +137,14 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
         </div>
 
         {/* Divider */}
-        <div className="border-t border-gray-100 flex-shrink-0" />
+        <div className="border-t border-[var(--app-border)] flex-shrink-0" />
 
         {/* Lista de ítems — scrollable */}
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 min-h-0">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <MaterialIcon icon="inventory_2" className="h-12 w-12 text-gray-200 mb-4" />
-              <p className="text-sm font-semibold text-gray-400">La lista está vacía</p>
+              <MaterialIcon icon="inventory_2" className="h-12 w-12 text-white/10 mb-4" />
+              <p className="text-sm font-semibold text-[var(--app-text-muted)]">La lista está vacía</p>
             </div>
           ) : (
             items.map((item) => {
@@ -164,11 +164,11 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
 
           {/* Resumen de progreso mientras envía */}
           {hayEstados && (
-            <div className="rounded-2xl bg-gray-50 px-4 py-3 mt-2">
-              <p className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 mt-2">
+              <p className="text-[11px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest">
                 Progreso: {okCount}/{items.length} enviados
                 {errCount > 0 && (
-                  <span className="ml-2 text-red-500">· {errCount} con error</span>
+                  <span className="ml-2 text-red-400">· {errCount} con error</span>
                 )}
               </p>
             </div>
@@ -176,9 +176,9 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
         </div>
 
         {/* Footer con botón */}
-        <div className="flex-shrink-0 px-4 pb-6 pt-4 border-t border-gray-100">
+        <div className="flex-shrink-0 px-4 pb-6 pt-4 border-t border-[var(--app-border)]">
           {errCount > 0 && !enviando && (
-            <p className="mb-3 text-xs font-semibold text-red-500 text-center">
+            <p className="mb-3 text-xs font-semibold text-red-400 text-center">
               Algunos ítems fallaron. Puedes quitarlos e intentar de nuevo.
             </p>
           )}
@@ -186,7 +186,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
             type="button"
             onClick={() => void enviarSecuencial()}
             disabled={enviando || items.length === 0}
-            className="flex w-full items-center justify-center gap-3 rounded-[1.8rem] bg-black py-5 text-sm font-black uppercase tracking-widest text-white shadow-2xl transition-all hover:bg-gray-900 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-3 rounded-[1.8rem] bg-white py-5 text-sm font-black uppercase tracking-widest text-black shadow-2xl transition-all hover:bg-neutral-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {enviando ? (
               <>
@@ -222,38 +222,38 @@ function ItemRow({
     <div
       className={`flex items-start gap-3 rounded-2xl border p-4 transition-all ${
         estado === "ok"
-          ? "border-emerald-200 bg-emerald-50"
+          ? "border-emerald-500/20 bg-emerald-500/10 text-white"
           : estado === "error"
-          ? "border-red-200 bg-red-50"
+          ? "border-red-500/20 bg-red-500/10 text-white"
           : estado === "enviando"
-          ? "border-gray-200 bg-gray-50 opacity-80"
-          : "border-gray-100 bg-white"
+          ? "border-white/10 bg-white/5 opacity-80"
+          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
       }`}
     >
       {/* Ícono de estado */}
       <div className="mt-0.5 flex-shrink-0">
-        {estado === "ok" && <MaterialIcon icon="check_circle" className="h-5 w-5 text-emerald-500" />}
-        {estado === "error" && <MaterialIcon icon="cancel" className="h-5 w-5 text-red-500" />}
-        {estado === "enviando" && <MaterialIcon icon="sync" className="h-5 w-5 animate-spin text-gray-400" />}
+        {estado === "ok" && <MaterialIcon icon="check_circle" className="h-5 w-5 text-emerald-400" />}
+        {estado === "error" && <MaterialIcon icon="cancel" className="h-5 w-5 text-red-400" />}
+        {estado === "enviando" && <MaterialIcon icon="sync" className="h-5 w-5 animate-spin text-white/50" />}
         {estado === "pendiente" && (
-          <div className="h-5 w-5 rounded-full border-2 border-gray-200" />
+          <div className="h-5 w-5 rounded-full border-2 border-white/20" />
         )}
       </div>
 
       {/* Contenido */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-black text-black leading-snug truncate">
+        <p className="text-sm font-bold text-white leading-snug truncate">
           {item.nombreProducto}
         </p>
-        <p className="text-[11px] font-semibold text-gray-500 mt-0.5">
+        <p className="text-[11px] font-bold text-[var(--app-text-muted)] mt-0.5">
           {item.talla} · {item.color} · ×{item.cantidad}
         </p>
-        <p className="text-[10px] font-bold text-gray-400 mt-0.5 flex items-center gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block" />
+        <p className="text-[10px] font-bold text-[var(--app-text-faint)] mt-0.5 flex items-center gap-1">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
           {item.nombreUbicacion}
         </p>
         {estado === "error" && mensajeError && (
-          <p className="text-[11px] text-red-500 font-semibold mt-1">{mensajeError}</p>
+          <p className="text-[11px] text-red-400 font-bold mt-1">{mensajeError}</p>
         )}
       </div>
 
@@ -263,7 +263,7 @@ function ItemRow({
           type="button"
           onClick={() => onQuitar(item.key)}
           disabled={disabled}
-          className="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:opacity-30"
+          className="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl text-white/40 transition hover:bg-red-500/20 hover:text-red-400 disabled:opacity-30"
           aria-label="Quitar"
         >
           <MaterialIcon icon="delete" className="h-4 w-4" />

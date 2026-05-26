@@ -11,7 +11,7 @@ interface BorderBeamProps {
 
 export const BorderBeam: React.FC<BorderBeamProps> = ({
   children,
-  size: _size = "line",
+  // size is defined in interface but unused here, we omit it or just don't destructure it
   colorVariant = "mono",
   duration = 2.4,
   strength = 0.83,

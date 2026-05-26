@@ -69,7 +69,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       const sugerencias = await ProductoVarianteService.obtenerSugerenciasCatalogo();
       setSugerenciasTallas(sugerencias.tallas);
       setSugerenciasColores(sugerencias.colores);
-    } catch (err: unknown) {
+    } catch (err: any) {
       setError('Error al cargar datos: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
     } finally {
       setLoading(false);
@@ -128,7 +128,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       setSugerenciasTallas((p) => nombresUnicosOrdenados([...p, nombreTalla]));
       setSugerenciasColores((p) => nombresUnicosOrdenados([...p, nombreColor]));
       onVariantesActualizadas();
-    } catch (err: unknown) {
+    } catch (err: any) {
       setError(err instanceof Error ? err.message : 'Error al crear variante');
     }
   };
@@ -142,7 +142,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
           : v
       ));
       onVariantesActualizadas();
-    } catch (err: unknown) {
+    } catch (err: any) {
       setError('Error al actualizar cantidad: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
       throw err;
     }
@@ -159,7 +159,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
       await ProductoVarianteService.eliminarVariante(varianteAEliminar);
       setVariantes(prev => prev.filter(v => v.idVariante !== varianteAEliminar));
       onVariantesActualizadas();
-    } catch (err: unknown) {
+    } catch (err: any) {
       setError('Error al eliminar variante: ' + (err instanceof Error ? err.message : 'Error de comunicación'));
     } finally {
       setVarianteAEliminar(null);

@@ -57,7 +57,7 @@ export const UsuarioService = {
       return usuariosBase.map(usuario => ({
         ...usuario,
         roles: []
-      }));
+      })) as unknown as UsuarioBackend[];
     }
   },
   

@@ -14,8 +14,10 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@material-tailwind/react": "^2.1.10",
+    "@stomp/stompjs": "^7.3.0",
     "@tailwindcss/vite": "^4.1.7",
     "@types/d3": "^7.4.3",
+    "@types/sockjs-client": "^1.5.4",
     "axios": "^1.9.0",
     "border-beam": "^1.0.1",
     "d3": "^7.9.0",
@@ -30,6 +32,7 @@
     "react-router-dom": "^7.6.0",
     "recharts": "^3.1.0",
     "sileo": "^0.1.5",
+    "sockjs-client": "^1.6.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {

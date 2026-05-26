@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../config/apiConfig';
 import apiClient from '../config/apiClient';
+import axios from 'axios';
 
 export const RUTAS_CAJA = {
   BASE: `${API_BASE_URL}/api/caja`,
@@ -84,7 +85,7 @@ export const CajaService = {
       const response = await apiClient.get<CajaDTO>(RUTAS_CAJA.POR_ID(idCaja));
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 404) return null;
+      if ((axios.isAxiosError(error) && error.response?.status) === 404) return null;
       throw error;
     }
   },

@@ -1,3 +1,6 @@
+import type { Producto } from './Producto';
+import type { ProductoVariante } from './ProductoVariante';
+
 export interface CodigoBarras {
   id?: number;
   codigo: string;
@@ -73,7 +76,7 @@ export interface AsignarCodigoRequest {
 
 export interface BuscarPorCodigoResponse {
   tipo: 'PRODUCTO' | 'VARIANTE';
-  entidad: any; // Producto o ProductoVariante
+  entidad: Producto | ProductoVariante; // Producto o ProductoVariante
   codigoBarras: CodigoBarras;
 }
 

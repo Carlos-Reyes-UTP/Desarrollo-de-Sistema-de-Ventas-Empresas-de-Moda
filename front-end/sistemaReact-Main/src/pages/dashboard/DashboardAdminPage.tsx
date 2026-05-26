@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { MaterialIcon } from '@/shared/ui';
+import { useAutoSync } from '@/hooks/useAutoSync';
 
 import { scrollbarStyles } from '@/styles/scrollbarStyles';
 
@@ -46,11 +47,17 @@ const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', cu
 const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ value: number, payload: { label: string } }> }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-2xl shadow-xl">
-        <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{payload[0].payload.label}</p>
-        <p className="text-indigo-400 text-sm font-black">
-          {formatterMonedaPE.format(payload[0].value)}
-        </p>
+      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-3 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[140px]">
+        <div className="flex items-center space-x-1.5 pb-1.5 mb-1.5 border-b border-gray-100 dark:border-gray-800/60">
+          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+          <span className="font-semibold text-gray-800 dark:text-gray-200 text-[10px] tracking-wider uppercase">{payload[0].payload.label}</span>
+        </div>
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-500 dark:text-gray-400 mr-3">Ventas:</span>
+          <span className="font-bold text-indigo-650 dark:text-indigo-400">
+            {formatterMonedaPE.format(payload[0].value)}
+          </span>
+        </div>
       </div>
     );
   }
@@ -269,6 +276,8 @@ const DashboardAdminPage = () => {
     }
   }, [isReady, isAuthenticated, calcularMetricas, procesarDatosGraficoSemanal, generarActividadReciente, calcularTopClientes, calcularTopClientesPorCantidad]);
 
+  useAutoSync(cargarDatos, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA'], 2000);
+
   useEffect(() => {
     if (isReady) {
       if (!isAuthenticated) navigate('/login');
@@ -358,7 +367,13 @@ const DashboardAdminPage = () => {
 
               <div className="h-[300px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={datosGraficoSemanal}>
+                  <BarChart data={datosGraficoSemanal} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                    <defs>
+                      <linearGradient id="colorWeeklySales" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#6366F1" stopOpacity={0.95}/>
+                        <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.35}/>
+                      </linearGradient>
+                    </defs>
                     <XAxis 
                       dataKey="label" 
                       axisLine={false} 
@@ -370,8 +385,8 @@ const DashboardAdminPage = () => {
                     <Tooltip content={<CustomTooltip />} cursor={{ fill: 'var(--app-bg-muted)' }} />
                     <Bar 
                       dataKey="ventas" 
-                      fill="#6366f1" 
-                      radius={[6, 6, 0, 0]} 
+                      fill="url(#colorWeeklySales)" 
+                      radius={[8, 8, 0, 0]} 
                       barSize={40}
                     />
                   </BarChart>

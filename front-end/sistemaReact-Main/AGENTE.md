@@ -218,7 +218,8 @@ Login.tsx
 - No hardcodear URLs del backend — usar las constantes de `apiConfig.ts`.
 - No modificar `AuthContext.tsx` sin revisión, es el corazón de la sesión.
 - No crear páginas sin envolverlas en `RutaProtegidaConLayout` con el rol apropiado.
-
+- No usar NPM, usa pnpm en su lugar
+- Siempre mantener el codigo lo mas simple posible y corto
 
 ## Flujo obligatorio al resolver cualquier error
 1. Entiende el error antes de tocar código

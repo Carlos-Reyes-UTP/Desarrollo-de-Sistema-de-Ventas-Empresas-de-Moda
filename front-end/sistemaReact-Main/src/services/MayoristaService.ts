@@ -1,6 +1,7 @@
 import { RUTAS_MAYORISTAS, RUTAS_CLIENTES } from '../config/apiConfig';
 import apiClient from '../config/apiClient';
 import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../types/MayoristaDTO';
+import axios from 'axios';
 
 export const MayoristaService = {
   /**
@@ -21,7 +22,7 @@ export const MayoristaService = {
       const response = await apiClient.get<MayoristaDTO>(RUTAS_MAYORISTAS.POR_ID(id));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },
@@ -35,7 +36,7 @@ export const MayoristaService = {
       const response = await apiClient.get<MayoristaDTO>(RUTAS_MAYORISTAS.POR_CODIGO(codigo));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },
@@ -86,15 +87,15 @@ export const MayoristaService = {
       }
     } catch (error: any) {
       console.log('⚠️ Error en obtenerMayoristaPorDocumento:', {
-        status: error.response?.status,
-        data: error.response?.data,
+        status: (axios.isAxiosError(error) ? error.response?.status : undefined),
+        data: (axios.isAxiosError(error) ? error.response?.data : undefined),
         message: error.message
       });
       
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) && error.response?.status) === 404) {
         console.log('ℹ️ Mayorista no encontrado para documento:', numeroDocumento);
         return null;
-      } else if (error.response?.status === 403) {
+      } else if ((axios.isAxiosError(error) && error.response?.status) === 403) {
         console.warn('⚠️ Error 403: Sin permisos para verificar mayorista');
         // Si es error 403, asumir que es cliente regular
         return null;
@@ -148,7 +149,7 @@ export const MayoristaService = {
       await apiClient.delete(RUTAS_MAYORISTAS.POR_ID(id));
       return true;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return false;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return false;
       throw error;
     }
   },

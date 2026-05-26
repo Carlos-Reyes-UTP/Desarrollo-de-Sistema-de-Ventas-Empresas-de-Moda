@@ -39,6 +39,9 @@ export default defineConfig({
       }
     })
   ],
+  define: {
+    global: 'window',
+  },
   test: {
     globals: false,
     environment: 'node',

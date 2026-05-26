@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { MaterialIcon } from '@/shared/ui';
 import type { ProductoVenta } from '../../../types/Producto';
 import type { ProductoVariante } from '../../../types/ProductoVariante';
@@ -209,16 +210,75 @@ export const CarritoSection = ({
           </div>
         </div>
         
-        <button 
-          onClick={handleProcesarVentaFinal}
+        <BotonCobrar
+          onConfirm={handleProcesarVentaFinal}
           disabled={productosSeleccionadosVenta.length === 0 || cargandoProcesoVenta || !metodoPago}
-          className="w-full py-6 caj-btn-primary rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-          {cargandoProcesoVenta ? <MaterialIcon icon="progress_activity" className="animate-spin h-5 w-5" /> : <MaterialIcon icon="credit_card" className="w-5 h-5 group-hover:rotate-12 transition-transform" />}
-          <span className="relative z-10">{cargandoProcesoVenta ? 'PROCESANDO PAGO...' : 'COBRAR AHORA'}</span>
-        </button>
+          cargando={cargandoProcesoVenta}
+          total={totalGeneralVenta}
+        />
       </div>
     </div>
   );
 };
+
+function BotonCobrar({ onConfirm, disabled, cargando, total }: {
+  onConfirm: () => void;
+  disabled: boolean;
+  cargando: boolean;
+  total: number;
+}) {
+  const [confirmando, setConfirmando] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelar = useCallback(() => {
+    setConfirmando(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  }, []);
+
+  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
+
+  const handleClick = () => {
+    if (cargando || disabled) return;
+    if (!confirmando) {
+      setConfirmando(true);
+      timerRef.current = setTimeout(cancelar, 4000);
+      return;
+    }
+    cancelar();
+    onConfirm();
+  };
+
+  const label = cargando
+    ? 'PROCESANDO PAGO...'
+    : confirmando
+      ? `CONFIRMAR S/${total.toFixed(2)}`
+      : 'COBRAR AHORA';
+
+  const icon = cargando
+    ? 'progress_activity'
+    : confirmando
+      ? 'check_circle'
+      : 'credit_card';
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={disabled}
+      className={`w-full py-6 rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-[0_30px_60px_rgba(0,0,0,0.2)] transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4 relative overflow-hidden ${
+        confirmando ? 'bg-green-600 text-white' : 'caj-btn-primary'
+      }`}
+    >
+      <MaterialIcon icon={icon} className={`w-5 h-5 ${cargando ? 'animate-spin' : ''}`} />
+      <span className="relative z-10">{label}</span>
+      {confirmando && (
+        <span
+          role="button"
+          onClick={(e) => { e.stopPropagation(); cancelar(); }}
+          className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+        >
+          <MaterialIcon icon="close" className="w-4 h-4" />
+        </span>
+      )}
+    </button>
+  );
+}

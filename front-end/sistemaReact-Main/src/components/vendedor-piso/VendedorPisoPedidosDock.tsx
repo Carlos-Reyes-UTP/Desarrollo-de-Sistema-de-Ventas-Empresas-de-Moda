@@ -205,15 +205,15 @@ export const VendedorPisoPedidosDock = ({
       role="dialog"
       aria-modal="false"
       aria-labelledby="vendedor-pedidos-titulo"
-      className="relative max-h-[48vh] w-full max-w-sm md:max-w-md overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-lg backdrop-blur-md animate-slideUpFade flex flex-col"
+      className="relative max-h-[48vh] w-full max-w-sm md:max-w-md overflow-hidden rounded-3xl border border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/95 shadow-2xl backdrop-blur-xl animate-slideUpFade flex flex-col"
     >
-      <div className="relative z-10 flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 bg-white/50 px-3 py-2.5 backdrop-blur-sm sm:px-4">
+      <div className="relative z-10 flex shrink-0 items-center justify-between gap-2 border-b border-[var(--app-border)] bg-[var(--app-surface)]/20 px-3 py-2.5 backdrop-blur-sm sm:px-4">
         <div className="min-w-0 flex-1">
-          <span id="vendedor-pedidos-titulo" className="text-xs font-bold uppercase tracking-widest text-gray-900">
+          <span id="vendedor-pedidos-titulo" className="text-xs font-black uppercase tracking-widest text-[var(--app-text)]">
             Pedidos de hoy
           </span>
           {ordenados.length > 0 && (
-            <p className="mt-0.5 truncate text-[11px] font-medium text-gray-500">
+            <p className="mt-0.5 truncate text-[11px] font-bold text-[var(--app-text-muted)]">
               {pendientes > 0 ? `${pendientes} en espera` : "Nada pendiente"} · {ordenados.length} total
             </p>
           )}
@@ -223,7 +223,7 @@ export const VendedorPisoPedidosDock = ({
             type="button"
             onClick={handleRefrescar}
             disabled={refrescando}
-            className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-gray-700 transition-colors hover:bg-gray-100 hover:text-black disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-xs font-bold text-[var(--app-text-muted)] transition-all hover:bg-white/10 hover:text-white disabled:opacity-50"
             aria-label="Actualizar lista de pedidos"
           >
             {refrescando ? (
@@ -239,7 +239,7 @@ export const VendedorPisoPedidosDock = ({
             type="button"
             onClick={() => setShowConfig(!showConfig)}
             className={`rounded-xl p-2 transition-all active:scale-95 ${
-              showConfig ? "bg-black text-white" : "text-gray-500 hover:bg-gray-100 hover:text-black"
+              showConfig ? "bg-white text-black font-bold shadow-md" : "text-[var(--app-text-muted)] hover:bg-white/10 hover:text-white"
             }`}
             aria-label="Configuración de sonido de notificaciones"
           >
@@ -249,7 +249,7 @@ export const VendedorPisoPedidosDock = ({
           <button
             type="button"
             onClick={cerrar}
-            className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 hover:text-black"
+            className="rounded-xl p-2 text-[var(--app-text-muted)] transition-all hover:bg-white/10 hover:text-white"
             aria-label="Cerrar panel de pedidos"
           >
             <MaterialIcon icon="close" className="h-4 w-4" />
@@ -259,9 +259,9 @@ export const VendedorPisoPedidosDock = ({
 
       {/* PANEL DE AUDIO GLASSMORPHIC */}
       {showConfig && (
-        <div className="relative z-10 shrink-0 border-b border-gray-100 bg-gray-50/50 p-3.5 animate-fadeIn">
+        <div className="relative z-10 shrink-0 border-b border-[var(--app-border)] bg-white/[0.02] p-3.5 animate-fadeIn">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+            <span className="text-[10px] font-black uppercase tracking-widest text-[var(--app-text-faint)]">
               Tema de Sonido
             </span>
           </div>
@@ -285,8 +285,8 @@ export const VendedorPisoPedidosDock = ({
                   }}
                   className={`flex items-center gap-1.5 justify-center px-2 py-2 rounded-xl border text-[11px] font-bold transition-all active:scale-[0.98] ${
                     active
-                      ? "bg-black border-black text-white shadow-sm"
-                      : "bg-white border-gray-100 text-gray-600 hover:bg-gray-50"
+                      ? "bg-white border-white text-black shadow-md font-black"
+                      : "bg-white/[0.04] border-white/[0.08] text-[var(--app-text-muted)] hover:bg-white/[0.1] hover:text-white"
                   }`}
                 >
                   {theme.icon}
@@ -300,7 +300,7 @@ export const VendedorPisoPedidosDock = ({
 
       <div className="relative z-10 flex-1 overflow-y-auto px-2 py-2">
         {ordenados.length === 0 ? (
-          <p className="px-3 py-6 text-center text-sm text-gray-500">
+          <p className="px-3 py-6 text-center text-sm text-[var(--app-text-muted)] font-medium">
             Aún no hay solicitudes hoy. Cuando envíes una, aparecerá aquí.
           </p>
         ) : (
@@ -317,9 +317,9 @@ export const VendedorPisoPedidosDock = ({
                   className={`rounded-2xl border px-3 py-3 backdrop-blur-sm transition-all duration-300 animate-fadeIn ${
                     esNovedad 
                       ? p.estado === "ATENDIDO" 
-                        ? "border-emerald-200 bg-emerald-50/20 shadow-[0_4px_15px_rgba(16,185,129,0.04)]" 
-                        : "border-red-200 bg-red-50/20 shadow-[0_4px_15px_rgba(239,68,68,0.04)]"
-                      : "border-gray-100 bg-[#fafafa]/80"
+                        ? "border-emerald-500/30 bg-emerald-500/10 shadow-[0_4px_15px_rgba(16,185,129,0.08)]" 
+                        : "border-red-500/30 bg-red-500/10 shadow-[0_4px_15px_rgba(239,68,68,0.08)]"
+                      : "border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06]"
                   }`}
                 >
                   <div className="flex items-start gap-2">
@@ -328,31 +328,31 @@ export const VendedorPisoPedidosDock = ({
                       title={label}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-black">{p.nombreProducto}</p>
-                      <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-gray-600">
+                      <p className="truncate text-sm font-bold text-[var(--app-text)]">{p.nombreProducto}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-[var(--app-text-muted)] font-medium">
                         <span
-                          className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+                          className={`rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${
                             p.tipoSolicitud === "VENTA"
-                              ? "bg-amber-100 text-amber-900"
-                              : "bg-gray-200 text-gray-700"
+                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                              : "bg-white/10 text-white/80 border border-white/5"
                           }`}
                         >
                           {etiquetaTipo(p.tipoSolicitud)}
                         </span>
-                        <span>
+                        <span className="text-white/70">
                           {p.color} · Talla {p.talla} · Cant. {p.cantidad}
                         </span>
                         {hora ? (
-                          <span className="text-[10px] font-medium text-gray-400 tabular-nums">{hora}</span>
+                          <span className="text-[10px] font-bold text-[var(--app-text-faint)] tabular-nums">{hora}</span>
                         ) : null}
                       </p>
                       <p
-                        className={`mt-1 text-[11px] font-bold uppercase tracking-wide ${
+                        className={`mt-1 text-[11px] font-black uppercase tracking-wide ${
                           p.estado === "ATENDIDO"
-                            ? "text-emerald-600"
+                            ? "text-emerald-400"
                             : p.estado === "CANCELADO"
-                              ? "text-red-500"
-                              : "text-gray-500"
+                              ? "text-red-400"
+                              : "text-[var(--app-text-muted)]"
                         }`}
                       >
                         {label}
@@ -362,7 +362,7 @@ export const VendedorPisoPedidosDock = ({
                           type="button"
                           onClick={() => void onCancelarPedido(p.idSolicitud)}
                           disabled={cancelandoSolicitudId === p.idSolicitud}
-                          className="mt-2 rounded-lg border border-gray-200 bg-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-gray-600 transition hover:border-red-200 hover:text-red-600 disabled:opacity-50"
+                          className="mt-2 rounded-xl border border-white/10 bg-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/80 transition-all active:scale-[0.97] disabled:opacity-50"
                         >
                           {cancelandoSolicitudId === p.idSolicitud ? "Cancelando…" : "Cancelar pedido"}
                         </button>
@@ -390,9 +390,9 @@ export const VendedorPisoPedidosDock = ({
           ? "Cerrar panel de solicitudes a almacén"
           : "Abrir panel de solicitudes a almacén"
       }
-      className={`relative flex h-14 min-w-14 items-center justify-center gap-1 rounded-2xl border px-3 text-white shadow-lg transition-all hover:bg-gray-800 active:scale-[0.98] ${
-        abierto ? "border-gray-600 bg-gray-800" : "border-gray-200 bg-black"
-      } ${hasNewResponse ? "ring-2 ring-offset-2 ring-emerald-400/90 ring-offset-[#f8f9fa]" : ""}`}
+      className={`relative flex h-14 min-w-14 items-center justify-center gap-1 rounded-2xl border px-3 text-white shadow-lg transition-all hover:bg-neutral-800 active:scale-[0.98] ${
+        abierto ? "border-white/20 bg-neutral-800" : "border-white/10 bg-neutral-950"
+      } ${hasNewResponse ? "ring-2 ring-offset-2 ring-emerald-400/90 ring-offset-neutral-900" : ""}`}
     >
       <div className="relative z-10 flex items-center gap-1">
         <MaterialIcon icon="notifications" className="h-6 w-6 shrink-0" />

@@ -25,6 +25,7 @@ interface ContextoAutenticacion {
 
 const ContextoAuth = createContext<ContextoAutenticacion | undefined>(undefined);
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = (): ContextoAutenticacion => {
   const contexto = useContext(ContextoAuth);
   if (!contexto) {

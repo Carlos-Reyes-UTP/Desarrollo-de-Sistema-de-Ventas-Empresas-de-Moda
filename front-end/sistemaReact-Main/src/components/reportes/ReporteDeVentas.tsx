@@ -4,6 +4,7 @@ import { MaterialIcon } from '@/shared/ui';
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaService';
 import type { Venta } from '../../types/Venta';
+import type { DetalleVenta } from '../../types/DetalleVenta';
 import { AlertModal, ChartSkeleton } from '@/shared/ui';
 
 interface ReporteData {
@@ -27,6 +28,47 @@ interface DetalleExportacion {
 type TipoPeriodo = 'diario' | 'semanal' | 'mensual';
 
 const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+
+interface RechartsPayloadEntry {
+  payload: ReporteData;
+  value?: number;
+  name?: string;
+}
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: RechartsPayloadEntry[];
+  label?: string;
+}
+
+const CustomTooltipVentas: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-4 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[200px]">
+        <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-800/60">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
+          <span className="font-semibold text-gray-850 dark:text-gray-200 text-sm">{label}</span>
+        </div>
+        <div className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex justify-between items-center gap-4">
+            <span>Monto de Ventas:</span>
+            <span className="font-bold text-blue-600 dark:text-blue-400">
+              {formatterMonedaPE.format(data.ventas)}
+            </span>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <span>Cantidad:</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
+              {data.cantidad} unds
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 const ReporteDeVentas: React.FC = () => {
   const [periodo, setPeriodo] = useState<TipoPeriodo>('semanal');
@@ -206,7 +248,6 @@ const ReporteDeVentas: React.FC = () => {
     } else if (tipoPeriodo === 'mensual') {
       // Agrupar por semanas del mes
       const semanaInicio = new Date(fechaInicio);
-      let semanaNum = 1;
 
       while (semanaInicio <= fechaFin) {
         const semanaFinLocal = new Date(semanaInicio);
@@ -233,7 +274,6 @@ const ReporteDeVentas: React.FC = () => {
         });
 
         semanaInicio.setDate(semanaInicio.getDate() + 7);
-        semanaNum++;
       }
     }
 
@@ -279,7 +319,8 @@ const ReporteDeVentas: React.FC = () => {
       if (venta.detalles && venta.detalles.length > 0) {
         venta.detalles.forEach(detalle => {
           // Construir el nombre completo de la variante con color y talla
-          const nombreProducto = (detalle as any).producto?.nombre || detalle.productoVariante?.producto?.nombre || 'Producto sin nombre';
+          const detalleRecord = detalle as DetalleVenta & { producto?: { nombre?: string } };
+          const nombreProducto = detalleRecord.producto?.nombre || detalle.productoVariante?.producto?.nombre || 'Producto sin nombre';
           const nombreColor = detalle.productoVariante?.color?.nombre || 'Sin color';
           const nombreTalla = detalle.productoVariante?.talla?.nombreTalla || 'Talla única';
           const nombreCompleto = `${nombreProducto} - ${nombreColor} - ${nombreTalla}`;
@@ -517,17 +558,32 @@ const ReporteDeVentas: React.FC = () => {
               <ChartSkeleton height="h-80" className="border-0 p-4 shadow-none" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={datosGrafico}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="fecha" />
-                  <YAxis />
-                  <Tooltip 
-                    formatter={(value, name) => [
-                      name === 'ventas' ? formatearMoneda(Number(value)) : value,
-                      name === 'ventas' ? 'Ventas' : 'Cantidad'
-                    ]}
+                <BarChart data={datosGrafico} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="colorVentasGenerales" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#0EA5E9" stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor="#6366F1" stopOpacity={0.35}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                  <XAxis 
+                    dataKey="fecha" 
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
                   />
-                  <Bar dataKey="ventas" fill="#3B82F6" />
+                  <YAxis 
+                    tickLine={false}
+                    axisLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                  />
+                  <Tooltip content={<CustomTooltipVentas />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
+                  <Bar 
+                    dataKey="ventas" 
+                    fill="url(#colorVentasGenerales)" 
+                    radius={[8, 8, 0, 0]}
+                    maxBarSize={45}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -608,9 +664,8 @@ const ReporteDeVentas: React.FC = () => {
                             const metodoStr = String(metodoPago);
                             return metodoStr.charAt(0).toUpperCase() + metodoStr.slice(1);
                           }
-                          // Si es objeto, buscar propiedades
-                          const metodoObj = metodoPago as any;
-                          return metodoObj.nombre || metodoObj.tipo || 'Método personalizado';
+                          // Si es objeto MetodoPago, acceder a sus propiedades directamente
+                          return metodoPago.nombre || metodoPago.tipo || 'Método personalizado';
                         }
                         return 'No disponible';
                       } catch {

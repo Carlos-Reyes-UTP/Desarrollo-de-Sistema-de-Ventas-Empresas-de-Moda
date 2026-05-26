@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useAutoSync } from "@/hooks/useAutoSync";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
 import { SECTOR_ALMACEN_GENERAL } from "@/shared/constants/sectoresAlmacen";
 import { MaterialIcon } from "@/shared/ui";
@@ -22,7 +23,7 @@ import type { AlmacenSolicitud, AlmacenTicketConsolidado, MotivoRechazoApi } fro
 import { mensajeErrorApi } from "../../utils/apiErrors";
 import { destinosUnicosEnLote } from "../../utils/solicitudUbicacion";
 
-const POLL_MS = 3000;
+const POLL_MS = 30000;
 const PULSE_MS = 8000;
 
 function esVenta(c: AlmacenSolicitud): boolean {
@@ -98,10 +99,12 @@ export default function AlmacenTableroPedidosPage() {
       setError(null);
       aplicarNuevasVentas(data);
       setCards(data);
-    } catch (e: unknown) {
+    } catch (e: any) {
       setError(mensajeErrorApi(e));
     }
   }, [aplicarNuevasVentas, sectorParaCola]);
+
+  useAutoSync(cargar, ['SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA', 'NUEVA_VENTA'], 800);
 
   useEffect(() => {
     void cargar();
@@ -184,7 +187,7 @@ export default function AlmacenTableroPedidosPage() {
       }
       await cargar();
       setSeleccionId(null);
-    } catch (e: unknown) {
+    } catch (e: any) {
       setError(mensajeErrorApi(e));
     } finally {
       despachoLockRef.current = false;
@@ -205,7 +208,7 @@ export default function AlmacenTableroPedidosPage() {
       setRechazoCard(null);
       await cargar();
       setSeleccionId(null);
-    } catch (e: unknown) {
+    } catch (e: any) {
       setError(mensajeErrorApi(e));
     } finally {
       setRechazoCargando(false);

@@ -7,7 +7,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.tienda.ropa.config.VentaDirectaConfig;
+import com.tienda.ropa.dto.OrigenVentaResult;
 import com.tienda.ropa.entity.Inventario;
+import com.tienda.ropa.entity.OrigenVenta;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.repository.DetalleSolicitudRepository;
@@ -38,6 +41,7 @@ public class InventarioService {
     private final UbicacionAreaRepository ubicacionAreaRepository;
     private final ProductoVarianteRepository productoVarianteRepository;
     private final DetalleSolicitudRepository detalleSolicitudRepository;
+    private final VentaDirectaConfig ventaDirectaConfig;
 
     public static String etiquetaUbicacionArea(UbicacionArea ua) {
         if (ua == null || ua.getUbicacion() == null) {
@@ -263,6 +267,68 @@ public class InventarioService {
                     "La variante " + idVariante + " tiene stock en múltiples áreas: " + ubicaciones);
         }
         return filas.get(0).getUbicacionArea();
+    }
+
+    public OrigenVentaResult resolverUbicacionAreaDeVentaConFallback(Long idVariante, int cantidadRequerida) {
+        List<Inventario> filasPiso = inventarioRepository.findConStockPositivoExcluyendoAlmacen(
+                idVariante, NOMBRES_ALMACEN_LOWER);
+
+
+        if (filasPiso.size() == 1) {
+            Inventario fila = filasPiso.get(0);
+            int stockPiso = fila.getStock() != null ? fila.getStock() : 0;
+            if (stockPiso >= cantidadRequerida) {
+                return new OrigenVentaResult(fila.getUbicacionArea(), OrigenVenta.PISO);
+            }
+        } else if (filasPiso.size() > 1) {
+            String ubicaciones = filasPiso.stream()
+                    .map(f -> etiquetaUbicacionArea(f.getUbicacionArea()))
+                    .distinct()
+                    .limit(5)
+                    .reduce((a, b) -> a + ", " + b)
+                    .orElse("(múltiples)");
+            throw new IllegalStateException(
+                    "La variante " + idVariante + " tiene stock en múltiples áreas de piso: " + ubicaciones);
+        }
+
+        if (!ventaDirectaConfig.habilitada()) {
+            if (filasPiso.isEmpty()) {
+                throw new IllegalStateException(
+                        "Este producto no tiene stock en el área de venta. "
+                                + "Solicite reposición al almacén antes de vender.");
+            }
+            int stockDisponible = filasPiso.get(0).getStock() != null ? filasPiso.get(0).getStock() : 0;
+            throw new IllegalStateException(
+                    "Stock insuficiente en el área de venta. "
+                            + "Disponible: " + stockDisponible + ", solicitado: " + cantidadRequerida + ". "
+                            + "Solicite reposición al almacén.");
+        }
+
+        int stockAlmacen = inventarioRepository.sumStockByVarianteEnAlmacen(idVariante, NOMBRES_ALMACEN_LOWER);
+        if (stockAlmacen < cantidadRequerida) {
+            throw new IllegalStateException(
+                    "No hay stock suficiente para la variante " + idVariante
+                            + " (almacén: " + stockAlmacen + ", requerido: " + cantidadRequerida + ").");
+        }
+
+        List<UbicacionArea> areasAlmacen = listarUbicacionesAreaAlmacen();
+        for (UbicacionArea ua : areasAlmacen) {
+            int stock = stockEnUbicacionArea(idVariante, ua.getIdUbicacionArea());
+            if (stock >= cantidadRequerida) {
+                return new OrigenVentaResult(ua, OrigenVenta.ALMACEN_DIRECTO);
+            }
+        }
+
+        UbicacionArea conMayorStock = areasAlmacen.get(0);
+        int mayor = 0;
+        for (UbicacionArea ua : areasAlmacen) {
+            int stock = stockEnUbicacionArea(idVariante, ua.getIdUbicacionArea());
+            if (stock > mayor) {
+                mayor = stock;
+                conMayorStock = ua;
+            }
+        }
+        return new OrigenVentaResult(conMayorStock, OrigenVenta.ALMACEN_DIRECTO);
     }
 
     @Transactional

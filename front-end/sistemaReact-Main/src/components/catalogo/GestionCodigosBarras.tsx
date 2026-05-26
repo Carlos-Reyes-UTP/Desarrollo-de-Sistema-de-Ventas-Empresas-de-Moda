@@ -50,12 +50,11 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
 
   useEffect(() => {
     if (producto) {
-      // Modo individual: gestionar códigos de un producto específico
       cargarDatosProducto();
     } else {
-      // Modo general: gestionar códigos de todos los productos
       cargarTodosLosDatos();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [producto]);
 
   const cargarDatosProducto = async () => {
@@ -122,7 +121,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
             sexo: productoInfo.sexo,
             tipoPublico: 'adulto', // Valor por defecto
             categoria: codigoConDetalle.categoria,
-            subCategoria2: codigoConDetalle.categoria, // Usar la misma categoría como subcategoría
+            subCategoria2: { nombre: codigoConDetalle.categoria?.nombre || 'Sin subcategoría' },
             proveedor: {
               ...codigoConDetalle.proveedor,
               ruc: '' // Campo requerido pero no disponible en este contexto
@@ -174,9 +173,9 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
         codigos: codigosList.length
       });
       
-    } catch (err: any) {
+    } catch (err) {
       console.error('❌ Error al cargar datos optimizados:', err);
-      setError('Error al cargar códigos de barras: ' + (err.message ?? 'Error desconocido'));
+      setError('Error al cargar códigos de barras: ' + (err instanceof Error ? err.message : 'Error desconocido'));
     } finally {
       setLoading(false);
     }
@@ -260,7 +259,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       setCodigosBarras(prev => prev.filter(c => c.id !== confirmModal.codigoId));
       setExito('Código eliminado exitosamente');
       setTimeout(() => setExito(null), 3000);
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error al eliminar código:', err);
       setError('Error al eliminar código');
     } finally {
@@ -280,13 +279,15 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       setError(null);
 
       const resultado = await CodigoBarrasService.buscarPorCodigo(scannerInput);
-      
-      // Mostrar resultado
-      const mensaje = `Encontrado: ${resultado.tipo} - ${
-        resultado.tipo === 'PRODUCTO' 
-          ? resultado.entidad.nombre 
-          : `${resultado.entidad.producto.nombre} (${resultado.entidad.talla.nombre} - ${resultado.entidad.color.nombre})`
-      }`;
+
+      let mensaje: string;
+      if (resultado.tipo === 'PRODUCTO') {
+        const prod = resultado.entidad as Producto;
+        mensaje = `Encontrado: PRODUCTO - ${prod.nombre}`;
+      } else {
+        const variante = resultado.entidad as ProductoVariante;
+        mensaje = `Encontrado: VARIANTE - ${variante.producto?.nombre} (${variante.talla?.nombreTalla} - ${variante.color?.nombre})`;
+      }
       
       setExito(mensaje);
       setTimeout(() => setExito(null), 5000);
@@ -330,7 +331,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       const prod = productos.find(p => p.idProducto === codigo.entidadId);
       return prod?.nombre ?? 'Producto no encontrado';
     } else {
-      const variante = variantes.find(v => v.idVariante === codigo.entidadId);
+      const variante = variantes.find(v => v.idVariante === codigo.entidadId || v.idProductoVariante === codigo.entidadId);
       if (variante) {
         return `${variante.producto.nombre} (${variante.talla.nombreTalla} - ${variante.color.nombre})`;
       }
@@ -506,6 +507,46 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 ))}
               </div>
             </div>
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Variantes</h4>
+              <div className="max-h-48 overflow-y-auto space-y-2">
+                {variantes.map(variante => (
+                  <div key={variante.idVariante} className="flex items-center justify-between p-2 border rounded">
+                    <span className="text-sm">
+                      {variante.producto.nombre} ({variante.talla.nombreTalla} - {variante.color.nombre})
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => {
+                          setEntidadSeleccionada({
+                            id: variante.idProductoVariante ?? variante.idVariante!,
+                            tipo: 'VARIANTE',
+                            nombre: `${variante.producto.nombre} (${variante.talla.nombreTalla} - ${variante.color.nombre})`
+                          });
+                          setShowGenerarCodigo(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-300 rounded"
+                      >
+                        Generar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEntidadSeleccionada({
+                            id: variante.idProductoVariante ?? variante.idVariante!,
+                            tipo: 'VARIANTE',
+                            nombre: `${variante.producto.nombre} (${variante.talla.nombreTalla} - ${variante.color.nombre})`
+                          });
+                          setShowAsignarCodigo(true);
+                        }}
+                        className="text-green-600 hover:text-green-800 text-xs px-2 py-1 border border-green-300 rounded"
+                      >
+                        Asignar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -569,7 +610,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 <select
                   id="generar-formato"
                   value={formGenerar.formato}
-                  onChange={(e) => setFormGenerar(prev => ({ ...prev, formato: e.target.value as any }))}
+                  onChange={(e) => setFormGenerar(prev => ({ ...prev, formato: e.target.value as 'EAN8' | 'EAN13' | 'CODE128' }))}
                   className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                 >
                   <option value="EAN8">EAN-8 (8 dígitos)</option>
@@ -611,7 +652,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 <select
                   id="asignar-formato"
                   value={formAsignar.formato}
-                  onChange={(e) => setFormAsignar(prev => ({ ...prev, formato: e.target.value as any }))}
+                  onChange={(e) => setFormAsignar(prev => ({ ...prev, formato: e.target.value as 'EAN8' | 'EAN13' | 'CODE128' }))}
                   className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                 >
                   <option value="EAN8">EAN-8 (8 dígitos)</option>

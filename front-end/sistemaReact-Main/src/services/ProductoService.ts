@@ -3,6 +3,7 @@ import type { Producto } from '../types/Producto';
 import { RUTAS_PRODUCTOS } from '../config/apiConfig';
 import { throwAuthError } from '../utils/handleApiError';
 import { logger } from '../utils/logger';
+import axios from 'axios';
 
 const getEndpointForRole = (userRole: string | null, operationType: 'read' | 'write' = 'read') => {
 
@@ -214,9 +215,9 @@ export const ProductoService = {
       );
       return response.data;
     } catch (error: any) {
-      if (error.response?.status === 400) {
+      if ((axios.isAxiosError(error) && error.response?.status) === 400) {
         throw new Error('Stock insuficiente del producto general');
-      } else if (error.response?.status === 404) {
+      } else if ((axios.isAxiosError(error) && error.response?.status) === 404) {
         throw new Error('Producto no encontrado');
       }
       throwAuthError(error, 'actualizar el stock');

@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useAutoSync } from "@/hooks/useAutoSync";
 import { useAuth } from "@/context/AuthContext";
 import { useBandeja } from "../../context/BandejaSolicitudContext";
 import { VendedorService } from "../../services/VendedorService";
@@ -178,9 +179,11 @@ const VendedorPisoVentasPage = () => {
     }
   }, []);
 
+  useAutoSync(cargarPedidos, ['SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA', 'SOLICITUD_CREADA'], 800);
+
   useEffect(() => {
     void cargarPedidos();
-    const t = window.setInterval(() => void cargarPedidos(), 15000);
+    const t = window.setInterval(() => void cargarPedidos(), 30000);
     return () => window.clearInterval(t);
   }, [cargarPedidos]);
 
@@ -459,7 +462,7 @@ const VendedorPisoVentasPage = () => {
     : "";
 
   return (
-    <div className="relative min-h-[calc(100dvh-8.5rem)] bg-[#f8f9fa] pb-36 pt-2">
+    <div className="relative min-h-[calc(100dvh-8.5rem)] app-page pb-36 pt-2">
       <VendedorToastStack toasts={toasts} onDismiss={eliminarToast} />
 
       <div className="mx-auto w-full max-w-7xl px-4 md:px-8">
@@ -468,17 +471,17 @@ const VendedorPisoVentasPage = () => {
           {/* Columna Izquierda: Control y Búsqueda */}
           <div ref={topRef} className="flex-1 w-full md:max-w-[420px] space-y-8">
             <header className="pt-2 animate-fadeIn">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-black/5 text-[10px] font-bold uppercase tracking-wider text-gray-500 mb-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)] mb-3">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
                 Sesión Activa: {usuario?.usuario ?? "Vendedor"}
               </div>
-              <h1 className="text-3xl font-black tracking-tight text-black sm:text-4xl">
+              <h1 className="text-3xl font-black tracking-tight app-heading sm:text-4xl">
                 ¡Hola{usuario?.usuario ? `, ${usuario.usuario}` : ""}!
               </h1>
-              <p className="mt-2 text-base font-medium text-gray-500 leading-relaxed">
+              <p className="mt-2 text-base font-medium app-text-muted leading-relaxed">
                 Busca un producto por SKU o escanea el código para solicitarlo al almacén.
               </p>
             </header>
@@ -491,7 +494,7 @@ const VendedorPisoVentasPage = () => {
                   duration={1.96}
                   className="rounded-[2.5rem]"
                 >
-                  <div className={`relative overflow-hidden rounded-[2.5rem] bg-white transition-all duration-500 ${estaEnfocado || buscando ? 'shadow-[0_20px_50px_rgba(0,0,0,0.1)] scale-[1.02]' : 'shadow-[0_8px_30px_rgba(0,0,0,0.04)]'}`}>
+                  <div className={`relative overflow-hidden rounded-[2.5rem] bg-white/[0.04] border border-white/[0.08] backdrop-blur-md transition-all duration-500 ${estaEnfocado || buscando ? 'shadow-[0_20px_50px_rgba(0,0,0,0.3)] scale-[1.02]' : 'shadow-[0_8px_30px_rgba(0,0,0,0.1)]'}`}>
                     <input
                       type="search"
                       inputMode="search"
@@ -507,12 +510,12 @@ const VendedorPisoVentasPage = () => {
                           void ejecutarBusqueda(codigo);
                         }
                       }}
-                      className="w-full bg-transparent py-7 pl-9 pr-20 text-lg font-bold text-black placeholder:text-gray-300 focus:outline-none placeholder:font-semibold tracking-tight"
+                      className="w-full bg-transparent py-7 pl-9 pr-20 text-lg font-bold text-white placeholder:text-white/20 focus:outline-none placeholder:font-semibold tracking-tight"
                     />
                     <button
                       type="button"
                       onClick={() => setScannerAbierto(true)}
-                      className={`absolute right-4 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-[1.8rem] text-white shadow-lg transition-all hover:scale-105 active:scale-95 ${estaEnfocado || buscando ? 'bg-black' : 'bg-black/90'}`}
+                      className={`absolute right-4 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-[1.8rem] text-black bg-white shadow-lg transition-all hover:scale-105 active:scale-95`}
                       aria-label="Escanear código"
                     >
                       <MaterialIcon icon="qr_code_scanner" className="h-6 w-6" />
@@ -525,7 +528,7 @@ const VendedorPisoVentasPage = () => {
                 <button
                   type="button"
                   onClick={() => void ejecutarBusqueda(codigo)}
-                  className="flex-1 rounded-3xl bg-white py-5 text-xs font-black uppercase tracking-[0.25em] text-black shadow-[0_4px_20px_rgba(0,0,0,0.03)] transition-all hover:bg-black hover:text-white hover:shadow-[0_15px_30px_rgba(0,0,0,0.12)] active:scale-[0.97]"
+                  className="flex-1 rounded-3xl bg-white/5 border border-white/10 py-5 text-xs font-black uppercase tracking-[0.25em] text-white shadow-md transition-all hover:bg-white hover:text-black hover:shadow-xl active:scale-[0.97]"
                 >
                   Buscar Producto
                 </button>
@@ -536,9 +539,9 @@ const VendedorPisoVentasPage = () => {
                 idUbicacionAreaDestino != null ? (
                   /* Área auto-detectada desde el catálogo */
                   <div className="animate-fadeIn flex items-center gap-2" style={{ animationDelay: '300ms' }}>
-                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Área destino</p>
-                    <span className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-1.5 text-xs font-bold text-emerald-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--app-text-muted)]">Área destino</p>
+                    <span className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-1.5 text-xs font-bold text-emerald-400">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                       {nombreUbicacionDestino ?? "Área asignada"}
                     </span>
                   </div>
@@ -546,8 +549,8 @@ const VendedorPisoVentasPage = () => {
                   /* Producto nuevo: selector obligatorio */
                   <div className="animate-fadeIn space-y-2" style={{ animationDelay: '300ms' }}>
                     <div className="flex items-center gap-2">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Área destino</p>
-                      <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-amber-600">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--app-text-muted)]">Área destino</p>
+                      <span className="rounded-full bg-amber-500/15 border border-amber-500/25 px-2.5 py-1 text-[9px] font-black uppercase tracking-widest text-amber-400">
                         Selecciona piso de destino
                       </span>
                     </div>
@@ -566,8 +569,8 @@ const VendedorPisoVentasPage = () => {
                               }}
                               className={`rounded-2xl border px-4 py-2 text-xs font-bold transition-all ${
                                 sel
-                                  ? "border-black bg-black text-white shadow-md"
-                                  : "border-gray-200 bg-white text-gray-700 hover:border-black/30 hover:bg-gray-50"
+                                  ? "border-white bg-white text-black shadow-md font-black"
+                                  : "border-white/10 bg-white/[0.03] text-[var(--app-text)] hover:border-white/20 hover:bg-white/[0.08]"
                               }`}
                             >
                               {etiqueta}
@@ -576,9 +579,9 @@ const VendedorPisoVentasPage = () => {
                         })}
                       </div>
                     ) : (
-                      <p className="text-[11px] text-gray-400">Cargando áreas...</p>
+                      <p className="text-[11px] text-[var(--app-text-muted)]">Cargando áreas...</p>
                     )}
-                    <p className="text-[11px] font-semibold text-amber-500">
+                    <p className="text-[11px] font-bold text-amber-400/90">
                       Indica a qué piso o área debe enviar almacén este pedido.
                     </p>
                   </div>
@@ -588,8 +591,8 @@ const VendedorPisoVentasPage = () => {
               {buscando && <SearchResultSkeleton />}
 
               {coincidencias.length > 0 && !buscando && (
-                <div className="rounded-[2.5rem] bg-white p-5 shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-gray-100 animate-fadeInUp">
-                  <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+                <div className="rounded-[2.5rem] border border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/90 p-5 shadow-[0_20px_50px_rgba(0,0,0,0.4)] backdrop-blur-xl animate-fadeInUp">
+                  <p className="mb-4 text-[10px] font-black uppercase tracking-[0.2em] text-[var(--app-text-muted)]">
                     Resultados encontrados ({coincidencias.length})
                   </p>
                   <ul className="max-h-[60vh] space-y-3 overflow-y-auto pr-1">
@@ -598,19 +601,19 @@ const VendedorPisoVentasPage = () => {
                         <button
                           type="button"
                           onClick={() => void seleccionarVarianteLista(row.idProductoVariante)}
-                          className="flex w-full items-center justify-between rounded-3xl bg-gray-50/50 px-5 py-4 text-left transition-all hover:bg-black hover:text-white group"
+                          className="flex w-full items-center justify-between rounded-3xl bg-white/[0.02] border border-white/5 px-5 py-4 text-left transition-all hover:bg-white hover:text-black group"
                         >
                           <div className="min-w-0 flex-1">
-                            <span className="font-bold text-sm block group-hover:text-white">{row.nombreProducto}</span>
-                            <span className="mt-1 block text-xs font-medium text-gray-500 group-hover:text-white/70">
+                            <span className="font-bold text-sm block text-white group-hover:text-black">{row.nombreProducto}</span>
+                            <span className="mt-1 block text-xs font-bold text-[var(--app-text-muted)] group-hover:text-black/70">
                               {row.color} · {row.talla}
                             </span>
                           </div>
                           <div className="ml-4 flex flex-col items-end gap-1">
-                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${row.stockAlmacen > 0 ? 'bg-emerald-100 text-emerald-700 group-hover:bg-emerald-500 group-hover:text-white' : 'bg-gray-200 text-gray-500 group-hover:bg-gray-700'}`}>
+                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${row.stockAlmacen > 0 ? 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-transparent' : 'bg-white/10 text-white/50 border border-white/5'}`}>
                               {row.stockAlmacen > 0 ? `${row.stockAlmacen} STOCK` : "SIN STOCK"}
                             </span>
-                            <span className="text-[11px] font-bold text-gray-400 group-hover:text-white/60">S/{Number(row.precioUnitario).toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-[var(--app-text-muted)] group-hover:text-black/60">S/{Number(row.precioUnitario).toFixed(2)}</span>
                           </div>
                         </button>
                       </li>
@@ -624,32 +627,32 @@ const VendedorPisoVentasPage = () => {
           {/* Columna Derecha: Detalle y Selección */}
           <div className="flex-1 w-full min-h-[400px]">
             {catalogo && !buscando ? (
-              <section className="space-y-6 rounded-[3rem] bg-white p-8 shadow-[0_20px_60px_rgba(0,0,0,0.06)] border border-gray-50 animate-fadeInRight">
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-gray-100">
-                  <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-[2rem] bg-black text-white shadow-xl">
+              <section className="space-y-6 rounded-[3rem] border border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/90 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl animate-fadeInRight">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-[var(--app-border)]">
+                  <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-[2rem] bg-white/10 text-white border border-white/10 shadow-2xl">
                     <MaterialIcon icon="inventory_2" className="h-10 w-10" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                       <span className="px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest">Producto</span>
-                       <span className="text-[10px] font-bold text-gray-400">ID: {catalogo.producto.idProducto}</span>
+                       <span className="px-2 py-0.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-black uppercase tracking-widest">Producto</span>
+                       <span className="text-[10px] font-bold text-[var(--app-text-faint)]">ID: {catalogo.producto.idProducto}</span>
                     </div>
-                    <h2 className="text-3xl font-black leading-tight text-black">
+                    <h2 className="text-3xl font-black leading-tight text-[var(--app-text)]">
                       {catalogo.producto.nombre}
                     </h2>
-                    <p className="mt-2 text-2xl font-bold text-black/90">
+                    <p className="mt-2 text-2xl font-black text-[var(--app-text)] opacity-90">
                       {precioTxt}
                     </p>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <p ref={variantesRef} className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+                  <p ref={variantesRef} className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--app-text-muted)]">
                     Variantes Disponibles
                   </p>
                   {catalogo.variantes.length === 0 ? (
-                    <div className="rounded-3xl border-2 border-dashed border-gray-100 p-8 text-center">
-                      <p className="text-sm font-semibold text-gray-500">
+                    <div className="rounded-3xl border-2 border-dashed border-[var(--app-border)] p-8 text-center bg-white/[0.01]">
+                      <p className="text-sm font-bold text-[var(--app-text-muted)]">
                         No hay variantes registradas para este producto.
                       </p>
                     </div>
@@ -666,23 +669,23 @@ const VendedorPisoVentasPage = () => {
                             disabled={disabled}
                             onClick={() => handleSeleccionarVariante(v)}
                             className={`flex flex-col items-start gap-1 overflow-hidden rounded-[1.5rem] border-2 p-4 text-left transition-all ${disabled
-                                ? "cursor-not-allowed border-gray-50 bg-gray-50/50 opacity-50"
+                                ? "cursor-not-allowed border-white/5 bg-white/[0.01] opacity-30 text-[var(--app-text-faint)]"
                                 : sel
-                                  ? "border-black bg-black text-white shadow-xl"
-                                  : "border-gray-100 bg-white hover:border-black/20 hover:bg-gray-50"
+                                  ? "border-white bg-white text-black shadow-xl"
+                                  : "border-white/10 bg-white/[0.03] text-[var(--app-text)] hover:border-white/20 hover:bg-white/[0.08]"
                               }`}
                           >
-                            <span className={`text-[10px] font-black uppercase tracking-widest ${sel ? "text-white/60" : "text-gray-400"}`}>
+                            <span className={`text-[10px] font-black uppercase tracking-widest ${sel ? "text-black/60" : "text-[var(--app-text-faint)]"}`}>
                               {v.talla}
                             </span>
-                            <span className="text-sm font-bold truncate w-full">
+                            <span className="text-sm font-black truncate w-full">
                               {v.color}
                             </span>
-                            <span className={`mt-2 text-[10px] font-black tabular-nums ${disabled ? "text-gray-400" : sel ? "text-white" : "text-emerald-600"}`}>
+                            <span className={`mt-2 text-[10px] font-black tabular-nums ${disabled ? "text-[var(--app-text-faint)]" : sel ? "text-black" : "text-emerald-400 font-black"}`}>
                               {disp > 0 ? `${disp} DISPONIBLE` : "AGOTADO"}
                             </span>
                             {v.stockReservado > 0 && disp > 0 ? (
-                              <span className={`text-[9px] font-semibold ${sel ? "text-white/50" : "text-amber-600"}`}>
+                              <span className={`text-[9px] font-bold ${sel ? "text-black/50" : "text-amber-400"}`}>
                                 {v.stockReservado} en pedidos
                               </span>
                             ) : null}
@@ -694,22 +697,22 @@ const VendedorPisoVentasPage = () => {
                 </div>
 
                 {idVariante != null && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-gray-100">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-6 pt-6 border-t border-[var(--app-border)]">
                     <div className="space-y-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--app-text-muted)]">
                         Cantidad a Solicitar
                       </p>
                       {stockDisponible > 0 ? (
                         <>
-                        <div className="flex items-center gap-4 bg-gray-50 p-2 rounded-[2rem]">
+                        <div className="flex items-center gap-4 bg-white/[0.04] border border-white/[0.08] p-2 rounded-[2rem]">
                           <button
                             type="button"
                             onClick={() => setCantidad((c) => Math.max(1, c - 1))}
-                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white text-xl font-black shadow-sm transition-all hover:bg-gray-100 active:scale-95"
+                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white/10 hover:bg-white/20 border border-white/10 text-white shadow-sm transition-all active:scale-95"
                           >
                             <MaterialIcon icon="remove" className="h-6 w-6" />
                           </button>
-                          <span className="flex-1 text-center text-3xl font-black tabular-nums text-black">
+                          <span className="flex-1 text-center text-3xl font-black tabular-nums text-[var(--app-text)]">
                             {cantidad}
                           </span>
                           <button
@@ -718,13 +721,13 @@ const VendedorPisoVentasPage = () => {
                               setCantidad((c) => Math.min(stockDisponible, c + 1))
                             }
                             disabled={cantidad >= stockDisponible}
-                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white text-xl font-black shadow-sm transition-all hover:bg-gray-100 active:scale-95 disabled:opacity-30"
+                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white/10 hover:bg-white/20 border border-white/10 text-white shadow-sm transition-all active:scale-95 disabled:opacity-30"
                           >
                             <MaterialIcon icon="add" className="h-6 w-6" />
                           </button>
                         </div>
                         {(stockReservado > 0 || enBandejaVariante > 0) && (
-                          <p className="text-[10px] font-semibold text-gray-500 px-1">
+                          <p className="text-[10px] font-bold text-[var(--app-text-muted)] px-1">
                             {stockFisico} físico
                             {stockReservado > 0 ? ` · ${stockReservado} en pedidos` : ""}
                             {enBandejaVariante > 0 ? ` · ${enBandejaVariante} en tu lista` : ""}
@@ -732,22 +735,22 @@ const VendedorPisoVentasPage = () => {
                         )}
                         </>
                       ) : (
-                        <div className="rounded-[1.5rem] bg-red-50 p-4">
-                          <p className="text-xs font-bold text-red-600">Sin stock disponible en almacén.</p>
+                        <div className="rounded-[1.5rem] bg-red-500/10 border border-red-500/20 p-4">
+                          <p className="text-xs font-black text-red-400">Sin stock disponible en almacén.</p>
                         </div>
                       )}
                     </div>
 
                     <div className="flex flex-col justify-end gap-3">
                        <div className="flex items-center justify-between px-2 mb-1">
-                          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Total Sugerido</span>
-                          <span className="text-sm font-black text-black">S/{(Number(catalogo.producto.precioUnitario) * cantidad).toFixed(2)}</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-[var(--app-text-muted)]">Total Sugerido</span>
+                          <span className="text-sm font-black text-[var(--app-text)]">S/{(Number(catalogo.producto.precioUnitario) * cantidad).toFixed(2)}</span>
                        </div>
                        <button
                         type="button"
                         disabled={stockDisponible <= 0 || !idUbicacionAreaDestino}
                         onClick={agregarALista}
-                        className="flex w-full items-center justify-center gap-2 rounded-[1.8rem] bg-black py-5 text-sm font-black uppercase tracking-widest text-white shadow-2xl transition-all hover:bg-gray-900 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex w-full items-center justify-center gap-2 rounded-[1.8rem] bg-white py-4 sm:py-5 text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-widest text-black shadow-2xl transition-all hover:bg-white/90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <MaterialIcon icon="add" className="h-4 w-4" />
                         Agregar a la lista
@@ -757,12 +760,12 @@ const VendedorPisoVentasPage = () => {
                 )}
               </section>
             ) : (
-              <div className="hidden md:flex h-full min-h-[500px] flex-col items-center justify-center rounded-[3rem] border-2 border-dashed border-black/5 bg-black/[0.01] p-12 text-center animate-fadeIn">
-                <div className="mb-6 rounded-[2rem] bg-black/5 p-8">
-                  <MaterialIcon icon="inventory_2" className="h-16 w-16 text-black/10" />
+              <div className="hidden md:flex h-full min-h-[500px] flex-col items-center justify-center rounded-[3rem] border border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/50 p-12 text-center backdrop-blur-xl animate-fadeIn">
+                <div className="mb-6 rounded-[2rem] bg-[var(--app-bg-muted)] p-8">
+                  <MaterialIcon icon="inventory_2" className="h-16 w-16 text-[var(--app-text-faint)]/50" />
                 </div>
-                <h3 className="text-xl font-black text-black/40">Esperando Selección</h3>
-                <p className="mt-3 max-w-[280px] text-sm font-medium text-gray-400 leading-relaxed">
+                <h3 className="text-xl font-black app-heading opacity-60">Esperando Selección</h3>
+                <p className="mt-3 max-w-[280px] text-sm font-medium app-text-muted leading-relaxed">
                   Busca un producto a la izquierda para ver sus detalles y stock aquí.
                 </p>
               </div>

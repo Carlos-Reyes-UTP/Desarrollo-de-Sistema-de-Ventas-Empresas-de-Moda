@@ -28,6 +28,7 @@ import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.service.InventarioContextService;
 import com.tienda.ropa.service.InventarioService;
+import com.tienda.ropa.service.NotificationService;
 import com.tienda.ropa.repository.DetalleSolicitudRepository;
 import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.repository.SolicitudRepository;
@@ -48,6 +49,7 @@ public class SolicitudServiceImpl implements SolicitudService {
     private final UsuarioRepository usuarioRepository;
     private final ProductoVarianteRepository productoVarianteRepository;
     private final TrasladoInventarioService trasladoInventarioService;
+    private final NotificationService notificationService;
     private final InventarioContextService inventarioContextService;
     private final InventarioService inventarioService;
 
@@ -83,6 +85,10 @@ public class SolicitudServiceImpl implements SolicitudService {
         s.setUbicacionAreaDestino(destino);
         s.setCodigoLote(dto.codigoLote());
         Solicitud guardada = solicitudRepository.save(s);
+        notificationService.sendNotificationObject(java.util.Map.of(
+                "type", "SOLICITUD_CREADA",
+                "idSolicitud", guardada.getIdSolicitud(),
+                "tipoSolicitud", guardada.getTipoSolicitud().name()));
 
         for (DetalleSolicitudLineaDTO linea : dto.detalles()) {
             if (linea.cantidad() == null || linea.cantidad() <= 0) {
@@ -282,7 +288,11 @@ public class SolicitudServiceImpl implements SolicitudService {
 
         s.setEstado(EstadoSolicitud.ATENDIDO);
         s.setMotivoRechazo(null);
-        return solicitudRepository.save(s);
+        Solicitud resultado = solicitudRepository.save(s);
+        notificationService.sendNotificationObject(java.util.Map.of(
+                "type", "SOLICITUD_ATENDIDA",
+                "idSolicitud", resultado.getIdSolicitud()));
+        return resultado;
     }
 
     @Override
@@ -314,11 +324,13 @@ public class SolicitudServiceImpl implements SolicitudService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La solicitud ya no está pendiente");
         }
         validarAccesoSolicitud(usuario, s);
-        // Reserva blanda: solo cuenta solicitudes PENDIENTE; al cancelar se libera sin mover stock físico.
         s.setEstado(EstadoSolicitud.CANCELADO);
         s.setMotivoRechazo(motivo);
         solicitudRepository.save(s);
         solicitudRepository.flush();
+        notificationService.sendNotificationObject(java.util.Map.of(
+                "type", "SOLICITUD_RECHAZADA",
+                "idSolicitud", s.getIdSolicitud()));
         return s;
     }
 

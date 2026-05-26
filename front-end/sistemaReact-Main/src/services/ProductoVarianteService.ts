@@ -1,5 +1,5 @@
 import apiClient from '../config/apiClient';
-import { AxiosError } from 'axios';
+import axios, { AxiosError } from 'axios';
 import type { ProductoVariante } from '../types/ProductoVariante';
 import type { Talla } from '../types/Talla';
 import type { Color } from '../types/Color';
@@ -16,14 +16,14 @@ import { logger } from '../utils/logger';
  * que consume el front (`Talla` / `Color`) y sincroniza los IDs y el campo del
  * código de barras (entidad: `codigoBarras`; cajero: `codigoBarrasVariante`).
  */
-function normalizarVarianteDesdeBackend(raw: any): ProductoVariante {
+function normalizarVarianteDesdeBackend(raw: Partial<ProductoVariante> & Record<string, unknown>): ProductoVariante {
   if (!raw || typeof raw !== 'object') return raw;
 
   let talla: Talla;
   if (typeof raw.talla === 'string') {
     talla = { nombreTalla: raw.talla };
   } else if (raw.talla && typeof raw.talla === 'object') {
-    talla = { nombreTalla: '', ...raw.talla } as Talla;
+    talla = Object.assign({ nombreTalla: '' }, raw.talla) as Talla;
   } else {
     talla = { nombreTalla: '' };
   }
@@ -32,7 +32,7 @@ function normalizarVarianteDesdeBackend(raw: any): ProductoVariante {
   if (typeof raw.color === 'string') {
     color = { nombre: raw.color };
   } else if (raw.color && typeof raw.color === 'object') {
-    color = { nombre: '', ...raw.color } as Color;
+    color = Object.assign({ nombre: '' }, raw.color) as Color;
   } else {
     color = { nombre: '' };
   }
@@ -122,7 +122,7 @@ export const ProductoVarianteService = {    // Crear nueva variante
       const response = await apiClient.put<ProductoVariante>(RUTAS_VARIANTES.POR_ID(id), payload);
       return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
-      if (error.response?.status === 404) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         throw new Error(`No se encontro la variante con ID: ${id}. Es posible que haya sido eliminada.`);
       }
       throwAuthError(error, 'actualizar variantes');
@@ -181,7 +181,7 @@ export const ProductoVarianteService = {    // Crear nueva variante
     } catch (error: any) {
       logger.error(`Error al obtener variantes para producto ${idProducto}:`, error);
       
-      if (error.response?.status === 404) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         logger.debug(`No se encontraron variantes para el producto ${idProducto}`);
         return [];
       }
@@ -266,7 +266,7 @@ export const ProductoVarianteService = {    // Crear nueva variante
       logger.debug(`Variante eliminada correctamente`);
     } catch (error: any) {
       logger.error(`Error al eliminar variante ${id}:`, error);
-      if (error.response?.status === 404) {
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
         throw new Error(`No se encontro la variante con ID: ${id}. Es posible que ya haya sido eliminada.`);
       }
       throwAuthError(error, 'eliminar variantes');
@@ -374,9 +374,9 @@ export const ProductoVarianteService = {    // Crear nueva variante
       logger.debug(`Stock de variante ${id} reducido exitosamente en ${cantidad} unidades`);
       return normalizarVarianteDesdeBackend(response.data);
     } catch (error: any) {
-      if (error.response?.status === 400) {
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
         throw new Error('Stock insuficiente para realizar la venta');
-      } else if (error.response?.status === 404) {
+      } else if (axios.isAxiosError(error) && error.response?.status === 404) {
         throw new Error(`No se encontro la variante con ID: ${id}`);
       }
       logger.error(`Error al disminuir cantidad de variante ${id}:`, error);

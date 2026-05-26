@@ -21,6 +21,56 @@ import type { ReporteCategoriaData, FiltrosReporte } from '../../types/ReporteVe
 import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton } from '@/shared/ui';
 import { RoseChart } from './shared/RoseChart';
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: unknown[];
+  label?: string;
+}
+
+const CustomTooltipCategoria: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    const data = (payload as any[])[0].payload;
+    return (
+      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-4 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[220px]">
+        <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-800/60">
+          <span className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse"></span>
+          <span className="font-semibold text-gray-850 dark:text-gray-200 text-sm">{data.categoria || label}</span>
+        </div>
+        <div className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
+          <div className="flex justify-between items-center gap-4">
+            <span>Ingresos Totales:</span>
+            <span className="font-bold text-violet-600 dark:text-violet-400">
+              S/. {Number(data.ingresosTotales).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <span>Cantidad Total:</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
+              {data.cantidadTotalVendida || 0} unds
+            </span>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <span>Productos Únicos:</span>
+            <span className="font-semibold text-gray-800 dark:text-gray-200">
+              {data.cantidadProductosVendidos || 0} items
+            </span>
+          </div>
+          {data.productoMasVendido?.nombre && (
+            <div className="pt-1.5 mt-1.5 border-t border-gray-100 dark:border-gray-800/40 text-[10px]">
+              <span className="block text-gray-500 font-medium mb-0.5">TOP PRODUCTO</span>
+              <div className="flex justify-between items-center text-gray-700 dark:text-gray-300">
+                <span className="truncate max-w-[120px] font-medium">{data.productoMasVendido.nombre}</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">{data.productoMasVendido.cantidadVendida} unds</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 // Tipos para el estado de navegación
 interface Breadcrumb {
   id: number | null;
@@ -102,7 +152,7 @@ const ReportePorCategoria: React.FC = () => {
       console.error('❌ Detalles del error:', err.response?.data);
       console.error('❌ Status del error:', err.response?.status);
       console.error('❌ URL del error:', err.config?.url);
-      setError(err.message || 'Error al cargar el reporte por categoría');
+      setError((err instanceof Error ? err.message : String(err)) || 'Error al cargar el reporte por categoría');
       setReportes([]);
     } finally {
       setLoading(false);
@@ -435,11 +485,31 @@ const ReportePorCategoria: React.FC = () => {
               <div className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={reportes} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="categoria" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => [`S/.${Number(value).toLocaleString()}`, 'Ingresos']} />
-                    <Bar dataKey="ingresosTotales" fill="#3B82F6" />
+                    <defs>
+                      <linearGradient id="colorCategoriaIngresos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.95}/>
+                        <stop offset="100%" stopColor="#0EA5E9" stopOpacity={0.35}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                    <XAxis 
+                      dataKey="categoria" 
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: '#64748b', fontSize: 11 }}
+                    />
+                    <YAxis 
+                      tickLine={false}
+                      axisLine={false}
+                      tick={{ fill: '#64748b', fontSize: 11 }}
+                    />
+                    <Tooltip content={<CustomTooltipCategoria />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
+                    <Bar 
+                      dataKey="ingresosTotales" 
+                      fill="url(#colorCategoriaIngresos)" 
+                      radius={[8, 8, 0, 0]}
+                      maxBarSize={50}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -460,15 +530,19 @@ const ReportePorCategoria: React.FC = () => {
                       label={((props: any) => 
                         `${props.categoria}: S/ ${Number(props.ingresosTotales).toLocaleString()}`
                       ) as any}
-                      outerRadius={120}
-                      fill="#8884d8"
+                      innerRadius={65}
+                      outerRadius={105}
+                      paddingAngle={4}
+                      cornerRadius={5}
                       dataKey="ingresosTotales"
+                      stroke="#ffffff"
+                      strokeWidth={1.5}
                     >
                       {reportes.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={coloresPie[index % coloresPie.length]} />
                       ))}
                     </Pie>
-                    <Tooltip formatter={(value) => [`S/${Number(value).toLocaleString()}`, 'Ingresos']} />
+                    <Tooltip content={<CustomTooltipCategoria />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -493,11 +567,11 @@ const ReportePorCategoria: React.FC = () => {
               </div>
               <div className="min-h-[420px] flex items-center justify-center">
                 <RoseChart
-                  data={reportes}
+                  data={reportes as any}
                   labelKey="categoria"
                   valueKey="ingresosTotales"
                   valueFormatter={(value) => `S/ ${value.toLocaleString()}`}
-                  onSectorClick={(item) => navegarHacia(item)}
+                  onSectorClick={(item: any) => navegarHacia(item)}
                   height={400}
                 />
               </div>
@@ -645,11 +719,31 @@ const ReportePorCategoria: React.FC = () => {
                   <div className="h-96">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={reportes} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="categoria" />
-                        <YAxis />
-                        <Tooltip formatter={(value) => [`S/.${Number(value).toLocaleString()}`, 'Ingresos']} />
-                        <Bar dataKey="ingresosTotales" fill="#3B82F6" />
+                        <defs>
+                          <linearGradient id="colorCategoriaIngresosDetallada" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.95}/>
+                            <stop offset="100%" stopColor="#0EA5E9" stopOpacity={0.35}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                        <XAxis 
+                          dataKey="categoria" 
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: '#64748b', fontSize: 11 }}
+                        />
+                        <YAxis 
+                          tickLine={false}
+                          axisLine={false}
+                          tick={{ fill: '#64748b', fontSize: 11 }}
+                        />
+                        <Tooltip content={<CustomTooltipCategoria />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
+                        <Bar 
+                          dataKey="ingresosTotales" 
+                          fill="url(#colorCategoriaIngresosDetallada)" 
+                          radius={[8, 8, 0, 0]}
+                          maxBarSize={50}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
@@ -667,22 +761,23 @@ const ReportePorCategoria: React.FC = () => {
                           data={reportes}
                           cx="50%"
                           cy="50%"
-                          outerRadius={window.innerWidth < 640 ? 80 : 120}
-                          fill="#8884d8"
+                          innerRadius={65}
+                          outerRadius={window.innerWidth < 640 ? 80 : 105}
+                          paddingAngle={4}
+                          cornerRadius={5}
                           dataKey="ingresosTotales"
                           label={((props: any) => 
                             `${props.categoria}: ${props.value ? ((props.value / totalIngresos) * 100).toFixed(1) : '0'}%`
                           ) as any}
                           labelLine={false}
+                          stroke="#ffffff"
+                          strokeWidth={1.5}
                         >
                           {reportes.map((_entry, index) => (
                             <Cell key={`analysis-cell-${index}`} fill={coloresPie[index % coloresPie.length]} />
                           ))}
                         </Pie>
-                        <Tooltip 
-                          formatter={(value) => [`S/.${Number(value).toLocaleString()}`, 'Ingresos']} 
-                          contentStyle={{ backgroundColor: '#f9fafb', border: '1px solid #d1d5db' }}
-                        />
+                        <Tooltip content={<CustomTooltipCategoria />} />
                       </PieChart>
                     </ResponsiveContainer>
                   </div>

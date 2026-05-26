@@ -2,10 +2,10 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 
 interface RoseChartProps {
-  data: any[];
+  data: Record<string, unknown>[];
   labelKey: string;
   valueKey: string;
-  onSectorClick?: (item: any) => void;
+  onSectorClick?: (item: unknown) => void;
   valueFormatter?: (value: number) => string;
   height?: number;
   title?: string;
@@ -141,7 +141,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
         .attr('cy', 0)
         .attr('r', r)
         .attr('fill', 'none')
-        .attr('stroke', '#e5e7eb')
+        .attr('stroke', '#f1f5f9')
         .attr('stroke-width', 1)
         .attr('stroke-dasharray', '3,3');
 
@@ -149,7 +149,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
       gridGroup.append('text')
         .attr('x', 4)
         .attr('y', -r - 2)
-        .attr('fill', '#9ca3af')
+        .attr('fill', '#cbd5e1')
         .attr('font-size', '9px')
         .attr('font-weight', '500')
         .text(valueFormatter ? valueFormatter(tickVal) : Math.round(tickVal).toLocaleString());
@@ -165,7 +165,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
         .attr('y1', innerRadius * Math.sin(angle))
         .attr('x2', (outerRadius * 1.05) * Math.cos(angle))
         .attr('y2', (outerRadius * 1.05) * Math.sin(angle))
-        .attr('stroke', '#f3f4f6')
+        .attr('stroke', '#f8fafc')
         .attr('stroke-width', 1);
     });
 
@@ -178,7 +178,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
       .append('path')
       .attr('d', (_, i) => {
         // Estado inicial de animación (cero tamaño)
-        const initArc = d3.arc<any>()
+        const initArc = d3.arc<unknown>()
           .innerRadius(innerRadius)
           .outerRadius(innerRadius)
           .startAngle(i * angleSlice - Math.PI / 2)
@@ -202,7 +202,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
         const targetRadius = radiusScale(Number(d[valueKey]) || 0);
         const interpolator = d3.interpolate(innerRadius, targetRadius);
         return function(t) {
-          const currentArc = d3.arc<any>()
+          const currentArc = d3.arc<unknown>()
             .innerRadius(innerRadius)
             .outerRadius(interpolator(t))
             .startAngle(i * angleSlice - Math.PI / 2)
@@ -224,7 +224,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
         .transition()
         .duration(200)
         .attr('d', () => {
-          const hoveredArc = d3.arc<any>()
+          const hoveredArc = d3.arc<unknown>()
             .innerRadius(innerRadius)
             .outerRadius(radiusScale(val) + 8) // Crecimiento en 8px para feedback dinámico
             .startAngle(i * angleSlice - Math.PI / 2)
@@ -264,7 +264,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
         .transition()
         .duration(200)
         .attr('d', () => {
-          const normalArc = d3.arc<any>()
+          const normalArc = d3.arc<unknown>()
             .innerRadius(innerRadius)
             .outerRadius(radiusScale(Number(d[valueKey]) || 0))
             .startAngle(i * angleSlice - Math.PI / 2)

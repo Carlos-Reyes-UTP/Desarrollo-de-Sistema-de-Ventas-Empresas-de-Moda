@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, useRef, useCallback } from 'react';
+import { useAutoSync } from '../../../hooks/useAutoSync';
 import { useAuthReady } from '../../../hooks/useAuthReady';
 import { useAuth } from '@/context/AuthContext';
 import { ClienteService } from '../../../services/ClienteService';
@@ -31,6 +32,8 @@ const { isReady, isAuthenticated } = useAuthReady();
   const [tipoBusqueda, setTipoBusqueda] = useState<'nombre' | 'codigo'>('codigo');
   const [cliente, setCliente] = useState('');
   const [clienteSeleccionado, setClienteSeleccionado] = useState<Cliente | null>(null);
+  const [inputNombreDebeParpadear, setInputNombreDebeParpadear] = useState(false);
+  const [clienteCreadoManualmente, setClienteCreadoManualmente] = useState(false);
   const [esMayorista, setEsMayorista] = useState(false);
   const [verificandoMayorista, setVerificandoMayorista] = useState(false);
   const [documentoCliente, setDocumentoCliente] = useState('');
@@ -44,9 +47,11 @@ const { isReady, isAuthenticated } = useAuthReady();
   
   const [cargandoProductosIniciales, setCargandoProductosIniciales] = useState(true);
   const [cargandoBusquedaAccion, setCargandoBusquedaAccion] = useState(false);
+  const [cargandoBusquedaCliente, setCargandoBusquedaCliente] = useState(false);
   const [cargandoProcesoVenta, setCargandoProcesoVenta] = useState(false);
   const [, setCargandoAgregarProducto] = useState(false);
   const [errorGlobal, setErrorGlobal] = useState<string | null>(null);
+  const [errorBusquedaCliente, setErrorBusquedaCliente] = useState<string | null>(null);
   const [mensajeInfoVista, setMensajeInfoVista] = useState<string | null>(null);
   
   const [mostrarModalQR, setMostrarModalQR] = useState(false);
@@ -80,7 +85,7 @@ const { isReady, isAuthenticated } = useAuthReady();
       } else {
         setMensajeInfoVista(null);
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       logger.error('Error al cargar variantes paginadas:', err);
       setErrorGlobal(getErrorMessage(err, 'No se pudieron cargar los productos.'));
       setMensajeInfoVista(null);
@@ -98,6 +103,13 @@ const { isReady, isAuthenticated } = useAuthReady();
     }
     cargarVariantesPaginadas(0);
   }, [isReady, isAuthenticated, cargarVariantesPaginadas]);
+
+  const refrescarStock = useCallback(() => {
+    const searchTerm = busquedaDebounce.trim() || undefined;
+    cargarVariantesPaginadas(paginaActual, searchTerm);
+  }, [busquedaDebounce, paginaActual, cargarVariantesPaginadas]);
+
+  useAutoSync(refrescarStock, ['NUEVA_VENTA', 'SOLICITUD_ATENDIDA'], 3000);
 
   // Debounce de búsqueda — 400ms para server-side
   useEffect(() => {
@@ -234,7 +246,7 @@ const { isReady, isAuthenticated } = useAuthReady();
       setErrorGlobal(null);
       setMensajeInfoVista(`Buscando "${terminoBusqueda}" en base de datos...`);
       await cargarVariantesPaginadas(0, terminoBusqueda);
-    } catch (err: unknown) {
+    } catch (err: any) {
       logger.error('Error en handleBuscarEnServicio:', err);
       setErrorGlobal(getErrorMessage(err, 'Error al buscar en la base de datos.'));
       setMensajeInfoVista(null);
@@ -272,7 +284,7 @@ const { isReady, isAuthenticated } = useAuthReady();
         setErrorGlobal(`No se encontró variante con código "${codigoScaneado}" en el servidor.`);
         setMensajeInfoVista(null);
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       logger.error('Error en handleBuscarPorCodigoExacto:', err);
       setErrorGlobal(getErrorMessage(err, `Error al procesar código "${codigoScaneado}".`));
       setMensajeInfoVista(null);
@@ -305,7 +317,7 @@ const { isReady, isAuthenticated } = useAuthReady();
   
   const handleBuscarCliente = async () => {
     if (!documentoCliente.trim()) {
-      setErrorGlobal("Ingrese un número de documento para buscar al cliente.");
+      setErrorBusquedaCliente("Ingrese un número de documento para buscar al cliente.");
       return;
     }
 
@@ -314,27 +326,33 @@ const { isReady, isAuthenticated } = useAuthReady();
     // Validaciones según el tipo de documento
     if (tipoDocumento === 'DNI') {
       if (numeroDocumento.length !== 8) {
-        setErrorGlobal("El DNI debe tener exactamente 8 dígitos.");
+        setErrorBusquedaCliente("El DNI debe tener exactamente 8 dígitos.");
         return;
       }
       if (!/^\d+$/.test(numeroDocumento)) {
-        setErrorGlobal("El DNI debe contener solo números.");
+        setErrorBusquedaCliente("El DNI debe contener solo números.");
         return;
       }
     } else if (tipoDocumento === 'RUC') {
       if (numeroDocumento.length !== 11) {
-        setErrorGlobal("El RUC debe tener exactamente 11 dígitos.");
+        setErrorBusquedaCliente("El RUC debe tener exactamente 11 dígitos.");
         return;
       }
       if (!/^\d+$/.test(numeroDocumento)) {
-        setErrorGlobal("El RUC debe contener solo números.");
+        setErrorBusquedaCliente("El RUC debe contener solo números.");
         return;
       }
     }
     
+    // Limpiar información del cliente anterior para evitar mezclar nombres
+    setCliente('');
+    setClienteSeleccionado(null);
+    setClienteCreadoManualmente(false);
+    setInputNombreDebeParpadear(false);
+
     try {
-      setCargandoBusquedaAccion(true);
-      setErrorGlobal(null);
+      setCargandoBusquedaCliente(true);
+      setErrorBusquedaCliente(null);
       
       let clienteEncontrado = null;
       
@@ -347,22 +365,113 @@ const { isReady, isAuthenticated } = useAuthReady();
       if (clienteEncontrado) {
         setClienteSeleccionado(clienteEncontrado);
         setCliente(clienteEncontrado.nombreCliente);
-        setMensajeInfoVista(`Cliente encontrado: ${clienteEncontrado.nombreCliente}`);
+        setClienteCreadoManualmente(false);
         
         // Verificar si el cliente es mayorista
         await verificarEsMayorista(clienteEncontrado.numeroDocumento);
-        
-        setTimeout(() => setMensajeInfoVista(null), 3000);
       } else {
-        setErrorGlobal("Cliente no encontrado. ¿Desea registrarlo?");
+        setErrorBusquedaCliente("Cliente no encontrado. ¿Desea registrarlo?");
         setClienteSeleccionado(null);
+        setClienteCreadoManualmente(false);
+        // Indicar visualmente que debe escribir el nombre parpadeando el input
+        setInputNombreDebeParpadear(true);
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error al buscar cliente:', err);
-      setErrorGlobal(getErrorMessage(err, "Error al buscar el cliente."));
+      setErrorBusquedaCliente(getErrorMessage(err, "Error al buscar el cliente."));
       setClienteSeleccionado(null);
+      setClienteCreadoManualmente(false);
     } finally {
-      setCargandoBusquedaAccion(false);
+      setCargandoBusquedaCliente(false);
+    }
+  };
+
+  const handleRegistrarClienteRapido = async () => {
+    if (!documentoCliente.trim()) {
+      setErrorBusquedaCliente("Ingrese un número de documento para registrar al cliente.");
+      return;
+    }
+    if (!cliente.trim()) {
+      setErrorBusquedaCliente("Ingrese el Nombre del Cliente para poder registrarlo.");
+      setInputNombreDebeParpadear(true);
+      return;
+    }
+    
+    const numeroDocumento = documentoCliente.trim();
+    
+    // Validaciones de documento antes de registrar
+    if (tipoDocumento === 'DNI' && numeroDocumento.length !== 8) {
+      setErrorBusquedaCliente("El DNI debe tener exactamente 8 dígitos.");
+      return;
+    }
+    if (tipoDocumento === 'RUC' && numeroDocumento.length !== 11) {
+      setErrorBusquedaCliente("El RUC debe tener exactamente 11 dígitos.");
+      return;
+    }
+    
+    try {
+      setCargandoBusquedaCliente(true);
+      setErrorBusquedaCliente(null);
+      
+      const nuevoCliente = await ClienteService.crearCliente({
+        nombreCliente: cliente.trim().toUpperCase(),
+        tipoCliente: tipoDocumento === 'RUC' ? 'EMPRESA' : 'PERSONA',
+        numeroDocumento: numeroDocumento
+      });
+      
+      if (nuevoCliente) {
+        setClienteSeleccionado(nuevoCliente);
+        setCliente(nuevoCliente.nombreCliente);
+        setClienteCreadoManualmente(true);
+        setErrorBusquedaCliente(null);
+        
+        // Verificar si el cliente es mayorista
+        await verificarEsMayorista(nuevoCliente.numeroDocumento);
+      }
+    } catch (err: any) {
+      console.error('Error al registrar cliente rápido:', err);
+      setErrorBusquedaCliente(getErrorMessage(err, "No se pudo registrar el cliente."));
+    } finally {
+      setCargandoBusquedaCliente(false);
+    }
+  };
+
+  const handleActualizarClienteNombre = async (nuevoNombre: string) => {
+    if (!clienteSeleccionado || !clienteSeleccionado.idCliente) {
+      setErrorBusquedaCliente("No hay un cliente seleccionado para editar.");
+      return;
+    }
+    
+    const nombreFormateado = nuevoNombre.trim().toUpperCase();
+    if (!nombreFormateado) {
+      setErrorBusquedaCliente("El nombre del cliente no puede estar vacío.");
+      setInputNombreDebeParpadear(true);
+      return;
+    }
+
+    try {
+      setCargandoBusquedaCliente(true);
+      setErrorBusquedaCliente(null);
+      
+      const clienteActualizado = await ClienteService.actualizarCliente(
+        clienteSeleccionado.idCliente,
+        {
+          ...clienteSeleccionado,
+          nombreCliente: nombreFormateado
+        }
+      );
+      
+      if (clienteActualizado) {
+        setClienteSeleccionado(clienteActualizado);
+        setCliente(clienteActualizado.nombreCliente);
+        setMensajeInfoVista("Cliente actualizado exitosamente.");
+        setTimeout(() => setMensajeInfoVista(null), 3000);
+      }
+    } catch (err: any) {
+      console.error('Error al actualizar cliente:', err);
+      setErrorBusquedaCliente(getErrorMessage(err, "No se pudo actualizar el cliente."));
+    } finally {
+      setCargandoBusquedaCliente(false);
     }
   };
 
@@ -479,49 +588,38 @@ const { isReady, isAuthenticated } = useAuthReady();
   };
 
   const handleActualizarCantidadEnVenta = async (idProductoVariante: number, nuevaCantidad: number) => {
-    const varianteOriginal = variantesCargadas.find(v => v.idProductoVariante === idProductoVariante);
-      
-    if (!varianteOriginal) {
-      setErrorGlobal("Error crítico: Variante no encontrada para actualizar stock.");
-      return;
-    }
-    
+    const varianteOriginal = variantesCargadas.find(v => v.idProductoVariante === idProductoVariante)
+      ?? variantesConPreciosCompletos.get(idProductoVariante);
+
     if (nuevaCantidad <= 0) {
       handleEliminarProductoDeVenta(idProductoVariante);
       return;
     }
-    
-    if (nuevaCantidad > varianteOriginal.cantidad) {
-      setErrorGlobal(`Stock máximo para ${varianteOriginal.producto.nombre} - ${varianteOriginal.color.nombre} - ${varianteOriginal.talla.nombreTalla} es ${varianteOriginal.cantidad}.`);
-      return; 
+
+    if (varianteOriginal && nuevaCantidad > varianteOriginal.cantidad) {
+      const nombre = varianteOriginal.producto?.nombre || 'Producto';
+      const color = varianteOriginal.color?.nombre || '';
+      const talla = varianteOriginal.talla?.nombreTalla || '';
+      setErrorGlobal(`Stock máximo para ${nombre} - ${color} - ${talla} es ${varianteOriginal.cantidad}.`);
+      return;
     }
-    
+
     setErrorGlobal(null);
-    
-    // Obtener el producto completo para tener acceso a todos los precios de volumen
-    let varianteConPreciosCompletos = varianteOriginal;
-    
+
+    let varianteParaPrecios: ProductoVariante | undefined = varianteOriginal;
+
     try {
-      if (varianteOriginal.producto?.idProducto) {
+      if (varianteOriginal?.producto?.idProducto) {
         const userRole = usuario?.roles?.[0]?.nombreRol;
         const productoCompleto = await ProductoService.getProductoById(varianteOriginal.producto.idProducto, userRole);
-        
-        // Crear una nueva variante con los precios completos del producto
-        varianteConPreciosCompletos = {
-          ...varianteOriginal,
-          producto: productoCompleto
-        };
-        
-        // Guardar la variante con precios completos en el estado
-        setVariantesConPreciosCompletos(prev => new Map(prev.set(idProductoVariante, varianteConPreciosCompletos)));
+        varianteParaPrecios = { ...varianteOriginal, producto: productoCompleto };
+        setVariantesConPreciosCompletos(prev => new Map(prev.set(idProductoVariante, varianteParaPrecios!)));
       }
-    } catch (error) {
-      console.warn('No se pudo obtener el producto completo para actualizar cantidad, usando datos existentes:', error);
+    } catch {
       // Continuamos con los datos que ya tenemos
     }
-    
-    // Calcular nuevo precio según la nueva cantidad
-    const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteConPreciosCompletos, nuevaCantidad);
+
+    const { precio: nuevoPrecio } = calcularPrecioSegunCantidad(varianteParaPrecios, nuevaCantidad);
     
     setProductosSeleccionadosVenta(prev => prev.map(item => 
       item.idProductoVariante === idProductoVariante 
@@ -651,8 +749,6 @@ const { isReady, isAuthenticated } = useAuthReady();
       const ventaRegistrada = await VentaService.crearVenta(ventaParaEnviar);
       logger.info('Venta registrada exitosamente. ID:', ventaRegistrada);
 
-      // El stock se descuenta en el mismo backend al registrar la venta (ubicación de tienda + reposición si aplica).
-
       // Actualizar el stock local de las variantes
       const variantesActualizadas = variantesCargadas.map(v => {
         const vendido = productosSeleccionadosVenta.find(ps => ps.idProductoVariante === v.idProductoVariante);
@@ -696,7 +792,7 @@ const { isReady, isAuthenticated } = useAuthReady();
       // Limpiamos el formulario
       resetearFormulario();
       
-    } catch (err: unknown) {
+    } catch (err: any) {
       logger.error('Error al ejecutar finalización de venta:', err);
       setErrorGlobal(getErrorMessage(err, 'Error crítico al registrar la venta. Contacte a soporte.'));
     } finally {
@@ -708,12 +804,16 @@ const { isReady, isAuthenticated } = useAuthReady();
     setCliente('');
     setDocumentoCliente('');
     setClienteSeleccionado(null);
+    setClienteCreadoManualmente(false);
     setEsMayorista(false);
     setVerificandoMayorista(false);
     setBusqueda('');
     setProductosSeleccionadosVenta([]);
     setMetodoPago('');
     setVariantesConPreciosCompletos(new Map());
+    setErrorBusquedaCliente(null);
+    setCargandoBusquedaCliente(false);
+    setInputNombreDebeParpadear(false);
   };
 
   // Función para limpiar solo el cliente y carrito (mantener búsqueda de productos)
@@ -721,11 +821,15 @@ const { isReady, isAuthenticated } = useAuthReady();
     setCliente('');
     setDocumentoCliente('');
     setClienteSeleccionado(null);
+    setClienteCreadoManualmente(false);
     setEsMayorista(false);
     setVerificandoMayorista(false);
     setProductosSeleccionadosVenta([]);
     setVariantesConPreciosCompletos(new Map());
     setErrorGlobal(null);
+    setErrorBusquedaCliente(null);
+    setCargandoBusquedaCliente(false);
+    setInputNombreDebeParpadear(false);
     setMensajeInfoVista('Cliente y carrito limpiados correctamente');
     setTimeout(() => setMensajeInfoVista(null), 3000);
   };
@@ -777,8 +881,13 @@ const { isReady, isAuthenticated } = useAuthReady();
     metodoPago, setMetodoPago,
     cargandoProductosIniciales,
     cargandoBusquedaAccion,
+    cargandoBusquedaCliente,
     cargandoProcesoVenta,
+    inputNombreDebeParpadear,
+    setInputNombreDebeParpadear,
+    clienteCreadoManualmente,
     errorGlobal, setErrorGlobal,
+    errorBusquedaCliente, setErrorBusquedaCliente,
     mensajeInfoVista, setMensajeInfoVista,
     mostrarModalQR, setMostrarModalQR,
     qrDataModal, setQrDataModal,
@@ -800,6 +909,8 @@ const { isReady, isAuthenticated } = useAuthReady();
     handleBuscarEnServicio,
     handleBuscarPorCodigoExacto,
     handleBuscarCliente,
+    handleRegistrarClienteRapido,
+    handleActualizarClienteNombre,
     agregarVarianteAVenta,
     handleSeleccionarVarianteDeLista,
     handleEliminarProductoDeVenta,

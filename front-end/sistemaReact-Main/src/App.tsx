@@ -10,6 +10,7 @@ import { APP_PATHS } from "./shared/layout/navigationConfig";
 import { ROLES_MODULO_ALMACEN } from "./shared/constants/rolesAlmacen";
 import { AppShellSkeleton } from "./shared/ui";
 import { BandejaSolicitudProvider } from "./context/BandejaSolicitudContext";
+import { WebSocketProvider } from "./context/WebSocketContext";
 
 const DashboardAdminPage = lazy(() => import("./pages/dashboard/DashboardAdminPage"));
 const DashboardAlmaceneroPage = lazy(() => import("./pages/dashboard/DashboardAlmaceneroPage"));
@@ -118,9 +119,11 @@ const RutaProtegidaConLayout = ({
   rolRequerido,
 }: RutaProtegidaConLayoutProps) => (
   <RutaProtegida rolRequerido={rolRequerido}>
-    <Layout>
-      <Suspense fallback={<PageFallback />}>{children}</Suspense>
-    </Layout>
+    <WebSocketProvider>
+      <Layout>
+        <Suspense fallback={<PageFallback />}>{children}</Suspense>
+      </Layout>
+    </WebSocketProvider>
   </RutaProtegida>
 );
 

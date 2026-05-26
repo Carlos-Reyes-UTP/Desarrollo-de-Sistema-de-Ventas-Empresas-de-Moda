@@ -69,6 +69,7 @@ export function BandejaSolicitudProvider({ children }: { children: ReactNode }) 
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useBandeja(): BandejaContextType {
   const ctx = useContext(BandejaContext);
   if (!ctx) throw new Error("useBandeja debe usarse dentro de BandejaSolicitudProvider");

@@ -13,11 +13,11 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
   PieChart,
   Pie,
-  Cell
+  Cell,
+  AreaChart,
+  Area
 } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
@@ -189,7 +189,7 @@ const ProductosMasVendidos: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        let filtrosReporte: FiltrosReporte = {};
+        const filtrosReporte: FiltrosReporte = {};
         
         if (filtrosAplicados.categoriaPadre) {
           filtrosReporte.idCategoriaPadre = filtrosAplicados.categoriaPadre;
@@ -206,7 +206,7 @@ const ProductosMasVendidos: React.FC = () => {
         console.log('Filtros enviados al backend:', filtrosReporte);
         const data = await ReporteService.getProductosMasVendidos(filtrosReporte);
         setProductos(data);
-      } catch (err: unknown) {
+      } catch (err: any) {
         setError(err instanceof Error ? err.message : 'Error al cargar los productos más vendidos');
         console.error('Error:', err);
         setProductos([]);
@@ -994,17 +994,35 @@ const ProductosMasVendidos: React.FC = () => {
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={productosFiltrados.slice(0, 10)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+                <defs>
+                  <linearGradient id="colorCantidad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.95}/>
+                    <stop offset="100%" stopColor="#6366F1" stopOpacity={0.35}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="nombreProducto" 
                   angle={-45}
                   textAnchor="end"
                   height={100}
                   interval={0}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
                 />
-                <YAxis />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="cantidadVendida" fill="#3B82F6" />
+                <YAxis 
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
+                <Bar 
+                  dataKey="cantidadVendida" 
+                  fill="url(#colorCantidad)" 
+                  radius={[8, 8, 0, 0]} 
+                  maxBarSize={45}
+                />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -1016,19 +1034,40 @@ const ProductosMasVendidos: React.FC = () => {
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Ingresos por Producto</h3>
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={productosFiltrados.slice(0, 10)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                <CartesianGrid strokeDasharray="3 3" />
+              <AreaChart data={productosFiltrados.slice(0, 10)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <defs>
+                  <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.35}/>
+                    <stop offset="100%" stopColor="#10B981" stopOpacity={0.0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="nombreProducto" 
                   angle={-45}
                   textAnchor="end"
                   height={100}
                   interval={0}
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
                 />
-                <YAxis />
+                <YAxis 
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: '#64748b', fontSize: 11 }}
+                />
                 <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="ingresosTotales" stroke="#10B981" strokeWidth={2} dot={{ fill: '#10B981' }} />
-              </LineChart>
+                <Area 
+                  type="monotone" 
+                  dataKey="ingresosTotales" 
+                  stroke="#10B981" 
+                  strokeWidth={3} 
+                  fill="url(#colorIngresos)"
+                  dot={false}
+                  activeDot={{ r: 6, strokeWidth: 0, fill: '#10B981' }}
+                />
+              </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -1052,11 +1091,11 @@ const ProductosMasVendidos: React.FC = () => {
           </div>
           <div className="min-h-[420px] flex items-center justify-center">
             <RoseChart
-              data={productosFiltrados.slice(0, 10)}
+              data={productosFiltrados.slice(0, 10) as any}
               labelKey="nombreProducto"
               valueKey="cantidadVendida"
               valueFormatter={(value) => `${value.toLocaleString()} uds`}
-              onSectorClick={(item) => seleccionarProducto(item)}
+              onSectorClick={(item: any) => seleccionarProducto(item)}
               height={400}
             />
           </div>
@@ -1248,11 +1287,32 @@ const ProductosMasVendidos: React.FC = () => {
                       <ResponsiveContainer width="100%" height="100%">
                         {tipoGraficoVariantes === 'barras' ? (
                           <BarChart data={variantesPorColor.filter(v => v.cantidadVendida > 0)} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="nombreColor" />
-                            <YAxis />
-                            <Tooltip content={<CustomTooltipVariantes />} />
-                            <Bar dataKey="cantidadVendida" fill="#3B82F6" name="Cantidad Vendida" />
+                            <defs>
+                              <linearGradient id="colorVariantes" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor="#6366F1" stopOpacity={0.95}/>
+                                <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.4}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                            <XAxis 
+                              dataKey="nombreColor" 
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: '#64748b', fontSize: 11 }}
+                            />
+                            <YAxis 
+                              tickLine={false}
+                              axisLine={false}
+                              tick={{ fill: '#64748b', fontSize: 11 }}
+                            />
+                            <Tooltip content={<CustomTooltipVariantes />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
+                            <Bar 
+                              dataKey="cantidadVendida" 
+                              fill="url(#colorVariantes)" 
+                              name="Cantidad Vendida"
+                              radius={[6, 6, 0, 0]}
+                              maxBarSize={40}
+                            />
                           </BarChart>
                         ) : (
                           <PieChart>
@@ -1262,9 +1322,13 @@ const ProductosMasVendidos: React.FC = () => {
                               cy="50%"
                               labelLine={false}
                               label={CustomPieLabel}
-                              outerRadius={80}
-                              fill="#8884d8"
+                              innerRadius={50}
+                              outerRadius={75}
+                              paddingAngle={4}
+                              cornerRadius={5}
                               dataKey="cantidadVendida"
+                              stroke="#ffffff"
+                              strokeWidth={1.5}
                             >
                               {variantesPorColor.filter(v => v.cantidadVendida > 0).map((entry, index) => (
                                 <Cell 

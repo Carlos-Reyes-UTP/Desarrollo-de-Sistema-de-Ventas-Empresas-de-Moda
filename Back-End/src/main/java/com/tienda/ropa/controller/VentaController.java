@@ -47,7 +47,7 @@ public class VentaController {
 
     @SuppressWarnings("unchecked")
     @PostMapping
-    public Venta crearVenta(@RequestBody Map<String, Object> ventaInput) {
+    public Map<String, Object> crearVenta(@RequestBody Map<String, Object> ventaInput) {
         // Extraer datos del mapa de entrada
         Map<String, Object> clienteInput = (Map<String, Object>) ventaInput.get("cliente");
         Map<String, Object> metodoPagoInput = (Map<String, Object>) ventaInput.get("metodoPago");
@@ -117,8 +117,25 @@ public class VentaController {
         }).toList();
         
         venta.setDetalles(detalles);
-        
-        return ventaService.registrarVenta(venta);
+
+        Venta ventaGuardada = ventaService.registrarVenta(venta);
+
+        List<Map<String, Object>> detallesResp = ventaGuardada.getDetalles().stream().map(d -> {
+            Map<String, Object> m = new java.util.HashMap<>();
+            m.put("idDetalleVenta", d.getIdDetalleVenta());
+            m.put("cantidad", d.getCantidad());
+            m.put("precioUnitario", d.getPrecioUnitario());
+            m.put("subtotal", d.getSubtotal());
+            m.put("origenVenta", d.getOrigenVenta() != null ? d.getOrigenVenta().name() : null);
+            return m;
+        }).toList();
+
+        return Map.of(
+            "idVenta", ventaGuardada.getIdVenta(),
+            "totalVentas", ventaGuardada.getTotalVentas(),
+            "fechaVenta", ventaGuardada.getFechaVenta().toString(),
+            "detalles", detallesResp
+        );
     }
     
     private String mapearMetodoPago(Long metodoPagoId) {

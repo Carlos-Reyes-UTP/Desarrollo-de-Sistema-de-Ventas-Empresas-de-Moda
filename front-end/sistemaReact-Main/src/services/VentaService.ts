@@ -2,6 +2,7 @@ import { RUTAS_VENTAS } from '../config/apiConfig';
 import apiClient from '../config/apiClient';
 import type { Venta } from '../types/Venta'; 
 import type { VentaInput } from '../types/Venta'; 
+import axios from 'axios';
 
 export const VentaService = {
   obtenerTodasVentas: async (): Promise<Venta[]> => {
@@ -14,7 +15,7 @@ export const VentaService = {
       const response = await apiClient.get<Venta>(RUTAS_VENTAS.POR_ID(id));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },
@@ -39,7 +40,7 @@ export const VentaService = {
       const response = await apiClient.get<Venta>(RUTAS_VENTAS.DETALLES(id));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },

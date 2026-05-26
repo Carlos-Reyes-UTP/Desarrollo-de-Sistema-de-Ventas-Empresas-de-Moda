@@ -1,6 +1,7 @@
 import { RUTAS_PROVEEDORES } from '../config/apiConfig';
 import type { Proveedor } from '../types/Proveedor';
 import apiClient from '../config/apiClient';
+import axios from 'axios';
 
 export const ProveedorService = {
   obtenerTodosProveedores: async (): Promise<Proveedor[]> => {
@@ -32,7 +33,7 @@ export const ProveedorService = {
       const response = await apiClient.get<Proveedor>(RUTAS_PROVEEDORES.POR_NOMBRE(nombre));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },
@@ -42,7 +43,7 @@ export const ProveedorService = {
       const response = await apiClient.get<Proveedor>(RUTAS_PROVEEDORES.POR_RUC(ruc));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },

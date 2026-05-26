@@ -34,6 +34,18 @@ public class ApiExceptionHandler {
                 .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "Solicitud inválida"));
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "Operación no permitida en el estado actual"));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("message", ex.getMessage() != null ? ex.getMessage() : "Error inesperado"));
+    }
+
     @ExceptionHandler(LazyInitializationException.class)
     public ResponseEntity<Map<String, String>> handleLazyInitialization(LazyInitializationException ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

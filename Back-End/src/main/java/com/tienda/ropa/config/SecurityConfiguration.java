@@ -55,6 +55,9 @@ public class SecurityConfiguration {
                                                 // restrictivas.
                                                 .requestMatchers("/api/autenticacion/**").permitAll()
 
+                                                // Permitir acceso al endpoint de WebSockets
+                                                .requestMatchers("/ws/**").permitAll()
+
                                                 // Proteger las rutas de administrador. Solo ADMIN puede acceder.
                                                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
 

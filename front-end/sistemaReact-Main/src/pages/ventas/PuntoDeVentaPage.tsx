@@ -11,11 +11,11 @@ const PuntoDeVentaPage = () => {
   const { tieneRol } = useAuth();
 
   const [vistaActual, setVistaActual] = useState(() =>
-    resolveCajeroView(state?.view, tieneRol)
+    resolveCajeroView(state?.view)
   );
 
   useEffect(() => {
-    setVistaActual(resolveCajeroView(state?.view, tieneRol));
+    setVistaActual(resolveCajeroView(state?.view));
   }, [state, tieneRol]);
 
   const renderContenido = () => {

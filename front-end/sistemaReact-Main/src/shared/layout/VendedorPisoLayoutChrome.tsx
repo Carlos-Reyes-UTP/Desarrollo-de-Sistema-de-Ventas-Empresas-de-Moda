@@ -21,16 +21,16 @@ export function VendedorPisoLayoutChrome({
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-[40] flex h-14 items-center justify-between border-b border-gray-100 bg-white/95 px-4 shadow-sm backdrop-blur-md">
+    <header className="fixed top-0 left-0 right-0 z-[40] flex h-14 items-center justify-between app-card-glass border-b px-4 shadow-sm">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-black">
           <MaterialIcon icon="inventory_2" className="h-4 w-4 text-white" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-[10px] font-bold uppercase tracking-widest text-gray-500">
+          <p className="truncate text-[10px] font-bold uppercase tracking-widest app-text-muted">
             Piso de ventas
           </p>
-          <p className="truncate text-sm font-semibold leading-tight text-black">
+          <p className="truncate text-sm font-semibold leading-tight app-heading">
             {usuario?.usuario ?? "Vendedor"}
           </p>
         </div>
@@ -38,7 +38,7 @@ export function VendedorPisoLayoutChrome({
       <button
         type="button"
         onClick={salir}
-        className="flex shrink-0 items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+        className="flex shrink-0 items-center gap-2 rounded-xl border app-btn-secondary px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
       >
         <MaterialIcon icon="logout" className="h-4 w-4" />
         <span className="hidden sm:inline">Cerrar sesión</span>

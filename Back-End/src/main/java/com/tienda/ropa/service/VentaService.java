@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.tienda.ropa.dto.OrigenVentaResult;
 import com.tienda.ropa.entity.DetalleVenta;
+import com.tienda.ropa.entity.OrigenVenta;
 import com.tienda.ropa.entity.UbicacionArea;
 import com.tienda.ropa.entity.Venta;
 import com.tienda.ropa.repository.DetalleVentaRepository;
@@ -31,6 +33,9 @@ public class VentaService {
     @Autowired
     private ReposicionAutomaticaService reposicionAutomaticaService;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Transactional(readOnly = true)
     public List<Venta> obtenerVentas() {
         return ventaRepository.findAllWithDetalles();
@@ -48,20 +53,41 @@ public class VentaService {
             totalVenta = totalVenta.add(detalle.getSubtotal());
 
             Long idVariante = detalle.getProductoVariante().getIdProductoVariante();
-            UbicacionArea ubicacionAreaVenta = inventarioService.resolverUbicacionAreaUnicaDeVenta(idVariante);
+            OrigenVentaResult origenResult = inventarioService.resolverUbicacionAreaDeVentaConFallback(
+                    idVariante, detalle.getCantidad());
+            UbicacionArea ubicacionAreaVenta = origenResult.ubicacionArea();
+
             inventarioService.aplicarDeltaEnUbicacionArea(
                     idVariante,
                     ubicacionAreaVenta,
                     -detalle.getCantidad(),
                     "Stock insuficiente en la ubicación de venta: "
                             + InventarioService.etiquetaUbicacionArea(ubicacionAreaVenta));
-            reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
-                    idVariante, ubicacionAreaVenta.getIdUbicacionArea());
+
+            detalle.setOrigenVenta(origenResult.tipoOrigen());
+
+            if (origenResult.tipoOrigen() == OrigenVenta.PISO) {
+                reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
+                        idVariante, ubicacionAreaVenta.getIdUbicacionArea());
+            } else {
+                reposicionAutomaticaService.evaluarTrasVentaDirectaDesdeAlmacen(
+                        idVariante, ubicacionAreaVenta.getIdUbicacionArea());
+            }
         }
         venta.setTotalVentas(totalVenta);
 
         Venta ventaGuardada = ventaRepository.save(venta);
-        detalleVentaRepository.saveAll(venta.getDetalles());
+        List<DetalleVenta> detallesGuardados = detalleVentaRepository.saveAll(venta.getDetalles());
+        ventaGuardada.setDetalles(detallesGuardados);
+
+        // Enviar notificación en tiempo real a los clientes conectados
+        notificationService.sendNotificationObject(
+            java.util.Map.of(
+                "type", "NUEVA_VENTA",
+                "message", "Se ha registrado una nueva venta por S/." + ventaGuardada.getTotalVentas(),
+                "idVenta", ventaGuardada.getIdVenta()
+            )
+        );
 
         return ventaGuardada;
     }

@@ -1,5 +1,6 @@
 import apiClient from '../config/apiClient';
 import { RUTAS_REPORTES } from '../config/apiConfig';
+import axios from 'axios';
 import type {
   ProductoMasVendido,
   ReporteCategoriaData,
@@ -39,7 +40,7 @@ export const ReporteService = {
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener productos más vendidos:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar los productos más vendidos');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar los productos más vendidos');
     }
   },
 
@@ -63,7 +64,7 @@ export const ReporteService = {
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener reporte por categoría:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar el reporte por categoría');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar el reporte por categoría');
     }
   },
 
@@ -83,7 +84,7 @@ export const ReporteService = {
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener reporte por subcategoría:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar el reporte por subcategoría');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar el reporte por subcategoría');
     }
   },
 
@@ -103,7 +104,7 @@ export const ReporteService = {
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener reporte por segunda subcategoría:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar el reporte por segunda subcategoría');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar el reporte por segunda subcategoría');
     }
   },
 
@@ -121,7 +122,7 @@ export const ReporteService = {
         ? `${RUTAS_REPORTES.RESUMEN_GENERAL}?${params.toString()}`
         : RUTAS_REPORTES.RESUMEN_GENERAL;
         
-      const response = await apiClient.get<any>(url);
+      const response = await apiClient.get<{ productosMasVendidos?: { ingresosTotales?: number; cantidadVendida?: number }[]; reportePorCategoria?: { categoria?: string }[] }>(url);
       
       // El endpoint /resumen-completo devuelve productos y categorías
       // Vamos a calcular métricas básicas desde estos datos
@@ -129,28 +130,38 @@ export const ReporteService = {
       const productos = data.productosMasVendidos || [];
       const categorias = data.reportePorCategoria || [];
       
-      const totalIngresos = productos.reduce((sum: number, p: any) => sum + (p.ingresosTotales || 0), 0);
-      const totalVentas = productos.reduce((sum: number, p: any) => sum + (p.cantidadVendida || 0), 0);
-      
+      const totalIngresos = productos.reduce((sum, p) => sum + (p.ingresosTotales || 0), 0);
+      const totalVentas = productos.reduce((sum, p) => sum + (p.cantidadVendida || 0), 0);
+
+      let diasPeriodo = 30;
+      if (filtros?.fechaInicio && filtros?.fechaFin) {
+        const diffMs = new Date(filtros.fechaFin).getTime() - new Date(filtros.fechaInicio).getTime();
+        diasPeriodo = Math.max(1, Math.ceil(diffMs / (1000 * 60 * 60 * 24)) + 1);
+      }
+
+      const categoriasOrdenadas = [...categorias].sort((a: any, b: any) => {
+        return (b.ingresosTotales ?? b.cantidadTotalVendida ?? 0) - (a.ingresosTotales ?? a.cantidadTotalVendida ?? 0);
+      });
+
       const resumen: ResumenGeneralVentas = {
         totalProductosVendidos: productos.length,
         totalIngresos,
         totalVentas,
-        promedioVentaPorDia: totalIngresos / 30, // Estimación aproximada
-        categoriaTopVentas: categorias.length > 0 ? categorias[0]?.categoria || 'Sin categoría' : 'Sin categoría',
+        promedioVentaPorDia: totalIngresos / diasPeriodo,
+        categoriaTopVentas: categoriasOrdenadas.length > 0 ? categoriasOrdenadas[0]?.categoria || 'Sin categoría' : 'Sin categoría',
         colorMasVendido: 'N/A',
         tallaMasVendida: 'N/A',
         periodoAnalizado: {
           fechaInicio: filtros?.fechaInicio || 'N/A',
           fechaFin: filtros?.fechaFin || 'N/A',
-          dias: 30
+          dias: diasPeriodo
         }
       };
       
       return resumen;
     } catch (error: any) {
       console.error('Error al obtener resumen general:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar el resumen general');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar el resumen general');
     }
   },
 
@@ -172,7 +183,7 @@ export const ReporteService = {
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener ventas por período:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar las ventas por período');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar las ventas por período');
     }
   },
 
@@ -197,7 +208,7 @@ export const ReporteService = {
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener detalle de productos:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar el detalle de productos');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar el detalle de productos');
     }
   },
 
@@ -255,12 +266,12 @@ export const ReporteService = {
   getTallasPorProducto: async (idProducto: number): Promise<TallaProducto[]> => {
     try {
       const response = await apiClient.get<TallaProducto[]>(
-        `${RUTAS_REPORTES.PRODUCTOS_MAS_VENDIDOS.replace('/productos-mas-vendidos', '/producto/tallas')}?idProducto=${idProducto}`
+        RUTAS_REPORTES.TALLAS_POR_PRODUCTO(idProducto)
       );
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener tallas del producto:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar las tallas del producto');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar las tallas del producto');
     }
   },
 
@@ -270,12 +281,12 @@ export const ReporteService = {
   getVariantesPorColor: async (idProducto: number, nombreTalla: string): Promise<VariantesPorColor[]> => {
     try {
       const response = await apiClient.get<VariantesPorColor[]>(
-        `${RUTAS_REPORTES.PRODUCTOS_MAS_VENDIDOS.replace('/productos-mas-vendidos', '/producto/variantes-por-color')}?idProducto=${idProducto}&nombreTalla=${encodeURIComponent(nombreTalla)}`
+        RUTAS_REPORTES.VARIANTES_POR_COLOR(idProducto, nombreTalla)
       );
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener variantes por color:', error);
-      throw new Error(error.response?.data?.message || 'Error al cargar las variantes por color');
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar las variantes por color');
     }
   },
 

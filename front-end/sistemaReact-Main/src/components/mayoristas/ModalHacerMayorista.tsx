@@ -317,7 +317,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
       // NO cerrar automáticamente - dejar que el usuario vea el código y cierre manualmente
 
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error al convertir a mayorista:', error);
       const status = getStatusCode(error);
       if (status === 400) {
@@ -374,7 +374,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         setError('No se pudo eliminar el mayorista. Intente nuevamente.');
       }
 
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error al eliminar mayorista:', error);
       const status = getStatusCode(error);
       if (status === 404) {
@@ -441,7 +441,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
       // NO cerrar automáticamente - dejar que el usuario vea el código y cierre manualmente
 
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error al crear nuevo mayorista:', error);
       const status = getStatusCode(error);
       if (status === 400) {
@@ -579,7 +579,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         setDatosEncontrados(false);
       }
 
-    } catch (error: unknown) {
+    } catch (error: any) {
       console.error('Error al buscar datos externos:', error);
       const status = getStatusCode(error);
       

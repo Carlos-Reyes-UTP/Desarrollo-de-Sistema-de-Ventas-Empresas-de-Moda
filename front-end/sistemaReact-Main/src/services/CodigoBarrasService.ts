@@ -1,3 +1,4 @@
+import axios from 'axios';
 import apiClient from '../config/apiClient';
 import { RUTAS_CODIGOS_BARRAS } from '../config/apiConfig';
 import type { CodigoBarras, CodigoBarrasConDetallesDTO, GenerarCodigoRequest, AsignarCodigoRequest } from '../types/CodigoBarras';
@@ -35,7 +36,7 @@ export const CodigoBarrasService = {
       return response.data;
     } catch (error: any) {
       logger.error(`Error al obtener codigos del producto ${idProducto}:`, error);
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 404) {
         throw new Error(`No se encontro el producto con ID: ${idProducto}`);
       }
       throwAuthErrorShort(error, 'acceder a esta informacion');
@@ -53,7 +54,7 @@ export const CodigoBarrasService = {
       return response.data;
     } catch (error: any) {
       logger.error(`Error al obtener codigos de variante ${idVariante}:`, error);
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 404) {
         throw new Error(`No se encontro la variante con ID: ${idVariante}`);
       }
       throwAuthErrorShort(error, 'acceder a esta informacion');
@@ -75,9 +76,9 @@ export const CodigoBarrasService = {
       return response.data;
     } catch (error: any) {
       logger.error(`Error al generar codigo de barras para producto ID ${idProducto}:`, error);
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 404) {
         throw new Error(`No se encontro el producto con ID: ${idProducto}. Verifica que el producto existe.`);
-      } else if (error.response?.status === 400) {
+      } else if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 400) {
         throw new Error('Datos invalidos para generar el codigo de barras. Verifica que el ID del producto sea correcto.');
       }
       throwAuthErrorShort(error, 'generar codigos de barras');
@@ -96,9 +97,9 @@ export const CodigoBarrasService = {
       return response.data;
     } catch (error: any) {
       logger.error(`Error al generar codigo de barras para variante ID ${idVariante}:`, error);
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 404) {
         throw new Error(`No se encontro la variante con ID: ${idVariante}. Verifica que la variante existe.`);
-      } else if (error.response?.status === 400) {
+      } else if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 400) {
         throw new Error('Datos invalidos para generar el codigo de barras. Verifica que el ID de la variante sea correcto.');
       }
       throwAuthErrorShort(error, 'generar codigos de barras');
@@ -108,7 +109,7 @@ export const CodigoBarrasService = {
   /**
    * Asignar un código de barras personalizado a un producto
    */
-  async asignarCodigoProducto(idProducto: number, codigoBarrasDTO: any): Promise<any> {
+  async asignarCodigoProducto(idProducto: number, codigoBarrasDTO: Partial<CodigoBarras>): Promise<CodigoBarras> {
     const response = await apiClient.post(RUTAS_CODIGOS_BARRAS.ASIGNAR_PRODUCTO(idProducto), codigoBarrasDTO);
     return response.data;
   },
@@ -116,7 +117,7 @@ export const CodigoBarrasService = {
   /**
    * Asignar un código de barras personalizado a una variante
    */
-  async asignarCodigoVariante(idVariante: number, codigoBarrasDTO: any): Promise<any> {
+  async asignarCodigoVariante(idVariante: number, codigoBarrasDTO: Partial<CodigoBarras>): Promise<CodigoBarras> {
     const response = await apiClient.post(RUTAS_CODIGOS_BARRAS.ASIGNAR_VARIANTE(idVariante), codigoBarrasDTO);
     return response.data;
   },
@@ -132,7 +133,7 @@ export const CodigoBarrasService = {
       return response.data;
     } catch (error: any) {
       logger.error('Error al generar codigo:', error);
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 404) {
         throw new Error(`No se encontro la entidad con ID: ${request.entidadId}`);
       }
       throwAuthErrorShort(error, 'generar codigos de barras');
@@ -147,7 +148,7 @@ export const CodigoBarrasService = {
       return response.data;
     } catch (error: any) {
       logger.error('Error al asignar codigo:', error);
-      if (error.response?.status === 409) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 409) {
         throw new Error('El codigo ya esta en uso. Elige un codigo diferente.');
       }
       throwAuthErrorShort(error, 'asignar codigos de barras');
@@ -161,14 +162,14 @@ export const CodigoBarrasService = {
       logger.debug(`Codigo de barras eliminado exitosamente`);
     } catch (error: any) {
       logger.error('Error al eliminar codigo:', error);
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 404) {
         throw new Error('No se encontro el codigo de barras a eliminar.');
       }
       throwAuthErrorShort(error, 'eliminar codigos de barras');
     }
   },
 
-  async buscarPorCodigo(codigo: string): Promise<any> {
+  async buscarPorCodigo(codigo: string): Promise<import('../types/CodigoBarras').BuscarPorCodigoResponse> {
     try {
       logger.debug(`Buscando por codigo: ${codigo}`);
       const response = await apiClient.get(`${RUTAS_CODIGOS_BARRAS.BASE}/buscar/${encodeURIComponent(codigo)}`);
@@ -176,7 +177,7 @@ export const CodigoBarrasService = {
       return response.data;
     } catch (error: any) {
       logger.error('Error al buscar por codigo:', error);
-      if (error.response?.status === 404) {
+      if ((axios.isAxiosError(error) ? error.response?.status : undefined) === 404) {
         throw new Error('No se encontro ningun producto o variante con ese codigo de barras.');
       }
       throwAuthErrorShort(error, 'buscar codigos de barras');

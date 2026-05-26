@@ -293,7 +293,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       const sugerencias = await ProductoVarianteService.obtenerSugerenciasCatalogo();
       setSugerenciasTallas(sugerencias.tallas);
       setSugerenciasColores(sugerencias.colores);
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error al cargar sugerencias de tallas y colores:', err);
       const status = getStatusCode(err);
       if (status === 401) {
@@ -339,7 +339,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       setSugerenciasColores((prev) =>
         nombresUnicosOrdenados([...prev, ...collectColorNamesFromVariantes(variantesUnicas)])
       );
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error al cargar variantes existentes:', err);
       const status = getStatusCode(err);
       if (status === 401) {
@@ -420,7 +420,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       setCodigoBarrasPreview(url);
       setVarianteSeleccionada(varianteId);
       setTabActiva('codigosBarras');
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error al generar código de barras de variante:', err);
       setError('Error al generar código de barras: ' + getErrorMessage(err, 'Error desconocido'));
     } finally {
@@ -712,7 +712,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
           };
           try {
             await ProductoVarianteService.crearVariante(data, idUbicacionAreaParaStock);
-          } catch (varianteErr: unknown) {
+          } catch (varianteErr: any) {
             const detalle = extractApiErrorMessage(
               varianteErr,
               getErrorMessage(varianteErr, 'Error al crear la variante')
@@ -762,7 +762,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       } else {
         handleClose();
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error al guardar producto:', err);
       const msg = extractApiErrorMessage(err, getErrorMessage(err, 'Error al guardar el producto'));
       setError(msg);

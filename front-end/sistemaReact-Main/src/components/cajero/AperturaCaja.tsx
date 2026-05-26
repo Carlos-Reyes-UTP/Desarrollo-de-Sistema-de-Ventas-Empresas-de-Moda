@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { CajaService, type AperturaCajaRequest } from '../../services/CajaService';
 import { APP_PATHS } from '../../shared/layout/navigationConfig';
 import { Skeleton, PageHeader, MaterialIcon } from '@/shared/ui';
+import { guardarDatosApertura, obtenerDatosApertura, limpiarDatosApertura } from '../../utils/cajaUtils';
+import axios from 'axios';
 
 interface AperturaCajaProps {
   onAperturaCompleta: () => void;
@@ -17,7 +19,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [aperturaExitosa, setAperturaExitosa] = useState<boolean>(false);
-  const [datosApertura, setDatosApertura] = useState<any>(null);
+  const [datosApertura, setDatosApertura] = useState<Record<string, any> | null>(null);
   const [verificandoCaja, setVerificandoCaja] = useState<boolean>(true);
 
   const obtenerFechaHoraActual = () => {
@@ -111,7 +113,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
       setDatosApertura(datos);
       setAperturaExitosa(true);
     } catch (err: any) {
-      const mensajeError = err.response?.data?.message || err.message || 'Error al registrar la apertura de caja.';
+      const mensajeError = (axios.isAxiosError(err) ? (axios.isAxiosError(err) ? err.response?.data?.message : undefined) : (err instanceof Error ? err.message : String(err))) || 'Error al registrar la apertura de caja.';
       setError(mensajeError);
     } finally {
       setCargando(false);
@@ -362,22 +364,6 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
       </div>
     </div>
   );
-};
-
-// Función utilitaria para guardar datos de apertura
-export const guardarDatosApertura = (datos: any) => {
-  localStorage.setItem('datosAperturaCaja:v1', JSON.stringify(datos));
-};
-
-// Función utilitaria para obtener datos de apertura guardados
-export const obtenerDatosApertura = () => {
-  const datos = localStorage.getItem('datosAperturaCaja:v1');
-  return datos ? JSON.parse(datos) : null;
-};
-
-// Función utilitaria para limpiar datos de apertura después del cierre
-export const limpiarDatosApertura = () => {
-  localStorage.removeItem('datosAperturaCaja:v1');
 };
 
 export default AperturaCaja;

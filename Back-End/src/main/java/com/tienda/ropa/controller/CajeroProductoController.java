@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.tienda.ropa.dto.OrigenVentaResult;
+import com.tienda.ropa.entity.OrigenVenta;
 import com.tienda.ropa.entity.Producto;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.UbicacionArea;
@@ -82,7 +84,6 @@ public class CajeroProductoController {
         return ResponseEntity.ok(response);
     }
 
-    // Método auxiliar para mapear un resultado de la query a un Map de variante
     private Map<String, Object> mapearResultadoAVariante(Object[] resultado) {
         Map<String, Object> variante = new HashMap<>();
         variante.put("idProductoVariante", resultado[0]);
@@ -90,7 +91,8 @@ public class CajeroProductoController {
         variante.put("codigoBarrasVariante", resultado[1]);
         variante.put("cantidad", resultado[2]);
         variante.put("sku", resultado[15]);
-        
+        variante.put("stockEnPiso", resultado.length > 16 ? resultado[16] : 0);
+
         Map<String, Object> producto = new HashMap<>();
         producto.put("idProducto", resultado[3]);
         producto.put("nombre", resultado[4]);
@@ -99,22 +101,22 @@ public class CajeroProductoController {
         producto.put("codigoIdentificacion", resultado[7]);
         producto.put("precioUnitario", resultado[8]);
         variante.put("producto", producto);
-        
+
         Map<String, Object> talla = new HashMap<>();
         talla.put("idTalla", resultado[9]);
         talla.put("nombreTalla", resultado[10]);
         variante.put("talla", talla);
-        
+
         Map<String, Object> color = new HashMap<>();
         color.put("idColor", resultado[11]);
         color.put("nombre", resultado[12]);
         variante.put("color", color);
-        
+
         Map<String, Object> categorias = new HashMap<>();
         categorias.put("categoria", resultado[13]);
         categorias.put("subCategoria2", resultado[14]);
         variante.put("categorias", categorias);
-        
+
         return variante;
     }
 
@@ -151,15 +153,21 @@ public class CajeroProductoController {
             return ResponseEntity.badRequest().build(); // No hay suficiente stock
         }
 
-    UbicacionArea ubicacionAreaVenta = inventarioService.resolverUbicacionAreaUnicaDeVenta(id);
+    OrigenVentaResult origenResult = inventarioService.resolverUbicacionAreaDeVentaConFallback(id, cantidad);
+    UbicacionArea ubicacionAreaVenta = origenResult.ubicacionArea();
     inventarioService.aplicarDeltaEnUbicacionArea(
         id,
         ubicacionAreaVenta,
         -cantidad,
         "Stock insuficiente en la ubicación de venta: "
                 + InventarioService.etiquetaUbicacionArea(ubicacionAreaVenta));
-    reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
-            id, ubicacionAreaVenta.getIdUbicacionArea());
+    if (origenResult.tipoOrigen() == OrigenVenta.PISO) {
+        reposicionAutomaticaService.evaluarTrasSalidaEnUbicacionArea(
+                id, ubicacionAreaVenta.getIdUbicacionArea());
+    } else {
+        reposicionAutomaticaService.evaluarTrasVentaDirectaDesdeAlmacen(
+                id, ubicacionAreaVenta.getIdUbicacionArea());
+    }
         ProductoVariante varianteActualizada = productoVarianteService.obtenerVariantePorId(id).orElse(variante);
         return ResponseEntity.ok(varianteActualizada);
     }

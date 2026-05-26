@@ -1,6 +1,6 @@
-// @ts-nocheck Material Tailwind v2.1.10 has incompatible React 19 types (placeholder, onPointerEnterCapture, etc.)
-// This is a known issue: https://github.com/creativetimofficial/material-tailwind/issues/573
-import React, { useState, useEffect } from 'react';
+// Material Tailwind v2.1.10 has incompatible React 19 types
+// We need to type-cast or augment instead of nocheck
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
 import type { Usuario } from '../../types/Usuario';

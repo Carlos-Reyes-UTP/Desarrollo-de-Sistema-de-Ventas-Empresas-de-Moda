@@ -67,9 +67,16 @@ const VentasPanel = () => {
           setCliente={ventas.setCliente}
           clienteSeleccionado={ventas.clienteSeleccionado}
           esMayorista={ventas.esMayorista}
-          cargandoBusquedaAccion={ventas.cargandoBusquedaAccion}
+          cargandoBusquedaCliente={ventas.cargandoBusquedaCliente}
+          errorBusquedaCliente={ventas.errorBusquedaCliente}
+          setErrorBusquedaCliente={ventas.setErrorBusquedaCliente}
           handleBuscarCliente={ventas.handleBuscarCliente}
+          handleRegistrarClienteRapido={ventas.handleRegistrarClienteRapido}
           limpiarCliente={ventas.limpiarCliente}
+          inputNombreDebeParpadear={ventas.inputNombreDebeParpadear}
+          setInputNombreDebeParpadear={ventas.setInputNombreDebeParpadear}
+          handleActualizarClienteNombre={ventas.handleActualizarClienteNombre}
+          clienteCreadoManualmente={ventas.clienteCreadoManualmente}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">

@@ -353,7 +353,7 @@ const MoverMercaderiaModal = ({
       });
       onExito();
       onCerrar();
-    } catch (err: unknown) {
+    } catch (err: any) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
         "No se pudo registrar el traslado. Revise los valores e intente de nuevo.";

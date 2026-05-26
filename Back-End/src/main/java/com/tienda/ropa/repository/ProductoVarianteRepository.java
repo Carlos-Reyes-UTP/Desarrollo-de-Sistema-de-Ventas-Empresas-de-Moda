@@ -55,13 +55,21 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
               FROM inventario
               GROUP BY id_producto_variante
             ) inv ON inv.id_producto_variante = pv.id_producto_variante
+            LEFT JOIN (
+              SELECT i.id_producto_variante, COALESCE(SUM(i.stock), 0) AS stock_piso
+              FROM inventario i
+              INNER JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
+              INNER JOIN ubicacion u ON u.id_ubicacion = ua.id_ubicacion
+              WHERE LOWER(TRIM(u.nombre)) NOT IN ('almacen', 'almacén', 'bodega', 'depósito', 'deposito')
+              GROUP BY i.id_producto_variante
+            ) inv_piso ON inv_piso.id_producto_variante = pv.id_producto_variante
             """;
 
     String VARIANTE_CAJERO_SELECT = """
             SELECT
               pv.id_producto_variante,
               COALESCE(pv.codigo_barras, ''),
-              COALESCE(inv.stock_total, COALESCE(pv.cantidad, 0)),
+              COALESCE(inv_piso.stock_piso, 0),
               p.id_producto,
               p.nombre,
               p.sexo,
@@ -74,7 +82,8 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
               pv.color,
               COALESCE(cat.nombre, ''),
               COALESCE(cat2.nombre, ''),
-              COALESCE(pv.sku, '')
+              COALESCE(pv.sku, ''),
+              COALESCE(inv_piso.stock_piso, 0)
             """
             + VARIANTE_CAJERO_FROM;
 

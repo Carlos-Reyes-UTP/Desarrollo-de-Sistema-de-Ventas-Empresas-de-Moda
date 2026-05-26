@@ -134,16 +134,29 @@ const GestionUsuariosPage = () => {
     };
 
     if (usuarioBackend.roles) {
-      if (Array.isArray(usuarioBackend.roles)) {
-        usuario.roles = (usuarioBackend.roles as string[]).map(rol => ({
-          nombreRol: rol.startsWith('ROLE_') ? rol as RolNombre : `ROLE_${rol}` as RolNombre
-        }));
-      } else if (typeof usuarioBackend.roles === 'object') {
-        const rolesArray = Object.values(usuarioBackend.roles) as string[];
-        usuario.roles = rolesArray.map(rol => ({
-          nombreRol: rol.startsWith('ROLE_') ? rol as RolNombre : `ROLE_${rol}` as RolNombre
-        }));
+      let rawRoles: any[] = [];
+      if (usuarioBackend.roles instanceof Set) {
+        rawRoles = Array.from(usuarioBackend.roles);
+      } else if (Array.isArray(usuarioBackend.roles)) {
+        rawRoles = usuarioBackend.roles;
+      } else if (typeof usuarioBackend.roles === 'object' && usuarioBackend.roles !== null) {
+        if (typeof (usuarioBackend.roles as any).forEach === 'function') {
+          (usuarioBackend.roles as any).forEach((val: any) => rawRoles.push(val));
+        } else {
+          rawRoles = Object.values(usuarioBackend.roles);
+        }
       }
+
+      usuario.roles = rawRoles.map(rol => {
+        let nombre: string = '';
+        if (typeof rol === 'string') {
+          nombre = rol;
+        } else if (rol && typeof rol === 'object') {
+          nombre = (rol as any).nombreRol || (rol as any).authority || '';
+        }
+        const nombreRol = nombre.startsWith('ROLE_') ? nombre as RolNombre : `ROLE_${nombre}` as RolNombre;
+        return { nombreRol };
+      }).filter(r => r.nombreRol && (r.nombreRol as string) !== 'ROLE_');
     }
     usuario.idUbicacionAreaAsignada = usuarioBackend.idUbicacionAreaAsignada ?? null;
     usuario.etiquetaAreaAsignada = usuarioBackend.etiquetaAreaAsignada ?? null;
@@ -204,7 +217,7 @@ const GestionUsuariosPage = () => {
       const usuariosNormalizados = data.map(normalizarUsuario);
       setUsuarios(usuariosNormalizados);
       setUsuariosFiltrados(usuariosNormalizados);
-    } catch (err: unknown) {
+    } catch (err: any) {
       setError('No se pudieron cargar los usuarios. ' + getErrorMessage(err, ''));
     } finally {
       setCargando(false);
@@ -402,7 +415,7 @@ const GestionUsuariosPage = () => {
       }
       cerrarModalConAnimacion();
       cargarUsuarios();
-    } catch (err: unknown) {
+    } catch (err: any) {
       setError(getResponseMessage(err) || 'Error al guardar el usuario');
     }
   };
@@ -423,7 +436,7 @@ const GestionUsuariosPage = () => {
         mostrarMensaje('Usuario habilitado correctamente', 'success');
       }
       await cargarUsuarios();
-    } catch (err: unknown) {
+    } catch (err: any) {
       mostrarMensaje(getResponseMessage(err) || 'Error al cambiar estado', 'error');
     } finally {
       setCargando(false);
@@ -501,7 +514,9 @@ const GestionUsuariosPage = () => {
       {/* Action Messages */}
       {mensajeAccion.visible && (
         <div className={`mb-8 p-5 rounded-[1.5rem] border flex items-center justify-between shadow-sm animate-fadeIn ${
-          mensajeAccion.tipo === 'success' ? 'bg-green-50 border-green-100 text-green-700' : 'bg-red-50 border-red-100 text-red-700'
+          mensajeAccion.tipo === 'success' 
+            ? 'bg-green-50 dark:bg-green-955/20 border-green-100 dark:border-green-900/30 text-green-700 dark:text-green-400' 
+            : 'bg-red-50 dark:bg-red-955/20 border-red-100 dark:border-red-900/30 text-red-700 dark:text-red-400'
         }`}>
           <div className="flex items-center gap-3">
             {mensajeAccion.tipo === 'success' ? (
@@ -521,24 +536,24 @@ const GestionUsuariosPage = () => {
       <div className="app-panel rounded-[2rem] p-8 mb-8 shadow-sm border">
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-8 items-end">
           <div className="lg:col-span-12 xl:col-span-5">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">Búsqueda de Operador</label>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 dark:text-gray-550 uppercase mb-3 text-left transition-colors">Búsqueda de Operador</label>
             <div className="relative">
-              <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+              <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 placeholder="Nombre de usuario..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium"
+                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all font-medium border border-transparent dark:border-gray-800/80"
               />
             </div>
           </div>
           <div className="lg:col-span-4 xl:col-span-3">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">Filtrado por Rol</label>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 dark:text-gray-500 uppercase mb-3 text-left transition-colors">Filtrado por Rol</label>
             <div className="relative">
-               <MaterialIcon icon="filter_list" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="filter_list" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <select
-                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] rounded-xl text-sm font-bold appearance-none cursor-pointer"
+                className="w-full pl-11 pr-10 py-3 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold appearance-none cursor-pointer border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-955 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all"
                 value={filtroRol}
                 onChange={(e) => setFiltroRol(e.target.value as RolNombre | 'TODOS')}
               >
@@ -550,15 +565,15 @@ const GestionUsuariosPage = () => {
                 <option value="ROLE_GERENTE">Gerente</option>
                 <option value="ROLE_SUPERVISOR_ALMACEN">Supervisor almacén</option>
               </select>
-               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
           <div className="lg:col-span-4 xl:col-span-2">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 text-left">Estado</label>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 dark:text-gray-500 uppercase mb-3 text-left transition-colors">Estado</label>
             <div className="relative">
-               <MaterialIcon icon="how_to_reg" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="how_to_reg" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
               <select
-                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] rounded-xl text-sm font-bold appearance-none cursor-pointer"
+                className="w-full pl-11 pr-10 py-3 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold appearance-none cursor-pointer border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-955 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all"
                 value={filtroActivo === 'TODOS' ? 'TODOS' : filtroActivo ? 'true' : 'false'}
                 onChange={(e) => setFiltroActivo(e.target.value === 'TODOS' ? 'TODOS' : e.target.value === 'true')}
               >
@@ -566,13 +581,13 @@ const GestionUsuariosPage = () => {
                 <option value="true">Activos</option>
                 <option value="false">Inactivos</option>
               </select>
-               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 absolute right-4 top-1/2 -translate-y-1/2" />
+               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
           </div>
           <div className="lg:col-span-4 xl:col-span-2">
             <button
               onClick={cargarUsuarios}
-              className="w-full h-[46px] bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-black rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+              className="w-full h-[46px] bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-transparent dark:border-gray-800/80"
             >
               {cargando ? (
                 <MaterialIcon icon="sync" className="w-4 h-4 animate-spin" />
@@ -589,14 +604,14 @@ const GestionUsuariosPage = () => {
       <div className="app-panel rounded-[2.5rem] shadow-sm border overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-white border-b border-gray-50">
-              <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Identidad</th>
-              <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Privilegios</th>
-              <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Estado</th>
-              <th className="px-8 py-6 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Acciones</th>
+            <tr className="bg-white dark:bg-gray-950/40 border-b border-gray-100 dark:border-gray-800/50">
+              <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 dark:text-gray-500 uppercase">Identidad</th>
+              <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 dark:text-gray-500 uppercase">Privilegios</th>
+              <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 dark:text-gray-500 uppercase">Estado</th>
+              <th className="px-8 py-6 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 dark:text-gray-500 uppercase">Acciones</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-50">
+          <tbody className="divide-y divide-gray-100 dark:divide-gray-800/40">
             {cargando ? (
               Array.from({ length: 8 }, (_, row) => (
                 <tr key={`sk-user-${row}`}>
@@ -615,25 +630,39 @@ const GestionUsuariosPage = () => {
                 </tr>
               ))
             ) : usuariosPagina.map((usuario, index) => (
-              <tr key={usuario.id ?? `user-${usuario.usuario}-${index}`} className="hover:bg-[#fafafa] transition-colors group">
+              <tr key={usuario.id ?? `user-${usuario.usuario}-${index}`} className="hover:bg-gray-50/50 dark:hover:bg-gray-900/20 transition-colors group">
                 <td className="px-8 py-6">
                   <div className="flex items-center gap-4 text-left">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg ${usuario.activo ? 'bg-black text-white' : 'bg-gray-100 text-gray-400'}`}>
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-md transition-colors ${
+                      usuario.activo 
+                        ? 'bg-black text-white dark:bg-gray-800 dark:text-gray-200' 
+                        : 'bg-gray-100 text-gray-400 dark:bg-gray-900 dark:text-gray-600'
+                    }`}>
                       <MaterialIcon icon="person" className="w-5 h-5" />
                     </div>
                     <div className="flex flex-col">
-                      <span className={`text-sm font-bold ${!usuario.activo ? 'text-gray-400' : 'text-black'}`}>
+                      <span className={`text-sm font-bold transition-colors ${
+                        !usuario.activo 
+                          ? 'text-gray-400 dark:text-gray-600' 
+                          : 'text-black dark:text-white'
+                      }`}>
                         {usuario.usuario}
-                        {esUsuarioActual(usuario) && <span className="ml-2 text-[10px] bg-black text-white px-2 py-0.5 rounded-full uppercase">Tú</span>}
+                        {esUsuarioActual(usuario) && (
+                          <span className="ml-2 text-[9px] bg-black text-white dark:bg-white dark:text-black px-2 py-0.5 rounded-full font-extrabold uppercase tracking-wide">
+                            Tú
+                          </span>
+                        )}
                       </span>
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID {usuario.id} • {usuario.roles && usuario.roles.length > 0 ? usuario.roles.map(r => r.nombreRol.replace('ROLE_', '')).join(', ') : 'Sin rol'}</span>
+                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">
+                        ID {usuario.id} • {usuario.roles && usuario.roles.length > 0 ? usuario.roles.map(r => r.nombreRol.replace('ROLE_', '')).join(', ') : 'Sin rol'}
+                      </span>
                     </div>
                   </div>
                 </td>
                 <td className="px-8 py-6 text-left">
                   <div className="flex flex-wrap gap-2">
                     {usuario.roles?.map((rol, i) => (
-                      <span key={i} className="px-3 py-1 bg-gray-50 border border-gray-100 rounded-lg text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                      <span key={i} className="px-3 py-1 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800/80 rounded-lg text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider transition-colors">
                         {rol.nombreRol.replace('ROLE_', '')}
                       </span>
                     ))}
@@ -648,11 +677,22 @@ const GestionUsuariosPage = () => {
                   </div>
                 </td>
                 <td className="px-8 py-6 text-right">
-                  <div className="flex justify-end gap-2 text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => abrirModalEdicion(usuario)} className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all border border-transparent shadow-sm">
+                  <div className="flex justify-end gap-2 text-gray-400 dark:text-gray-500 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <button 
+                      onClick={() => abrirModalEdicion(usuario)} 
+                      className="p-2.5 hover:bg-black hover:text-white dark:hover:bg-white dark:hover:text-black rounded-xl transition-all border border-transparent shadow-sm bg-transparent dark:bg-transparent"
+                    >
                       <MaterialIcon icon="edit" className="w-4 h-4" />
                     </button>
-                    <button onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)} disabled={(esUltimoAdministradorActivo(usuario) && usuario.activo) || (esUsuarioActual(usuario) && usuario.activo)} className={`p-2.5 rounded-xl transition-all border border-transparent shadow-sm disabled:opacity-20 ${usuario.activo ? 'hover:bg-red-500 hover:text-white' : 'hover:bg-[#10b981] hover:text-white'}`}>
+                    <button 
+                      onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)} 
+                      disabled={(esUltimoAdministradorActivo(usuario) && usuario.activo) || (esUsuarioActual(usuario) && usuario.activo)} 
+                      className={`p-2.5 rounded-xl transition-all border border-transparent shadow-sm disabled:opacity-20 ${
+                        usuario.activo 
+                          ? 'hover:bg-red-500 dark:hover:bg-red-650 hover:text-white text-gray-400 dark:text-gray-500' 
+                          : 'hover:bg-[#10b981] dark:hover:bg-emerald-650 hover:text-white text-gray-400 dark:text-gray-500'
+                      }`}
+                    >
                       {usuario.activo ? (
                         <MaterialIcon icon="person_remove" className="w-4 h-4" />
                       ) : (
@@ -669,13 +709,17 @@ const GestionUsuariosPage = () => {
 
       {/* Pagination */}
       <div className="mt-10 flex flex-col md:flex-row justify-between items-center gap-6 px-8">
-        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Sincronización: {usuariosOrdenados.length} Registros Activos</span>
-        <div className="flex gap-2 p-1 bg-white rounded-2xl shadow-sm border border-gray-100">
+        <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Sincronización: {usuariosOrdenados.length} Registros Activos</span>
+        <div className="flex gap-2 p-1 bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800/80 transition-colors">
           {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(n => (
             <button
               key={n}
               onClick={() => setPaginaActual(n)}
-              className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${paginaActual === n ? 'bg-black text-white shadow-xl' : 'text-gray-400 hover:bg-gray-50'}`}
+              className={`w-10 h-10 rounded-xl text-xs font-bold transition-all ${
+                paginaActual === n 
+                  ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl' 
+                  : 'text-gray-400 dark:text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/60'
+              }`}
             >
               {n}
             </button>
@@ -685,26 +729,26 @@ const GestionUsuariosPage = () => {
 
       {/* Modal: Creation/Edit */}
       {mostrarModal && (
-        <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+        <div className={`fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
+          <div className={`bg-white dark:bg-gray-950 rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden border border-transparent dark:border-gray-800/80 transition-colors ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="p-10 text-left">
-              <div className="mb-6 w-12 h-1 bg-black"></div>
-              <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
+              <div className="mb-6 w-12 h-1 bg-black dark:bg-white rounded-full"></div>
+              <h2 className="text-2xl font-bold tracking-tight text-black dark:text-white mb-2 uppercase transition-colors">
                 {modoEdicion ? 'Actualización de Perfil' : 'Registro de Operador'}
               </h2>
-              <p className="text-gray-500 text-sm mb-10 font-medium">Configure los parámetros de autenticación y privilegios.</p>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-10 font-medium transition-colors">Configure los parámetros de autenticación y privilegios.</p>
 
               <form onSubmit={guardarUsuario} className="space-y-8">
                 {error && (
-                  <div className="p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-3">
+                  <div className="p-4 bg-red-50 dark:bg-red-955/20 border border-red-100 dark:border-red-900/30 rounded-xl text-red-600 dark:text-red-400 text-[10px] font-bold uppercase tracking-widest flex items-center gap-3">
                     <MaterialIcon icon="error" className="w-4 h-4" /> {error}
                   </div>
                 )}
                 
                 <div className="space-y-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nombre de Usuario</label>
+                  <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Nombre de Usuario</label>
                   <div className="relative">
-                    <MaterialIcon icon="person" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                    <MaterialIcon icon="person" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
                     <input
                       ref={usuarioInputRef}
                       type="text"
@@ -712,7 +756,7 @@ const GestionUsuariosPage = () => {
                       value={formUsuario.usuario}
                       onChange={manejarCambioForm}
                       onBlur={(e) => verificarDisponibilidadUsuario(e.target.value)}
-                      className="w-full pl-11 pr-4 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all border-transparent"
+                      className="w-full pl-11 pr-4 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all border border-transparent dark:border-gray-800/80"
                       placeholder="Identificador del sistema..."
                       required
                     />
@@ -727,22 +771,22 @@ const GestionUsuariosPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Campo Contraseña */}
                       <div className="space-y-4">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Contraseña</label>
+                        <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Contraseña</label>
                         <div className="relative">
-                          <MaterialIcon icon="lock" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <MaterialIcon icon="lock" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
                           <input
                             type={mostrarPassword ? 'text' : 'password'}
                             name="password"
                             value={formUsuario.password}
                             onChange={manejarCambioForm}
-                            className="w-full pl-11 pr-12 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold border-transparent focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                            className="w-full pl-11 pr-12 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all placeholder-gray-400 dark:placeholder-gray-600"
                             placeholder="••••••••"
                             required
                           />
                           <button
                             type="button"
                             onClick={() => setMostrarPassword(!mostrarPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors flex items-center justify-center"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black dark:hover:text-white transition-colors flex items-center justify-center"
                           >
                             {mostrarPassword ? (
                               <MaterialIcon icon="visibility_off" className="w-[18px] h-[18px]" />
@@ -755,20 +799,20 @@ const GestionUsuariosPage = () => {
 
                       {/* Campo Confirmación */}
                       <div className="space-y-4">
-                        <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Confirmación</label>
+                        <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Confirmación</label>
                         <div className="relative">
-                          <MaterialIcon icon="shield" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                          <MaterialIcon icon="shield" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
                           <input
                             type={mostrarConfirmPassword ? 'text' : 'password'}
                             name="confirmPassword"
                             value={formUsuario.confirmPassword}
                             onChange={manejarCambioForm}
-                            className={`w-full pl-11 pr-12 py-4 bg-[#f8f8f8] rounded-xl text-sm font-bold border-transparent focus:bg-white focus:ring-2 transition-all ${
+                            className={`w-full pl-11 pr-12 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold border border-transparent focus:bg-white dark:focus:bg-gray-950 focus:ring-2 transition-all ${
                               formUsuario.confirmPassword 
                                 ? formUsuario.password === formUsuario.confirmPassword 
-                                  ? 'focus:ring-[#10b981]/20 border-[#10b981]/30' 
-                                  : 'focus:ring-red-100 border-red-200'
-                                : 'focus:ring-gray-100'
+                                  ? 'focus:ring-[#10b981]/20 dark:focus:ring-[#10b981]/20 border-[#10b981]/30 dark:border-[#10b981]/30' 
+                                  : 'focus:ring-red-100 dark:focus:ring-red-950/20 border-red-200 dark:border-red-900/30'
+                                : 'focus:ring-black/5 dark:focus:ring-white/10 dark:border-gray-800/80'
                             }`}
                             placeholder="••••••••"
                             required
@@ -776,7 +820,7 @@ const GestionUsuariosPage = () => {
                           <button
                             type="button"
                             onClick={() => setMostrarConfirmPassword(!mostrarConfirmPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors flex items-center justify-center"
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black dark:hover:text-white transition-colors flex items-center justify-center"
                           >
                             {mostrarConfirmPassword ? (
                               <MaterialIcon icon="visibility_off" className="w-[18px] h-[18px]" />
@@ -790,9 +834,9 @@ const GestionUsuariosPage = () => {
 
                     {/* Validaciones UX de Contraseña */}
                     {formUsuario.password && (
-                      <div className="bg-[#fcfcfc] border border-gray-100 rounded-2xl p-6 space-y-4 animate-fadeIn">
+                      <div className="bg-[#fcfcfc] dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/80 rounded-2xl p-6 space-y-4 animate-fadeIn transition-colors">
                         <div className="flex items-center justify-between mb-2">
-                          <h4 className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">Requisitos de Seguridad</h4>
+                          <h4 className="text-[9px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em]">Requisitos de Seguridad</h4>
                           {formUsuario.password === formUsuario.confirmPassword && formUsuario.confirmPassword && (
                             <div className="flex items-center gap-1.5 text-emerald-500 animate-pulse">
                               <MaterialIcon icon="check_circle" className="w-3 h-3" />
@@ -809,10 +853,10 @@ const GestionUsuariosPage = () => {
                             { label: 'Símbolo (!@#$%^&*)', check: /[!@#$%^&*()]/.test(formUsuario.password) }
                           ].map((req, i) => (
                             <div key={i} className="flex items-center gap-2.5">
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-500 ${req.check ? 'bg-[#10b981] scale-110' : 'bg-gray-100'}`}>
-                                <MaterialIcon icon="check_circle" className={`w-[10px] h-[10px] ${req.check ? 'text-white' : 'text-gray-300'}`} />
+                              <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-500 ${req.check ? 'bg-[#10b981] scale-110' : 'bg-gray-100 dark:bg-gray-850'}`}>
+                                <MaterialIcon icon="check_circle" className={`w-[10px] h-[10px] ${req.check ? 'text-white' : 'text-gray-300 dark:text-gray-600'}`} />
                               </div>
-                              <span className={`text-[10px] font-bold uppercase tracking-tight transition-colors ${req.check ? 'text-black' : 'text-gray-400'}`}>
+                              <span className={`text-[10px] font-bold uppercase tracking-tight transition-colors ${req.check ? 'text-black dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>
                                 {req.label}
                               </span>
                             </div>
@@ -827,13 +871,13 @@ const GestionUsuariosPage = () => {
                     <button type="button" onClick={() => {
                         if (esUsuarioActual(usuarioEditando as Usuario)) setMostrarModalPassword(true);
                         else setCambiarPassword(true);
-                    }} className="text-[10px] font-bold text-black uppercase tracking-widest flex items-center gap-2 hover:opacity-50 transition-opacity">
+                    }} className="text-[10px] font-bold text-black dark:text-white uppercase tracking-widest flex items-center gap-2 hover:opacity-50 transition-opacity">
                       <MaterialIcon icon="refresh" className="w-4 h-4" /> Resetear Credenciales de Seguridad
                     </button>
                 )}
 
                 <div className="space-y-4">
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Niveles de Autorización</label>
+                  <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">Niveles de Autorización</label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {['ROLE_ADMIN', 'ROLE_CAJERO', 'ROLE_ALMACENERO', 'ROLE_VENDEDOR', 'ROLE_GERENTE', 'ROLE_SUPERVISOR_ALMACEN'].map(rol => (
                       <button
@@ -850,7 +894,11 @@ const GestionUsuariosPage = () => {
                                   : '',
                             });
                         }}
-                        className={`py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${formUsuario.roles.includes(rol as RolNombre) ? 'bg-black text-white shadow-xl scale-105' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                        className={`py-4 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all ${
+                          formUsuario.roles.includes(rol as RolNombre) 
+                            ? 'bg-black text-white dark:bg-white dark:text-black shadow-xl scale-105' 
+                            : 'bg-gray-100 text-gray-400 dark:bg-gray-900 dark:text-gray-450 hover:bg-gray-200 dark:hover:bg-gray-800'
+                        }`}
                       >
                         {rol.replace('ROLE_', '')}
                       </button>
@@ -860,35 +908,49 @@ const GestionUsuariosPage = () => {
 
                 {formUsuario.roles.includes('ROLE_ALMACENERO') && (
                   <div className="space-y-4">
-                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">
                       Área de almacén asignada
                     </label>
-                    <select
-                      name="idUbicacionAreaAsignada"
-                      value={formUsuario.idUbicacionAreaAsignada}
-                      onChange={manejarCambioForm}
-                      required
-                      disabled={cargandoAreasAlmacen}
-                      className="w-full py-4 px-4 bg-[#f8f8f8] rounded-xl text-sm font-bold appearance-none cursor-pointer"
-                    >
-                      <option value="">
-                        {cargandoAreasAlmacen ? 'Cargando áreas…' : `Seleccione sector (${SECTORES_ALMACEN_TEXTO})`}
-                      </option>
-                      {areasAlmacenDisponibles.map((ua) => (
-                        <option key={ua.idUbicacionArea} value={ua.idUbicacionArea}>
-                          {ua.descripcion ?? (ua.area ? `${ua.nombre} · ${ua.area}` : ua.nombre)}
+                    <div className="relative">
+                      <select
+                        name="idUbicacionAreaAsignada"
+                        value={formUsuario.idUbicacionAreaAsignada}
+                        onChange={manejarCambioForm}
+                        required
+                        disabled={cargandoAreasAlmacen}
+                        className="w-full py-4 pl-4 pr-10 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold appearance-none cursor-pointer border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-955 transition-colors"
+                      >
+                        <option value="">
+                          {cargandoAreasAlmacen ? 'Cargando áreas…' : `Seleccione sector (${SECTORES_ALMACEN_TEXTO})`}
                         </option>
-                      ))}
-                    </select>
-                    <p className="text-[10px] text-gray-500 font-medium">
+                        {areasAlmacenDisponibles.map((ua) => (
+                          <option key={ua.idUbicacionArea} value={ua.idUbicacionArea}>
+                            {ua.descripcion ?? (ua.area ? `${ua.nombre} · ${ua.area}` : ua.nombre)}
+                          </option>
+                        ))}
+                      </select>
+                      <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 dark:text-gray-550 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                    <p className="text-[10px] text-gray-550 dark:text-gray-500 font-medium transition-colors">
                       La mercadería que registre este almacenero quedará en esta ubicación desde el alta.
                     </p>
                   </div>
                 )}
 
-                <div className="flex gap-4 pt-6 border-t border-gray-50">
-                  <button type="button" onClick={cerrarModalConAnimacion} className="flex-1 py-4 bg-gray-50 text-gray-500 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100">Cerrar</button>
-                  <button type="submit" className="flex-1 py-4 bg-black text-white rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-gray-800">Sincronizar</button>
+                <div className="flex gap-4 pt-6 border-t border-gray-100 dark:border-gray-800/80 transition-colors">
+                  <button 
+                    type="button" 
+                    onClick={cerrarModalConAnimacion} 
+                    className="flex-1 py-4 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-transparent dark:border-gray-800/60"
+                  >
+                    Cerrar
+                  </button>
+                  <button 
+                    type="submit" 
+                    className="flex-1 py-4 bg-black text-white dark:bg-white dark:text-black rounded-xl text-[10px] font-bold uppercase tracking-widest shadow-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all active:scale-[0.98]"
+                  >
+                    Sincronizar
+                  </button>
                 </div>
               </form>
             </div>
@@ -898,35 +960,35 @@ const GestionUsuariosPage = () => {
 
       {/* Modal: Password Verification */}
       {mostrarModalPassword && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-fadeIn">
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-fadeIn">
+          <div className="bg-white dark:bg-gray-950 rounded-[2.5rem] border border-gray-100 dark:border-gray-800/80 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn transition-colors">
             {/* Header */}
-            <div className="bg-black px-8 py-6 flex items-center gap-4">
-              <div className="w-10 h-10 bg-white/10 rounded-2xl flex items-center justify-center flex-shrink-0">
+            <div className="bg-black dark:bg-gray-900 px-8 py-6 flex items-center gap-4 border-b border-transparent dark:border-gray-800/50">
+              <div className="w-10 h-10 bg-white/10 dark:bg-white/5 rounded-2xl flex items-center justify-center flex-shrink-0">
                 <MaterialIcon icon="lock" className="w-5 h-5 text-white" />
               </div>
               <div>
                 <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Verificar Identidad</h3>
-                <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">Confirme su contraseña para continuar</p>
+                <p className="text-gray-400 dark:text-gray-500 text-[10px] font-medium uppercase tracking-widest mt-0.5 transition-colors">Confirme su contraseña para continuar</p>
               </div>
             </div>
             {/* Body */}
             <div className="px-8 py-7 space-y-6">
               <div className="space-y-3">
-                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">Contraseña Actual</label>
+                <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.3em] transition-colors">Contraseña Actual</label>
                 <div className="relative">
-                  <MaterialIcon icon="lock" className="w-4 h-4 text-gray-300 absolute left-5 top-1/2 -translate-y-1/2" />
+                  <MaterialIcon icon="lock" className="w-4 h-4 text-gray-300 dark:text-gray-600 absolute left-5 top-1/2 -translate-y-1/2" />
                   <input
                     type={mostrarPassword ? 'text' : 'password'}
                     value={passwordActual}
                     onChange={(e) => setPasswordActual(e.target.value)}
-                    className="w-full pl-12 pr-12 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:bg-white focus:ring-[4px] focus:ring-gray-100 transition-all shadow-inner"
+                    className="w-full pl-12 pr-12 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 border-none rounded-[1.5rem] text-sm font-bold text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all border border-transparent dark:border-gray-800/80 shadow-inner"
                     placeholder="Ingrese su contraseña..."
                   />
                   <button
                     type="button"
                     onClick={() => setMostrarPassword(!mostrarPassword)}
-                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors flex items-center justify-center"
+                    className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black dark:hover:text-white transition-colors flex items-center justify-center"
                   >
                     {mostrarPassword ? (
                       <MaterialIcon icon="visibility_off" className="w-[18px] h-[18px]" />
@@ -945,14 +1007,14 @@ const GestionUsuariosPage = () => {
               <button
                 type="button"
                 onClick={() => setMostrarModalPassword(false)}
-                className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all"
+                className="flex-1 py-4 bg-[#f8f8f8] dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-850 transition-all"
               >
                 Cancelar
               </button>
               <button
                 type="button"
                 onClick={verificarContrasenaActual}
-                className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] active:scale-[0.97]"
+                className="flex-1 py-4 bg-black text-white dark:bg-white dark:text-black rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 dark:hover:bg-gray-100 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] dark:shadow-none active:scale-[0.97]"
               >
                 Verificar
               </button>

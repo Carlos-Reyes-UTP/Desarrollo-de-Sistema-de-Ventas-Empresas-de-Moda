@@ -131,7 +131,7 @@ export const RUTAS_CODIGOS_BARRAS = {
   
   // Generate barcode for product
   GENERAR_PRODUCTO: (idProducto: number, ancho?: number, alto?: number) => {
-    let url = `${API_BASE_URL}/api/almacenero/codigobarras/generar/${idProducto}`;
+    const url = `${API_BASE_URL}/api/almacenero/codigobarras/generar/${idProducto}`;
     const params = new URLSearchParams();
     if (ancho) params.append('ancho', ancho.toString());
     if (alto) params.append('alto', alto.toString());
@@ -140,7 +140,7 @@ export const RUTAS_CODIGOS_BARRAS = {
   
   // Generate barcode for variant
   GENERAR_VARIANTE: (idVariante: number, ancho?: number, alto?: number) => {
-    let url = `${API_BASE_URL}/api/almacenero/codigobarras/generar-variante/${idVariante}`;
+    const url = `${API_BASE_URL}/api/almacenero/codigobarras/generar-variante/${idVariante}`;
     const params = new URLSearchParams();
     if (ancho) params.append('ancho', ancho.toString());
     if (alto) params.append('alto', alto.toString());
@@ -266,5 +266,7 @@ export const RUTAS_REPORTES = {
   RESUMEN_GENERAL: `${API_BASE_URL}/api/admin/reportes/resumen-completo`,
   VENTAS_POR_PERIODO: `${API_BASE_URL}/api/admin/reportes/ventas-por-periodo`,
   PRODUCTOS_DETALLE: `${API_BASE_URL}/api/admin/reportes/productos-detalle`,
+  TALLAS_POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/admin/reportes/producto/tallas?idProducto=${idProducto}`,
+  VARIANTES_POR_COLOR: (idProducto: number, nombreTalla: string) => `${API_BASE_URL}/api/admin/reportes/producto/variantes-por-color?idProducto=${idProducto}&nombreTalla=${encodeURIComponent(nombreTalla)}`,
 };
 

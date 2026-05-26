@@ -1,4 +1,8 @@
 export const getErrorMessage = (error: unknown, fallback: string): string => {
+  const responseMsg = getResponseMessage(error);
+  if (responseMsg) {
+    return responseMsg;
+  }
   if (error instanceof Error && error.message) {
     return error.message;
   }

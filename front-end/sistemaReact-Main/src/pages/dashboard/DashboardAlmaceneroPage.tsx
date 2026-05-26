@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MaterialIcon } from '@/shared/ui';
+import { useAutoSync } from '@/hooks/useAutoSync';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   Tooltip, Label
@@ -40,11 +41,17 @@ const STATUS_COLORS = {
 const CustomTooltip = ({ active, payload }: { active?: boolean, payload?: Array<{ name: string, value: number }> }) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black/90 backdrop-blur-md border border-white/10 p-3 rounded-2xl shadow-xl">
-        <p className="text-white text-[10px] font-black uppercase tracking-widest mb-1">{payload[0].name}</p>
-        <p className="text-indigo-400 text-sm font-black">
-          {payload[0].value} <span className="text-white/40 font-bold text-[9px] uppercase ml-1">Unidades</span>
-        </p>
+      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-3 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[140px]">
+        <div className="flex items-center space-x-1.5 pb-1.5 mb-1.5 border-b border-gray-100 dark:border-gray-800/60">
+          <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+          <span className="font-semibold text-gray-850 dark:text-gray-200 text-[10px] tracking-wider uppercase">{payload[0].name}</span>
+        </div>
+        <div className="flex justify-between items-center text-xs">
+          <span className="text-gray-500 dark:text-gray-400 mr-3">Cantidad:</span>
+          <span className="font-bold text-indigo-650 dark:text-indigo-400">
+            {payload[0].value} <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase ml-0.5">uds</span>
+          </span>
+        </div>
       </div>
     );
   }
@@ -191,7 +198,7 @@ const DashboardAlmaceneroPage = () => {
 
       // Cargar inventario adicional para la tabla de búsqueda
       await cargarInventarioReciente();
-    } catch (err: unknown) {
+    } catch (err: any) {
       console.error('Error general al cargar datos del dashboard:', err);
       setErrorSync('Error al cargar los datos del dashboard. Verifique su conexión e intente nuevamente.');
     } finally {
@@ -214,6 +221,8 @@ const DashboardAlmaceneroPage = () => {
   const productosCriticos = useMemo(() => {
     return inventarioReciente.filter(p => p.estado === 'critico');
   }, [inventarioReciente]);
+
+  useAutoSync(cargarDatosDashboard, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA'], 2000);
 
   const actualizarDatos = async () => {
     await cargarDatosDashboard();
@@ -342,8 +351,10 @@ const DashboardAlmaceneroPage = () => {
                           cx="50%" cy="50%"
                           innerRadius={80} outerRadius={110}
                           paddingAngle={6}
+                          cornerRadius={5}
                           dataKey="porcentaje"
-                          stroke="none"
+                          stroke="#ffffff"
+                          strokeWidth={1.5}
                         >
                           {categoriaStats.map((_, index) => (
                             <Cell key={`cell-${index}`} fill={CATEGORY_COLORS[index % CATEGORY_COLORS.length]} />

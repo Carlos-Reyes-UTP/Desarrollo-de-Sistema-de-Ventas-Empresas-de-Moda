@@ -1,6 +1,7 @@
 import { RUTAS_CLIENTES } from '../config/apiConfig';
 import apiClient from '../config/apiClient';
 import type { Cliente } from '../types/Cliente';
+import axios from 'axios';
 
 export const ClienteService = {
   obtenerTodosClientes: async (): Promise<Cliente[]> => {
@@ -13,7 +14,7 @@ export const ClienteService = {
       const response = await apiClient.get<Cliente>(RUTAS_CLIENTES.POR_ID(id));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },
@@ -37,7 +38,7 @@ export const ClienteService = {
       const response = await apiClient.get<Cliente>(RUTAS_CLIENTES.POR_DOCUMENTO(numeroDocumento));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },
@@ -47,7 +48,7 @@ export const ClienteService = {
       const response = await apiClient.get<Cliente>(RUTAS_CLIENTES.POR_DNI(numero));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },
@@ -57,7 +58,7 @@ export const ClienteService = {
       const response = await apiClient.get<Cliente>(RUTAS_CLIENTES.POR_RUC(numero));
       return response.data;
     } catch (error: any) {
-      if (error.response && error.response.status === 404) return null;
+      if (axios.isAxiosError(error) && error.response?.status === 404) return null;
       throw error;
     }
   },

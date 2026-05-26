@@ -3,7 +3,10 @@ package com.tienda.ropa.entity;
 import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -33,6 +36,10 @@ public class DetalleVenta {
 
     @NotNull
     private BigDecimal precioUnitario;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "origen_venta", length = 20)
+    private OrigenVenta origenVenta;
 
     // Métodos manuales
 
@@ -75,6 +82,14 @@ public class DetalleVenta {
 
     public void setPrecioUnitario(BigDecimal precioUnitario) {
         this.precioUnitario = precioUnitario;
+    }
+
+    public OrigenVenta getOrigenVenta() {
+        return origenVenta;
+    }
+
+    public void setOrigenVenta(OrigenVenta origenVenta) {
+        this.origenVenta = origenVenta;
     }
 
     public BigDecimal getSubtotal() {

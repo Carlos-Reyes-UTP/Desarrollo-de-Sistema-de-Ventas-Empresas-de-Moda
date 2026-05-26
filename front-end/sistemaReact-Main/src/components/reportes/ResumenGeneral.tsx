@@ -32,139 +32,65 @@ const ResumenGeneral: React.FC = () => {
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
 
   useEffect(() => {
+    const construirResumenDesdeVentas = async (ventas: any[]): Promise<ResumenVentasLocal> => {
+      const totalVentas = ventas.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0);
+      const cantidadVentas = ventas.length;
+      const ticketPromedio = cantidadVentas > 0 ? totalVentas / cantidadVentas : 0;
+
+      const metricasCrecimiento = await ReporteService.calcularCrecimiento.obtenerMetricasCrecimiento();
+
+      const data: ResumenVentasLocal = {
+        totalVentas,
+        totalOrdenes: cantidadVentas,
+        clientesActivos: 0,
+        ticketPromedio,
+        crecimientoVentas: metricasCrecimiento.crecimiento.ingresos,
+        crecimientoOrdenes: metricasCrecimiento.crecimiento.ventas,
+        crecimientoClientes: 0,
+        crecimientoTicket: metricasCrecimiento.crecimiento.ticket,
+        ventasPorPeriodo: [],
+        ventasPorCategoria: [],
+        topProductos: []
+      };
+
+      try {
+        const { ClienteService } = await import('../../services/ClienteService');
+        const clientes = await ClienteService.obtenerTodosClientes();
+        if (Array.isArray(clientes)) {
+          data.clientesActivos = clientes.length;
+        }
+      } catch {
+        data.clientesActivos = 0;
+      }
+
+      return data;
+    };
+
     const cargarResumen = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        // En lugar de usar el endpoint de resumen general que da 403,
-        // vamos a calcular el resumen usando los datos de ventas disponibles
+        const { VentaService } = await import('../../services/VentaService');
+
         try {
-          // Intentar obtener datos del backend si es posible
-          const backendData = await ReporteService.getResumenGeneral();
-
-          // Siempre obtener las ventas reales para tener datos correctos
-          const { VentaService } = await import('../../services/VentaService');
-          const todasLasVentas = await VentaService.obtenerTodasVentas();
-          console.log('🔍 Ventas obtenidas:', todasLasVentas);
-          
-          const totalVentas = Array.isArray(todasLasVentas) 
-            ? todasLasVentas.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0)
-            : backendData.totalIngresos;
-          const cantidadVentas = Array.isArray(todasLasVentas) ? todasLasVentas.length : 1;
-          const ticketPromedio = cantidadVentas > 0 ? totalVentas / cantidadVentas : 0;
-          
-          console.log('📊 Datos calculados:', {
-            totalVentas,
-            cantidadVentas,
-            ticketPromedio
-          });
-
-          // Calcular métricas de crecimiento mes actual vs anterior
-          const metricasCrecimiento = await ReporteService.calcularCrecimiento.obtenerMetricasCrecimiento();
-          console.log('📈 Métricas de crecimiento obtenidas:', metricasCrecimiento);
-
-          const data: ResumenVentasLocal = {
-            totalVentas: totalVentas, // Total en dinero
-            totalOrdenes: cantidadVentas, // Cantidad real de ventas de la tabla ventas
-            clientesActivos: 0, // Se calculará después desde ClienteServices
-            ticketPromedio: ticketPromedio, // Promedio real: total ingresos / cantidad ventas
-            crecimientoVentas: metricasCrecimiento.crecimiento.ingresos,
-            crecimientoOrdenes: metricasCrecimiento.crecimiento.ventas,
-            crecimientoClientes: 0, // Por ahora no calculamos crecimiento de clientes
-            crecimientoTicket: metricasCrecimiento.crecimiento.ticket,
-            ventasPorPeriodo: [],
-            ventasPorCategoria: [],
-            topProductos: []
-          };
-
-          // Obtener cantidad de clientes registrados
-          try {
-            const { ClienteService } = await import('../../services/ClienteService');
-            const clientes = await ClienteService.obtenerTodosClientes();
-            console.log('🔍 Clientes obtenidos:', clientes);
-            
-            if (Array.isArray(clientes)) {
-              data.clientesActivos = clientes.length;
-              console.log('✅ Cantidad de clientes registrados:', clientes.length);
-            } else {
-              console.warn('⚠️ La respuesta de clientes no es un array:', clientes);
-              data.clientesActivos = 0;
-            }
-          } catch (clienteError: any) {
-            console.error('❌ Error al obtener clientes:', clienteError);
-            console.error('❌ Detalles del error:', clienteError.response?.data || clienteError.message);
-            data.clientesActivos = 0;
-          }
-
-          setResumen(data);
-        } catch (backendError: any) {
-          console.warn('⚠️ No se pudo acceder al resumen del backend, calculando desde ventas:', backendError);
-
-          // Si el backend no está disponible o da 403, calcular desde las ventas
-          const { VentaService } = await import('../../services/VentaService');
-          const todasLasVentas = await VentaService.obtenerTodasVentas();
-          console.log('🔍 Ventas obtenidas (fallback):', todasLasVentas);
-
-          if (Array.isArray(todasLasVentas)) {
-            const totalVentas = todasLasVentas.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0);
-            const totalOrdenes = todasLasVentas.length;
-            const ticketPromedio = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
-            
-            console.log('📊 Datos calculados (fallback):', {
-              totalVentas,
-              totalOrdenes,
-              ticketPromedio
-            });
-
-            // Calcular métricas de crecimiento mes actual vs anterior
-            const metricasCrecimiento = await ReporteService.calcularCrecimiento.obtenerMetricasCrecimiento();
-            console.log('📈 Métricas de crecimiento obtenidas (fallback):', metricasCrecimiento);
-
-            const data: ResumenVentasLocal = {
-              totalVentas,
-              totalOrdenes, // Cantidad de ventas registradas
-              clientesActivos: 0, // Se calculará después
-              ticketPromedio,
-              crecimientoVentas: metricasCrecimiento.crecimiento.ingresos,
-              crecimientoOrdenes: metricasCrecimiento.crecimiento.ventas,
-              crecimientoClientes: 0, // Por ahora no calculamos crecimiento de clientes
-              crecimientoTicket: metricasCrecimiento.crecimiento.ticket,
-              ventasPorPeriodo: [],
-              ventasPorCategoria: [],
-              topProductos: []
-            };
-
-            // Obtener cantidad de clientes registrados
-            try {
-              const { ClienteService } = await import('../../services/ClienteService');
-              const clientes = await ClienteService.obtenerTodosClientes();
-              console.log('🔍 Clientes obtenidos (fallback):', clientes);
-              
-              if (Array.isArray(clientes)) {
-                data.clientesActivos = clientes.length;
-                console.log('✅ Cantidad de clientes registrados (fallback):', clientes.length);
-              } else {
-                console.warn('⚠️ La respuesta de clientes no es un array (fallback):', clientes);
-                data.clientesActivos = Math.floor(totalOrdenes * 0.7); // Estimación como fallback
-              }
-            } catch (clienteError: any) {
-              console.error('❌ Error al obtener clientes (fallback):', clienteError);
-              console.error('❌ Detalles del error (fallback):', clienteError.response?.data || clienteError.message);
-              data.clientesActivos = Math.floor(totalOrdenes * 0.7); // Estimación como fallback
-            }
-
-            setResumen(data);
-          } else {
-            throw new Error('No se pudieron obtener datos de ventas');
-          }
+          await ReporteService.getResumenGeneral();
+        } catch {
+          console.warn('Backend resumen no disponible, usando ventas directamente');
         }
+
+        const todasLasVentas = await VentaService.obtenerTodasVentas();
+
+        if (!Array.isArray(todasLasVentas)) {
+          throw new Error('No se pudieron obtener datos de ventas');
+        }
+
+        const data = await construirResumenDesdeVentas(todasLasVentas);
+        setResumen(data);
       } catch (err: any) {
         console.error('Error al cargar resumen general:', err);
         setError('Error al cargar el resumen general. Intenta nuevamente.');
-
-        // En caso de error total, usar datos básicos
-        const fallbackData: ResumenVentasLocal = {
+        setResumen({
           totalVentas: 0,
           totalOrdenes: 0,
           clientesActivos: 0,
@@ -176,9 +102,7 @@ const ResumenGeneral: React.FC = () => {
           ventasPorPeriodo: [],
           ventasPorCategoria: [],
           topProductos: []
-        };
-
-        setResumen(fallbackData);
+        });
       } finally {
         setLoading(false);
       }

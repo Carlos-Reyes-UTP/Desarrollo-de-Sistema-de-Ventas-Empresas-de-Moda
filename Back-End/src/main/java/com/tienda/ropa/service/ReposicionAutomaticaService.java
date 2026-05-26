@@ -63,14 +63,20 @@ public class ReposicionAutomaticaService {
         }
 
         int cantidad = calcularCantidadReposicion(fila);
-        UbicacionArea origen = inventarioService.resolverOrigenAlmacenConStock(idVariante, cantidad, destino);
+        UbicacionArea origen;
+        try {
+            origen = inventarioService.resolverOrigenAlmacenConStock(idVariante, cantidad, destino);
+        } catch (Exception e) {
+            return;
+        }
         if (origen.getIdUbicacionArea().equals(destino.getIdUbicacionArea())) {
             return;
         }
 
-        Usuario sistema = usuarioRepository.findByUsuario(USUARIO_SISTEMA)
-                .orElseThrow(() -> new IllegalStateException(
-                        "Usuario '" + USUARIO_SISTEMA + "' no existe; ejecute migración V7 o cree el usuario técnico."));
+        Usuario sistema = usuarioRepository.findByUsuario(USUARIO_SISTEMA).orElse(null);
+        if (sistema == null) {
+            return;
+        }
 
         CrearSolicitudDTO dto = new CrearSolicitudDTO(
                 TipoSolicitud.REPOSICION.toString(),
@@ -79,6 +85,67 @@ public class ReposicionAutomaticaService {
                 List.of(new DetalleSolicitudLineaDTO(idVariante, cantidad)),
                 null);
         solicitudService.crear(dto, sistema.getId());
+    }
+
+    @Transactional
+    public void evaluarTrasVentaDirectaDesdeAlmacen(Long idVariante, Long idUbicacionAreaAlmacen) {
+        List<Inventario> filas = inventarioRepository.findByVariante_IdProductoVariante(idVariante);
+        if (filas == null || filas.isEmpty()) {
+            return;
+        }
+
+        for (Inventario fila : filas) {
+            UbicacionArea ua = fila.getUbicacionArea();
+            if (ua == null || ua.getIdUbicacionArea() == null) {
+                continue;
+            }
+            if (ua.getIdUbicacionArea().equals(idUbicacionAreaAlmacen)) {
+                continue;
+            }
+            if (inventarioService.esUbicacionAlmacen(ua)) {
+                continue;
+            }
+
+            UbicacionArea destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(ua.getIdUbicacionArea())
+                    .orElse(ua);
+            int stockPiso = fila.getStock() != null ? fila.getStock() : 0;
+            int min = fila.getStockMinimo() != null ? fila.getStockMinimo() : 0;
+            if (stockPiso > min) {
+                continue;
+            }
+
+            if (detalleSolicitudRepository.existsByVariante_IdProductoVarianteAndSolicitud_TipoSolicitudAndSolicitud_Estado(
+                    idVariante, TipoSolicitud.REPOSICION, EstadoSolicitud.PENDIENTE)) {
+                return;
+            }
+
+            int cantidad = calcularCantidadReposicion(fila);
+            int stockDisponibleAlmacen = inventarioService.stockEnUbicacionArea(idVariante, idUbicacionAreaAlmacen);
+            if (stockDisponibleAlmacen < cantidad) {
+                if (stockDisponibleAlmacen <= 0) {
+                    return;
+                }
+                cantidad = stockDisponibleAlmacen;
+            }
+
+            UbicacionArea origen = ubicacionAreaRepository.findById(idUbicacionAreaAlmacen).orElse(null);
+            if (origen == null || origen.getIdUbicacionArea().equals(destino.getIdUbicacionArea())) {
+                return;
+            }
+
+            Usuario sistema = usuarioRepository.findByUsuario(USUARIO_SISTEMA)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Usuario '" + USUARIO_SISTEMA + "' no existe."));
+
+            CrearSolicitudDTO dto = new CrearSolicitudDTO(
+                    TipoSolicitud.REPOSICION.toString(),
+                    origen.getIdUbicacionArea(),
+                    destino.getIdUbicacionArea(),
+                    List.of(new DetalleSolicitudLineaDTO(idVariante, cantidad)),
+                    null);
+            solicitudService.crear(dto, sistema.getId());
+            return;
+        }
     }
 
     private static int calcularCantidadReposicion(Inventario fila) {

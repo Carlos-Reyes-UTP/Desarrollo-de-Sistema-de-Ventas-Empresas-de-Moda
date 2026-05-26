@@ -65,16 +65,15 @@ export const isCajeroView = (value: unknown): value is CajeroView =>
   typeof value === "string" &&
   CAJERO_VIEWS.includes(value as CajeroView);
 
-export const getDefaultCajeroView = (_hasRole: RoleChecker): CajeroView =>
+export const getDefaultCajeroView = (): CajeroView =>
   // UX: la pantalla principal del POS debe ser Ventas.
   // Apertura/Cierre se acceden explícitamente con `state.view`.
   "ventas";
 
 export const resolveCajeroView = (
-  stateView: unknown,
-  hasRole: RoleChecker
+  stateView: unknown
 ): CajeroView =>
-  isCajeroView(stateView) ? stateView : getDefaultCajeroView(hasRole);
+  isCajeroView(stateView) ? stateView : getDefaultCajeroView();
 
 export const resolveRouteView = ({
   pathname,
@@ -90,7 +89,7 @@ export const resolveRouteView = ({
   }
 
   if (pathname.includes(APP_PATHS.caja)) {
-    return resolveCajeroView(stateView, hasRole);
+    return resolveCajeroView(stateView);
   }
 
   if (pathname.includes(APP_PATHS.vendedorPiso)) {
@@ -120,7 +119,7 @@ export const resolveRouteView = ({
     }
   }
 
-  return getDefaultCajeroView(hasRole);
+  return getDefaultCajeroView();
 };
 
 export const resolveSidebarState = (input: ResolveViewInput) => {
