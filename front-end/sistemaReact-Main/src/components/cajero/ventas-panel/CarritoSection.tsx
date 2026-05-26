@@ -95,12 +95,12 @@ export const CarritoSection = ({
               <div key={`${item.idProductoVariante}-${index}`} className="group caj-card border rounded-xl p-2 transition-all duration-300 hover:shadow-sm">
                 <div className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
-                    <h4 className="caj-heading text-[10px] font-bold uppercase tracking-tight leading-tight truncate">{item.descripcion}</h4>
+                    <h4 className="caj-heading text-sm font-bold uppercase tracking-tight leading-tight truncate">{item.descripcion}</h4>
                     <div className="flex items-center gap-2 mt-0.5">
-                       <span className="text-[8px] font-bold caj-text-muted uppercase tracking-widest caj-surface-elevated px-1.5 py-0.5 rounded border caj-border-subtle">
+                       <span className="text-xs font-bold caj-text-muted uppercase tracking-widest caj-surface-elevated px-1.5 py-0.5 rounded border caj-border-subtle">
                           {item.color}
                        </span>
-                       <span className="text-[8px] font-bold uppercase tracking-wider caj-icon-chip px-1.5 py-0.5 rounded">
+                       <span className="text-xs font-bold uppercase tracking-wider caj-icon-chip px-1.5 py-0.5 rounded">
                           T {item.talla}
                        </span>
                     </div>
@@ -113,7 +113,7 @@ export const CarritoSection = ({
                     >
                       -
                     </button>
-                    <span className="caj-heading w-6 text-center text-[10px] font-extrabold">{item.cantidad}</span>
+                    <span className="caj-heading w-7 text-center text-[13px] font-extrabold">{item.cantidad}</span>
                     <button 
                       onClick={() => handleActualizarCantidadEnVenta(item.idProductoVariante, item.cantidad + 1)}
                       className="w-6 h-6 flex items-center justify-center caj-segment-inactive caj-pagination-btn rounded transition-all font-bold"
@@ -126,8 +126,8 @@ export const CarritoSection = ({
                      <span className="caj-heading text-[12px] font-extrabold tracking-tight">
                        S/{(item.precio * item.cantidad).toFixed(2)}
                      </span>
-                     <span className="caj-label block text-[8px] font-bold uppercase tracking-widest leading-none">
-                       S/{item.precio.toFixed(2)}
+                     <span className="caj-label block text-xs font-bold uppercase tracking-widest leading-none">
+                        S/{item.precio.toFixed(2)}
                      </span>
                   </div>
 
@@ -147,7 +147,7 @@ export const CarritoSection = ({
                       return (
                         <div className="mt-1 pt-1 border-t caj-border-subtle flex items-center gap-1.5">
                           <div className="w-1 h-1 rounded-full caj-accent-dot"></div>
-                          <span className="text-[7px] font-bold caj-heading uppercase tracking-[0.2em]">
+                          <span className="text-[10px] font-bold caj-heading uppercase tracking-[0.2em]">
                              APLICADA: {preciosInfo?.tipoDescuento === 'mayorista' || esMayorista ? 'MAYORISTA' : 'VOLUMEN'}
                           </span>
                         </div>

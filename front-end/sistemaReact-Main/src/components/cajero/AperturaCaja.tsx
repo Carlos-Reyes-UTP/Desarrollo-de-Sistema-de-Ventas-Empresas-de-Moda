@@ -22,6 +22,7 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
   const { usuario } = useAuth();
   const navigate = useNavigate();
   const [montoApertura, setMontoApertura] = useState<string>('');
+  const [tipoApertura, setTipoApertura] = useState<'NORMAL' | 'CAMPAÑA'>('NORMAL');
   const [fechaHoraApertura, setFechaHoraApertura] = useState<string>('');
   const [cargando, setCargando] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,14 +82,20 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!montoApertura || parseFloat(montoApertura) <= 0) {
+    const monto = parseFloat(montoApertura);
+    if (!montoApertura || monto <= 0) {
       setError('Ingrese un monto inicial válido para continuar.');
+      return;
+    }
+    const maxMonto = tipoApertura === 'CAMPAÑA' ? 1500 : 700;
+    if (monto > maxMonto) {
+      setError(`El monto máximo para apertura ${tipoApertura.toLowerCase()} es S/ ${maxMonto.toFixed(2)}.`);
       return;
     }
     try {
       setCargando(true);
-      const aperturaRequest: AperturaCajaRequest = { montoApertura: parseFloat(montoApertura) };
-      const response = await CajaService.abrirCaja(aperturaRequest.montoApertura);
+      const aperturaRequest: AperturaCajaRequest = { montoApertura: monto, tipoApertura };
+      const response = await CajaService.abrirCaja(aperturaRequest.montoApertura, aperturaRequest.tipoApertura);
       const datos: DatosAperturaCaja = {
         ...datosAperturaDesdeCajaDTO(response, usuario?.usuario ?? 'Usuario desconocido'),
         fechaHoraApertura: fechaHoraApertura || datosAperturaDesdeCajaDTO(response).fechaHoraApertura,
@@ -305,6 +312,41 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
             </div>
           </div>
 
+          {/* Tipo de Apertura */}
+          <div>
+            <label className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Tipo de apertura</label>
+            <div className="flex gap-2 caj-card p-1.5 rounded-[1.5rem] border caj-border">
+              <button
+                type="button"
+                onClick={() => {
+                  setTipoApertura('NORMAL');
+                  setMontoApertura('');
+                }}
+                className={`flex-1 py-3.5 px-6 rounded-[1.25rem] text-[11px] font-bold uppercase tracking-[0.25em] transition-all ${
+                  tipoApertura === 'NORMAL'
+                    ? 'caj-btn-primary shadow-md'
+                    : 'hover:bg-[var(--caj-surface-hover)] caj-text-muted'
+                }`}
+              >
+                Normal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTipoApertura('CAMPAÑA');
+                  setMontoApertura('');
+                }}
+                className={`flex-1 py-3.5 px-6 rounded-[1.25rem] text-[11px] font-bold uppercase tracking-[0.25em] transition-all ${
+                  tipoApertura === 'CAMPAÑA'
+                    ? 'caj-btn-primary shadow-md'
+                    : 'hover:bg-[var(--caj-surface-hover)] caj-text-muted'
+                }`}
+              >
+                Campaña
+              </button>
+            </div>
+          </div>
+
           {/* Monto */}
           <div>
             <label className="caj-label block text-[10px] font-bold tracking-[0.3em] uppercase mb-4 pl-1">Dinero para iniciar</label>
@@ -320,19 +362,26 @@ const AperturaCaja = ({ onAperturaCompleta }: AperturaCajaProps) => {
                 placeholder="0.00"
                 className="w-full pl-16 pr-6 py-5 caj-input border-none rounded-[1.5rem] text-[22px] font-extrabold caj-heading placeholder:caj-text-faint focus:ring-[4px] focus:ring-[var(--caj-ring)] transition-all shadow-inner tracking-tight"
                 value={montoApertura}
-                onChange={(e) => setMontoApertura(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const maxMonto = tipoApertura === 'CAMPAÑA' ? 1500 : 700;
+                  if (val === '' || parseFloat(val) <= maxMonto) {
+                    setMontoApertura(val);
+                  }
+                }}
                 required
               />
             </div>
             <p className="text-[10px] caj-text-muted font-medium mt-3 pl-1">
               Ingrese el monto en efectivo con el que inicia la caja hoy.
+              Máximo permitido: <strong>S/ {tipoApertura === 'CAMPAÑA' ? '1,500.00' : '700.00'}</strong>
             </p>
           </div>
 
           {/* Submit */}
           <button
             type="submit"
-            disabled={cargando || !montoApertura || parseFloat(montoApertura) <= 0}
+            disabled={cargando || !montoApertura || parseFloat(montoApertura) <= 0 || parseFloat(montoApertura) > (tipoApertura === 'CAMPAÑA' ? 1500 : 700)}
             className="caj-btn-primary w-full py-6 rounded-[2rem] text-[12px] font-bold uppercase tracking-[0.4em] shadow-lg transition-all active:scale-[0.97] disabled:opacity-20 disabled:cursor-not-allowed group flex items-center justify-center gap-4"
           >
             {cargando ? <MaterialIcon icon="progress_activity" className="animate-spin h-5 w-5" /> : <MaterialIcon icon="check_circle" className="w-5 h-5" />}

@@ -47,6 +47,7 @@ export interface MovimientoCajaDTO {
 
 export interface AperturaCajaRequest {
   montoApertura: number;
+  tipoApertura?: string;
 }
 
 export interface CierreCajaRequest {
@@ -57,9 +58,10 @@ export interface CierreCajaRequest {
 }
 
 export const CajaService = {
-  abrirCaja: async (montoApertura: number): Promise<CajaDTO> => {
+  abrirCaja: async (montoApertura: number, tipoApertura?: string): Promise<CajaDTO> => {
     const response = await apiClient.post<CajaDTO>(RUTAS_CAJA.ABRIR, {
       montoApertura,
+      tipoApertura,
     });
     return response.data;
   },
