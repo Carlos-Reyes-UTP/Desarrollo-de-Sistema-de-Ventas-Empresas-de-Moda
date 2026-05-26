@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon, ConfirmModal, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { UsuarioService, resolveRutasUsuarios } from '@/services/UsuarioService';
 import { AccesoAreaAlmacenService } from '@/services/AccesoAreaAlmacenService';
@@ -93,6 +93,17 @@ const GestionUsuariosPage = () => {
   const [passwordActual, setPasswordActual] = useState<string>('');
   const [mostrarModalPassword, setMostrarModalPassword] = useState<boolean>(false);
   const [errorPasswordActual, setErrorPasswordActual] = useState<string | null>(null);
+  const [confirmarEstadoUsuario, setConfirmarEstadoUsuario] = useState<{
+    open: boolean;
+    id: number | null;
+    activo: boolean;
+    nombreUsuario: string;
+  }>({
+    open: false,
+    id: null,
+    activo: false,
+    nombreUsuario: '',
+  });
   
   // Estados para mostrar/ocultar contraseñas
   const [mostrarPassword, setMostrarPassword] = useState(false);
@@ -423,6 +434,24 @@ const GestionUsuariosPage = () => {
     }
   };
   
+  const abrirConfirmacionCambioEstadoUsuario = (usuario: Usuario) => {
+    setConfirmarEstadoUsuario({
+      open: true,
+      id: usuario.id ?? null,
+      activo: usuario.activo || false,
+      nombreUsuario: usuario.usuario,
+    });
+  };
+
+  const cerrarConfirmacionCambioEstadoUsuario = () => {
+    setConfirmarEstadoUsuario({
+      open: false,
+      id: null,
+      activo: false,
+      nombreUsuario: '',
+    });
+  };
+
   const cambiarEstadoUsuario = async (id: number, activo: boolean) => {
     setCargando(true);
     try {
@@ -444,6 +473,15 @@ const GestionUsuariosPage = () => {
     } finally {
       setCargando(false);
     }
+  };
+
+  const confirmarCambioEstadoUsuario = async () => {
+    if (confirmarEstadoUsuario.id == null) return;
+
+    const id = confirmarEstadoUsuario.id;
+    const activo = confirmarEstadoUsuario.activo;
+    cerrarConfirmacionCambioEstadoUsuario();
+    await cambiarEstadoUsuario(id, activo);
   };
   
   const mostrarMensaje = (texto: string, tipo: 'success' | 'error') => {
@@ -700,7 +738,7 @@ const GestionUsuariosPage = () => {
                       <MaterialIcon icon="edit" className="w-4 h-4" />
                     </button>
                     <button 
-                      onClick={() => cambiarEstadoUsuario(usuario.id!, usuario.activo || false)} 
+                      onClick={() => abrirConfirmacionCambioEstadoUsuario(usuario)} 
                       disabled={
                         ((esUltimoAdministradorActivo(usuario) || esUltimoGerenteActivo(usuario)) && usuario.activo) ||
                         (esUsuarioActual(usuario) && usuario.activo) ||
@@ -1060,6 +1098,19 @@ const GestionUsuariosPage = () => {
         </div>
         </ModalPortal>
       )}
+
+      <ConfirmModal
+        open={confirmarEstadoUsuario.open}
+        title={confirmarEstadoUsuario.activo ? 'Confirmar deshabilitación' : 'Confirmar habilitación'}
+        message={confirmarEstadoUsuario.activo
+          ? `¿Desea deshabilitar al usuario ${confirmarEstadoUsuario.nombreUsuario}?`
+          : `¿Desea habilitar al usuario ${confirmarEstadoUsuario.nombreUsuario}?`}
+        onConfirm={confirmarCambioEstadoUsuario}
+        onCancel={cerrarConfirmacionCambioEstadoUsuario}
+        confirmText={confirmarEstadoUsuario.activo ? 'Deshabilitar' : 'Habilitar'}
+        cancelText="Cancelar"
+        variant={confirmarEstadoUsuario.activo ? 'danger' : 'warning'}
+      />
     </div>
   );
 };
