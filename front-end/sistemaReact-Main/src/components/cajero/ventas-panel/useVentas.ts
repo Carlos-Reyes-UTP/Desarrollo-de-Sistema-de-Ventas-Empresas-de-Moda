@@ -649,6 +649,7 @@ const { isReady, isAuthenticated } = useAuthReady();
         documento: documentoCliente,
         nombre: cliente,
         clienteSeleccionado,
+        metodoPago,
       }),
     [
       totalGeneralVenta,
@@ -662,6 +663,31 @@ const { isReady, isAuthenticated } = useAuthReady();
   const clienteValidoParaVenta = identificacionEval.valido;
   const requiereDocumentoCliente = identificacionEval.requiereDocumento;
 
+  const metodoPagoAnteriorRef = useRef('');
+  useEffect(() => {
+    if (metodoPago === 'tarjeta' && metodoPagoAnteriorRef.current !== 'tarjeta') {
+      if (
+        productosSeleccionadosVenta.length > 0 &&
+        totalGeneralVenta >= UMBRAL_DNI_OBLIGATORIO &&
+        !identificacionEval.docValido
+      ) {
+        setInputDocumentoDebeParpadear(true);
+        setMensajeInfoVista(
+          `Pago con tarjeta desde S/ ${UMBRAL_DNI_OBLIGATORIO}. Ingrese DNI o RUC del cliente.`
+        );
+        setTimeout(() => setMensajeInfoVista(null), 5000);
+        document
+          .getElementById('pos-cliente-cobro')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    }
+    if (metodoPago !== 'tarjeta' && metodoPagoAnteriorRef.current === 'tarjeta') {
+      setMensajeInfoVista(null);
+      setInputDocumentoDebeParpadear(false);
+    }
+    metodoPagoAnteriorRef.current = metodoPago;
+  }, [metodoPago, totalGeneralVenta, identificacionEval.docValido, productosSeleccionadosVenta.length]);
+
   const totalAnteriorRef = useRef(0);
   useEffect(() => {
     const cruzoUmbral =
@@ -670,11 +696,12 @@ const { isReady, isAuthenticated } = useAuthReady();
     if (
       productosSeleccionadosVenta.length > 0 &&
       cruzoUmbral &&
+      metodoPago === 'tarjeta' &&
       !identificacionEval.docValido
     ) {
       setInputDocumentoDebeParpadear(true);
       setMensajeInfoVista(
-        `El total superó S/ ${UMBRAL_DNI_OBLIGATORIO}. Ingrese DNI o RUC del cliente.`
+        `Pago con tarjeta y total superó S/ ${UMBRAL_DNI_OBLIGATORIO}. Ingrese DNI o RUC del cliente.`
       );
       setTimeout(() => setMensajeInfoVista(null), 5000);
       document
@@ -686,6 +713,7 @@ const { isReady, isAuthenticated } = useAuthReady();
     totalGeneralVenta,
     identificacionEval.docValido,
     productosSeleccionadosVenta.length,
+    metodoPago,
   ]);
 
   const resolverDocumentoBoleta = (): string | null => {

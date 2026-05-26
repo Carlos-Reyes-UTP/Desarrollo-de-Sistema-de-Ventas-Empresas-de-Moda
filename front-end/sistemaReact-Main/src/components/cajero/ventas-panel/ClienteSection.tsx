@@ -130,26 +130,7 @@ export const ClienteSection = ({
         </div>
       </div>
 
-      <div
-        className={`${compact ? 'mb-3 px-3 py-2.5' : 'mb-8 px-6 py-4'} rounded-xl border text-[9px] font-bold uppercase tracking-[0.12em] ${
-          !tieneProductosEnCarrito
-            ? 'caj-highlight-panel caj-text-muted'
-            : requiereDocumentoCliente
-              ? 'bg-amber-50/80 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/40 text-amber-800 dark:text-amber-200'
-              : 'bg-emerald-50/60 dark:bg-emerald-950/15 border-emerald-100 dark:border-emerald-900/30 text-emerald-800 dark:text-emerald-300'
-        }`}
-      >
-        {!tieneProductosEnCarrito
-          ? 'Agregue productos; luego complete el cliente al cobrar'
-          : requiereDocumentoCliente
-            ? `Venta desde S/ ${UMBRAL_DNI_OBLIGATORIO} — DNI o RUC obligatorio`
-            : `Venta menor a S/ ${UMBRAL_DNI_OBLIGATORIO} — puede registrar solo nombre completo (DNI opcional)`}
-        {tieneProductosEnCarrito && totalGeneralVenta > 0 && (
-          <span className="block mt-1 font-medium opacity-80 normal-case tracking-normal">
-            Total actual: S/ {totalGeneralVenta.toFixed(2)}
-          </span>
-        )}
-      </div>
+
 
       {tieneProductosEnCarrito &&
         requiereDocumentoCliente &&

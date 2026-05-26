@@ -49,6 +49,7 @@ export interface EvaluarIdentificacionInput {
     numeroDocumento: string;
     nombreCliente: string;
   } | null;
+  metodoPago?: string;
 }
 
 export interface EvaluarIdentificacionResult {
@@ -61,9 +62,9 @@ export interface EvaluarIdentificacionResult {
 export function evaluarIdentificacionCliente(
   input: EvaluarIdentificacionInput
 ): EvaluarIdentificacionResult {
-  const { totalVenta, tipoDocumento, documento, nombre, clienteSeleccionado } =
+  const { totalVenta, tipoDocumento, documento, nombre, clienteSeleccionado, metodoPago } =
     input;
-  const requiereDocumento = totalVenta >= UMBRAL_DNI_OBLIGATORIO;
+  const requiereDocumento = totalVenta >= UMBRAL_DNI_OBLIGATORIO && metodoPago === 'tarjeta';
   const docTrim = documento.trim();
 
   const docValidoForm =
@@ -89,7 +90,7 @@ export function evaluarIdentificacionCliente(
       requiereDocumento,
       docValido: false,
       mensaje: requiereDocumento
-        ? `El total supera S/ ${UMBRAL_DNI_OBLIGATORIO}. Ingrese DNI o RUC válido del cliente.`
+        ? 'Complete los datos del cliente.'
         : 'Ingrese al menos un nombre del cliente.',
     };
   }
@@ -103,11 +104,7 @@ export function evaluarIdentificacionCliente(
       valido: ok,
       requiereDocumento,
       docValido: docValidoForm,
-      mensaje: ok
-        ? null
-        : !docValidoForm
-          ? `Venta desde S/ ${UMBRAL_DNI_OBLIGATORIO}: el ${tipoDocumento} es obligatorio (formato válido).`
-          : 'Ingrese el nombre del cliente.',
+      mensaje: ok ? null : 'Complete los datos del cliente.',
     };
   }
 
