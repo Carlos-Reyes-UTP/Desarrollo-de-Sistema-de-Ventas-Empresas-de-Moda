@@ -377,7 +377,7 @@ const GestionProveedores: React.FC = () => {
                   </td>
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-2 text-gray-600">
-                       <span className="px-3 py-1 bg-gray-100 rounded-lg text-[10px] font-mono font-bold tracking-tighter">
+                       <span className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-mono font-bold tracking-tighter">
                         {proveedor.ruc}
                       </span>
                     </div>
