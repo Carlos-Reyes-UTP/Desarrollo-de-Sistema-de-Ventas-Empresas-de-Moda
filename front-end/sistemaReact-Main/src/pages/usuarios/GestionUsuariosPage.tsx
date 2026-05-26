@@ -94,6 +94,14 @@ const GestionUsuariosPage = () => {
   const [mostrarModalPassword, setMostrarModalPassword] = useState<boolean>(false);
   const [errorPasswordActual, setErrorPasswordActual] = useState<string | null>(null);
   const [mostrarConfirmGuardarEdicion, setMostrarConfirmGuardarEdicion] = useState(false);
+  const [avisoReinicioSesion, setAvisoReinicioSesion] = useState<{
+    open: boolean;
+    mensaje: string;
+  }>({
+    open: false,
+    mensaje: '',
+  });
+  const cierreSesionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [confirmarEstadoUsuario, setConfirmarEstadoUsuario] = useState<{
     open: boolean;
     id: number | null;
@@ -113,7 +121,15 @@ const GestionUsuariosPage = () => {
   // Ref para el campo de nombre de usuario
   const usuarioInputRef = useRef<HTMLInputElement>(null);
 
-  useModalBodyScrollLock(mostrarModal || mostrarModalPassword);
+  useModalBodyScrollLock(mostrarModal || mostrarModalPassword || avisoReinicioSesion.open);
+
+  useEffect(() => {
+    return () => {
+      if (cierreSesionTimeoutRef.current) {
+        clearTimeout(cierreSesionTimeoutRef.current);
+      }
+    };
+  }, []);
   
   useEffect(() => {
     cargarUsuarios();
@@ -171,7 +187,7 @@ const GestionUsuariosPage = () => {
     const cambianRoles = JSON.stringify(rolesOriginales) !== JSON.stringify(rolesNuevos);
 
     if (cambiaNombreUsuario || cambianRoles) {
-      cerrarSesion();
+      mostrarAvisoReinicioSesion('Cambió su usuario o rol. Debe iniciar sesión nuevamente.');
     }
   };
 
@@ -411,8 +427,7 @@ const GestionUsuariosPage = () => {
         };
         
         if (esCambioPasswordPropio) {
-          mostrarMensaje('Contraseña actualizada. Cerrando sesión...', 'success');
-          setTimeout(() => cerrarSesion(), 2000);
+          mostrarAvisoReinicioSesion('Su contraseña fue actualizada. Debe iniciar sesión nuevamente.');
         } else {
           verificarCierreSesion(usuarioActualizado, datosOriginales);
         }
@@ -535,6 +550,18 @@ const GestionUsuariosPage = () => {
   const mostrarMensaje = (texto: string, tipo: 'success' | 'error') => {
     setMensajeAccion({ texto, tipo, visible: true });
     setTimeout(() => setMensajeAccion(prev => ({ ...prev, visible: false })), 5000);
+  };
+
+  const mostrarAvisoReinicioSesion = (mensaje: string) => {
+    if (cierreSesionTimeoutRef.current) {
+      clearTimeout(cierreSesionTimeoutRef.current);
+    }
+
+    setAvisoReinicioSesion({ open: true, mensaje });
+    cierreSesionTimeoutRef.current = setTimeout(() => {
+      setAvisoReinicioSesion({ open: false, mensaje: '' });
+      cerrarSesion();
+    }, 3000);
   };
   
   const verificarDisponibilidadUsuario = async (nombreUsuario: string) => {
@@ -1171,6 +1198,33 @@ const GestionUsuariosPage = () => {
         cancelText="Cancelar"
         variant={confirmarEstadoUsuario.activo ? 'danger' : 'warning'}
       />
+
+      {avisoReinicioSesion.open && (
+        <ModalPortal>
+          <div className="fixed inset-0 z-[9999] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
+            <div className="w-full max-w-md rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-955 shadow-2xl overflow-hidden animate-scaleIn">
+              <div className="px-8 pt-8 pb-4 flex items-center gap-4 bg-[var(--app-surface)]">
+                <div className="w-11 h-11 rounded-2xl bg-[var(--app-bg-muted)] flex items-center justify-center text-[var(--app-accent)]">
+                  <MaterialIcon icon="info" className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--app-text)] uppercase tracking-tight leading-tight">
+                    Sesión actualizada
+                  </h3>
+                  <p className="text-[10px] font-bold uppercase tracking-widest mt-1 text-[var(--app-text-muted)]">
+                    {avisoReinicioSesion.mensaje}
+                  </p>
+                </div>
+              </div>
+              <div className="px-8 pb-8 pt-4">
+                <div className="h-1.5 rounded-full bg-gray-100 dark:bg-gray-850 overflow-hidden">
+                  <div className="h-full w-full origin-left animate-[shrink_3s_linear_forwards] bg-[var(--app-accent)]" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </ModalPortal>
+      )}
     </div>
   );
 };

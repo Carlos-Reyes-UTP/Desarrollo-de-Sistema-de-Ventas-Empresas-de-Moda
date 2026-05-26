@@ -74,7 +74,7 @@ public class JwtUtils {
                 .withSubject(username)
                 .withClaim("authorities",authorities)
                 .withIssuedAt(new Date())
-                .withExpiresAt(new Date(System.currentTimeMillis() + 7200000)) // 2 horas en lugar de 30 minutos
+                .withExpiresAt(new Date(System.currentTimeMillis() + 28800000)) // 2 horas en lugar de 30 minutos
                 .withJWTId(UUID.randomUUID().toString())
                 // Ligeramente en el pasado evita rechazos por desfase de reloj al validar nbf justo al emitir el token
                 .withNotBefore(new Date(System.currentTimeMillis() - 2000))
