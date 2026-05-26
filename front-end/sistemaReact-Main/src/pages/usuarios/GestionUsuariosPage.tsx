@@ -93,6 +93,7 @@ const GestionUsuariosPage = () => {
   const [passwordActual, setPasswordActual] = useState<string>('');
   const [mostrarModalPassword, setMostrarModalPassword] = useState<boolean>(false);
   const [errorPasswordActual, setErrorPasswordActual] = useState<string | null>(null);
+  const [mostrarConfirmGuardarEdicion, setMostrarConfirmGuardarEdicion] = useState(false);
   const [confirmarEstadoUsuario, setConfirmarEstadoUsuario] = useState<{
     open: boolean;
     id: number | null;
@@ -214,6 +215,7 @@ const GestionUsuariosPage = () => {
       setMostrarPassword(false);
       setMostrarConfirmPassword(false);
       setMostrarModalPassword(false);
+      setMostrarConfirmGuardarEdicion(false);
       setPasswordActual('');
       setErrorPasswordActual(null);
       setError(null);
@@ -312,6 +314,10 @@ const GestionUsuariosPage = () => {
     setVerificandoUsuario(false);
     setMostrarPassword(false);
     setMostrarConfirmPassword(false);
+    setMostrarModalPassword(false);
+    setMostrarConfirmGuardarEdicion(false);
+    setPasswordActual('');
+    setErrorPasswordActual(null);
     setModoEdicion(true);
     setUsuarioEditando(usuario);
     setCambiarPassword(false);
@@ -347,8 +353,7 @@ const GestionUsuariosPage = () => {
     }
   };
   
-  const guardarUsuario = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const ejecutarGuardadoUsuario = async () => {
     setError(null);
     
     if (!formUsuario.usuario.trim()) { setError('El nombre de usuario no puede estar vacío'); return; }
@@ -433,6 +438,44 @@ const GestionUsuariosPage = () => {
       setError(getResponseMessage(err) || 'Error al guardar el usuario');
     }
   };
+
+  const guardarUsuario = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    setError(null);
+
+    if (!formUsuario.usuario.trim()) { setError('El nombre de usuario no puede estar vacío'); return; }
+
+    const nombreUsuario = formUsuario.usuario.trim();
+    if (nombreUsuario.length < 4) { setError('El nombre de usuario debe tener al menos 4 caracteres'); return; }
+    if (/\s/.test(nombreUsuario)) { setError('El nombre de usuario no puede contener espacios'); return; }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(nombreUsuario)) { setError('El usuario solo puede contener letras, números, puntos y guiones'); return; }
+
+    if (verificandoUsuario) { setError('Verificando disponibilidad del nombre de usuario. Por favor espere.'); return; }
+    if (usuarioDisponible === false) { setError('El nombre de usuario ya está en uso'); return; }
+
+    if (!modoEdicion || cambiarPassword) {
+      if (!formUsuario.password) { setError('La contraseña no puede estar vacía'); return; }
+      const validacionPassword = validarContrasenaSegura(formUsuario.password);
+      if (!validacionPassword.esValida) { setError(validacionPassword.mensaje); return; }
+      if (formUsuario.password !== formUsuario.confirmPassword) { setError('Las contraseñas no coinciden'); return; }
+    }
+
+    if (formUsuario.roles.length === 0) { setError('Debe seleccionar un rol'); return; }
+
+    const esAlmacenero = formUsuario.roles.includes('ROLE_ALMACENERO');
+    if (esAlmacenero && !formUsuario.idUbicacionAreaAsignada) {
+      setError(`Debe asignar el sector de almacén (${SECTORES_ALMACEN_TEXTO}) al almacenero`);
+      return;
+    }
+
+    if (modoEdicion) {
+      setMostrarConfirmGuardarEdicion(true);
+      return;
+    }
+
+    await ejecutarGuardadoUsuario();
+  };
   
   const abrirConfirmacionCambioEstadoUsuario = (usuario: Usuario) => {
     setConfirmarEstadoUsuario({
@@ -482,6 +525,11 @@ const GestionUsuariosPage = () => {
     const activo = confirmarEstadoUsuario.activo;
     cerrarConfirmacionCambioEstadoUsuario();
     await cambiarEstadoUsuario(id, activo);
+  };
+
+  const confirmarGuardadoEdicion = async () => {
+    setMostrarConfirmGuardarEdicion(false);
+    await ejecutarGuardadoUsuario();
   };
   
   const mostrarMensaje = (texto: string, tipo: 'success' | 'error') => {
@@ -926,10 +974,11 @@ const GestionUsuariosPage = () => {
                 )}
 
                 {modoEdicion && !cambiarPassword && (
-                    <button type="button" onClick={() => {
-                        if (esUsuarioActual(usuarioEditando as Usuario)) setMostrarModalPassword(true);
-                        else setCambiarPassword(true);
-                    }} className="text-[10px] font-bold text-gray-700 dark:text-gray-300 hover:text-[var(--app-accent)] uppercase tracking-widest flex items-center gap-2 transition-colors">
+                  <button type="button" onClick={() => {
+                    setErrorPasswordActual(null);
+                    setPasswordActual('');
+                    setMostrarModalPassword(true);
+                  }} className="text-[10px] font-bold text-gray-700 dark:text-gray-300 hover:text-[var(--app-accent)] uppercase tracking-widest flex items-center gap-2 transition-colors">
                       <MaterialIcon icon="refresh" className="w-4 h-4" /> Resetear Credenciales de Seguridad
                     </button>
                 )}
@@ -1044,7 +1093,7 @@ const GestionUsuariosPage = () => {
               </div>
               <div>
                 <h3 className="text-base font-bold text-[var(--app-text)] uppercase tracking-tight leading-tight">Verificar Identidad</h3>
-                <p className="text-[var(--app-text-muted)] text-[10px] font-bold uppercase tracking-widest mt-1 transition-colors">Confirme su contraseña para continuar</p>
+                <p className="text-[var(--app-text-muted)] text-[10px] font-bold uppercase tracking-widest mt-1 transition-colors">Confirme la contraseña de su sesión para continuar</p>
               </div>
             </div>
             {/* Body */}
@@ -1098,6 +1147,17 @@ const GestionUsuariosPage = () => {
         </div>
         </ModalPortal>
       )}
+
+      <ConfirmModal
+        open={mostrarConfirmGuardarEdicion}
+        title="Confirmar guardado"
+        message="¿Desea guardar los cambios realizados en este usuario?"
+        onConfirm={confirmarGuardadoEdicion}
+        onCancel={() => setMostrarConfirmGuardarEdicion(false)}
+        confirmText="Guardar cambios"
+        cancelText="Cancelar"
+        variant="info"
+      />
 
       <ConfirmModal
         open={confirmarEstadoUsuario.open}
