@@ -168,7 +168,7 @@ export function AlmacenPickingList({
         value={cantidadEnvio}
         disabled={procesando}
         onChange={(e) => onInputCantidad(e.target.value)}
-        className="h-12 w-14 rounded-xl bg-app-input text-center text-lg font-black text-app-text border border-app-border tabular-nums"
+        className="h-12 w-14 rounded-xl bg-app-input text-center text-lg font-black text-app-text border border-app-border tabular-nums [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
         aria-label="Cantidad a enviar"
       />
       <button
