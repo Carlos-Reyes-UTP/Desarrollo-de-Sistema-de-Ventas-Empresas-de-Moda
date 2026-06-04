@@ -188,6 +188,39 @@ public class InventarioContextService {
                 .toList();
     }
 
+    /**
+     * Filtro por línea de catálogo ({@code id_area}) para dashboard, alertas y cola.
+     * Almacenero: línea de {@code areaAsignado}. Supervisor/admin: null o sector opcional.
+     */
+    @Transactional(readOnly = true)
+    public Long resolverIdAreaCatalogoFiltro(Usuario usuario, String sectorOpcional) {
+        if (usuario == null) {
+            return null;
+        }
+        if (esAlmaceneroDeLinea(usuario)) {
+            UbicacionArea asignada = usuario.getAreaAsignado();
+            if (asignada == null || asignada.getArea() == null || asignada.getArea().getIdArea() == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "El almacenero no tiene área de almacén asignada. Contacte al administrador.");
+            }
+            return asignada.getArea().getIdArea();
+        }
+        Role rol = rolPrincipalInventario(usuario);
+        if (rol == Role.ADMIN || rol == Role.SUPERVISOR_ALMACEN) {
+            if (sectorOpcional != null && !sectorOpcional.isBlank()) {
+                Long idArea = idAreaCatalogoPorNombre(sectorOpcional.trim());
+                if (idArea == null) {
+                    throw new ResponseStatusException(
+                            HttpStatus.BAD_REQUEST, "Sector no válido: " + sectorOpcional);
+                }
+                return idArea;
+            }
+            return null;
+        }
+        return null;
+    }
+
     public boolean esAlmaceneroDeLinea(Usuario usuario) {
         return usuario != null
                 && rolPrincipalInventario(usuario) == Role.ALMACENERO;

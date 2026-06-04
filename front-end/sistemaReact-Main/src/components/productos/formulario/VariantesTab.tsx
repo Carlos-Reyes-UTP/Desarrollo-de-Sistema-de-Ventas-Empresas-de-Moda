@@ -466,12 +466,12 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
   };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-app-surface p-8 shadow-sm">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
         <div className="flex items-start gap-3">
-          <MaterialIcon icon="straighten" className="w-5 h-5 text-black mt-0.5 shrink-0" />
+          <MaterialIcon icon="straighten" className="w-5 h-5 text-app-text mt-0.5 shrink-0" />
           <div>
-            <h3 className="text-sm font-bold text-black mb-1">
+            <h3 className="text-sm font-bold text-app-text mb-1">
               Tallas y colores
             </h3>
             <p className="text-xs text-gray-600">
@@ -486,14 +486,14 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
             setShowFormularioVariante(!showFormularioVariante);
             setError(null);
           }}
-          className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md flex items-center gap-2 shrink-0"
+          className="bg-app-accent hover:bg-gray-800 text-app-accent-fg px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md flex items-center gap-2 shrink-0"
         >
           <MaterialIcon icon="add" className="w-4 h-4" />
           {showFormularioVariante ? 'Ocultar configuración' : 'Configurar tallas y colores'}
         </button>
       </div>
 
-      <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
+      <div className="mb-6 p-4 bg-app-surface border border-gray-200 rounded-xl">
         <p className="text-[10px] font-bold text-gray-900 uppercase tracking-wider mb-3">
           Cómo funciona
         </p>
@@ -508,8 +508,8 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
       {accesoAreaAlmacen?.puedeElegirAreaEntrada && (
         <div className="mb-6 p-6 bg-slate-50/70 border border-slate-100 rounded-2xl shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <MaterialIcon icon="corporate_fare" className="w-5 h-5 text-black" />
-            <h4 className="text-xs font-bold text-black uppercase tracking-wider">
+            <MaterialIcon icon="corporate_fare" className="w-5 h-5 text-app-text" />
+            <h4 className="text-xs font-bold text-app-text uppercase tracking-wider">
               Área de Ingreso de Mercadería
             </h4>
           </div>
@@ -531,7 +531,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                 }))}
               />
             </div>
-            <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-white p-4 rounded-xl border border-slate-100">
+            <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-app-surface p-4 rounded-xl border border-slate-100">
               <MaterialIcon icon="info" className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
               <p className="leading-relaxed">
                 Como Supervisor de Almacén, debe indicar en qué sector ({SECTORES_ALMACEN_TEXTO}) se registrarán estas unidades de stock.
@@ -580,7 +580,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
               type="button"
               onClick={() => setModoFormulario('matriz')}
               className={`flex-1 pb-3 font-bold text-[11px] uppercase tracking-[0.12em] transition-all flex flex-col items-center justify-center gap-0.5 ${
-                modoFormulario === 'matriz' ? 'text-black border-b-2 border-black' : 'text-slate-400 hover:text-slate-700'
+                modoFormulario === 'matriz' ? 'text-app-text border-b-2 border-app-accent' : 'text-slate-400 hover:text-slate-700'
               }`}
             >
               <span className="flex items-center gap-2">
@@ -595,7 +595,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
               type="button"
               onClick={() => setModoFormulario('simple')}
               className={`flex-1 pb-3 font-bold text-[11px] uppercase tracking-[0.12em] transition-all flex flex-col items-center justify-center gap-0.5 ${
-                modoFormulario === 'simple' ? 'text-black border-b-2 border-black' : 'text-slate-400 hover:text-slate-700'
+                modoFormulario === 'simple' ? 'text-app-text border-b-2 border-app-accent' : 'text-slate-400 hover:text-slate-700'
               }`}
             >
               <span className="flex items-center gap-2">
@@ -611,7 +611,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
           {modoFormulario === 'matriz' ? (
             <div className="space-y-6">
               {/* Sección 1: Selección de Tallas */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-100/60 space-y-3.5">
+              <div className="bg-app-surface p-5 rounded-2xl border border-slate-100/60 space-y-3.5">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                   <span className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase">
                     1. Configurar Tallas en la Matriz
@@ -628,7 +628,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     <button
                       type="button"
                       onClick={agregarTallaManual}
-                      className="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider"
+                      className="bg-app-accent hover:bg-gray-800 text-app-accent-fg px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider"
                     >
                       Añadir
                     </button>
@@ -643,7 +643,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     tallasSeleccionadas.map((talla) => (
                       <span
                         key={talla}
-                        className="inline-flex items-center gap-1.5 bg-black text-white px-2.5 py-1 rounded-lg text-xs font-mono font-bold"
+                        className="inline-flex items-center gap-1.5 bg-app-accent text-app-accent-fg px-2.5 py-1 rounded-lg text-xs font-mono font-bold"
                       >
                         {talla}
                         <button
@@ -675,7 +675,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                         <button
                           type="button"
                           onClick={() => aplicarPlantillaTallas(tallas)}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-gray-100 border border-gray-200 text-gray-700 hover:bg-black hover:text-white hover:border-black transition-all duration-200 ease-in-out"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase bg-gray-100 border border-gray-200 text-gray-700 hover:bg-app-accent hover:text-app-accent-fg hover:border-black transition-all duration-200 ease-in-out"
                         >
                           <MaterialIcon icon={PLANTILLA_ICONOS[key]} className="w-3 h-3" />
                           Usar plantilla
@@ -691,8 +691,8 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                               onClick={() => toggleTallaSeleccionada(t)}
                               className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all border ${
                                 isSel
-                                  ? 'bg-slate-100 border-slate-300 text-black shadow-sm'
-                                  : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400 hover:text-black'
+                                  ? 'bg-slate-100 border-slate-300 text-app-text shadow-sm'
+                                  : 'bg-app-surface border-slate-200 text-slate-500 hover:border-slate-400 hover:text-app-text'
                               }`}
                             >
                               {isSel ? '✓ ' : ''}{t}
@@ -709,7 +709,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
               </div>
 
               {/* Sección 2: Selección de Colores */}
-              <div className="bg-white p-5 rounded-2xl border border-slate-100/60 space-y-3.5">
+              <div className="bg-app-surface p-5 rounded-2xl border border-slate-100/60 space-y-3.5">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-2">
                   <span className="text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase">
                     2. Configurar Colores en la Matriz
@@ -726,7 +726,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     <button
                       type="button"
                       onClick={agregarColorManual}
-                      className="bg-black hover:bg-gray-800 text-white px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider"
+                      className="bg-app-accent hover:bg-gray-800 text-app-accent-fg px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider"
                     >
                       Añadir
                     </button>
@@ -741,7 +741,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     coloresSeleccionados.map((color) => (
                       <span
                         key={color}
-                        className="inline-flex items-center gap-2 bg-black text-white px-3 py-1 rounded-lg text-xs font-bold"
+                        className="inline-flex items-center gap-2 bg-app-accent text-app-accent-fg px-3 py-1 rounded-lg text-xs font-bold"
                       >
                         <ColorSwatch colorName={color} size="w-3 h-3" />
                         <span className="uppercase">{color}</span>
@@ -772,8 +772,8 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                         onClick={() => toggleColorSeleccionado(c)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border ${
                           isSel
-                            ? 'bg-slate-100 border-slate-300 text-black shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400 hover:text-black'
+                            ? 'bg-slate-100 border-slate-300 text-app-text shadow-sm'
+                            : 'bg-app-surface border-slate-200 text-slate-500 hover:border-slate-400 hover:text-app-text'
                         }`}
                       >
                         <ColorSwatch colorName={c} size="w-2.5 h-2.5" />
@@ -797,12 +797,12 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     placeholder="Cant. (ej. 12)"
                     value={bulkValue}
                     onChange={(e) => setBulkValue(e.target.value === '' ? '' : Number(e.target.value))}
-                    className="w-24 px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-center text-xs font-mono font-bold focus:border-black outline-none transition-all"
+                    className="w-24 px-3 py-1.5 bg-app-surface border border-slate-200 rounded-xl text-center text-xs font-mono font-bold focus:border-black outline-none transition-all"
                   />
                   <button
                     type="button"
                     onClick={llenarTodaLaMatriz}
-                    className="bg-black hover:bg-gray-800 text-white px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ease-in-out"
+                    className="bg-app-accent hover:bg-gray-800 text-app-accent-fg px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ease-in-out"
                   >
                     Llenar Todo
                   </button>
@@ -811,7 +811,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
 
               {/* Matriz 2D Real Grid */}
               {tallasSeleccionadas.length > 0 && coloresSeleccionados.length > 0 ? (
-                <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+                <div className="bg-app-surface p-6 rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
                   <div className="overflow-x-auto custom-scrollbar">
                     <table className="w-full border-collapse">
                       <thead>
@@ -847,7 +847,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                                     <button
                                       type="button"
                                       onClick={() => llenarFila(talla)}
-                                      className="p-1 rounded bg-white border border-slate-200 hover:border-black text-[9px] font-bold text-slate-600 hover:text-black uppercase shadow-xs"
+                                      className="p-1 rounded bg-app-surface border border-slate-200 hover:border-black text-[9px] font-bold text-slate-600 hover:text-app-text uppercase shadow-xs"
                                       title="Llenar toda la fila con la cant. de la primera celda"
                                     >
                                       Fila
@@ -856,7 +856,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                                       <button
                                         type="button"
                                         onClick={() => copiarFilaAbajo(talla, tallasSeleccionadas[tIdx + 1])}
-                                        className="p-1 rounded bg-white border border-slate-200 hover:border-black text-[9px] text-slate-600 hover:text-black shadow-xs flex items-center"
+                                        className="p-1 rounded bg-app-surface border border-slate-200 hover:border-black text-[9px] text-slate-600 hover:text-app-text shadow-xs flex items-center"
                                         title={`Copiar fila abajo a ${tallasSeleccionadas[tIdx + 1]}`}
                                       >
                                         <MaterialIcon icon="content_copy" className="w-2.5 h-2.5" />
@@ -878,7 +878,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                                 const stockBD = varExistente ? (varExistente.stockAlmacen ?? varExistente.cantidad) : 0;
 
                                 // Determinar estilos dinámicos de inputs
-                                let inputBgClass = 'bg-slate-50 border-slate-100 text-slate-400 focus:bg-white focus:border-black';
+                                let inputBgClass = 'bg-slate-50 border-slate-100 text-slate-400 focus:bg-app-surface focus:border-black';
                                 if (val > 0) {
                                   if (esExistente) {
                                     inputBgClass = 'bg-amber-50/50 border-amber-250 text-amber-900 font-black focus:ring-amber-500/20 focus:border-amber-400';
@@ -903,7 +903,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                                         value={val === 0 ? '' : val}
                                         onChange={(e) => handleCellChange(talla, color, e.target.value)}
                                         onKeyDown={(e) => handleKeyDown(e, tIdx, cIdx)}
-                                        className={`w-full max-w-[80px] px-2.5 py-2.5 rounded-xl text-center text-sm border focus:ring-4 focus:outline-none focus:bg-white transition-all font-mono ${inputBgClass}`}
+                                        className={`w-full max-w-[80px] px-2.5 py-2.5 rounded-xl text-center text-sm border focus:ring-4 focus:outline-none focus:bg-app-surface transition-all font-mono ${inputBgClass}`}
                                       />
                                       {esExistente && (
                                         <div className="text-[8px] font-bold text-amber-600 tracking-wide mt-1 uppercase">
@@ -930,7 +930,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                   <div className="mt-6 pt-5 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-4">
                     <div className="text-xs text-slate-500">
                       Variantes cargadas en matriz listos para sincronizar:{' '}
-                      <span className="font-extrabold text-black font-mono">
+                      <span className="font-extrabold text-app-text font-mono">
                         {tallasSeleccionadas.length * coloresSeleccionados.length} combinaciones
                       </span>{' '}
                       {variantesMatrizPendientes > 0 && (
@@ -947,14 +947,14 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     <button
                       type="button"
                       onClick={aplicarMatrizAlProducto}
-                      className="px-6 py-3 rounded-xl bg-black hover:bg-gray-800 text-white font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md active:scale-95"
+                      className="px-6 py-3 rounded-xl bg-app-accent hover:bg-gray-800 text-app-accent-fg font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md active:scale-95"
                     >
                       Confirmar combinaciones
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-12 bg-white border border-slate-100 rounded-3xl">
+                <div className="text-center py-12 bg-app-surface border border-slate-100 rounded-3xl">
                   <MaterialIcon icon="layers" className="w-10 h-10 text-slate-300 mx-auto mb-3 animate-pulse" />
                   <p className="font-bold text-sm text-slate-800 mb-1">Configuración incompleta</p>
                   <p className="text-xs text-slate-400 max-w-sm mx-auto">
@@ -977,7 +977,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     value={nuevaVarianteSimple.nombreTalla}
                     onChange={(e) => setNuevaVarianteSimple(prev => ({ ...prev, nombreTalla: e.target.value }))}
                     placeholder="Talla (S, M, L, etc.)"
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-black outline-none transition-all font-mono font-bold"
+                    className="w-full px-3 py-2.5 bg-app-surface border border-slate-200 rounded-xl text-sm focus:border-black outline-none transition-all font-mono font-bold"
                   />
                   <datalist id="sugerencias-tallas">
                     {sugerenciasTallas.map((t) => (
@@ -996,7 +996,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     value={nuevaVarianteSimple.nombreColor}
                     onChange={(e) => setNuevaVarianteSimple(prev => ({ ...prev, nombreColor: e.target.value }))}
                     placeholder="Color (Rojo, Azul, etc.)"
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-black outline-none transition-all uppercase font-bold"
+                    className="w-full px-3 py-2.5 bg-app-surface border border-slate-200 rounded-xl text-sm focus:border-black outline-none transition-all uppercase font-bold"
                   />
                   <datalist id="sugerencias-colores">
                     {sugerenciasColores.map((c) => (
@@ -1014,7 +1014,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     min="1"
                     value={nuevaVarianteSimple.cantidad}
                     onChange={(e) => setNuevaVarianteSimple(prev => ({ ...prev, cantidad: parseInt(e.target.value) || 1 }))}
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:border-black outline-none transition-all font-mono font-bold"
+                    className="w-full px-3 py-2.5 bg-app-surface border border-slate-200 rounded-xl text-sm focus:border-black outline-none transition-all font-mono font-bold"
                   />
                 </div>
 
@@ -1027,7 +1027,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     value={nuevaVarianteSimple.codigoIdentificacion}
                     onChange={(e) => setNuevaVarianteSimple(prev => ({ ...prev, codigoIdentificacion: e.target.value }))}
                     placeholder="Generar automático..."
-                    className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-mono focus:border-black outline-none transition-all"
+                    className="w-full px-3 py-2.5 bg-app-surface border border-slate-200 rounded-xl text-sm font-mono focus:border-black outline-none transition-all"
                   />
                 </div>
               </div>
@@ -1036,7 +1036,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                 <button
                   type="button"
                   onClick={agregarVarianteSimple}
-                  className="bg-black hover:bg-gray-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
+                  className="bg-app-accent hover:bg-gray-800 text-app-accent-fg px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all"
                 >
                   Agregar combinación
                 </button>
@@ -1051,22 +1051,22 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
         <div
           ref={listaCombinacionesRef}
           id="combinaciones-registradas"
-          className="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.015)]"
+          className="bg-app-surface rounded-2xl border border-slate-100 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.015)]"
         >
           <div className="px-5 py-3 border-b border-slate-50 bg-slate-50/50">
             <p className="text-xs text-slate-600 leading-relaxed mb-3">
               Las combinaciones se guardan en el inventario al pulsar{' '}
-              <span className="font-bold text-black">Crear producto</span> o{' '}
-              <span className="font-bold text-black">Guardar cambios</span>.
+              <span className="font-bold text-app-text">Crear producto</span> o{' '}
+              <span className="font-bold text-app-text">Guardar cambios</span>.
               Los códigos de barras se generan después, en el paso{' '}
-              <span className="font-bold text-black">Generar código de barras</span>.
+              <span className="font-bold text-app-text">Generar código de barras</span>.
             </p>
           </div>
           <div className="px-5 py-4 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
             <h4 className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
               Combinaciones registradas
             </h4>
-            <span className="text-[10px] font-bold bg-black text-white px-2 py-0.5 rounded-full font-mono">
+            <span className="text-[10px] font-bold bg-app-accent text-app-accent-fg px-2 py-0.5 rounded-full font-mono">
               {variantes.length} {variantes.length === 1 ? 'combinación' : 'combinaciones'}
             </span>
           </div>
@@ -1102,7 +1102,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                         min="1"
                         value={variante.stockAlmacen ?? variante.cantidad}
                         onChange={(e) => actualizarCantidadVariante(index, parseInt(e.target.value) || 1)}
-                        className="w-20 px-2.5 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-center text-sm font-mono font-bold focus:bg-white focus:border-black outline-none transition-all"
+                        className="w-20 px-2.5 py-1.5 bg-slate-50 border border-slate-100 rounded-lg text-center text-sm font-mono font-bold focus:bg-app-surface focus:border-black outline-none transition-all"
                       />
                     </td>
                     <td className="py-4 px-5 text-xs text-slate-500 font-mono">
@@ -1114,7 +1114,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                           <button
                             type="button"
                             onClick={() => generarCodigoBarrasVariante(variante.id)}
-                            className="text-slate-400 hover:text-black p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+                            className="text-slate-400 hover:text-app-text p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
                             disabled={loading}
                             title="Ver código de barras"
                           >
@@ -1146,7 +1146,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
           
           <div className="bg-slate-50/50 px-5 py-4 border-t border-slate-100 flex items-center justify-between">
             <span className="text-xs font-bold text-slate-500">
-              Total de unidades: <span className="text-black font-extrabold font-mono text-sm">{cantidadTotal}</span>
+              Total de unidades: <span className="text-app-text font-extrabold font-mono text-sm">{cantidadTotal}</span>
             </span>
             <span className="text-[10px] font-bold text-slate-400 uppercase">
               {variantes.length === 1 ? '1 combinación activa' : `${variantes.length} combinaciones activas`}
@@ -1156,7 +1156,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
       )}
 
       {variantes.length === 0 && !showFormularioVariante && (
-        <div className="text-center py-12 text-slate-450 bg-white border border-dashed border-slate-200 rounded-3xl">
+        <div className="text-center py-12 text-slate-450 bg-app-surface border border-dashed border-slate-200 rounded-3xl">
           <MaterialIcon icon="layers" className="w-10 h-10 text-slate-350 mx-auto mb-3" />
           <p className="font-extrabold text-sm text-slate-800">No hay combinaciones definidas</p>
           <p className="text-xs text-slate-450 mt-1 max-w-sm mx-auto">

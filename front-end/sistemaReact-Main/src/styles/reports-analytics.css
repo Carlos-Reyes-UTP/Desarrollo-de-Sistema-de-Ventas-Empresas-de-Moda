@@ -1,0 +1,497 @@
+/* Reportes — cockpit analítico (solo ruta /reportes) */
+
+.reports-analytics {
+  --report-halo: color-mix(in srgb, var(--app-accent) 6%, transparent);
+  position: relative;
+  min-height: 100vh;
+}
+
+.reports-analytics::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, var(--report-halo), transparent 70%),
+    radial-gradient(ellipse 40% 30% at 100% 20%, var(--report-halo), transparent 60%);
+}
+
+.reports-analytics > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Command deck — chrome superior unificado */
+.reports-analytics__command-deck {
+  background: color-mix(in srgb, var(--app-panel) 90%, transparent);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--app-panel-border);
+  border-radius: 1.5rem;
+  box-shadow: 0 4px 28px color-mix(in srgb, var(--app-text) 5%, transparent);
+  padding: 1.25rem 1.5rem;
+}
+
+.report-command-deck__top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
+}
+
+.report-command-deck__eyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--app-text-muted, var(--app-metric-label));
+  margin-bottom: 0.35rem;
+}
+
+.report-command-deck__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.875rem;
+  background: color-mix(in srgb, var(--app-accent) 12%, var(--app-bg-muted));
+  color: var(--app-accent);
+  flex-shrink: 0;
+}
+
+.report-command-deck__title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--app-heading, var(--app-metric-text));
+  line-height: 1.2;
+}
+
+.report-command-deck__period-hint {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--app-metric-label);
+  margin-top: 0.15rem;
+}
+
+.report-command-deck__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.report-command-deck__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.report-period-switch {
+  display: inline-flex;
+  padding: 0.2rem;
+  border-radius: 0.75rem;
+  background: var(--app-bg-muted);
+  border: 1px solid var(--app-border);
+}
+
+.report-period-switch__btn {
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.55rem;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--app-metric-label);
+  transition: all 0.2s ease;
+}
+
+.report-period-switch__btn:hover:not(.report-period-switch__btn--active) {
+  color: var(--app-metric-text);
+}
+
+.report-period-switch__btn--active {
+  background: var(--app-panel);
+  color: var(--app-accent);
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--app-text) 8%, transparent);
+}
+
+.report-command-deck__nav-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 1.125rem;
+  padding-top: 1rem;
+}
+
+.report-command-deck__meta {
+  flex: 1 1 12rem;
+  min-width: 0;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: var(--app-text-muted, var(--app-metric-label));
+  text-align: right;
+}
+
+@media (max-width: 640px) {
+  .report-command-deck__meta {
+    text-align: left;
+    flex-basis: 100%;
+  }
+}
+
+/* Franja KPI + gauge compacto */
+.reports-analytics__metric-strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  border: 1px solid var(--app-panel-border);
+  background: color-mix(in srgb, var(--app-panel) 92%, transparent);
+  backdrop-filter: blur(8px);
+}
+
+@media (min-width: 1024px) {
+  .reports-analytics__metric-strip {
+    grid-template-columns: minmax(200px, 240px) 1fr;
+    gap: 1.25rem;
+    align-items: stretch;
+  }
+}
+
+.report-metric-strip__health {
+  min-width: 0;
+}
+
+.report-health-compact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.report-health-compact__gauge {
+  position: relative;
+}
+
+.report-health-compact__score-wrap {
+  position: absolute;
+  left: 50%;
+  bottom: 0.25rem;
+  transform: translateX(-50%);
+  text-align: center;
+}
+
+.report-health-compact__score {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: var(--app-heading, var(--app-metric-text));
+  line-height: 1;
+}
+
+.report-health-compact__label {
+  display: block;
+  font-size: 8px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--app-metric-label);
+  margin-top: 0.15rem;
+}
+
+.report-health-compact__headline {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--app-heading, var(--app-metric-text));
+  line-height: 1.35;
+}
+
+.report-health-compact__summary {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--app-metric-label);
+  line-height: 1.45;
+  margin-top: 0.25rem;
+}
+
+.report-metric-strip__kpis {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.report-metric-strip__kpi-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+  width: 100%;
+  align-items: stretch;
+}
+
+@media (min-width: 640px) {
+  .report-metric-strip__kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.report-category-bar-chart {
+  min-height: 12rem;
+}
+
+.report-metric-strip__kpi-grid .app-metric-card {
+  padding: 1.25rem 1.5rem;
+}
+
+@media (min-width: 1024px) {
+  .report-metric-strip__kpi-grid .app-metric-card {
+    padding: 1.5rem;
+  }
+}
+
+/* KPI icons — paleta neutra (Claro / blanco y negro), sin verde-azul-morado */
+.reports-analytics .report-metric-kpi-icon {
+  background-color: var(--app-bg-muted) !important;
+  color: var(--app-metric-text, var(--app-heading)) !important;
+  border: 1px solid var(--app-border);
+}
+
+.reports-analytics .report-metric-kpi-icon__glyph {
+  color: inherit;
+}
+
+.report-metric-tile {
+  border-radius: 1.25rem;
+  border: 1px solid var(--app-panel-border);
+  background: color-mix(in srgb, var(--app-bg-muted) 35%, var(--app-panel));
+  padding: 1rem 1.125rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.report-metric-tile--hero {
+  padding: 1.125rem 1.25rem;
+  border-color: color-mix(in srgb, var(--app-accent) 22%, var(--app-panel-border));
+  background: color-mix(in srgb, var(--app-accent) 6%, var(--app-panel));
+}
+
+.report-metric-tile__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.report-metric-tile__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.75rem;
+}
+
+.report-metric-tile__label {
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--app-metric-label);
+}
+
+.report-metric-tile__value {
+  font-size: 1.35rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--app-heading, var(--app-metric-text));
+  margin-top: 0.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.report-metric-tile--hero .report-metric-tile__value {
+  font-size: 1.65rem;
+}
+
+.report-metric-tile__hint {
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--app-metric-label);
+  margin-top: 0.35rem;
+}
+
+.report-delta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.report-delta-pill--up {
+  color: var(--app-metric-icon-1-fg);
+  background: color-mix(in srgb, var(--app-metric-icon-1-fg) 14%, transparent);
+}
+
+.report-delta-pill--down {
+  color: var(--app-metric-icon-5-fg);
+  background: color-mix(in srgb, var(--app-metric-icon-5-fg) 14%, transparent);
+}
+
+.report-delta-pill--flat {
+  color: var(--app-metric-label);
+  background: var(--app-bg-muted);
+}
+
+.reports-analytics__shell-strip {
+  background: color-mix(in srgb, var(--app-panel) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--app-panel-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 24px color-mix(in srgb, var(--app-text) 4%, transparent);
+}
+
+.reports-analytics__segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border-radius: 0.875rem;
+  background: var(--app-bg-muted);
+  border: 1px solid var(--app-border);
+}
+
+.report-segmented-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--app-text-muted, var(--app-metric-label));
+  transition: all 0.25s var(--ease-google-standard, ease);
+}
+
+.report-segmented-tab:hover:not(.report-segmented-tab--active) {
+  color: var(--app-heading, var(--app-metric-text));
+}
+
+.report-segmented-tab--active {
+  background: var(--app-accent);
+  color: var(--app-accent-fg, #fff);
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--app-accent) 35%, transparent);
+}
+
+.report-insight-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid color-mix(in srgb, var(--app-accent) 25%, var(--app-border));
+  background: color-mix(in srgb, var(--app-panel) 92%, transparent);
+  backdrop-filter: blur(8px);
+  padding: 1.25rem 1.5rem 1.25rem 1.75rem;
+}
+
+.report-insight-hero::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--app-accent);
+  border-radius: 3px 0 0 3px;
+}
+
+.report-driver-card {
+  border-radius: 1.25rem;
+  border: 1px solid var(--app-panel-border);
+  background: var(--app-panel);
+  padding: 1.25rem;
+  transition: transform 0.25s var(--ease-google-standard, ease), box-shadow 0.25s ease;
+}
+
+.report-driver-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--app-text) 6%, transparent);
+}
+
+.report-driver-card__bar {
+  height: 2px;
+  border-radius: 999px;
+  background: var(--app-bg-muted);
+  overflow: hidden;
+  margin-top: 0.75rem;
+}
+
+.report-driver-card__bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--app-accent);
+  transition: width 0.4s var(--ease-google-emphasized, ease);
+}
+
+.report-trend-hero {
+  border-radius: 2.5rem;
+}
+
+.report-day-callout {
+  border-radius: 1.25rem;
+  border: 1px solid var(--app-panel-border);
+  background: color-mix(in srgb, var(--app-bg-muted) 60%, var(--app-panel));
+  padding: 0.875rem 1rem;
+}
+
+.report-day-callout--best {
+  border-color: color-mix(in srgb, var(--app-metric-icon-1-fg) 35%, var(--app-panel-border));
+}
+
+.report-day-callout--worst {
+  border-color: color-mix(in srgb, var(--app-metric-icon-5-fg) 35%, var(--app-panel-border));
+}
+
+.report-pagination-bar {
+  background: var(--app-bg-muted);
+  border-top: 1px solid var(--app-border);
+}
+
+.report-pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: 1px solid var(--app-border);
+  background: var(--app-panel);
+  color: var(--app-metric-text);
+  transition: background 0.2s ease;
+}
+
+.report-pagination-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--app-bg-muted) 70%, var(--app-panel));
+}
+
+.report-pagination-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  color: var(--app-metric-label);
+}
+
+.report-pagination-btn--active {
+  background: var(--app-accent);
+  color: var(--app-accent-fg, #fff);
+  border-color: var(--app-accent);
+}

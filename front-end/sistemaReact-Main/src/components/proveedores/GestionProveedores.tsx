@@ -3,6 +3,7 @@ import { MaterialIcon } from '@/shared/ui';
 import type { Proveedor } from '../../types/Proveedor';
 import { ProveedorService } from '../../services/ProveedorService';
 import { ConfirmModal, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { mensajeErrorRuc } from '../../utils/validarDocumentosPeru';
 
 const GestionProveedores: React.FC = () => {
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
@@ -13,6 +14,7 @@ const GestionProveedores: React.FC = () => {
   const [cerrandoModal, setCerrandoModal] = useState(false);
   const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorRucInline, setErrorRucInline] = useState<string | null>(null);
   const [buscandoProveedor, setBuscandoProveedor] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; proveedorId: number | null }>({ open: false, proveedorId: null });
   const [ultimaCargaLista, setUltimaCargaLista] = useState<string | null>(null);
@@ -59,19 +61,18 @@ const GestionProveedores: React.FC = () => {
       setFormData({ nombre: '', ruc: '' });
       setProveedorEditar(null);
       setError(null);
+      setErrorRucInline(null);
     }, 300);
   };
 
   const verificarRUC = async () => {
-    if (!formData.ruc.trim()) {
-      setError('Ingrese un RUC para buscar');
+    const errRuc = mensajeErrorRuc(formData.ruc);
+    if (errRuc) {
+      setError(errRuc);
+      setErrorRucInline(errRuc);
       return;
     }
-    
-    if (!/^\d{11}$/.test(formData.ruc)) {
-      setError('El RUC debe tener 11 dígitos');
-      return;
-    }
+    setErrorRucInline(null);
 
     setError(null);
     setBuscandoProveedor(true);
@@ -115,14 +116,13 @@ const GestionProveedores: React.FC = () => {
       setError('El nombre es requerido');
       return;
     }
-    if (!formData.ruc.trim()) {
-      setError('El RUC es requerido');
+    const errRuc = mensajeErrorRuc(formData.ruc);
+    if (errRuc) {
+      setError(errRuc);
+      setErrorRucInline(errRuc);
       return;
     }
-    if (!/^\d{11}$/.test(formData.ruc)) {
-      setError('El RUC debe tener 11 dígitos');
-      return;
-    }
+    setErrorRucInline(null);
 
     try {
       if (!proveedorEditar) {
@@ -189,6 +189,7 @@ const GestionProveedores: React.FC = () => {
     });
     setShowFormulario(true);
     setError(null);
+    setErrorRucInline(null);
   };
 
   const handleNuevo = () => {
@@ -196,6 +197,7 @@ const GestionProveedores: React.FC = () => {
     setFormData({ nombre: '', ruc: '' });
     setShowFormulario(true);
     setError(null);
+    setErrorRucInline(null);
   };
 
   const handleCancelar = () => {
@@ -485,9 +487,20 @@ const GestionProveedores: React.FC = () => {
                       onChange={(e) => {
                         if (e.target.value === '' || /^\d+$/.test(e.target.value)) {
                           setFormData(prev => ({ ...prev, ruc: e.target.value }));
+                          // Limpiar error inline al escribir
+                          if (errorRucInline) setErrorRucInline(null);
                         }
                       }}
-                      className="flex-1 px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all disabled:opacity-50"
+                      onBlur={() => {
+                        if (!proveedorEditar && formData.ruc.trim()) {
+                          setErrorRucInline(mensajeErrorRuc(formData.ruc));
+                        }
+                      }}
+                      className={`flex-1 px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 transition-all disabled:opacity-50 ${
+                        errorRucInline
+                          ? 'border border-red-300 focus:ring-red-100 bg-red-50'
+                          : 'focus:ring-gray-100'
+                      }`}
                       placeholder="11 Dígitos..."
                       maxLength={11}
                       disabled={!!proveedorEditar}
@@ -497,7 +510,7 @@ const GestionProveedores: React.FC = () => {
                       <button
                         type="button"
                         onClick={verificarRUC}
-                        disabled={buscandoProveedor || formData.ruc.length !== 11}
+                        disabled={buscandoProveedor || !!mensajeErrorRuc(formData.ruc)}
                         className="px-6 py-4 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-30 transition-all shadow-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"
                       >
                         {buscandoProveedor ? <MaterialIcon icon="sync" className="w-4 h-4 animate-spin" /> : <MaterialIcon icon="search" className="w-4 h-4" />}
@@ -505,6 +518,13 @@ const GestionProveedores: React.FC = () => {
                       </button>
                     )}
                   </div>
+                  {/* Error inline del RUC */}
+                  {errorRucInline && (
+                    <p className="flex items-center gap-1.5 text-[10px] font-bold text-red-500 uppercase tracking-wider pl-1 animate-fadeIn">
+                      <MaterialIcon icon="error" className="w-3.5 h-3.5 flex-shrink-0" />
+                      {errorRucInline}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

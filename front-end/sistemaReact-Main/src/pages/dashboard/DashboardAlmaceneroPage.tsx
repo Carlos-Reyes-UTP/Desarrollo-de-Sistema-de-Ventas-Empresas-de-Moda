@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { MaterialIcon } from '@/shared/ui';
 import { useAutoSync } from '@/hooks/useAutoSync';
@@ -16,7 +17,11 @@ import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
 import { DashboardCtaPanel } from '@/shared/ui/dashboard/DashboardCtaPanel';
 import { APP_PATHS } from '@/shared/layout/navigationConfig';
-import { DashboardService } from '@/services/DashboardService';
+import {
+  DashboardService,
+  UMBRAL_CRITICO_INVENTARIO,
+  clasificarEstadoStock,
+} from '@/services/DashboardService';
 import { playKioskChime } from '@/components/almacen-tablero/almacenTableroSound';
 import { scrollbarStyles } from '@/styles/scrollbarStyles';
 import { useAppTheme } from '@/context/AppThemeContext';
@@ -24,7 +29,8 @@ import type {
   ProductoStats,
   CategoriaDistribucion,
   EstadoInventario,
-  ProductoInventario
+  ProductoInventario,
+  AlertaReposicion
 } from '@/types/DashboardStats';
 
 
@@ -84,6 +90,8 @@ const DashboardAlmaceneroPage = () => {
     sinStock: 0
   });
   const [inventarioReciente, setInventarioReciente] = useState<ProductoInventario[]>([]);
+  const [alertasReposicion, setAlertasReposicion] = useState<AlertaReposicion[]>([]);
+  const [reponiendoId, setReponiendoId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorSync, setErrorSync] = useState<string | null>(null);
 
@@ -124,21 +132,24 @@ const DashboardAlmaceneroPage = () => {
     void cargarCola();
   }, [cargarCola]);
 
+  // WS global: todos los clientes reciben el evento; cola y alertas se filtran en el servidor al recargar.
   useAutoSync(cargarCola, ['SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA', 'NUEVA_VENTA'], 800);
 
   // Cargar datos del dashboard solo cuando la autenticación esté lista  // ===== FUNCIONES DEFINIDAS ANTES DE LOS useEffect =====
 
+  const userRoleAlmacenero = tieneRol('ROLE_SUPERVISOR_ALMACEN') ? 'ROLE_SUPERVISOR_ALMACEN' : 'ROLE_ALMACENERO';
+
   const cargarInventarioReciente = useCallback(async () => {
     try {
       console.log('Cargando inventario reciente...');
-      const inventario = await DashboardService.obtenerProductosInventario(50); // Cargar más productos para mejor búsqueda
+      const inventario = await DashboardService.obtenerProductosInventario(50, undefined, userRoleAlmacenero);
       console.log('Inventario cargado:', inventario.length, 'productos');
       setInventarioReciente(inventario);
     } catch (err) {
       console.error('Error cargando inventario:', err);
       setInventarioReciente([]); // Establecer array vacío en caso de error
     }
-  }, []);
+  }, [userRoleAlmacenero]);
 
   const cargarDatosDashboard = useCallback(async () => {
     setCargando(true);
@@ -153,6 +164,7 @@ const DashboardAlmaceneroPage = () => {
         distribucionCategorias,
         estadoInventarioData,
         inventario,
+        alertasReposicionData,
       ] = await Promise.all([
         DashboardService.obtenerEstadisticasProductos().catch(err => {
           console.error('Error en estadísticas de productos:', err);
@@ -166,8 +178,12 @@ const DashboardAlmaceneroPage = () => {
           console.error('Error en estado del inventario:', err);
           return { normal: 0, bajo: 0, critico: 0, sinStock: 0 };
         }),
-        DashboardService.obtenerProductosInventario(20).catch(err => {
+        DashboardService.obtenerProductosInventario(20, undefined, userRoleAlmacenero).catch(err => {
           console.error('Error en productos del inventario:', err);
+          return [];
+        }),
+        DashboardService.obtenerAlertasReposicion().catch(err => {
+          console.error('Error en alertas de reposición:', err);
           return [];
         })
       ]);
@@ -183,6 +199,7 @@ const DashboardAlmaceneroPage = () => {
       setCategoriaStats(distribucionCategorias);
       setEstadoInventario(estadoInventarioData);
       setInventarioReciente(inventario);
+      setAlertasReposicion(alertasReposicionData);
 
       // Cargar inventario adicional para la tabla de búsqueda
       await cargarInventarioReciente();
@@ -192,7 +209,7 @@ const DashboardAlmaceneroPage = () => {
     } finally {
       setCargando(false);
     }
-  }, [cargarInventarioReciente]);
+  }, [cargarInventarioReciente, userRoleAlmacenero]);
 
   // ===== useEffect HOOKS =====
 
@@ -206,11 +223,53 @@ const DashboardAlmaceneroPage = () => {
     }
   }, [isReady, isAuthenticated, cargarDatosDashboard]);
 
-  const productosCriticos = useMemo(() => {
-    return inventarioReciente.filter(p => p.estado === 'critico');
+  /** Críticas en piso (misma fuente que reposición automática), no stock global del catálogo. */
+  const alertasCriticasPiso = useMemo(
+    () => alertasReposicion.filter(a => a.stockActual <= UMBRAL_CRITICO_INVENTARIO),
+    [alertasReposicion]
+  );
+
+  const valorInventarioAlmacen = useMemo(() => {
+    return inventarioReciente.reduce(
+      (sum, item) => sum + item.stock * (item.precioUnitario ?? 0),
+      0
+    );
   }, [inventarioReciente]);
 
-  useAutoSync(cargarDatosDashboard, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA'], 2000);
+  const etiquetaLineaAlmacen =
+    accesoAreaAlmacen?.etiquetaAreaAsignada?.trim() || 'tu línea asignada';
+
+  // Tras eventos WS globales, el GET de alertas aplica el filtro del almacén asignado en el servidor.
+  const handleReponer = useCallback(async (alerta: AlertaReposicion) => {
+    const key = `${alerta.idVariante}-${alerta.idUbicacionArea}`;
+    setReponiendoId(key);
+    setErrorSync(null);
+    try {
+      await DashboardService.reponerAlerta(alerta.idVariante, alerta.idUbicacionArea);
+      const data = await DashboardService.obtenerAlertasReposicion();
+      setAlertasReposicion(data);
+      cargarCola();
+    } catch (err) {
+      console.error('Error al reponer:', err);
+      let mensaje = 'No se pudo crear la solicitud de reposición.';
+      if (axios.isAxiosError(err)) {
+        const data = err.response?.data;
+        if (typeof data === 'string' && data.trim()) {
+          mensaje = data;
+        } else if (data && typeof data === 'object' && 'message' in data) {
+          const msg = (data as { message?: string }).message;
+          if (msg) mensaje = msg;
+        }
+      } else if (err instanceof Error && err.message) {
+        mensaje = err.message;
+      }
+      setErrorSync(mensaje);
+    } finally {
+      setReponiendoId(null);
+    }
+  }, [cargarCola]);
+
+  useAutoSync(cargarDatosDashboard, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA', 'REPOSICION_AUTOMATICA'], 2000);
 
   const getEstadoBadge = (estado: string) => {
     const config: Record<string, string> = {
@@ -272,7 +331,7 @@ const DashboardAlmaceneroPage = () => {
             { 
               label: 'Total Productos', 
               val: productosData.total, 
-              sub: 'Inventario global', 
+              sub: `Línea ${etiquetaLineaAlmacen}`, 
               icon: 'checkroom', 
               index: 2 as 1 | 2 | 3 | 4 | 5 
             },
@@ -446,12 +505,19 @@ const DashboardAlmaceneroPage = () => {
                   {/* Espacio extra para métrica valiosa */}
                   <div className="grid grid-cols-2 gap-4 pt-8 border-t border-[var(--app-border)]">
                     <div className="p-4 rounded-2xl bg-[var(--app-bg-muted)] border border-[var(--app-border)]">
-                      <p className="text-[10px] font-black app-text-faint uppercase tracking-widest mb-1">Rotación Promedio</p>
-                      <p className="text-2xl font-black app-heading">12.4 <span className="text-xs app-text-muted font-bold uppercase ml-1">días</span></p>
+                      <p className="text-[10px] font-black app-text-faint uppercase tracking-widest mb-1">Productos en línea</p>
+                      <p className="text-2xl font-black app-heading">
+                        {productosData.total}
+                        <span className="text-xs app-text-muted font-bold uppercase ml-1">con stock</span>
+                      </p>
                     </div>
                     <div className="p-4 rounded-2xl bg-[var(--app-bg-muted)] border border-[var(--app-border)]">
-                      <p className="text-[10px] font-black app-text-faint uppercase tracking-widest mb-1">Valor Inventario</p>
-                      <p className="text-2xl font-black app-heading">S/ 42.5K</p>
+                      <p className="text-[10px] font-black app-text-faint uppercase tracking-widest mb-1">Valor en almacén</p>
+                      <p className="text-2xl font-black app-heading">
+                        {valorInventarioAlmacen >= 1000
+                          ? `S/ ${(valorInventarioAlmacen / 1000).toFixed(1)}K`
+                          : `S/ ${valorInventarioAlmacen.toFixed(0)}`}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -462,6 +528,7 @@ const DashboardAlmaceneroPage = () => {
             <DashboardPanel className="text-left transition-all">
               <SectionHeader
                 title="Inventario Reciente"
+                subtitle="Stock en tu almacén (no incluye pisos de venta)"
                 action={
                   <button
                     type="button"
@@ -486,7 +553,17 @@ const DashboardAlmaceneroPage = () => {
                     </div>
                     <div className="flex items-center gap-8">
                       <div className="text-right">
-                        <p className={`text-sm font-black ${item.stock <= 5 ? 'text-rose-500' : 'text-emerald-500'}`}>{item.stock} uds</p>
+                        <p
+                          className={`text-sm font-black ${
+                            clasificarEstadoStock(item.stock) === 'critico' || clasificarEstadoStock(item.stock) === 'sin-stock'
+                              ? 'text-rose-500'
+                              : clasificarEstadoStock(item.stock) === 'bajo'
+                                ? 'text-amber-500'
+                                : 'text-emerald-500'
+                          }`}
+                        >
+                          {item.stock} uds
+                        </p>
                         {getEstadoBadge(item.estado)}
                       </div>
                     </div>
@@ -497,42 +574,127 @@ const DashboardAlmaceneroPage = () => {
           </div>
 
           <div className="lg:col-span-4 space-y-8 h-full flex flex-col">
-            {/* Alertas Críticas - Estilo Compacto de Notificaciones */}
+            {/* Alertas - Estilo Compacto de Notificaciones con Reposición */}
             <DashboardPanel className="text-left flex flex-col flex-1">
               <SectionHeader
                 title="Alertas"
                 action={
-                  <span className="h-5 px-2 bg-rose-100 text-rose-600 text-[10px] font-black rounded-full flex items-center">
-                    {productosCriticos.length} CRÍTICAS
-                  </span>
+                  <div className="flex gap-1">
+                    {alertasCriticasPiso.length > 0 && (
+                      <span className="h-5 px-2 bg-rose-100 text-rose-600 text-[10px] font-black rounded-full flex items-center">
+                        {alertasCriticasPiso.length} CRÍTICAS
+                      </span>
+                    )}
+                    {alertasReposicion.length > 0 && (
+                      <span className="h-5 px-2 bg-amber-100 text-amber-600 text-[10px] font-black rounded-full flex items-center">
+                        {alertasReposicion.length} REPOSICIÓN
+                      </span>
+                    )}
+                  </div>
                 }
               />
 
-              {productosCriticos.length > 0 ? (
-                <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {productosCriticos.map(producto => (
-                    <div key={producto.idProducto} className="p-3 rounded-2xl bg-gray-50 border border-transparent hover:border-rose-100 hover:bg-rose-50/30 transition-all flex items-center justify-between group">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="h-8 w-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
-                          <MaterialIcon icon="warning" className="w-3.5 h-3.5" />
+              {/* Sección Críticas (existente) */}
+              {alertasCriticasPiso.length > 0 && (
+                <>
+                  <p className="text-[9px] font-black app-text-faint uppercase tracking-widest mb-2">Críticas en piso</p>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {alertasCriticasPiso.map(alerta => (
+                      <div
+                        key={`${alerta.idVariante}-${alerta.idUbicacionArea}`}
+                        className="p-3 rounded-2xl bg-gray-50 border border-transparent hover:border-rose-100 hover:bg-rose-50/30 transition-all flex items-center justify-between group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-8 w-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+                            <MaterialIcon icon="warning" className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-[11px] font-black app-heading truncate uppercase">{alerta.nombreProducto}</p>
+                            <p className="text-[9px] font-bold app-text-muted">
+                              {alerta.ubicacionPiso} · {alerta.stockActual} uds en piso
+                            </p>
+                          </div>
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-black app-heading truncate uppercase">{producto.nombre}</p>
-                          <p className="text-[9px] font-bold app-text-muted">STOCK: {producto.stock} UDS</p>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={() => navigate(`${APP_PATHS.productos}?id=${alerta.idProducto}`)}
+                          className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                        >
+                          Ver
+                        </button>
                       </div>
-                      <button onClick={() => navigate(`${APP_PATHS.productos}?id=${producto.idProducto}`)} className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100">
-                        Ver
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {/* Separador entre secciones si ambas existen */}
+              {alertasCriticasPiso.length > 0 && alertasReposicion.length > 0 && (
+                <hr className="border-[var(--app-border)] my-3" />
+              )}
+
+              {/* Sección Reposición Necesaria (nueva) */}
+              {alertasReposicion.length > 0 && (
+                <>
+                  <p className="text-[9px] font-black app-text-faint uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <MaterialIcon icon="inventory_2" className="w-3 h-3" />
+                    Reposición Necesaria
+                    {accesoAreaAlmacen?.etiquetaAreaAsignada && (
+                      <span className="normal-case tracking-normal font-bold text-amber-600/90">
+                        · {accesoAreaAlmacen.etiquetaAreaAsignada}
+                      </span>
+                    )}
+                  </p>
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                    {alertasReposicion.map(alerta => {
+                      const key = `${alerta.idVariante}-${alerta.idUbicacionArea}`;
+                      const reponiendo = reponiendoId === key;
+                      return (
+                        <div key={key} className="p-3 rounded-2xl bg-[var(--app-bg-muted)] border border-transparent hover:border-amber-200 hover:bg-amber-50/20 transition-all flex items-center justify-between group">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="h-8 w-8 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center shrink-0">
+                              <MaterialIcon icon="inventory" className="w-3.5 h-3.5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-[11px] font-black app-heading truncate uppercase">{alerta.nombreProducto}</p>
+                              <p className="text-[9px] font-bold app-text-muted">
+                                {alerta.talla} · {alerta.color} | {alerta.ubicacionPiso} / {alerta.area}
+                              </p>
+                              <p className="text-[9px] font-bold app-text-muted">
+                                Actual: {alerta.stockActual} uds · Sugerido: +{alerta.cantidadSugerida} uds
+                              </p>
+                            </div>
+                          </div>
+                          <div className="shrink-0">
+                            {alerta.tieneSolicitudPendiente ? (
+                              <span className="inline-flex items-center gap-1 h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600">
+                                <MaterialIcon icon="check" className="w-3 h-3" />
+                                Pendiente
+                              </span>
+                            ) : (
+                              <button
+                                onClick={() => handleReponer(alerta)}
+                                disabled={reponiendo}
+                                className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
+                              >
+                                {reponiendo ? '...' : 'Reponer'}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+
+              {/* Empty State: solo cuando ambas listas están vacías */}
+              {alertasCriticasPiso.length === 0 && alertasReposicion.length === 0 && (
                 <div className="flex flex-col items-center justify-center text-center flex-1">
                   <div className="h-16 w-16 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center mb-4">
                     <MaterialIcon icon="check_circle" className="w-7 h-7" />
                   </div>
-                  <p className="text-[10px] font-black app-text-muted uppercase tracking-widest">Sin alertas críticas</p>
+                  <p className="text-[10px] font-black app-text-muted uppercase tracking-widest">Sin alertas</p>
                 </div>
               )}
             </DashboardPanel>

@@ -32,8 +32,8 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
       <div 
         className={`flex items-center justify-between py-3 px-4 mb-2 rounded-2xl transition-all duration-300 group border ${
           estaExpandida && tieneSubcategorias 
-            ? 'bg-white/90 backdrop-blur-md border-gray-200 shadow-sm' 
-            : 'bg-white/60 backdrop-blur-sm border-transparent hover:bg-white hover:border-gray-200 hover:shadow-sm'
+            ? 'bg-app-surface/90 backdrop-blur-md border-app-border shadow-sm' 
+            : 'bg-app-surface/60 backdrop-blur-sm border-transparent hover:bg-app-surface hover:border-app-border-strong hover:shadow-sm'
         }`}
         style={{ marginLeft: `${indentacion}px` }}
       >
@@ -47,7 +47,7 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
               <button
                 onClick={() => toggleExpansion(categoria.id)}
                 className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all ${
-                  estaExpandida ? 'bg-black text-white rotate-0' : 'bg-gray-100 text-gray-400 hover:bg-gray-200 hover:text-black'
+                  estaExpandida ? 'bg-app-accent text-app-accent-fg rotate-0' : 'bg-app-bg-muted text-app-text-muted hover:bg-app-hover-overlay hover:text-app-text'
                 }`}
               >
                 {estaExpandida ? (
@@ -64,8 +64,8 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
             
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${
               estaExpandida && tieneSubcategorias 
-                ? 'bg-black text-white shadow-lg shadow-black/10' 
-                : 'bg-gray-50 text-gray-400 border border-gray-100'
+                ? 'bg-app-accent text-app-accent-fg shadow-lg' 
+                : 'bg-app-bg-muted text-app-text-muted border border-app-border'
             }`}>
               {estaExpandida && tieneSubcategorias ? (
                 <MaterialIcon icon="folder_open" className="w-4 h-4" />
@@ -77,7 +77,7 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
           
           <div className="flex flex-col min-w-0">
             <span className={`text-[15px] font-bold tracking-tight truncate transition-colors ${
-                estaExpandida && tieneSubcategorias ? 'text-black' : 'text-gray-900'
+                estaExpandida && tieneSubcategorias ? 'text-app-text' : 'text-app-text-muted'
             }`}>
               {categoria.nombre}
             </span>
@@ -104,21 +104,21 @@ const ArbolCategoria: React.FC<ArbolCategoriaProps> = ({
         <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
           <button
             onClick={() => onCrearSubcategoria(categoria.id)}
-            className="p-2.5 bg-white hover:bg-black hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-gray-400"
+            className="p-2.5 bg-app-surface hover:bg-app-accent hover:text-app-accent-fg rounded-xl transition-all shadow-sm border border-app-border text-app-text"
             title="Añadir Subrama"
           >
             <MaterialIcon icon="create_new_folder" className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEditar(categoria)}
-            className="p-2.5 bg-white hover:bg-black hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-gray-400"
+            className="p-2.5 bg-app-surface hover:bg-app-accent hover:text-app-accent-fg rounded-xl transition-all shadow-sm border border-app-border text-app-text-muted"
             title="Editar"
           >
             <MaterialIcon icon="edit" className="w-4 h-4" />
           </button>
           <button
             onClick={() => onEliminar(categoria.id)}
-            className="p-2.5 bg-white hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm border border-gray-100 text-red-400"
+            className="p-2.5 bg-app-surface hover:bg-red-500 hover:text-white rounded-xl transition-all shadow-sm border border-app-border text-red-500"
             title="Eliminar"
           >
             <MaterialIcon icon="delete" className="w-4 h-4" />
@@ -160,6 +160,7 @@ const GestionCategorias: React.FC = () => {
   const [categoriaEditar, setCategoriaEditar] = useState<CategoriaDTO | null>(null);
   const [categoriaPadreId, setCategoriaPadreId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorNombre, setErrorNombre] = useState<string | null>(null);
   const [categoriasExpandidas, setCategoriasExpandidas] = useState<Set<number>>(new Set());
   const [cerrandoModal, setCerrandoModal] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; categoriaId: number | null }>({ open: false, categoriaId: null });
@@ -276,6 +277,7 @@ const GestionCategorias: React.FC = () => {
     setFormData({ nombre: categoria.nombre });
     setShowFormulario(true);
     setError(null);
+    setErrorNombre(null);
   };
 
   const handleNuevaCategoria = () => {
@@ -284,6 +286,7 @@ const GestionCategorias: React.FC = () => {
     setFormData({ nombre: '' });
     setShowFormulario(true);
     setError(null);
+    setErrorNombre(null);
   };
 
   const handleNuevaSubcategoria = (idPadre: number) => {
@@ -292,6 +295,7 @@ const GestionCategorias: React.FC = () => {
     setFormData({ nombre: '' });
     setShowFormulario(true);
     setError(null);
+    setErrorNombre(null);
   };
 
   const cerrarModalConAnimacion = () => {
@@ -303,6 +307,7 @@ const GestionCategorias: React.FC = () => {
       setCategoriaPadreId(null);
       setFormData({ nombre: '' });
       setError(null);
+      setErrorNombre(null);
     }, 300);
   };
 
@@ -314,6 +319,14 @@ const GestionCategorias: React.FC = () => {
       nuevasExpandidas.add(id);
     }
     setCategoriasExpandidas(nuevasExpandidas);
+  };
+
+  const handleBlurNombre = () => {
+    if (!formData.nombre.trim()) {
+      setErrorNombre('El nombre de la categoría es requerido');
+    } else {
+      setErrorNombre(null);
+    }
   };
 
   const expandirTodas = () => {
@@ -363,7 +376,7 @@ const GestionCategorias: React.FC = () => {
       />
 
       {/* Control & Search Deck (Glassmorphism as per AGENTE.md) */}
-      <div className="bg-white/80 backdrop-blur-md rounded-3xl p-4 mb-10 shadow-sm border border-gray-200 sticky top-4 z-20">
+      <div className="bg-app-surface/80 backdrop-blur-md rounded-3xl p-4 mb-10 shadow-sm border border-app-border sticky top-4 z-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
           
           {/* Search Module */}
@@ -375,7 +388,7 @@ const GestionCategorias: React.FC = () => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyPress}
-              className="w-full pl-12 pr-6 py-4 bg-[#f8f8f8] border-transparent rounded-2xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-bold text-black placeholder:text-gray-400 border border-gray-100/50"
+              className="w-full pl-12 pr-6 py-4 bg-app-input border-transparent rounded-2xl text-sm focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all font-bold text-app-text placeholder:text-app-text-muted border border-app-border"
             />
           </div>
 
@@ -383,14 +396,14 @@ const GestionCategorias: React.FC = () => {
           <div className="lg:col-span-4 flex gap-2">
             <button
               onClick={expandirTodas}
-              className="flex-1 h-[56px] flex items-center justify-center bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-800 transition-all shadow-sm"
+              className="flex-1 h-[56px] flex items-center justify-center bg-app-accent text-app-accent-fg rounded-2xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-sm"
             >
               <MaterialIcon icon="folder_open" className="w-4 h-4 mr-2.5" />
               Expandir
             </button>
             <button
               onClick={contraerTodas}
-              className="flex-1 h-[56px] flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-gray-50 hover:text-black transition-all"
+              className="flex-1 h-[56px] flex items-center justify-center bg-app-surface border border-app-border-strong text-app-text-muted rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-app-hover-overlay hover:text-app-text transition-all"
             >
               <MaterialIcon icon="folder" className="w-4 h-4 mr-2.5" />
               Contraer
@@ -399,7 +412,7 @@ const GestionCategorias: React.FC = () => {
 
           {/* Stats Display */}
           <div className="lg:col-span-3">
-            <div className="h-[56px] flex items-center justify-between bg-gray-50 border border-gray-200 rounded-2xl px-6 text-black">
+            <div className="h-[56px] flex items-center justify-between bg-app-bg-muted border border-app-border rounded-2xl px-6 text-app-text">
                <div className="flex items-center gap-3">
                   <MaterialIcon icon="tag" className="w-4 h-4 text-gray-300" />
                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total</span>
@@ -413,21 +426,21 @@ const GestionCategorias: React.FC = () => {
       {/* Main Structural Tree Display */}
       <div className="relative">
         {loading ? (
-          <div className="bg-white/40 backdrop-blur-sm rounded-[2.5rem] p-6 border border-gray-200">
+          <div className="bg-app-surface/40 backdrop-blur-sm rounded-[2.5rem] p-6 border border-app-border">
             <ListItemSkeleton count={8} className="p-2" />
           </div>
         ) : categoriasFiltradas.length === 0 ? (
-          <div className="bg-white/80 backdrop-blur-md rounded-3xl border border-gray-200 shadow-sm py-40 text-center flex flex-col items-center gap-6">
+          <div className="bg-app-surface/80 backdrop-blur-md rounded-3xl border border-app-border shadow-sm py-40 text-center flex flex-col items-center gap-6">
             <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center">
                 <MaterialIcon icon="category" className="w-8 h-8 text-gray-200" />
             </div>
             <div className="space-y-2">
-                <h3 className="text-lg font-black text-black uppercase tracking-tight">Sin resultados</h3>
+                <h3 className="text-lg font-black text-app-text uppercase tracking-tight">Sin resultados</h3>
                 <p className="text-xs text-gray-400 font-medium">No se encontraron nodos para la búsqueda.</p>
             </div>
           </div>
         ) : (
-          <div className="bg-white/40 backdrop-blur-sm rounded-[2.5rem] p-6 border border-gray-200">
+          <div className="bg-app-surface/40 backdrop-blur-sm rounded-[2.5rem] p-6 border border-app-border">
             <div className="space-y-2">
                 {categoriasFiltradas.map((categoria) => (
                 <ArbolCategoria
@@ -449,11 +462,11 @@ const GestionCategorias: React.FC = () => {
       {showFormulario && (
         <ModalPortal>
         <div className={`app-modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-white rounded-[2.5rem] shadow-xl w-full max-w-lg relative overflow-hidden border border-gray-200 ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+          <div className={`bg-app-surface rounded-[2.5rem] shadow-xl w-full max-w-lg relative overflow-hidden border border-app-border ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
             <div className="p-12">
               <div className="flex justify-between items-start mb-10">
                 <div>
-                    <h2 className="text-[24px] font-black tracking-tighter text-black uppercase">
+                    <h2 className="text-[24px] font-black tracking-tighter text-app-text uppercase">
                         {categoriaEditar 
                         ? 'Editar Nodo' 
                         : categoriaPadreId 
@@ -466,7 +479,7 @@ const GestionCategorias: React.FC = () => {
                 </div>
                 <button 
                     onClick={cerrarModalConAnimacion}
-                    className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors text-gray-400"
+                    className="p-3 bg-app-bg-muted hover:bg-app-hover-overlay rounded-2xl transition-colors text-app-text-muted"
                 >
                     <MaterialIcon icon="add" className="w-6 h-6 rotate-45" />
                 </button>
@@ -488,24 +501,31 @@ const GestionCategorias: React.FC = () => {
                       type="text"
                       autoFocus
                       value={formData.nombre}
-                      onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
-                      className="w-full px-6 py-5 bg-[#f8f8f8] border-2 border-transparent rounded-2xl text-sm font-black text-black focus:bg-white focus:border-black transition-all outline-none"
+                      onChange={(e) => {
+                          setFormData(prev => ({ ...prev, nombre: e.target.value }));
+                          if (errorNombre) setErrorNombre(null);
+                      }}
+                      onBlur={handleBlurNombre}
+                      className={`w-full px-6 py-5 bg-app-input border-2 ${errorNombre ? 'border-red-500' : 'border-transparent'} rounded-2xl text-sm font-black text-app-text focus:bg-app-surface focus:border-app-border-strong transition-all outline-none`}
                       placeholder="Ej: Calzado Deportivo..."
                       required
                   />
+                  {errorNombre && (
+                      <p className="text-red-500 text-xs mt-2 ml-2 font-bold">{errorNombre}</p>
+                  )}
                 </div>
 
                 <div className="flex gap-3 pt-4">
                   <button
                     type="button"
                     onClick={cerrarModalConAnimacion}
-                    className="flex-1 py-5 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
+                    className="flex-1 py-5 bg-app-bg-muted hover:bg-app-hover-overlay text-app-text rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-5 bg-black hover:bg-gray-800 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2"
+                    className="flex-1 py-5 bg-app-accent hover:opacity-90 text-app-accent-fg rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2"
                   >
                     <MaterialIcon icon="save" className="w-4 h-4" />
                     <span>{categoriaEditar ? 'Actualizar' : 'Guardar'}</span>

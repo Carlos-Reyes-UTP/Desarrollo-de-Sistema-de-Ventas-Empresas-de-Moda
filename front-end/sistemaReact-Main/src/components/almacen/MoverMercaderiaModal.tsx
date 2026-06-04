@@ -42,6 +42,9 @@ const MoverMercaderiaModal = ({
   const [cargandoDestinos, setCargandoDestinos] = useState(false);
   const [comboAbierto, setComboAbierto] = useState(false);
 
+  const botonDestinoRef = useRef<HTMLButtonElement>(null);
+  const inputSugerenciasRef = useRef<HTMLInputElement>(null);
+
   const [stockAreaCompleto, setStockAreaCompleto] = useState<StockUbicacion[]>([]);
   const [cargandoStockArea, setCargandoStockArea] = useState(false);
 
@@ -423,7 +426,13 @@ const MoverMercaderiaModal = ({
           </button>
         </header>
 
-        <div className="p-4 sm:p-8 space-y-5 sm:space-y-6 overflow-y-auto flex-1 overscroll-contain">
+        <div 
+          className="p-4 sm:p-8 space-y-5 sm:space-y-6 overflow-y-auto flex-1 overscroll-contain"
+          onScroll={() => {
+            if (comboAbierto) setComboAbierto(false);
+            if (listaAbierta) setListaAbierta(false);
+          }}
+        >
           {/* Fila de Origen y Destino */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -444,8 +453,15 @@ const MoverMercaderiaModal = ({
               </label>
               <>
                 <button
+                  ref={botonDestinoRef}
                   type="button"
-                  onClick={() => setComboAbierto(!comboAbierto)}
+                  onClick={() => {
+                    if (!comboAbierto) {
+                      setComboAbierto(true);
+                    } else {
+                      setComboAbierto(false);
+                    }
+                  }}
                   disabled={cargandoDestinos}
                   className="w-full flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm font-medium app-heading hover:border-[var(--app-border-strong)] focus:outline-none focus:ring-2 focus:ring-[var(--app-ring)] transition-all duration-200"
                 >
@@ -455,10 +471,8 @@ const MoverMercaderiaModal = ({
                   <MaterialIcon icon="arrow_drop_down" className="h-4 w-4 app-text-faint" />
                 </button>
                 {comboAbierto && !cargandoDestinos && (
-                  <>
-                    <div className="fixed inset-0 z-10" onClick={() => setComboAbierto(false)} />
-                    <ul className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-lg animate-fadeIn">
-                      {destinosDisponibles.map((u) => (
+                  <ul className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-lg animate-fadeIn">
+                    {destinosDisponibles.map((u) => (
                         <li key={u.idUbicacionArea}>
                           <button
                             type="button"
@@ -473,8 +487,7 @@ const MoverMercaderiaModal = ({
                           </button>
                         </li>
                       ))}
-                    </ul>
-                  </>
+                  </ul>
                 )}
               </>
             </div>
@@ -490,6 +503,7 @@ const MoverMercaderiaModal = ({
             <div className="relative">
               <MaterialIcon icon="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 app-text-faint" />
               <input
+                ref={inputSugerenciasRef}
                 id="busqueda-traslado-producto"
                 type="text"
                 autoComplete="off"
@@ -526,7 +540,7 @@ const MoverMercaderiaModal = ({
                 !cargandoSugerencias &&
                 !(ubicacionOrigenStock && cargandoStockArea) &&
                 sugerencias.length === 0 && (
-                  <p className="absolute z-30 mt-2 w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm app-text-muted shadow-lg">
+                  <p className="absolute z-20 mt-1 w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] px-4 py-3 text-sm app-text-muted shadow-lg">
                     No hay productos con stock que coincidan con la búsqueda.
                   </p>
                 )}
@@ -534,7 +548,7 @@ const MoverMercaderiaModal = ({
               {listaAbierta && sugerencias.length > 0 && (
                 <ul
                   role="listbox"
-                  className="absolute z-30 mt-2 max-h-52 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-xl animate-fadeIn"
+                  className="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-[var(--app-border)] bg-[var(--app-surface)] py-1 shadow-xl animate-fadeIn"
                 >
                   {sugerencias.map((fila, idx) => (
                     <li key={`${fila.idVariante}-${fila.idUbicacionArea}`} role="option" aria-selected={idx === indiceResaltado}>
@@ -556,7 +570,7 @@ const MoverMercaderiaModal = ({
                       </button>
                     </li>
                   ))}
-                </ul>
+                  </ul>
               )}
             </div>
             {!destinoActivo && (

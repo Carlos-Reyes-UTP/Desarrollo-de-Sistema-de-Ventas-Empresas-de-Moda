@@ -576,7 +576,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
             </div>
             <button
               onClick={onClose}
-              className="w-10 h-10 bg-[#f8f8f8] border border-gray-100 rounded-2xl flex items-center justify-center hover:bg-gray-100 transition-all"
+              className="w-10 h-10 bg-app-surface border border-gray-100 rounded-2xl flex items-center justify-center hover:bg-gray-100 transition-all"
             >
               <MaterialIcon icon="close" className="w-4 h-4 text-gray-400" />
             </button>
@@ -622,7 +622,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                   id="generar-formato"
                   value={formGenerar.formato}
                   onChange={(e) => setFormGenerar(prev => ({ ...prev, formato: e.target.value as 'EAN8' | 'EAN13' | 'CODE128' }))}
-                  className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
+                  className="w-full px-5 py-4 bg-app-surface border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                 >
                   <option value="EAN8">EAN-8 (8 dígitos)</option>
                   <option value="EAN13">EAN-13 (13 dígitos)</option>
@@ -631,7 +631,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               </div>
             </div>
             <div className="px-8 pb-8 flex gap-3">
-              <button onClick={() => setShowGenerarCodigo(false)} className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+              <button onClick={() => setShowGenerarCodigo(false)} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
                 Cancelar
               </button>
               <button onClick={handleGenerarCodigo} disabled={loading} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">
@@ -666,7 +666,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                   id="asignar-formato"
                   value={formAsignar.formato}
                   onChange={(e) => setFormAsignar(prev => ({ ...prev, formato: e.target.value as 'EAN8' | 'EAN13' | 'CODE128' }))}
-                  className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
+                  className="w-full px-5 py-4 bg-app-surface border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                 >
                   <option value="EAN8">EAN-8 (8 dígitos)</option>
                   <option value="EAN13">EAN-13 (13 dígitos)</option>
@@ -682,10 +682,10 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                     value={formAsignar.codigo}
                     onChange={(e) => setFormAsignar(prev => ({ ...prev, codigo: e.target.value }))}
                     placeholder="Ingresa el código"
-                    className="flex-1 px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
+                    className="flex-1 px-5 py-4 bg-app-surface border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                   />
                   {formAsignar.formato === 'EAN8' && (
-                    <button onClick={generarEAN8Ejemplo} className="px-4 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-all" title="Generar EAN-8">
+                    <button onClick={generarEAN8Ejemplo} className="px-4 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:bg-gray-100 transition-all" title="Generar EAN-8">
                       Gen
                     </button>
                   )}
@@ -696,7 +696,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               </div>
             </div>
             <div className="px-8 pb-8 flex gap-3">
-              <button onClick={() => setShowAsignarCodigo(false)} className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+              <button onClick={() => setShowAsignarCodigo(false)} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
                 Cancelar
               </button>
               <button onClick={handleAsignarCodigo} disabled={loading || !formAsignar.codigo.trim()} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">
@@ -730,12 +730,12 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
                 onChange={(e) => setScannerInput(e.target.value)}
                 placeholder="Escanea o ingresa el código"
                 autoFocus
-                className="w-full px-5 py-4 bg-[#f8f8f8] border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
+                className="w-full px-5 py-4 bg-app-surface border-none rounded-[1.5rem] text-sm font-bold text-black focus:outline-none focus:ring-[4px] focus:ring-gray-100 shadow-inner"
                 onKeyDown={(e) => e.key === 'Enter' && handleBuscarPorCodigo()}
               />
             </div>
             <div className="px-8 pb-8 flex gap-3">
-              <button onClick={() => setShowScannerModal(false)} className="flex-1 py-4 bg-[#f8f8f8] border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+              <button onClick={() => setShowScannerModal(false)} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
                 Cancelar
               </button>
               <button onClick={handleBuscarPorCodigo} disabled={loading || !scannerInput.trim()} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">

@@ -25,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 public class ReposicionAutomaticaService {
 
     public static final String USUARIO_SISTEMA = "SISTEMA";
+    /** Objetivo de stock en piso cuando la fila no define {@code stock_maximo}. */
+    public static final int STOCK_OBJETIVO_PISO_DEFECTO = 15;
 
     private final InventarioRepository inventarioRepository;
     private final InventarioService inventarioService;
@@ -57,8 +59,10 @@ public class ReposicionAutomaticaService {
             return;
         }
 
-        if (detalleSolicitudRepository.existsByVariante_IdProductoVarianteAndSolicitud_TipoSolicitudAndSolicitud_Estado(
-                idVariante, TipoSolicitud.REPOSICION, EstadoSolicitud.PENDIENTE)) {
+        Long idDestino = destino.getIdUbicacionArea();
+        if (idDestino != null && detalleSolicitudRepository
+                .existsByVariante_IdProductoVarianteAndSolicitud_TipoSolicitudAndSolicitud_EstadoAndSolicitud_UbicacionAreaDestino_IdUbicacionArea(
+                        idVariante, TipoSolicitud.REPOSICION, EstadoSolicitud.PENDIENTE, idDestino)) {
             return;
         }
 
@@ -114,9 +118,11 @@ public class ReposicionAutomaticaService {
                 continue;
             }
 
-            if (detalleSolicitudRepository.existsByVariante_IdProductoVarianteAndSolicitud_TipoSolicitudAndSolicitud_Estado(
-                    idVariante, TipoSolicitud.REPOSICION, EstadoSolicitud.PENDIENTE)) {
-                return;
+            Long idDestinoPiso = destino.getIdUbicacionArea();
+            if (idDestinoPiso != null && detalleSolicitudRepository
+                    .existsByVariante_IdProductoVarianteAndSolicitud_TipoSolicitudAndSolicitud_EstadoAndSolicitud_UbicacionAreaDestino_IdUbicacionArea(
+                            idVariante, TipoSolicitud.REPOSICION, EstadoSolicitud.PENDIENTE, idDestinoPiso)) {
+                continue;
             }
 
             int cantidad = calcularCantidadReposicion(fila);
@@ -148,16 +154,17 @@ public class ReposicionAutomaticaService {
         }
     }
 
-    private static int calcularCantidadReposicion(Inventario fila) {
-        int actual = fila.getStock() != null ? fila.getStock() : 0;
+    public static int resolverStockObjetivoPiso(Inventario fila) {
         Integer max = fila.getStockMaximo();
-        int min = fila.getStockMinimo() != null ? fila.getStockMinimo() : 0;
-        if (max != null && max > actual) {
-            return max - actual;
+        if (max != null && max > 0) {
+            return max;
         }
-        if (min > 0) {
-            return min;
-        }
-        return Math.max(1, 1 - actual);
+        return STOCK_OBJETIVO_PISO_DEFECTO;
+    }
+
+    public static int calcularCantidadReposicion(Inventario fila) {
+        int actual = fila.getStock() != null ? fila.getStock() : 0;
+        int objetivo = resolverStockObjetivoPiso(fila);
+        return Math.max(1, objetivo - actual);
     }
 }

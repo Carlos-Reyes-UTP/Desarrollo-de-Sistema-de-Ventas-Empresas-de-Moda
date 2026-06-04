@@ -1,11 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { MaterialIcon } from '@/shared/ui';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { MaterialIcon, AlertModal, ChartSkeleton, PageActionButton, SectionHeader } from '@/shared/ui';
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaService';
 import type { Venta } from '../../types/Venta';
 import type { DetalleVenta } from '../../types/DetalleVenta';
-import { AlertModal, ChartSkeleton } from '@/shared/ui';
+import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
+import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
+import { useReportPeriodContext } from '@/components/reportes/context/ReportPeriodContext';
+import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
+import { ReportTrendPanel } from '@/components/reportes/layout/ReportTrendPanel';
+import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
+import { generarInsightPicoGrafico } from '@/utils/reportInsights';
+import type { PeriodoDashboard } from '@/utils/dashboardPeriodo';
 
 interface ReporteData {
   fecha: string;
@@ -29,48 +35,30 @@ type TipoPeriodo = 'diario' | 'semanal' | 'mensual';
 
 const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
-interface RechartsPayloadEntry {
-  payload: ReporteData;
-  value?: number;
-  name?: string;
-}
+const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: RechartsPayloadEntry[];
-  label?: string;
-}
+const buildDayDataFromVentas = (ventasList: Venta[], parsear: (s: string) => Date) => {
+  const totalesDia = new Array(7).fill(0);
+  ventasList.forEach((v) => {
+    try {
+      const d = parsear(v.fechaVenta);
+      if (!isNaN(d.getTime())) totalesDia[d.getDay()] += v.totalVentas || 0;
+    } catch {
+      /* noop */
+    }
+  });
+  return DIAS_SEMANA.map((dia, i) => ({ dia, ventas: totalesDia[i] }));
+};
 
-const CustomTooltipVentas: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-4 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[200px]">
-        <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-800/60">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-          <span className="font-semibold text-gray-850 dark:text-gray-200 text-sm">{label}</span>
-        </div>
-        <div className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-          <div className="flex justify-between items-center gap-4">
-            <span>Monto de Ventas:</span>
-            <span className="font-bold text-blue-600 dark:text-blue-400">
-              {formatterMonedaPE.format(data.ventas)}
-            </span>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <span>Cantidad:</span>
-            <span className="font-semibold text-gray-800 dark:text-gray-200">
-              {data.cantidad} unds
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-  return null;
+const PERIODO_GLOBAL_A_VENTAS: Record<PeriodoDashboard, TipoPeriodo> = {
+  hoy: 'diario',
+  '7d': 'semanal',
+  '30d': 'mensual',
 };
 
 const ReporteDeVentas: React.FC = () => {
+  const { periodo: periodoGlobal, etiqueta: etiquetaGlobal } = useReportPeriodContext();
+  const { setActions } = useReportPageActions();
   const [periodo, setPeriodo] = useState<TipoPeriodo>('semanal');
   const [fechaReferencia, setFechaReferencia] = useState(new Date().toISOString().split('T')[0]);
   const [ventas, setVentas] = useState<Venta[]>([]);
@@ -115,6 +103,20 @@ const ReporteDeVentas: React.FC = () => {
       return new Date(); // Fecha actual como fallback
     }
   };
+
+  useEffect(() => {
+    setPeriodo(PERIODO_GLOBAL_A_VENTAS[periodoGlobal]);
+  }, [periodoGlobal]);
+
+  const chartForInsight = useMemo(
+    () => datosGrafico.map((d) => ({ label: d.fecha, ventas: d.ventas })),
+    [datosGrafico]
+  );
+  const picoInsight = useMemo(() => generarInsightPicoGrafico(chartForInsight), [chartForInsight]);
+  const dayData = useMemo(
+    () => buildDayDataFromVentas(ventas, parsearFechaVenta),
+    [ventas]
+  );
 
   // Cargar datos al cambiar filtros
   useEffect(() => {
@@ -297,7 +299,7 @@ const ReporteDeVentas: React.FC = () => {
     });
   };
 
-  const exportarAExcel = async () => {
+  const exportarAExcel = useCallback(async () => {
     if (ventas.length === 0) {
       setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
@@ -420,203 +422,112 @@ const ReporteDeVentas: React.FC = () => {
 
       setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
-  };
+  }, [ventas, periodo, fechaReferencia]);
+
+  useEffect(() => {
+    setActions(
+      <PageActionButton onClick={exportarAExcel} disabled={cargando || ventas.length === 0}>
+        <MaterialIcon icon="download" className="w-4 h-4" />
+        Exportar Excel
+      </PageActionButton>
+    );
+    return () => setActions(null);
+  }, [setActions, exportarAExcel, cargando, ventas.length]);
 
   const formatearMoneda = (valor: number) => {
     return formatterMonedaPE.format(valor);
   };
 
+  const tituloGrafico =
+    periodo === 'diario' ? 'Ventas por hora' : periodo === 'semanal' ? 'Ventas por día' : 'Ventas por semana';
+
   return (
-    <div className="p-6 bg-gray-50">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reporte de Ventas</h1>
-          <p className="text-gray-600">Análisis y exportación de datos de ventas</p>
-        </div>
-
-        {/* Filtros */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label htmlFor="periodo-select" className="block text-sm font-medium text-gray-700 mb-2">
-                Período
-              </label>
-              <select
-                id="periodo-select"
-                value={periodo}
-                onChange={(e) => setPeriodo(e.target.value as TipoPeriodo)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="diario">Diario</option>
-                <option value="semanal">Semanal</option>
-                <option value="mensual">Mensual</option>
-              </select>
-            </div>
-            
-            <div className="flex-1 min-w-[200px]">
-              <label htmlFor="fecha-referencia" className="block text-sm font-medium text-gray-700 mb-2">
-                Fecha de referencia
-              </label>
-              <input
-                id="fecha-referencia"
-                type="date"
-                value={fechaReferencia}
-                onChange={(e) => setFechaReferencia(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            <button
-              onClick={exportarAExcel}
-              disabled={cargando || ventas.length === 0}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+    <div className="space-y-6">
+      <DashboardPanel className="!p-5 sm:!p-6">
+        <p className="text-[10px] font-black uppercase tracking-[0.15em] app-text-faint mb-3">
+          Filtros locales · período global: {etiquetaGlobal}
+        </p>
+        <div className="flex flex-wrap gap-4 items-end">
+          <div className="flex-1 min-w-[160px]">
+            <label htmlFor="periodo-select" className="block text-[10px] font-black uppercase tracking-widest app-text-faint mb-2">
+              Granularidad
+            </label>
+            <select
+              id="periodo-select"
+              value={periodo}
+              onChange={(e) => setPeriodo(e.target.value as TipoPeriodo)}
+              className="w-full px-3 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] app-heading text-sm"
             >
-              <MaterialIcon icon="download" className="w-4 h-4" />
-              Exportar Excel
-            </button>
+              <option value="diario">Diario</option>
+              <option value="semanal">Semanal</option>
+              <option value="mensual">Mensual</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-[160px]">
+            <label htmlFor="fecha-referencia" className="block text-[10px] font-black uppercase tracking-widest app-text-faint mb-2">
+              Fecha de referencia
+            </label>
+            <input
+              id="fecha-referencia"
+              type="date"
+              value={fechaReferencia}
+              onChange={(e) => setFechaReferencia(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] app-heading text-sm"
+            />
           </div>
         </div>
+      </DashboardPanel>
 
-        {/* Tarjetas de resumen */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Ventas</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatearMoneda(resumenVentas.totalVentas)}
-                </p>
-              </div>
-              <div className="p-3 bg-green-100 rounded-full">
-                <MaterialIcon icon="attach_money" className="h-6 w-6 text-green-600" />
-              </div>
-            </div>
-          </div>
+      {picoInsight ? (
+        <ReportInsightBanner message={picoInsight} headline="Concentración del período" icon="show_chart" />
+      ) : null}
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Transacciones</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {resumenVentas.cantidadTransacciones}
-                </p>
-              </div>
-              <div className="p-3 bg-blue-100 rounded-full">
-                <MaterialIcon icon="description" className="h-6 w-6 text-blue-600" />
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <DashboardMetricCard label="Total ventas" value={formatearMoneda(resumenVentas.totalVentas)} icon="payments" iconIndex={1} sub={etiquetaGlobal} />
+        <DashboardMetricCard label="Transacciones" value={resumenVentas.cantidadTransacciones} icon="receipt_long" iconIndex={2} sub={etiquetaGlobal} />
+        <DashboardMetricCard label="Ticket promedio" value={formatearMoneda(resumenVentas.ticketPromedio)} icon="trending_up" iconIndex={3} sub={etiquetaGlobal} />
+        <DashboardMetricCard label="Unidades" value={resumenVentas.productosVendidos} icon="checkroom" iconIndex={4} sub={etiquetaGlobal} />
+      </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Ticket Promedio</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {formatearMoneda(resumenVentas.ticketPromedio)}
-                </p>
-              </div>
-              <div className="p-3 bg-yellow-100 rounded-full">
-                <MaterialIcon icon="trending_up" className="h-6 w-6 text-yellow-600" />
-              </div>
-            </div>
-          </div>
+      {cargando ? (
+        <ChartSkeleton height="h-[360px]" />
+      ) : (
+        <ReportTrendPanel
+          chartPoints={chartForInsight}
+          dayData={dayData}
+          tituloGrafico="Ritmo de ventas"
+          subtitulo={`${tituloGrafico} · referencia ${fechaReferencia}`}
+          serieLabel={tituloGrafico}
+          gradientId="areaGradVentas"
+        />
+      )}
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Productos Vendidos</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {resumenVentas.productosVendidos}
-                </p>
-              </div>
-              <div className="p-3 bg-purple-100 rounded-full">
-                <MaterialIcon icon="group" className="h-6 w-6 text-purple-600" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Gráfico */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              {(() => {
-                if (periodo === 'diario') return 'Ventas por Hora';
-                if (periodo === 'semanal') return 'Ventas por Día';
-                return 'Ventas por Semana';
-              })()}
-            </h2>
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <MaterialIcon icon="calendar_today" className="w-4 h-4" />
-              {periodo.charAt(0).toUpperCase() + periodo.slice(1)}
-            </div>
-          </div>
-          
-          <div className="h-80">
-            {cargando ? (
-              <ChartSkeleton height="h-80" className="border-0 p-4 shadow-none" />
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={datosGrafico} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
-                  <defs>
-                    <linearGradient id="colorVentasGenerales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#0EA5E9" stopOpacity={0.95}/>
-                      <stop offset="100%" stopColor="#6366F1" stopOpacity={0.35}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-                  <XAxis 
-                    dataKey="fecha" 
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: '#64748b', fontSize: 11 }}
-                  />
-                  <YAxis 
-                    tickLine={false}
-                    axisLine={false}
-                    tick={{ fill: '#64748b', fontSize: 11 }}
-                  />
-                  <Tooltip content={<CustomTooltipVentas />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
-                  <Bar 
-                    dataKey="ventas" 
-                    fill="url(#colorVentasGenerales)" 
-                    radius={[8, 8, 0, 0]}
-                    maxBarSize={45}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        {/* Tabla de datos recientes */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">
-            Últimas Ventas del Período ({ventas.length} total{ventas.length !== 1 ? 'es' : ''})
-          </h2>
+      <DashboardPanel>
+        <SectionHeader
+          title={`Últimas ventas (${ventas.length})`}
+        />
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-[var(--app-border)]">
+              <thead className="bg-[var(--app-bg-muted)]">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
                     Fecha y Hora
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
                     Usuario
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
                     Cliente
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
                     Total
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
                     Método Pago
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-[var(--app-border)]">
                 {(() => {
                   // Ordenar las ventas por fecha más reciente primero
                   const ventasOrdenadas = ventas.toSorted((a, b) => {
@@ -674,21 +585,21 @@ const ReporteDeVentas: React.FC = () => {
                     };
 
                     return (
-                      <tr key={venta.idVenta} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
+                      <tr key={venta.idVenta} className="hover:bg-[var(--app-bg-muted)]/50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading font-mono">
                           {formatearFechaHora(venta.fechaVenta)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">
                           {venta.usuario?.usuario || 'No disponible'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">
                           {venta.cliente?.nombreCliente || 'Cliente general'}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium app-heading tabular-nums">
                           {formatearMoneda(venta.totalVentas || 0)}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">
+                          <span className="px-2 py-1 text-xs font-bold rounded-full bg-[color-mix(in_srgb,var(--app-accent)_15%,transparent)] text-[var(--app-accent)]">
                             {obtenerMetodoPago()}
                           </span>
                         </td>
@@ -712,40 +623,33 @@ const ReporteDeVentas: React.FC = () => {
             if (totalPaginas <= 1) return null;
 
             return (
-              <div className="mt-6 bg-gray-50 border-t border-gray-200">
-                {/* Versión móvil */}
+              <div className="mt-6 report-pagination-bar">
                 <div className="block sm:hidden px-3 py-2">
                   <div className="flex items-center justify-between">
                     <button
+                      type="button"
                       onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
                       disabled={paginaActual === 1}
-                      className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
-                        paginaActual === 1 
-                          ? 'text-gray-400 cursor-not-allowed' 
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                      className="report-pagination-btn"
                     >
                       <MaterialIcon icon="chevron_left" className="h-4 w-4 mr-1" />
                       Anterior
                     </button>
                     
                     <div className="flex flex-col items-center">
-                      <span className="text-sm text-gray-700 font-medium">
+                      <span className="text-sm app-heading font-medium">
                         Página {paginaActual} de {totalPaginas}
                       </span>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs app-text-muted">
                         {ventasOrdenadas.length} resultados
                       </span>
                     </div>
                     
                     <button
+                      type="button"
                       onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
                       disabled={paginaActual === totalPaginas}
-                      className={`flex items-center px-3 py-2 text-sm font-medium bg-white border border-gray-300 rounded-md ${
-                        paginaActual === totalPaginas 
-                          ? 'text-gray-400 cursor-not-allowed' 
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                      className="report-pagination-btn"
                     >
                       Siguiente
                       <MaterialIcon icon="chevron_right" className="h-4 w-4 ml-1" />
@@ -753,10 +657,9 @@ const ReporteDeVentas: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Versión desktop */}
                 <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6">
                   <div className="flex items-center">
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm app-text-muted">
                       Mostrando{' '}
                       <span className="font-medium">
                         {((paginaActual - 1) * ventasPorPagina) + 1}
@@ -773,9 +676,10 @@ const ReporteDeVentas: React.FC = () => {
                   
                   <div className="flex items-center space-x-2">
                     <button
+                      type="button"
                       onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
                       disabled={paginaActual === 1}
-                      className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="report-pagination-btn"
                     >
                       <MaterialIcon icon="chevron_left" className="h-4 w-4" />
                       Anterior
@@ -790,11 +694,7 @@ const ReporteDeVentas: React.FC = () => {
                               <button
                                 key={i}
                                 onClick={() => setPaginaActual(i)}
-                                className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                                  i === paginaActual
-                                    ? 'bg-blue-600 text-white border-blue-600'
-                                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                                }`}
+                                className={`report-pagination-btn ${i === paginaActual ? 'report-pagination-btn--active' : ''}`}
                               >
                                 {i}
                               </button>
@@ -805,11 +705,7 @@ const ReporteDeVentas: React.FC = () => {
                             <button
                               key={1}
                               onClick={() => setPaginaActual(1)}
-                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                                paginaActual === 1
-                                  ? 'bg-blue-600 text-white border-blue-600'
-                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                              }`}
+                              className={`report-pagination-btn ${paginaActual === 1 ? 'report-pagination-btn--active' : ''}`}
                             >
                               1
                             </button>
@@ -823,32 +719,24 @@ const ReporteDeVentas: React.FC = () => {
                             rangeStart = totalPaginas - 4;
                             rangeEnd = totalPaginas - 1;
                           }
-                          if (rangeStart > 2) páginas.push(<span key="start-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
+                          if (rangeStart > 2) páginas.push(<span key="start-ellipsis" className="px-2 app-text-faint select-none text-base">...</span>);
                           for (let i = rangeStart; i <= rangeEnd; i++) {
                             páginas.push(
                               <button
                                 key={i}
                                 onClick={() => setPaginaActual(i)}
-                                className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                                  i === paginaActual
-                                    ? 'bg-blue-600 text-white border-blue-600'
-                                    : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                                }`}
+                                className={`report-pagination-btn ${i === paginaActual ? 'report-pagination-btn--active' : ''}`}
                               >
                                 {i}
                               </button>
                             );
                           }
-                          if (rangeEnd < totalPaginas - 1) páginas.push(<span key="end-ellipsis" className="px-2 text-gray-400 select-none text-base">...</span>);
+                          if (rangeEnd < totalPaginas - 1) páginas.push(<span key="end-ellipsis" className="px-2 app-text-faint select-none text-base">...</span>);
                           páginas.push(
                             <button
                               key={totalPaginas}
                               onClick={() => setPaginaActual(totalPaginas)}
-                              className={`relative inline-flex items-center px-3 py-2 text-sm font-medium border rounded-md ${
-                                paginaActual === totalPaginas
-                                  ? 'bg-blue-600 text-white border-blue-600'
-                                  : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
-                              }`}
+                              className={`report-pagination-btn ${paginaActual === totalPaginas ? 'report-pagination-btn--active' : ''}`}
                             >
                               {totalPaginas}
                             </button>
@@ -859,9 +747,10 @@ const ReporteDeVentas: React.FC = () => {
                     </div>
                     
                     <button
+                      type="button"
                       onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
                       disabled={paginaActual === totalPaginas}
-                      className="relative inline-flex items-center px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="report-pagination-btn"
                     >
                       Siguiente
                       <MaterialIcon icon="chevron_right" className="h-4 w-4" />
@@ -874,11 +763,10 @@ const ReporteDeVentas: React.FC = () => {
           
           {ventas.length === 0 && !cargando && (
             <div className="text-center py-8">
-              <p className="text-gray-500">No hay ventas en el período seleccionado</p>
+              <p className="app-text-muted">No hay ventas en el período seleccionado</p>
             </div>
           )}
-        </div>
-      </div>
+      </DashboardPanel>
 
       {/* Alert Modal */}
       <AlertModal

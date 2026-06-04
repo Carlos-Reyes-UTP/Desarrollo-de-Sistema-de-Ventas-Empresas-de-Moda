@@ -986,8 +986,8 @@ const GestionUsuariosPage = () => {
                             { label: 'Símbolo (!@#$%^&*)', check: /[!@#$%^&*()]/.test(formUsuario.password) }
                           ].map((req, i) => (
                             <div key={i} className="flex items-center gap-2.5">
-                              <div className={`w-4 h-4 rounded-full flex items-center justify-center transition-all duration-500 ${req.check ? 'bg-[#10b981] scale-110' : 'bg-gray-100 dark:bg-gray-850'}`}>
-                                <MaterialIcon icon="check_circle" className={`w-[10px] h-[10px] ${req.check ? 'text-white' : 'text-gray-300 dark:text-gray-600'}`} />
+                              <div className={`shrink-0 w-4 h-4 rounded-full flex items-center justify-center transition-all duration-500 ${req.check ? 'bg-[#10b981] scale-110 shadow-sm' : 'bg-gray-100 dark:bg-gray-850'}`}>
+                                <MaterialIcon icon="check" className={`text-[10px] leading-none ${req.check ? 'text-white' : 'text-gray-300 dark:text-gray-600'}`} />
                               </div>
                               <span className={`text-[10px] font-bold uppercase tracking-tight transition-colors ${req.check ? 'text-black dark:text-gray-200' : 'text-gray-400 dark:text-gray-500'}`}>
                                 {req.label}

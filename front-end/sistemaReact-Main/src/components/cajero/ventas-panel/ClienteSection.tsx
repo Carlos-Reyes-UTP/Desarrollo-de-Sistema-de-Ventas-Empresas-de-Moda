@@ -1,7 +1,6 @@
 import { MaterialIcon } from '@/shared/ui';
 import type { Cliente } from '../../../types/Cliente';
 import { useRef, useEffect, useState } from 'react';
-import { UMBRAL_DNI_OBLIGATORIO } from '../../../utils/validarIdentificacionCliente';
 
 interface ClienteSectionProps {
   tipoDocumento: 'DNI' | 'RUC';
@@ -24,7 +23,6 @@ interface ClienteSectionProps {
   setInputDocumentoDebeParpadear: (val: boolean) => void;
   handleActualizarClienteNombre: (nombre: string) => Promise<void>;
   clienteCreadoManualmente: boolean;
-  totalGeneralVenta: number;
   requiereDocumentoCliente: boolean;
   clienteValidoParaVenta: boolean;
   identificacionMensaje: string | null;
@@ -53,7 +51,6 @@ export const ClienteSection = ({
   setInputDocumentoDebeParpadear,
   handleActualizarClienteNombre,
   clienteCreadoManualmente,
-  totalGeneralVenta,
   requiereDocumentoCliente,
   clienteValidoParaVenta,
   identificacionMensaje,

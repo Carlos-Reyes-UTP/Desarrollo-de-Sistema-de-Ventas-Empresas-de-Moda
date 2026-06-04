@@ -179,16 +179,16 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   return (
     <ModalPortal>
     <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${isModalVisible ? 'animate-fadeIn' : 'animate-fadeOut'}`}>
-      <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${isModalVisible ? 'animate-scaleIn' : 'animate-scaleOut'}`}>
+      <div className={`bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${isModalVisible ? 'animate-scaleIn' : 'animate-scaleOut'}`}>
 
-        <div className="p-10 pb-6 border-b border-gray-100">
-          <div className="mb-6 w-12 h-1 bg-black"></div>
+        <div className="p-10 pb-6 border-b border-app-border">
+          <div className="mb-6 w-12 h-1 bg-app-accent"></div>
           <div className="flex items-start justify-between">
             <div>
-              <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
+              <h2 className="text-2xl font-bold tracking-tight text-app-text mb-2 uppercase">
                 Gestión de Variantes
               </h2>
-              <p className="text-gray-500 text-sm font-medium">
+              <p className="text-app-text-muted text-sm font-medium">
                 {producto.nombre} — {producto.codigoIdentificacion}
               </p>
             </div>
@@ -218,7 +218,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
           <div className="flex flex-wrap gap-4 mb-6">
             <button
               onClick={() => setShowNuevaVariante(true)}
-              className="bg-black hover:bg-gray-900 text-white px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg hover:shadow-xl"
+              className="bg-app-accent hover:opacity-90 text-app-accent-fg px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all shadow-lg hover:shadow-xl"
             >
               <MaterialIcon icon="add" className="w-4 h-4" />
               Nueva Variante
@@ -227,14 +227,14 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
             <button
               onClick={cargarDatos}
               disabled={loading}
-              className="bg-gray-100 hover:bg-gray-200 text-gray-900 px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-app-input hover:bg-app-hover-overlay text-app-text px-6 py-3 rounded-xl flex items-center gap-2 font-bold text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <MaterialIcon icon="sync" className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? 'Cargando...' : 'Actualizar'}
             </button>
           </div>
 
-          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-app-surface rounded-[2rem] border border-app-border shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-100">
                 <thead className="bg-gray-50">
@@ -245,7 +245,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     <th className="px-8 py-5 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Acciones</th>
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-50">
+                <tbody className="bg-app-surface divide-y divide-app-border">
                   {loading ? (
                     Array.from({ length: 6 }, (_, row) => (
                       <tr key={`sk-var-${row}`}>
@@ -283,10 +283,10 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
 
       {showNuevaVariante && (
         <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn" style={{ zIndex: 'calc(var(--app-z-modal) + 10)' }}>
-          <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden animate-scaleIn">
+          <div className="bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden animate-scaleIn">
             <div className="p-10">
-              <div className="mb-6 w-12 h-1 bg-black"></div>
-              <h3 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
+              <div className="mb-6 w-12 h-1 bg-app-accent"></div>
+              <h3 className="text-2xl font-bold tracking-tight text-app-text mb-2 uppercase">
                 Nueva Variante
               </h3>
               <p className="text-gray-500 text-sm mb-6 font-medium">
@@ -306,7 +306,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     value={formVariante.nombreTalla}
                     onChange={(e) => setFormVariante({ ...formVariante, nombreTalla: e.target.value })}
                     placeholder="Ej: M, L, 32"
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    className="w-full px-5 py-4 bg-app-input border-app-border rounded-xl text-sm font-bold focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all text-app-text"
                     autoComplete="off"
                   />
                   <datalist id={DL_TALLAS}>
@@ -328,7 +328,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     value={formVariante.nombreColor}
                     onChange={(e) => setFormVariante({ ...formVariante, nombreColor: e.target.value })}
                     placeholder="Ej: Azul marino"
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    className="w-full px-5 py-4 bg-app-input border-app-border rounded-xl text-sm font-bold focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all text-app-text"
                     autoComplete="off"
                   />
                   <datalist id={DL_COLORES}>
@@ -353,7 +353,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     onChange={(e) => setFormVariante({ ...formVariante, cantidad: e.target.value })}
                     placeholder="Ej: 10"
                     min="0"
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    className="w-full px-5 py-4 bg-app-input border-app-border rounded-xl text-sm font-bold focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all text-app-text"
                     required
                   />
                 </div>
@@ -368,7 +368,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                     value={formVariante.codigoIdentificacion}
                     onChange={(e) => setFormVariante({ ...formVariante, codigoIdentificacion: e.target.value })}
                     placeholder="Ej: PROD001-M-AZUL"
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    className="w-full px-5 py-4 bg-app-input border-app-border rounded-xl text-sm font-bold focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all text-app-text"
                   />
                 </div>
 
@@ -397,13 +397,13 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                       setFormVariante({ nombreTalla: '', nombreColor: '', cantidad: '', codigoIdentificacion: '' });
                       setError(null);
                     }}
-                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                    className="flex-1 py-4 bg-app-input hover:bg-app-hover-overlay text-app-text rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
+                    className="flex-1 py-4 bg-app-accent hover:opacity-90 text-app-accent-fg rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
                   >
                     <MaterialIcon icon="add" className="w-4 h-4" />
                     Crear Variante
@@ -490,10 +490,10 @@ const VarianteRow: React.FC<{
         <td className="px-8 py-5 font-mono text-sm text-gray-700">{variante.codigoIdentificacion ?? 'N/A'}</td>
       )}
       <td className="px-8 py-5">
-        <span className="font-bold text-sm text-black">{variante.talla.nombreTalla}</span>
+        <span className="font-bold text-sm text-app-text">{variante.talla.nombreTalla}</span>
       </td>
       <td className="px-8 py-5">
-        <span className="font-bold text-sm text-black">{variante.color.nombre}</span>
+        <span className="font-bold text-sm text-app-text">{variante.color.nombre}</span>
       </td>
       <td className="px-8 py-5 text-center">
         {editandoCantidad ? (
@@ -505,7 +505,7 @@ const VarianteRow: React.FC<{
               onKeyDown={handleKeyDown}
               min="0"
               disabled={guardando}
-              className="w-24 px-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 text-center transition-all"
+              className="w-24 px-4 py-3 bg-app-input border-app-border rounded-xl text-sm font-bold focus:bg-app-surface focus:ring-2 focus:ring-app-ring text-center transition-all text-app-text"
               autoFocus
             />
           </div>
@@ -537,12 +537,12 @@ const VarianteRow: React.FC<{
       <td className="px-8 py-5 text-right">
         {editandoCantidad ? (
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={() => void handleGuardarCantidad()} disabled={guardando} className="p-2.5 rounded-xl text-black bg-gray-100 hover:bg-black hover:text-white disabled:opacity-50 transition-all" title="Guardar"><MaterialIcon icon="save" className="w-4 h-4" /></button>
-            <button type="button" onClick={handleCancelarEdicion} disabled={guardando} className="p-2.5 rounded-xl text-gray-600 bg-gray-100 hover:bg-gray-200 disabled:opacity-50 transition-all" title="Cancelar"><MaterialIcon icon="close" className="w-4 h-4" /></button>
+            <button type="button" onClick={() => void handleGuardarCantidad()} disabled={guardando} className="p-2.5 rounded-xl text-app-text bg-app-input hover:bg-app-accent hover:text-app-accent-fg disabled:opacity-50 transition-all" title="Guardar"><MaterialIcon icon="save" className="w-4 h-4" /></button>
+            <button type="button" onClick={handleCancelarEdicion} disabled={guardando} className="p-2.5 rounded-xl text-app-text-muted bg-app-input hover:bg-app-hover-overlay disabled:opacity-50 transition-all" title="Cancelar"><MaterialIcon icon="close" className="w-4 h-4" /></button>
           </div>
         ) : (
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={() => setEditandoCantidad(true)} className="p-2.5 rounded-xl text-gray-400 hover:bg-black hover:text-white transition-all" title="Editar Cantidad"><MaterialIcon icon="edit" className="w-4 h-4" /></button>
+            <button type="button" onClick={() => setEditandoCantidad(true)} className="p-2.5 rounded-xl text-app-text-muted hover:bg-app-accent hover:text-app-accent-fg transition-all" title="Editar Cantidad"><MaterialIcon icon="edit" className="w-4 h-4" /></button>
             <button type="button" onClick={() => variante.idVariante && onEliminar(variante.idVariante)} className="p-2.5 rounded-xl text-red-400 hover:bg-red-500 hover:text-white transition-all" title="Eliminar Variante"><MaterialIcon icon="delete" className="w-4 h-4" /></button>
           </div>
         )}

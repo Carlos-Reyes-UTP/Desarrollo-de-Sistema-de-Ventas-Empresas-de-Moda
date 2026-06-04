@@ -4,14 +4,15 @@ import SidebarMenu from "./SidebarMenu";
 import { VendedorPisoLayoutChrome } from "./VendedorPisoLayoutChrome";
 import { useAuth } from "@/context/AuthContext";
 import { resolveRouteView } from "./navigationConfig";
-
 import MeshGradientBackground from "../ui/MeshGradientBackground";
 import { useAppTheme } from "@/context/AppThemeContext";
+import { useSessionExpiryWarning } from "@/hooks/useSessionExpiryWarning";
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const location = useLocation();
   const { usuario, cerrarSesion, tieneRol } = useAuth();
   const { showMesh } = useAppTheme();
+  const { avisoVisible, minutosRestantes, descartar } = useSessionExpiryWarning();
 
   // visible controla el fade-in del contenido.
   // Se oculta INSTANTÁNEAMENTE (sin transición) y se muestra SUAVEMENTE.
@@ -112,6 +113,27 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
           </div>
         </main>
       </div>
+      {/* Banner de sesión próxima a expirar */}
+      {avisoVisible && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[10000] flex items-center gap-4 px-6 py-4 rounded-2xl shadow-2xl border border-amber-400/60 bg-amber-50/95 dark:bg-amber-950/95 backdrop-blur-sm animate-fadeIn"
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse flex-shrink-0" />
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-100">
+            ⚠&nbsp; Tu sesión expira en{' '}
+            <strong>{minutosRestantes} min</strong>. Guarda tu trabajo o recarga la página.
+          </span>
+          <button
+            onClick={descartar}
+            className="ml-2 text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 transition-colors text-[14px] font-bold leading-none"
+            aria-label="Descartar aviso"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 };

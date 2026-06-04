@@ -151,7 +151,6 @@ const VentasPanel = () => {
             setInputNombreDebeParpadear={ventas.setInputNombreDebeParpadear}
             handleActualizarClienteNombre={ventas.handleActualizarClienteNombre}
             clienteCreadoManualmente={ventas.clienteCreadoManualmente}
-            totalGeneralVenta={ventas.totalGeneralVenta}
             requiereDocumentoCliente={ventas.requiereDocumentoCliente}
             clienteValidoParaVenta={ventas.clienteValidoParaVenta}
             identificacionMensaje={ventas.identificacionMensaje}

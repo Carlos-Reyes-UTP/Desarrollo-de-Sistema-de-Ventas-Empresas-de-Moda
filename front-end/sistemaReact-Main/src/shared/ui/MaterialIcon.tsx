@@ -27,7 +27,7 @@ export function MaterialIcon({
   }
 
   // Detect arbitrary Tailwind size classes (w-[Xpx] / h-[Xpx])
-  const arbSizeMatch = className.match(/\b[wh]-\[(\d+)px\]\b/);
+  const arbSizeMatch = className.match(/\b[wh]-\[(\d+)px\]/);
   if (arbSizeMatch) {
     const pxSize = parseInt(arbSizeMatch[1]);
     sizeStyle.fontSize = `${pxSize}px`;
@@ -55,7 +55,7 @@ export function MaterialIcon({
   // Clean Tailwind sizing classes so they do not conflict with our dynamic inline sizing
   const cleanClassName = className
     .replace(/\b[wh]-(\d+)\b/g, '')
-    .replace(/\b[wh]-\[(\d+)px\]\b/g, '')
+    .replace(/\b[wh]-\[(\d+)px\]/g, '')
     .trim();
 
   return (

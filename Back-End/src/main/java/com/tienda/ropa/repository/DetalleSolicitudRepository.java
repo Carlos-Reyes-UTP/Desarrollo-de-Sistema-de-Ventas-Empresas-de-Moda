@@ -16,6 +16,21 @@ public interface DetalleSolicitudRepository extends JpaRepository<DetalleSolicit
     boolean existsByVariante_IdProductoVarianteAndSolicitud_TipoSolicitudAndSolicitud_Estado(
             Long idVariante, TipoSolicitud tipoSolicitud, EstadoSolicitud estado);
 
+    boolean existsByVariante_IdProductoVarianteAndSolicitud_TipoSolicitudAndSolicitud_EstadoAndSolicitud_UbicacionAreaDestino_IdUbicacionArea(
+            Long idVariante,
+            TipoSolicitud tipoSolicitud,
+            EstadoSolicitud estado,
+            Long idUbicacionAreaDestino);
+
+    @Query("""
+            SELECT d.variante.idProductoVariante, s.ubicacionAreaDestino.idUbicacionArea
+            FROM DetalleSolicitud d
+            JOIN d.solicitud s
+            WHERE s.tipoSolicitud = com.tienda.ropa.entity.TipoSolicitud.REPOSICION
+              AND s.estado = com.tienda.ropa.entity.EstadoSolicitud.PENDIENTE
+            """)
+    List<Object[]> findParesVarianteDestinoReposicionPendiente();
+
     /**
      * Suma cantidades reservadas (solicitudes VENTA PENDIENTE) para una variante en la misma línea de catálogo
      * que el área origen de almacén (id_area del sector origen).

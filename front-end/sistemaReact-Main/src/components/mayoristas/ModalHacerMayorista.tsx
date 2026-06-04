@@ -633,8 +633,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   // Renderizar pantalla de confirmación de éxito
   const renderPantallaExito = () => (
     <div className="text-center py-10 px-4 animate-fadeIn">
-      <div className="mx-auto flex items-center justify-center w-20 h-20 bg-black rounded-[2rem] mb-8 shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
-        <MaterialIcon icon="check_circle" className="w-10 h-10 text-white" />
+      <div className="mx-auto flex items-center justify-center w-20 h-20 bg-app-accent rounded-[2rem] mb-8 shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+        <MaterialIcon icon="check_circle" className="w-10 h-10 text-app-accent-fg" />
       </div>
       <h3 className="text-2xl font-black text-black mb-3 tracking-tight">
         {modo === 'crear' ? 'Registro Exitoso' : 'Conversión Exitosa'}
@@ -646,7 +646,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         }
       </p>
       
-      <div className="bg-[#f8f8f8] rounded-[2.5rem] p-8 mb-10 relative overflow-hidden group">
+      <div className="bg-app-surface rounded-[2.5rem] p-8 mb-10 relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-6 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
           <MaterialIcon icon="crown" className="w-[100px] h-[100px]" />
         </div>
@@ -670,7 +670,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           }
           cerrarModalConAnimacion();
         }}
-        className="w-full py-5 bg-black text-white rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
+        className="w-full py-5 bg-app-accent text-app-accent-fg rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
       >
         <MaterialIcon icon="check_circle" className="w-4 h-4" />
         <span>Finalizar Proceso</span>
@@ -698,7 +698,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           }
           cerrarModalConAnimacion();
         }}
-        className="w-full py-5 bg-black text-white rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
+        className="w-full py-5 bg-app-accent text-app-accent-fg rounded-[2rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all shadow-[0_20px_40px_rgba(0,0,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-3"
       >
         <MaterialIcon icon="check_circle" className="w-4 h-4" />
         <span>Confirmar y Salir</span>
@@ -714,13 +714,13 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
 
     return (
       <div className="px-8 py-5 bg-[#fafafa]/50 backdrop-blur-sm">
-        <div className="flex items-center justify-center bg-white/80 backdrop-blur-md rounded-2xl p-1.5 shadow-sm max-w-[400px] mx-auto">
+        <div className="flex items-center justify-center bg-app-surface/80 backdrop-blur-md rounded-2xl p-1.5 shadow-sm max-w-[400px] mx-auto">
           <button
             onClick={() => cambiarModo('buscar')}
             className={`flex-1 flex items-center justify-center space-x-2.5 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 ${
               modo === 'buscar'
-                ? 'bg-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
-                : 'text-gray-400 hover:text-black hover:bg-gray-50'
+                ? 'bg-app-accent text-app-accent-fg shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
+                : 'text-app-text-muted hover:text-app-text hover:bg-app-hover-overlay'
             }`}
           >
             <MaterialIcon icon="search" className="w-3.5 h-3.5" />
@@ -730,8 +730,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
             onClick={() => cambiarModo('crear')}
             className={`flex-1 flex items-center justify-center space-x-2.5 px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 ${
               modo === 'crear'
-                ? 'bg-black text-white shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
-                : 'text-gray-400 hover:text-black hover:bg-gray-50'
+                ? 'bg-app-accent text-app-accent-fg shadow-[0_4px_12px_rgba(0,0,0,0.12)]'
+                : 'text-app-text-muted hover:text-app-text hover:bg-app-hover-overlay'
             }`}
           >
             <MaterialIcon icon="person_add" className="w-3.5 h-3.5" />
@@ -771,7 +771,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               }
             }}
             placeholder="DNI, RUC o Nombre del Cliente..."
-            className="w-full pl-12 pr-12 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all duration-300 placeholder:text-gray-400"
+            className="w-full pl-12 pr-12 py-4 bg-app-input border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all duration-300 placeholder:text-app-text-muted"
             autoFocus
           />
           {buscandoClientes && (
@@ -789,7 +789,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     if (clientes.length === 0 || clienteSeleccionado) return null;
 
     return (
-      <div className="mb-8 bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden animate-fadeIn">
+      <div className="mb-8 bg-app-surface rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] overflow-hidden animate-fadeIn">
         <div className="px-6 py-3 bg-gray-50/50 flex justify-between items-center">
           <h3 className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em]">
             Coincidencias ({clientes.length})
@@ -800,14 +800,14 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
             <button
               key={cliente.idCliente}
               onClick={() => seleccionarCliente(cliente)}
-              className="w-full px-6 py-4 text-left hover:bg-gray-50 transition-colors duration-200 flex items-center justify-between group"
+              className="w-full px-6 py-4 text-left hover:bg-app-hover-overlay transition-colors duration-200 flex items-center justify-between group"
             >
               <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center group-hover:bg-white group-hover:shadow-sm transition-all">
+                <div className="w-10 h-10 bg-app-bg-muted rounded-xl flex items-center justify-center group-hover:bg-app-surface group-hover:shadow-sm transition-all">
                   <MaterialIcon icon="person" className="w-5 h-5 text-gray-400 group-hover:text-black transition-colors" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-black">{cliente.nombreCliente}</p>
+                  <p className="text-sm font-bold text-app-text">{cliente.nombreCliente}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[9px] font-bold px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded uppercase">
                       {cliente.tipoCliente}
@@ -817,8 +817,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 </div>
               </div>
               <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                <div className="w-8 h-8 bg-black rounded-lg flex items-center justify-center">
-                  <MaterialIcon icon="check_circle" className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 bg-app-accent rounded-lg flex items-center justify-center">
+                  <MaterialIcon icon="check_circle" className="w-4 h-4 text-app-accent-fg" />
                 </div>
               </div>
             </button>
@@ -865,7 +865,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                   setDatosEncontrados(false);
                   setError(null);
                 }}
-                className="w-24 px-4 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-xs font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all appearance-none cursor-pointer"
+                className="w-24 px-4 py-4 bg-app-input border-transparent rounded-[1.25rem] text-xs font-bold focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all appearance-none cursor-pointer"
               >
                 <option value="DNI">DNI</option>
                 <option value="RUC">RUC</option>
@@ -874,7 +874,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 <input 
                   id="documento-mayorista" 
                   type="text" 
-                  className={`w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all ${
+                  className={`w-full px-5 py-4 bg-app-input border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all ${
                     nuevoCliente.numeroDocumento && 
                     ((tipoDocumento === 'DNI' && (nuevoCliente.numeroDocumento.length !== 8 || !/^\d+$/.test(nuevoCliente.numeroDocumento))) || 
                      (tipoDocumento === 'RUC' && (nuevoCliente.numeroDocumento.length !== 11 || !/^\d+$/.test(nuevoCliente.numeroDocumento)))) 
@@ -902,7 +902,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                     (tipoDocumento === 'DNI' && nuevoCliente.numeroDocumento.length !== 8) ||
                     (tipoDocumento === 'RUC' && nuevoCliente.numeroDocumento.length !== 11)
                   }
-                  className="absolute right-2 top-2 bottom-2 px-4 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-[0.98]"
+                  className="absolute right-2 top-2 bottom-2 px-4 bg-app-accent text-app-accent-fg rounded-xl hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all active:scale-[0.98]"
                 >
                   {buscandoDatosExternos ? (
                     <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />
@@ -956,7 +956,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                 value={nuevoCliente.nombreCliente}
                 onChange={(e) => manejarCambioNuevoCliente('nombreCliente', e.target.value)}
                 placeholder={obtenerPlaceholderNombre()}
-                className={`w-full pl-12 pr-4 py-4 bg-[#f8f8f8] border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all duration-300 ${
+                className={`w-full pl-12 pr-4 py-4 bg-app-input border-transparent rounded-[1.25rem] text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all duration-300 ${
                   datosEncontrados ? 'ring-2 ring-[#10b981]/10 !bg-[#10b981]/5' : ''
                 }`}
               />
@@ -972,10 +972,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           </div>
 
           {/* Información adicional decorativa */}
-          <div className="bg-black/[0.02] rounded-[1.5rem] p-5">
+          <div className="bg-app-surface-elevated rounded-[1.5rem] p-5">
             <div className="flex items-start gap-4">
-              <div className="w-8 h-8 bg-white rounded-xl shadow-sm flex items-center justify-center flex-shrink-0">
-                <MaterialIcon icon="description" className="w-4 h-4 text-black opacity-40" />
+              <div className="w-8 h-8 bg-app-surface rounded-xl shadow-sm flex items-center justify-center flex-shrink-0">
+                <MaterialIcon icon="description" className="w-4 h-4 text-app-text-muted" />
               </div>
               <div>
                 <p className="text-[10px] font-bold text-black uppercase tracking-wider mb-1">Automatización de Registro</p>
@@ -1000,7 +1000,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
           {clientePreseleccionado ? 'Objetivo de Conversión' : 'Ficha del Cliente'}
         </label>
         
-        <div className="bg-[#f8f8f8] rounded-[2rem] p-8 relative overflow-hidden group">
+        <div className="bg-app-surface rounded-[2rem] p-8 relative overflow-hidden group">
           {/* Fondo decorativo sutil */}
           <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.05] transition-opacity">
             <MaterialIcon icon="crown" className="w-[120px] h-[120px]" />
@@ -1015,8 +1015,8 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
             <div className="relative z-10">
               {/* Información principal */}
               <div className="flex items-start gap-6 mb-8">
-                <div className="w-16 h-16 bg-white rounded-2xl shadow-sm flex items-center justify-center flex-shrink-0">
-                  <MaterialIcon icon="person" className="w-8 h-8 text-black" />
+                <div className="w-16 h-16 bg-app-surface rounded-2xl shadow-sm flex items-center justify-center flex-shrink-0">
+                  <MaterialIcon icon="person" className="w-8 h-8 text-app-text" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h4 className="text-xl font-black text-black leading-tight mb-2 truncate">
@@ -1034,10 +1034,10 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
               
               {/* Bloque de código si ya es mayorista */}
               {esMayorista && (
-                <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-5 mb-6 flex items-center justify-between">
+                <div className="bg-app-surface/60 backdrop-blur-sm rounded-2xl p-5 mb-6 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-black rounded-xl flex items-center justify-center shadow-lg">
-                      <MaterialIcon icon="crown" className="text-white w-[18px] h-[18px]" />
+                    <div className="w-10 h-10 bg-app-accent rounded-xl flex items-center justify-center shadow-lg">
+                      <MaterialIcon icon="crown" className="text-app-accent-fg w-[18px] h-[18px]" />
                     </div>
                     <div>
                       <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-0.5">Identificador Mayorista</p>
@@ -1063,7 +1063,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
                     <button
                       onClick={mostrarConfirmacionEliminacionMayorista}
                       disabled={eliminandoMayorista || verificandoMayorista}
-                      className="w-full group/btn flex items-center justify-center gap-3 px-6 py-4 bg-white border border-red-100 hover:bg-red-500 text-red-500 hover:text-white rounded-[1.5rem] transition-all duration-300 disabled:opacity-50 active:scale-[0.98]"
+                      className="w-full group/btn flex items-center justify-center gap-3 px-6 py-4 bg-app-surface border border-red-500/20 hover:bg-red-500 text-red-500 hover:text-white rounded-[1.5rem] transition-all duration-300 disabled:opacity-50 active:scale-[0.98]"
                     >
                       {eliminandoMayorista ? (
                         <MaterialIcon icon="progress_activity" className="animate-spin w-[18px] h-[18px]" />
@@ -1119,7 +1119,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     <div className="flex gap-4 p-2">
       <button
         onClick={cerrarModalConAnimacion}
-        className="flex-1 py-4 bg-[#f8f8f8] rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] text-gray-400 hover:text-black hover:bg-gray-100 transition-all active:scale-[0.98]"
+        className="flex-1 py-4 bg-app-bg-muted rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] text-app-text-muted hover:text-app-text hover:bg-app-hover-overlay transition-all active:scale-[0.98]"
         disabled={convirtiendoMayorista || eliminandoMayorista || creandoMayorista}
       >
         Cancelar
@@ -1130,7 +1130,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         <button
           onClick={convertirAMayorista}
           disabled={!clienteSeleccionado || esMayorista || convirtiendoMayorista || eliminandoMayorista || !!exito}
-          className={`flex-[1.5] py-4 bg-black text-white rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97] ${animacionBotonConvertir}`}
+          className={`flex-[1.5] py-4 bg-app-accent text-app-accent-fg rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97] ${animacionBotonConvertir}`}
         >
           {convirtiendoMayorista ? (
             <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />
@@ -1148,7 +1148,7 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
         <button
           onClick={crearNuevoMayorista}
           disabled={!nuevoCliente.nombreCliente || !nuevoCliente.numeroDocumento || creandoMayorista || !!exito}
-          className="flex-[1.5] py-4 bg-black text-white rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97]"
+          className="flex-[1.5] py-4 bg-app-accent text-app-accent-fg rounded-[1.5rem] text-[10px] font-bold uppercase tracking-[0.2em] hover:opacity-90 transition-all disabled:opacity-30 disabled:grayscale flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(0,0,0,0.15)] active:scale-[0.97]"
         >
           {creandoMayorista ? (
             <MaterialIcon icon="progress_activity" className="animate-spin w-4 h-4" />

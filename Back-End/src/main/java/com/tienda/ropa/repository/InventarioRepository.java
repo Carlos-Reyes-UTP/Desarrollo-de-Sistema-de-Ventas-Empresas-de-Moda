@@ -92,6 +92,28 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
             + "WHERE i.ubicacionArea.idUbicacionArea = :idUbicacionArea AND COALESCE(i.stock, 0) > 0")
     int countVariantesConStockByUbicacionArea(@Param("idUbicacionArea") Long idUbicacionArea);
 
+    @Query("SELECT i FROM Inventario i "
+            + "JOIN FETCH i.variante v JOIN FETCH v.producto p "
+            + "JOIN FETCH i.ubicacionArea ua JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
+            + "WHERE COALESCE(i.stock, 0) <= :umbral "
+            + "AND LOWER(TRIM(u.nombre)) NOT IN :nombresAlmacenLower "
+            + "ORDER BY p.nombre, v.color, v.talla")
+    List<Inventario> findParaReposicion(
+            @Param("umbral") int umbral,
+            @Param("nombresAlmacenLower") List<String> nombresAlmacenLower);
+
+    @Query("SELECT i FROM Inventario i "
+            + "JOIN FETCH i.variante v JOIN FETCH v.producto p "
+            + "JOIN FETCH i.ubicacionArea ua JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
+            + "WHERE COALESCE(i.stock, 0) <= :umbral "
+            + "AND LOWER(TRIM(u.nombre)) NOT IN :nombresAlmacenLower "
+            + "AND a.idArea = :idAreaCatalogo "
+            + "ORDER BY p.nombre, v.color, v.talla")
+    List<Inventario> findParaReposicionPorLineaCatalogo(
+            @Param("umbral") int umbral,
+            @Param("nombresAlmacenLower") List<String> nombresAlmacenLower,
+            @Param("idAreaCatalogo") Long idAreaCatalogo);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Inventario i "
             + "JOIN i.ubicacionArea ua JOIN ua.ubicacion u JOIN ua.area a "

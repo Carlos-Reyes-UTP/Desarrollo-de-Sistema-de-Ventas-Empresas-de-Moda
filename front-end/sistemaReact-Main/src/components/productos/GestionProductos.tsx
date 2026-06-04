@@ -450,7 +450,7 @@ const GestionProductos: React.FC = () => {
       ) : (
         <>
           {/* Filters and Search Bar */}
-          <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-gray-50">
+          <div className="bg-app-surface rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-app-border">
         <div className="grid grid-cols-1 lg:grid-cols-6 gap-8 items-end">
           
           {/* Search Input - Taking more space */}
@@ -473,7 +473,7 @@ const GestionProductos: React.FC = () => {
                     handleBuscar();
                   }
                 }}
-                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium"
+                className="w-full pl-11 pr-4 py-3 bg-app-input border-transparent rounded-xl text-sm focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all font-medium"
               />
             </div>
           </div>
@@ -485,7 +485,7 @@ const GestionProductos: React.FC = () => {
             </label>
             <div 
               onClick={() => !selectedCategoriaPrincipal && setIsCategoriaPrincipalFocused(true)}
-              className={`relative cursor-pointer ${selectedCategoriaPrincipal ? 'bg-black text-white' : 'bg-[#f8f8f8] text-gray-900'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
+              className={`relative cursor-pointer ${selectedCategoriaPrincipal ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">
                 {selectedCategoriaPrincipal || "Todas las categorías"}
@@ -510,14 +510,14 @@ const GestionProductos: React.FC = () => {
 
             {/* Dropdown logic for Categoria Principal */}
             {isCategoriaPrincipalFocused && !selectedCategoriaPrincipal && (
-              <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
+              <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
                 <input
                   type="text"
                   autoFocus
                   placeholder="Filtrar..."
                   value={searchCategoriaPrincipal}
                   onChange={(e) => setSearchCategoriaPrincipal(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-gray-50 rounded-lg mb-2 focus:outline-none"
+                  className="w-full px-3 py-2 text-xs bg-app-bg-muted rounded-lg mb-2 focus:outline-none text-app-text"
                 />
 
                 {categoriasPrincipalesFiltradas.map(categoria => (
@@ -529,7 +529,7 @@ const GestionProductos: React.FC = () => {
                       setIsCategoriaPrincipalFocused(false);
                       // handleBuscar(); // Idealmente recargar con filtro server-side
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay text-app-text rounded-lg transition-colors font-medium"
                   >
                     {categoria.nombre}
                   </button>
@@ -545,7 +545,7 @@ const GestionProductos: React.FC = () => {
             </label>
             <div 
               onClick={() => selectedCategoriaPrincipal && !selectedSubCategoria && setIsSubCategoriaFocused(true)}
-              className={`relative ${!selectedCategoriaPrincipal ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedSubCategoria ? 'bg-gray-800 text-white' : 'bg-[#f8f8f8] text-gray-900'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
+              className={`relative ${!selectedCategoriaPrincipal ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedSubCategoria ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">
                 {selectedSubCategoria || "Subcategorías"}
@@ -569,14 +569,14 @@ const GestionProductos: React.FC = () => {
             </div>
 
             {isSubCategoriaFocused && selectedCategoriaPrincipal && !selectedSubCategoria && (
-              <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-2">
+              <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2">
                 <input
                   type="text"
                   autoFocus
                   placeholder="Filtrar..."
                   value={searchSubCategoria}
                   onChange={(e) => setSearchSubCategoria(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-gray-50 rounded-lg mb-2 focus:outline-none"
+                  className="w-full px-3 py-2 text-xs bg-app-bg-muted rounded-lg mb-2 focus:outline-none text-app-text"
                 />
 
                 {subcategoriasFiltradas.map(categoria => (
@@ -587,7 +587,7 @@ const GestionProductos: React.FC = () => {
                       setSearchSubCategoria('');
                       setIsSubCategoriaFocused(false);
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg transition-colors font-medium"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay text-app-text rounded-lg transition-colors font-medium"
                   >
                     {categoria.nombre}
                   </button>
@@ -603,7 +603,7 @@ const GestionProductos: React.FC = () => {
             </label>
             <div 
               onClick={() => !selectedProveedor && setIsProveedorFocused(true)}
-              className={`relative cursor-pointer ${selectedProveedor ? 'bg-black text-white' : 'bg-[#f8f8f8] text-gray-900'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
+              className={`relative cursor-pointer ${selectedProveedor ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">
                 {selectedProveedor || "Cualquier Proveedor"}
@@ -628,14 +628,14 @@ const GestionProductos: React.FC = () => {
 
             {/* Dropdown logic for Proveedor */}
             {isProveedorFocused && !selectedProveedor && (
-              <div className="absolute z-20 w-full mt-2 bg-white border border-gray-100 rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
+              <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
                 <input
                   type="text"
                   autoFocus
                   placeholder="Filtrar..."
                   value={searchProveedor}
                   onChange={(e) => setSearchProveedor(e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-gray-50 rounded-lg mb-2 focus:outline-none"
+                  className="w-full px-3 py-2 text-xs bg-app-bg-muted rounded-lg mb-2 focus:outline-none text-app-text"
                 />
 
                 {proveedoresFiltradas.map(p => (
@@ -647,7 +647,7 @@ const GestionProductos: React.FC = () => {
                       setSearchProveedor('');
                       setIsProveedorFocused(false);
                     }}
-                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-lg transition-colors font-medium text-gray-900"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay rounded-lg transition-colors font-medium text-app-text"
                   >
                     {p.nombre}
                   </button>
@@ -667,7 +667,7 @@ const GestionProductos: React.FC = () => {
           <div className="lg:col-span-2 flex flex-col justify-end h-full">
              <button
               onClick={handleBuscar}
-              className="w-full py-3 bg-black text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-md hover:bg-gray-800"
+              className="w-full py-3 bg-app-accent text-app-accent-fg rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-md hover:opacity-90"
             >
               Aplicar Búsqueda
             </button>
@@ -677,17 +677,17 @@ const GestionProductos: React.FC = () => {
       </div>
 
       {/* Product Table Section */}
-      <div className="bg-white rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-gray-50 overflow-hidden">
+      <div className="bg-app-surface rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] border border-app-border overflow-hidden">
         {/* Top Pagination Control */}
-        <div className="px-8 py-4 border-b border-gray-50 flex justify-between items-center bg-white">
+        <div className="px-8 py-4 border-b border-app-border flex justify-between items-center bg-app-surface">
           <h3 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Listado de Existencias</h3>
           
           {totalPages > 1 && (
-            <div className="flex items-center gap-1 bg-[#fcfcfc] p-1 rounded-xl border border-gray-100 scale-90 origin-right">
+            <div className="flex items-center gap-1 bg-app-bg-muted p-1 rounded-xl border border-app-border scale-90 origin-right">
               <button
                 onClick={handlePaginaAnterior}
                 disabled={page === 0}
-                className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-app-text-muted hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
               >
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -695,14 +695,14 @@ const GestionProductos: React.FC = () => {
                 Atrás
               </button>
               
-              <div className="px-4 py-1.5 text-[10px] font-mono font-bold text-black border-x border-gray-100">
+              <div className="px-4 py-1.5 text-[10px] font-mono font-bold text-app-text border-x border-app-border">
                 {page + 1} / {totalPages}
               </div>
 
               <button
                 onClick={handlePaginaSiguiente}
                 disabled={page >= totalPages - 1}
-                className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                className="px-4 py-1.5 text-[9px] font-bold uppercase tracking-widest text-app-text-muted hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
               >
                 Sig.
                 <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -714,9 +714,9 @@ const GestionProductos: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto custom-scrollbar">
-          <table className="w-full table-zebra">
+          <table className="w-full border-collapse table-zebra">
             <thead>
-              <tr className="bg-white border-b border-gray-100">
+              <tr className="bg-app-surface border-b border-app-border">
                 <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
                   Código e Identidad
                 </th>
@@ -735,7 +735,7 @@ const GestionProductos: React.FC = () => {
               </tr>
             </thead>
 
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-app-border">
               {loading ? (
                 Array.from({ length: 8 }, (_, row) => (
                   <tr key={`sk-${row}`}>
@@ -759,11 +759,11 @@ const GestionProductos: React.FC = () => {
                 }
 
                 return (
-                  <tr key={producto.idProducto} className="hover:bg-slate-100/60 transition-colors duration-150 group">
+                  <tr key={producto.idProducto} className="hover:bg-app-hover-overlay transition-colors duration-150 group">
                     {/* Code & Identity */}
                     <td className="px-8 py-6">
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-black mb-1">{producto.codigoIdentificacion}</span>
+                        <span className="text-sm font-bold text-app-text mb-1">{producto.codigoIdentificacion}</span>
                         <div className="flex items-center gap-1 opacity-40 group-hover:opacity-100 transition-opacity">
                           <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h2M4 8h12m4 8h.01M4 16h4m12 0h2" />
@@ -778,11 +778,11 @@ const GestionProductos: React.FC = () => {
                     {/* Product Name & Thumbnail */}
                     <td className="px-8 py-6">
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center p-2 group-hover:bg-white border border-transparent group-hover:border-gray-100 transition-all shadow-sm">
+                        <div className="w-12 h-12 rounded-xl bg-app-bg-muted flex items-center justify-center p-2 group-hover:bg-app-surface border border-transparent group-hover:border-app-border transition-all shadow-sm">
                           <MaterialIcon icon="package" className="w-6 h-6 text-gray-400" />
                         </div>
                         <div className="flex flex-col">
-                          <span className="text-sm font-bold text-black leading-tight mb-1">
+                          <span className="text-sm font-bold text-app-text leading-tight mb-1">
                             {producto.nombre}
                           </span>
                           <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
@@ -797,7 +797,7 @@ const GestionProductos: React.FC = () => {
                       <div className="flex items-center justify-center gap-6">
                         <div className="flex flex-col items-center">
                           <span className="text-[9px] font-bold text-gray-300 uppercase mb-1">Unid</span>
-                          <span className="text-sm font-bold text-gray-900">S/ {(producto.precioUnitario ?? 0).toFixed(2)}</span>
+                          <span className="text-sm font-bold text-app-text">S/ {(producto.precioUnitario ?? 0).toFixed(2)}</span>
                         </div>
                         <div className="flex flex-col items-center">
                           <span className="text-[9px] font-bold text-gray-300 uppercase mb-1">Cto</span>
@@ -820,7 +820,7 @@ const GestionProductos: React.FC = () => {
                         <div className={`w-2 h-2 rounded-full ${stockStatus.color}`}></div>
                         <div className="flex flex-col">
                           <div className="flex items-baseline gap-2">
-                            <span className="text-sm font-black text-black">{cantidad}</span>
+                            <span className="text-sm font-black text-app-text">{cantidad}</span>
                             <span className={`text-[10px] font-bold ${stockStatus.text} tracking-widest`}>
                               {stockStatus.label}
                             </span>
@@ -837,7 +837,7 @@ const GestionProductos: React.FC = () => {
                             setProductoVariantes(producto);
                             setShowVariantes(true);
                           }}
-                          className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all text-gray-400 shadow-sm hover:shadow-md border border-transparent"
+                          className="p-2.5 hover:bg-app-accent hover:text-app-accent-fg rounded-xl transition-all text-app-text-muted shadow-sm hover:shadow-md border border-transparent"
                           title="Detalles de Stock"
                         >
                           <MaterialIcon icon="package" className="w-4 h-4" />
@@ -848,7 +848,7 @@ const GestionProductos: React.FC = () => {
                             setProductoEditar(producto);
                             setShowFormulario(true);
                           }}
-                          className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all text-gray-400 shadow-sm hover:shadow-md border border-transparent"
+                          className="p-2.5 hover:bg-app-accent hover:text-app-accent-fg rounded-xl transition-all text-app-text-muted shadow-sm hover:shadow-md border border-transparent"
                           title="Editar"
                         >
                           <MaterialIcon icon="edit" className="w-4 h-4" />
@@ -876,9 +876,9 @@ const GestionProductos: React.FC = () => {
         )}
           
           {productosFiltrados.length === 0 && !loading && (
-            <div className="text-center py-16 px-4 border-t border-gray-100 bg-slate-50/40">
+            <div className="text-center py-16 px-4 border-t border-app-border bg-app-surface-elevated">
               <MaterialIcon icon="package" className="mx-auto h-14 w-14 text-slate-300 mb-4" />
-              <h3 className="text-lg font-bold text-gray-900">No hay productos que coincidan</h3>
+              <h3 className="text-lg font-bold text-app-text">No hay productos que coincidan</h3>
               <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
                 Prueba otra búsqueda, ajusta los filtros o crea un producto nuevo en el catálogo.
               </p>
@@ -886,7 +886,7 @@ const GestionProductos: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowFormulario(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-xl bg-app-accent px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-app-accent-fg shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
                 >
                   <MaterialIcon icon="add" className="h-4 w-4" />
                   Nuevo producto
@@ -894,7 +894,7 @@ const GestionProductos: React.FC = () => {
                 <button
                   type="button"
                   onClick={limpiarFiltrosYRecargar}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 rounded-xl border border-app-border bg-app-surface px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-app-text shadow-sm transition-all hover:bg-app-hover-overlay active:scale-[0.98]"
                 >
                   Limpiar filtros y recargar
                 </button>
@@ -904,28 +904,28 @@ const GestionProductos: React.FC = () => {
 
         {/* Improved Pagination / Footer SERVER SIDE */}
         {totalPages > 0 && (
-          <div className="px-8 py-6 bg-[#fafafa] flex flex-col sm:flex-row justify-between items-center gap-4">
+          <div className="px-8 py-6 bg-app-bg-muted flex flex-col sm:flex-row justify-between items-center gap-4">
             <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-              Mostrando página <span className="text-black">{page + 1}</span> de <span className="text-black">{totalPages}</span> ({totalElements} totales)
+              Mostrando página <span className="text-app-text">{page + 1}</span> de <span className="text-app-text">{totalPages}</span> ({totalElements} totales)
             </p>
             
-            <div className="flex items-center gap-1 bg-white p-1 rounded-[14px] shadow-sm border border-gray-100">
+            <div className="flex items-center gap-1 bg-app-surface p-1 rounded-[14px] shadow-sm border border-app-border">
               <button
                 onClick={handlePaginaAnterior}
                 disabled={page === 0}
-                className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-app-text-muted hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 Anterior
               </button>
               
-              <div className="px-4 py-2 text-[12px] font-bold text-black border-x border-gray-100">
+              <div className="px-4 py-2 text-[12px] font-bold text-app-text border-x border-app-border">
                 Pág. {page + 1}
               </div>
 
               <button
                 onClick={handlePaginaSiguiente}
                 disabled={page >= totalPages - 1}
-                className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-black disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                className="px-4 py-2 text-[10px] font-bold uppercase tracking-widest text-app-text-muted hover:text-app-text disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               >
                 Siguiente
               </button>

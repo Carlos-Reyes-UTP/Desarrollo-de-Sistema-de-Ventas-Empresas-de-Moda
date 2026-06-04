@@ -119,6 +119,76 @@ export function filtrarVentasPorPeriodo(ventas: Venta[], periodo: PeriodoDashboa
   return ventas.filter((v) => ventaEnPeriodo(v.fechaVenta, periodo));
 }
 
+function diasEnPeriodo(periodo: PeriodoDashboard): number {
+  switch (periodo) {
+    case 'hoy':
+      return 1;
+    case '7d':
+      return 7;
+    case '30d':
+      return 30;
+  }
+}
+
+/** Rango del período inmediatamente anterior (misma duración que el período activo). */
+export function rangoPeriodoAnterior(periodo: PeriodoDashboard): { inicio: Date; fin: Date } {
+  const inicioActual = inicioPeriodo(periodo);
+  const finAnterior = new Date(inicioActual.getTime() - 1);
+  finAnterior.setHours(23, 59, 59, 999);
+  const inicioAnterior = new Date(finAnterior);
+  inicioAnterior.setDate(inicioAnterior.getDate() - (diasEnPeriodo(periodo) - 1));
+  inicioAnterior.setHours(0, 0, 0, 0);
+  return { inicio: inicioAnterior, fin: finAnterior };
+}
+
+export function filtrarVentasEnRango(ventas: Venta[], inicio: Date, fin: Date): Venta[] {
+  if (!ventas?.length) return [];
+  return ventas.filter((v) => {
+    const f = new Date(v.fechaVenta);
+    return !Number.isNaN(f.getTime()) && f >= inicio && f <= fin;
+  });
+}
+
+function pctCrecimiento(actual: number, anterior: number): number {
+  if (anterior === 0) return actual > 0 ? 100 : 0;
+  return ((actual - anterior) / anterior) * 100;
+}
+
+function metricasDesdeVentas(ventas: Venta[]) {
+  const totalVentas = ventas.reduce((s, v) => s + (v.totalVentas ?? 0), 0);
+  const totalOrdenes = ventas.length;
+  const ticketPromedio = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
+  const clientesActivos = new Set(
+    ventas.map((v) => v.cliente?.idCliente).filter((id) => id !== undefined)
+  ).size;
+  return { totalVentas, totalOrdenes, ticketPromedio, clientesActivos };
+}
+
+export interface MetricasComparacionPeriodo {
+  crecimientoVentas: number;
+  crecimientoOrdenes: number;
+  crecimientoTicket: number;
+  crecimientoClientes: number;
+}
+
+/** Compara período activo vs ventana anterior equivalente (alineado al selector Hoy/7d/30d). */
+export function calcularMetricasComparacionPeriodo(
+  ventas: Venta[],
+  periodo: PeriodoDashboard
+): MetricasComparacionPeriodo {
+  const actual = filtrarVentasPorPeriodo(ventas, periodo);
+  const { inicio, fin } = rangoPeriodoAnterior(periodo);
+  const anterior = filtrarVentasEnRango(ventas, inicio, fin);
+  const mAct = metricasDesdeVentas(actual);
+  const mAnt = metricasDesdeVentas(anterior);
+  return {
+    crecimientoVentas: pctCrecimiento(mAct.totalVentas, mAnt.totalVentas),
+    crecimientoOrdenes: pctCrecimiento(mAct.totalOrdenes, mAnt.totalOrdenes),
+    crecimientoTicket: pctCrecimiento(mAct.ticketPromedio, mAnt.ticketPromedio),
+    crecimientoClientes: pctCrecimiento(mAct.clientesActivos, mAnt.clientesActivos),
+  };
+}
+
 const DIAS_CORTOS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
 export function procesarDatosGraficoPorPeriodo(

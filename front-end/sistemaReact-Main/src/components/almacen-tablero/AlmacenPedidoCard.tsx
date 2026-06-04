@@ -52,12 +52,12 @@ export function AlmacenPedidoCard({
   const baseCard =
     "relative flex flex-col rounded-2xl border p-4 shadow-sm backdrop-blur-md transition-all sm:p-5 " +
     (modoVenta
-      ? "border-gray-200 bg-white/80"
-      : "border-gray-200 bg-white/70");
+      ? "border-gray-200 bg-app-surface/80"
+      : "border-gray-200 bg-app-surface/70");
 
   const resaltarClass =
     resaltar && modoVenta
-      ? " ring-2 ring-black/20 ring-offset-1 ring-offset-[#fafafa] animate-pulse"
+      ? " ring-2 ring-app-ring ring-offset-1 ring-offset-transparent animate-pulse"
       : "";
 
   return (
@@ -120,7 +120,7 @@ export function AlmacenPedidoCard({
           type="button"
           disabled={procesando}
           onClick={onConfirmar}
-          className="min-h-[52px] rounded-xl bg-black py-3 text-sm font-bold uppercase tracking-wide text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98] disabled:opacity-50 sm:min-h-[56px] sm:text-base"
+          className="min-h-[52px] rounded-xl bg-app-accent py-3 text-sm font-bold uppercase tracking-wide text-app-accent-fg shadow-sm transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-50 sm:min-h-[56px] sm:text-base"
         >
           Confirmar
         </button>
@@ -128,7 +128,7 @@ export function AlmacenPedidoCard({
           type="button"
           disabled={procesando}
           onClick={onRechazar}
-          className="min-h-[48px] rounded-xl border border-gray-200 bg-white py-2.5 text-sm font-semibold uppercase tracking-wide text-gray-900 shadow-sm transition-all hover:bg-gray-100 active:scale-[0.98] disabled:opacity-50 sm:min-h-[52px]"
+          className="min-h-[48px] rounded-xl border border-app-border-strong bg-app-surface py-2.5 text-sm font-semibold uppercase tracking-wide text-app-text shadow-sm transition-all hover:bg-app-bg-muted active:scale-[0.98] disabled:opacity-50 sm:min-h-[52px]"
         >
           Rechazar
         </button>

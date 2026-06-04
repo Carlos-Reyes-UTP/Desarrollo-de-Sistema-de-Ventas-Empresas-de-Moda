@@ -817,29 +817,29 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   return (
     <ModalPortal>
     <div className={`app-modal-overlay fixed inset-0 bg-[#0c0c0e]/80 backdrop-blur-md flex items-center justify-center transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className={`bg-neutral-50 rounded-[2.5rem] shadow-[0_32px_80px_rgba(0,0,0,0.25)] w-full max-w-6xl max-h-[92vh] overflow-hidden border border-neutral-100 relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+      <div className={`bg-app-surface rounded-[2.5rem] shadow-[0_32px_80px_rgba(0,0,0,0.25)] w-full max-w-6xl max-h-[92vh] overflow-hidden border border-app-border relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
         {/* Elegant Modal Header with Luxury Accents */}
-        <div className="relative bg-white border-b border-neutral-100 px-10 py-7">
+        <div className="relative bg-app-surface border-b border-app-border px-10 py-7">
           {/* Subtle gold line accent for premium luxury look */}
           <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-500 via-neutral-900 to-amber-600" />
           
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-5">
-              <div className="p-3 bg-neutral-900 rounded-2xl border border-neutral-800 shadow-sm flex items-center justify-center">
-                <MaterialIcon icon="inventory_2" className="w-6 h-6 text-white" />
+              <div className="p-3 bg-app-accent rounded-2xl border border-app-border shadow-sm flex items-center justify-center">
+                <MaterialIcon icon="inventory_2" className="w-6 h-6 text-app-accent-fg" />
               </div>
               <div>
-                <h2 className="text-[1.5rem] font-black tracking-tight text-neutral-900 uppercase leading-none mb-1.5">
+                <h2 className="text-[1.5rem] font-black tracking-tight text-app-text uppercase leading-none mb-1.5">
                   {producto ? 'Editar Producto' : 'Crear Nuevo Producto'}
                 </h2>
-                <p className="text-neutral-400 text-xs font-semibold uppercase tracking-widest">
+                <p className="text-app-text-muted text-xs font-semibold uppercase tracking-widest">
                   {producto ? 'Modifica la información exclusiva de la prenda' : 'Registra una nueva prenda en el catálogo de moda'}
                 </p>
               </div>
             </div>
             <button
               onClick={handleClose}
-              className="w-10 h-10 bg-neutral-50 hover:bg-neutral-900 border border-neutral-100 hover:border-neutral-950 text-neutral-500 hover:text-white rounded-2xl flex items-center justify-center transition-all duration-200"
+              className="w-10 h-10 bg-app-input hover:bg-app-hover-overlay border border-app-border text-app-text-muted hover:text-app-text rounded-2xl flex items-center justify-center transition-all duration-200"
             >
               <MaterialIcon icon="close" className="w-4 h-4" />
             </button>
@@ -847,7 +847,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
         </div>
 
         {/* Scrollable content container with luxury neutral background */}
-        <div className="overflow-y-auto flex-1 bg-neutral-50">
+        <div className="overflow-y-auto flex-1 bg-app-surface">
           <div className="px-10 py-8">
             {error && (
                <div className="mb-8 p-5 bg-rose-50 border border-rose-100/50 rounded-3xl flex items-start gap-4 shadow-sm">
@@ -861,7 +861,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
 
             <form onSubmit={handleSubmit} className="space-y-8">
               {/* Premium Floating Stepper */}
-              <div className="flex items-center gap-2 overflow-x-auto bg-white p-2.5 rounded-3xl border border-neutral-100 shadow-sm mb-10">
+              <div className="flex items-center gap-2 overflow-x-auto bg-app-surface p-2.5 rounded-3xl border border-app-border shadow-sm mb-10">
                 {steps.map((step, idx) => {
                   const isActive = tabActiva === step.id;
                   const isCompleted = step.isValid;
@@ -873,17 +873,17 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                         onClick={() => setTabActiva(step.id)}
                         className={`shrink-0 flex items-center gap-3 px-5 py-3 rounded-2xl transition-all duration-300 ease-out text-left relative focus:outline-none min-w-[150px] md:min-w-0 md:flex-1 ${
                           isActive
-                            ? 'bg-neutral-950 text-white shadow-lg shadow-neutral-950/20 translate-y-[-1px]'
-                            : 'bg-white hover:bg-neutral-50 text-neutral-800'
+                            ? 'bg-app-accent text-app-accent-fg shadow-lg translate-y-[-1px]'
+                            : 'bg-app-surface hover:bg-app-hover-overlay text-app-text'
                         }`}
                       >
                         {/* Circle step indicator */}
                         <div className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black shrink-0 transition-all duration-300 ${
                           isActive 
-                            ? 'bg-white text-black' 
+                            ? 'bg-app-surface text-app-text' 
                             : isCompleted 
                               ? 'bg-emerald-50 text-emerald-700' 
-                              : 'bg-neutral-100 text-neutral-400'
+                              : 'bg-app-input text-app-text-muted'
                         }`}>
                           {isCompleted ? (
                             <MaterialIcon icon="check" className="w-4 h-4 font-bold" />
@@ -991,12 +991,12 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
               )}
 
               {/* Premium Sticky Footer Glassmorphic */}
-              <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-white/90 backdrop-blur-md px-10 py-6 border-t border-neutral-100/85 z-25 shadow-[0_-12px_32px_rgba(0,0,0,0.03)] -mx-10 -mb-8">
+              <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-between items-center sticky bottom-0 bg-app-surface/90 backdrop-blur-md px-10 py-6 border-t border-app-border/85 z-25 shadow-[0_-12px_32px_rgba(0,0,0,0.03)] -mx-10 -mb-8">
                 <div className="flex gap-3.5 w-full sm:w-auto">
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl border border-neutral-200 bg-white text-neutral-850 hover:bg-neutral-900 hover:text-white hover:border-neutral-900 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
+                    className="flex-1 sm:flex-initial px-6 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-accent hover:text-app-accent-fg font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                   >
                     Cancelar
                   </button>
@@ -1010,7 +1010,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                           else if (tabActiva === 'precios') setTabActiva('variantes');
                           else if (tabActiva === 'codigosBarras') setTabActiva('precios');
                         }}
-                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
+                        className="px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-hover-overlay font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Anterior
                       </button>
@@ -1020,7 +1020,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('variantes')}
-                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
+                        className="px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-hover-overlay font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Siguiente
                       </button>
@@ -1030,7 +1030,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('precios')}
-                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
+                        className="px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-hover-overlay font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Siguiente
                       </button>
@@ -1040,7 +1040,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                       <button
                         type="button"
                         onClick={() => setTabActiva('codigosBarras')}
-                        className="px-5 py-3.5 rounded-2xl border border-neutral-250 bg-white text-neutral-850 hover:bg-neutral-50 font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
+                        className="px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-hover-overlay font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
                       >
                         Siguiente
                       </button>
@@ -1054,7 +1054,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                     <button
                       type="submit"
                       onClick={() => setCrearSiguiente(true)}
-                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-neutral-900 border border-neutral-300 bg-white hover:bg-neutral-50 rounded-2xl transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-app-text border border-app-border bg-app-surface hover:bg-app-hover-overlay rounded-2xl transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                       disabled={loading}
                     >
                       Guardar y Siguiente
@@ -1064,7 +1064,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                   <button
                     type="submit"
                     onClick={() => setCrearSiguiente(false)}
-                    className="flex-1 sm:flex-initial px-8 py-3.5 text-xs font-bold text-white bg-neutral-950 hover:bg-neutral-800 rounded-2xl shadow-lg shadow-neutral-950/15 active:scale-[0.98] transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    className="flex-1 sm:flex-initial px-8 py-3.5 text-xs font-bold text-app-accent-fg bg-app-accent hover:opacity-90 rounded-2xl shadow-lg active:scale-[0.98] transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
                     disabled={loading}
                   >
                     <MaterialIcon icon="save" className="w-4 h-4 text-amber-500" />

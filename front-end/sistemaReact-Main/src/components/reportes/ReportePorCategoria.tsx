@@ -1,75 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   TableCellsIcon,
   ArrowDownTrayIcon
 } from '@heroicons/react/24/outline';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell
-} from 'recharts';
+import { Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
-import type { ReporteCategoriaData, FiltrosReporte } from '../../types/ReporteVentas';
-import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton } from '@/shared/ui';
-import { RoseChart } from './shared/RoseChart';
+import type { ReporteCategoriaData } from '../../types/ReporteVentas';
+import { AlertModal, ChartSkeleton, Skeleton, PageActionButton, SectionHeader } from '@/shared/ui';
+import { useReportPeriodContext } from '@/components/reportes/context/ReportPeriodContext';
+import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
+import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
+import { ReportViewPills } from '@/components/reportes/layout/ReportViewPills';
+import { CATEGORY_CHART_SLICE_COLORS } from '@/components/reportes/layout/reportChartTheme';
+import { CustomTooltipCategoria } from '@/components/reportes/layout/categoryChartTooltip';
+import { ReportCategoryBarChart } from '@/components/reportes/layout/ReportCategoryBarChart';
+import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
+import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
+import { generarInsightCategoria } from '@/utils/reportInsights';
 
-interface CustomTooltipProps {
-  active?: boolean;
-  payload?: unknown[];
-  label?: string;
-}
-
-const CustomTooltipCategoria: React.FC<CustomTooltipProps> = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    const data = (payload as any[])[0].payload;
-    return (
-      <div className="bg-white/95 dark:bg-gray-950/95 backdrop-blur-md p-4 rounded-xl border border-gray-150/60 dark:border-gray-800/80 shadow-xl shadow-slate-200/50 dark:shadow-black/50 min-w-[220px]">
-        <div className="flex items-center space-x-2 pb-2 mb-2 border-b border-gray-100 dark:border-gray-800/60">
-          <span className="w-2.5 h-2.5 rounded-full bg-violet-500 animate-pulse"></span>
-          <span className="font-semibold text-gray-850 dark:text-gray-200 text-sm">{data.categoria || label}</span>
-        </div>
-        <div className="space-y-1.5 text-xs text-gray-600 dark:text-gray-400">
-          <div className="flex justify-between items-center gap-4">
-            <span>Ingresos Totales:</span>
-            <span className="font-bold text-violet-600 dark:text-violet-400">
-              S/. {Number(data.ingresosTotales).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <span>Cantidad Total:</span>
-            <span className="font-semibold text-gray-800 dark:text-gray-200">
-              {data.cantidadTotalVendida || 0} unds
-            </span>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <span>Productos Únicos:</span>
-            <span className="font-semibold text-gray-800 dark:text-gray-200">
-              {data.cantidadProductosVendidos || 0} items
-            </span>
-          </div>
-          {data.productoMasVendido?.nombre && (
-            <div className="pt-1.5 mt-1.5 border-t border-gray-100 dark:border-gray-800/40 text-[10px]">
-              <span className="block text-gray-500 font-medium mb-0.5">TOP PRODUCTO</span>
-              <div className="flex justify-between items-center text-gray-700 dark:text-gray-300">
-                <span className="truncate max-w-[120px] font-medium">{data.productoMasVendido.nombre}</span>
-                <span className="font-semibold text-gray-900 dark:text-gray-100">{data.productoMasVendido.cantidadVendida} unds</span>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
+const VISTAS_CATEGORIA = [
+  { id: 'resumen' as const, label: 'Resumen' },
+  { id: 'barras' as const, label: 'Barras' },
+];
 
 // Tipos para el estado de navegación
 interface Breadcrumb {
@@ -79,11 +32,12 @@ interface Breadcrumb {
 }
 
 const ReportePorCategoria: React.FC = () => {
+  const { filtrosFecha, etiqueta } = useReportPeriodContext();
+  const { setActions } = useReportPageActions();
   const [reportes, setReportes] = useState<ReporteCategoriaData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filtros] = useState<FiltrosReporte>({});
-  const [vistaGrafico, setVistaGrafico] = useState<'barras' | 'pie' | 'rose' | 'tabla'>('barras');
+  const [vistaGrafico, setVistaGrafico] = useState<'resumen' | 'barras'>('resumen');
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
   
   // Estados para la navegación drill-down
@@ -92,11 +46,21 @@ const ReportePorCategoria: React.FC = () => {
   ]);
   const [nivelActual, setNivelActual] = useState<'padre' | 'subcategoria' | 'segunda-subcategoria'>('padre');
   const categoriaSeleccionadaRef = useRef<number | null>(null);
-  const [panelExpandido, setPanelExpandido] = useState(false);
+  const puedeDrillDown = nivelActual !== 'segunda-subcategoria';
 
   useEffect(() => {
     cargarReportes();
-  }, [filtros, nivelActual]);
+  }, [filtrosFecha, nivelActual]);
+
+  const parentNombre = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 1]?.nombre : undefined;
+  const insightCategoria = useMemo(
+    () =>
+      generarInsightCategoria(
+        reportes.map((r) => ({ categoria: r.categoria, ingresosTotales: r.ingresosTotales })),
+        parentNombre
+      ),
+    [reportes, parentNombre]
+  );
 
   const cargarReportes = async () => {
     try {
@@ -109,10 +73,10 @@ const ReportePorCategoria: React.FC = () => {
         case 'padre':
           console.log('🔍 Cargando categorías principales...');
           console.log('📡 Endpoint:', 'http://localhost:8080/api/admin/reportes/por-categoria');
-          console.log('📊 Filtros enviados:', filtros);
+          console.log('📊 Filtros enviados:', filtrosFecha);
           
           // Llamada al servicio
-          data = await ReporteService.getReportePorCategoria(filtros);
+          data = await ReporteService.getReportePorCategoria(filtrosFecha);
           console.log('📈 Respuesta del backend:', data);
           
           if (data.length === 0) {
@@ -123,7 +87,7 @@ const ReportePorCategoria: React.FC = () => {
         case 'subcategoria':
           if (categoriaSeleccionadaRef.current) {
             console.log(`🔍 Cargando subcategorías para la categoría ${categoriaSeleccionadaRef.current}...`);
-            data = await ReporteService.getReportePorSubcategoria(categoriaSeleccionadaRef.current, filtros);
+            data = await ReporteService.getReportePorSubcategoria(categoriaSeleccionadaRef.current, filtrosFecha);
           } else {
             console.warn('⚠️ No hay categoría seleccionada para mostrar subcategorías');
             data = [];
@@ -132,7 +96,7 @@ const ReportePorCategoria: React.FC = () => {
         case 'segunda-subcategoria':
           if (categoriaSeleccionadaRef.current) {
             console.log(`🔍 Cargando segunda subcategoría para la subcategoría ${categoriaSeleccionadaRef.current}...`);
-            data = await ReporteService.getReportePorSegundaSubcategoria(categoriaSeleccionadaRef.current, filtros);
+            data = await ReporteService.getReportePorSegundaSubcategoria(categoriaSeleccionadaRef.current, filtrosFecha);
           } else {
             console.warn('⚠️ No hay subcategoría seleccionada para mostrar segunda subcategoría');
             data = [];
@@ -159,8 +123,6 @@ const ReportePorCategoria: React.FC = () => {
     }
   };
 
-  const coloresPie = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
-
   // Función para navegar hacia adelante (drill-down)
   const navegarHacia = (categoria: ReporteCategoriaData) => {
     if (!categoria.idCategoria) {
@@ -182,9 +144,6 @@ const ReportePorCategoria: React.FC = () => {
     setBreadcrumbs(prev => [...prev, nuevoBreadcrumb]);
     categoriaSeleccionadaRef.current = categoria.idCategoria;
     setNivelActual(nuevoNivel);
-    
-    // Auto-expandir el panel cuando se navega a un nuevo nivel
-    setPanelExpandido(true);
   };
 
   // Función para navegar hacia atrás
@@ -204,12 +163,9 @@ const ReportePorCategoria: React.FC = () => {
       categoriaSeleccionadaRef.current = breadcrumbAnterior.id;
       setNivelActual(breadcrumbAnterior.nivel);
     }
-    
-    // Auto-expandir el panel cuando se navega hacia atrás
-    setPanelExpandido(true);
   };
 
-  const exportarDatos = async () => {
+  const exportarDatos = useCallback(async () => {
     if (reportes.length === 0) {
       setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
@@ -283,14 +239,38 @@ const ReportePorCategoria: React.FC = () => {
       console.error('Error al exportar datos:', error);
       setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
-  };
+  }, [reportes, nivelActual]);
+
+  useEffect(() => {
+    setActions(
+      <PageActionButton onClick={exportarDatos} disabled={loading || reportes.length === 0}>
+        <ArrowDownTrayIcon className="h-4 w-4" />
+        Exportar Excel
+      </PageActionButton>
+    );
+    return () => setActions(null);
+  }, [setActions, exportarDatos, loading, reportes.length]);
+
+  const totalIngresos = useMemo(
+    () => reportes.reduce((sum, r) => sum + r.ingresosTotales, 0),
+    [reportes]
+  );
+
+  const topCategoria = useMemo(() => {
+    if (reportes.length === 0) return null;
+    return [...reportes].sort((a, b) => b.ingresosTotales - a.ingresosTotales)[0];
+  }, [reportes]);
+
+  const bottomCategoria = useMemo(() => {
+    if (reportes.length <= 1) return null;
+    return [...reportes].sort((a, b) => a.ingresosTotales - b.ingresosTotales)[0];
+  }, [reportes]);
 
   if (loading) {
     return (
       <div className="space-y-6 p-6">
         <Skeleton className="h-8 w-56" />
         <ChartSkeleton />
-        <TableSkeleton rows={8} columns={5} />
       </div>
     );
   }
@@ -306,557 +286,240 @@ const ReportePorCategoria: React.FC = () => {
     );
   }
 
-  const totalIngresos = reportes.reduce((sum, r) => sum + r.ingresosTotales, 0);
-
   return (
-    <div className="p-6 bg-gray-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="space-y-6">
-          {/* Cabecera */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Ventas por Categoría</h2>
-              <p className="text-gray-600 mt-1">
-                Análisis de ventas segmentado por categorías de productos
-              </p>
-            </div>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={exportarDatos}
-                disabled={loading || reportes.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                <ArrowDownTrayIcon className="h-4 w-4" />
-                Exportar Excel
-              </button>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {insightCategoria ? (
+        <ReportInsightBanner message={insightCategoria} headline="Mix por categoría" icon="category" />
+      ) : null}
 
-          {/* Breadcrumbs de navegación */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-            <nav className="flex" aria-label="Breadcrumb">
-              <ol className="flex items-center space-x-2">
-                {breadcrumbs.map((breadcrumb, index) => (
-                  <li key={`${breadcrumb.nivel}-${breadcrumb.id || 'root'}`} className="flex items-center">
-                    {index > 0 && (
-                      <svg
-                        className="flex-shrink-0 h-5 w-5 text-gray-400 mx-2"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                        aria-hidden="true"
-                      >
-                        <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
-                      </svg>
-                    )}
-                    <button
-                      onClick={() => navegarAtras(index)}
-                      className={`text-sm font-medium transition-colors ${
-                        index === breadcrumbs.length - 1
-                          ? 'text-gray-500 cursor-default'
-                          : 'text-blue-600 hover:text-blue-800 hover:underline'
-                      }`}
-                      disabled={index === breadcrumbs.length - 1}
-                    >
-                      {breadcrumb.nombre}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </nav>
-            <div className="flex items-center justify-between mt-2">
-              <p className="text-xs text-gray-500">
-                {nivelActual === 'padre' && 'Mostrando categorías principales'}
-                {nivelActual === 'subcategoria' && 'Mostrando subcategorías'}
-                {nivelActual === 'segunda-subcategoria' && 'Mostrando segunda subcategoría'}
-              </p>
-              {breadcrumbs.length > 1 && (
-                <div className="flex items-center space-x-2 text-xs text-blue-600">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span>Haz clic en cualquier nivel para navegar atrás</span>
-                </div>
-              )}
-            </div>
-          </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <DashboardMetricCard
+          label={nivelActual === 'padre' ? 'Categorías' : nivelActual === 'subcategoria' ? 'Subcategorías' : 'Líneas'}
+          value={reportes.length}
+          icon="category"
+          iconIndex={1}
+        />
+        <DashboardMetricCard
+          label="Unidades"
+          value={reportes.reduce((sum, r) => sum + r.cantidadTotalVendida, 0)}
+          icon="inventory_2"
+          iconIndex={2}
+        />
+        <DashboardMetricCard
+          label="Ingresos"
+          value={`S/ ${totalIngresos.toLocaleString('es-PE')}`}
+          icon="payments"
+          iconIndex={3}
+        />
+        <DashboardMetricCard
+          label="SKUs distintos"
+          value={reportes.reduce((sum, r) => sum + r.cantidadProductosVendidos, 0)}
+          icon="checkroom"
+          iconIndex={4}
+        />
+      </div>
 
-          {/* Resumen estadístico */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">
-                    {nivelActual === 'padre' ? 'Categorías activas' : 
-                     nivelActual === 'subcategoria' ? 'Subcategorías' : 'Segunda subcategoría'}
-                  </p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {reportes.length}
-                  </p>
-                </div>
-                <div className="p-3 bg-blue-100 rounded-full">
-                  <TableCellsIcon className="h-8 w-8 text-blue-600" />
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total unidades</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {reportes.reduce((sum, r) => sum + r.cantidadTotalVendida, 0)}
-                  </p>
-                </div>
-                <div className="p-2 bg-green-100 rounded-full">
-                  <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Ingresos totales</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    S/ {totalIngresos.toLocaleString()}
-                  </p>
-                </div>
-                <div className="p-1 bg-purple-100 rounded-full">
-                  <svg className="h-10 w-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-            
-            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Productos vendidos</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {reportes.reduce((sum, r) => sum + r.cantidadProductosVendidos, 0)}
-                  </p>
-                </div>
-                <div className="p-3 bg-orange-100 rounded-full">
-                  <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Selector de vista y visualización principal */}
-          <div className="flex bg-gray-100 rounded-lg p-1 w-fit">
-            {['barras', 'pie', 'rose', 'tabla'].map((vista) => (
-              <button
-                key={vista}
-                onClick={() => {
-                  setVistaGrafico(vista as any);
-                  // Ocultar panel expandible cuando se cambia a gráfico/torta/rose
-                  if (vista !== 'tabla') {
-                    setPanelExpandido(false);
-                  } else {
-                    // Reactivar panel si vuelve a tabla y ya había navegado
-                    if (breadcrumbs.length > 1) {
-                      setPanelExpandido(true);
-                    }
-                  }
-                }}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  vistaGrafico === vista
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {vista === 'barras' ? 'Barras' : vista === 'pie' ? 'Torta' : vista === 'rose' ? 'Rose Chart' : 'Tabla'}
-              </button>
+      <DashboardPanel className="p-5">
+        <nav className="flex flex-wrap" aria-label="Breadcrumb">
+          <ol className="flex flex-wrap items-center gap-1">
+            {breadcrumbs.map((breadcrumb, index) => (
+              <li key={`${breadcrumb.nivel}-${breadcrumb.id || 'root'}`} className="flex items-center">
+                {index > 0 && <span className="app-text-faint mx-1">/</span>}
+                <button
+                  type="button"
+                  onClick={() => navegarAtras(index)}
+                  className={`text-xs font-bold uppercase tracking-wide transition-colors ${
+                    index === breadcrumbs.length - 1
+                      ? 'app-heading cursor-default'
+                      : 'text-[var(--app-accent)] hover:underline'
+                  }`}
+                  disabled={index === breadcrumbs.length - 1}
+                >
+                  {breadcrumb.nombre}
+                </button>
+              </li>
             ))}
-          </div>
+          </ol>
+        </nav>
+        <p className="text-[10px] font-bold app-text-muted mt-3">
+          {nivelActual === 'padre' && 'Categorías principales'}
+          {nivelActual === 'subcategoria' && 'Subcategorías — clic en una barra del gráfico para profundizar'}
+          {nivelActual === 'segunda-subcategoria' && 'Segunda subcategoría'}
+          {' · '}
+          {etiqueta}
+        </p>
+      </DashboardPanel>
 
-          {/* Visualización de datos principal */}
-          {vistaGrafico === 'barras' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Ingresos por Categoría</h3>
-              <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={reportes} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                    <defs>
-                      <linearGradient id="colorCategoriaIngresos" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.95}/>
-                        <stop offset="100%" stopColor="#0EA5E9" stopOpacity={0.35}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-                    <XAxis 
-                      dataKey="categoria" 
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: '#64748b', fontSize: 11 }}
-                    />
-                    <YAxis 
-                      tickLine={false}
-                      axisLine={false}
-                      tick={{ fill: '#64748b', fontSize: 11 }}
-                    />
-                    <Tooltip content={<CustomTooltipCategoria />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
-                    <Bar 
-                      dataKey="ingresosTotales" 
-                      fill="url(#colorCategoriaIngresos)" 
-                      radius={[8, 8, 0, 0]}
-                      maxBarSize={50}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
+      <ReportViewPills options={VISTAS_CATEGORIA} value={vistaGrafico} onChange={setVistaGrafico} />
 
-          {vistaGrafico === 'pie' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Distribución de Ingresos por Categoría</h3>
-              <div className="h-96">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={reportes}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={((props: any) => 
-                        `${props.categoria}: S/ ${Number(props.ingresosTotales).toLocaleString()}`
-                      ) as any}
-                      innerRadius={65}
-                      outerRadius={105}
-                      paddingAngle={4}
-                      cornerRadius={5}
-                      dataKey="ingresosTotales"
-                      stroke="#ffffff"
-                      strokeWidth={1.5}
-                    >
-                      {reportes.map((_entry, index) => (
-                        <Cell key={`cell-${index}`} fill={coloresPie[index % coloresPie.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltipCategoria />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-
-          {vistaGrafico === 'rose' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Área Polar por Categoría</h3>
-                  <p className="text-xs text-gray-500">
-                    Navegación drill-down activa: haz clic en cualquier sector para profundizar
-                  </p>
+      {vistaGrafico === 'resumen' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Columna 1: Distribución en Donut */}
+          <DashboardPanel className="flex flex-col justify-between">
+            <div>
+              <SectionHeader title="Distribución de Ventas" subtitle="Porcentaje de participación" />
+              {reportes.length > 0 ? (
+                <div className="h-64 relative flex items-center justify-center">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={reportes}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={65}
+                        outerRadius={85}
+                        paddingAngle={3}
+                        cornerRadius={4}
+                        dataKey="ingresosTotales"
+                        stroke="#ffffff"
+                        strokeWidth={2}
+                      >
+                        {reportes.map((_entry, index) => (
+                          <Cell
+                            key={`pie-cell-${index}`}
+                            fill={CATEGORY_CHART_SLICE_COLORS[index % CATEGORY_CHART_SLICE_COLORS.length]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomTooltipCategoria />} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-                <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-                  </svg>
-                  <span>Sectores proporcionales a ingresos</span>
-                </div>
-              </div>
-              <div className="min-h-[420px] flex items-center justify-center">
-                <RoseChart
-                  data={reportes as any}
-                  labelKey="categoria"
-                  valueKey="ingresosTotales"
-                  valueFormatter={(value) => `S/ ${value.toLocaleString()}`}
-                  onSectorClick={(item: any) => navegarHacia(item)}
-                  height={400}
-                />
-              </div>
-            </div>
-          )}
-
-          {vistaGrafico === 'tabla' && (
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        {nivelActual === 'padre' ? 'Categoría Principal' : 
-                         nivelActual === 'subcategoria' ? 'Subcategoría' : 'Segunda Subcategoría'}
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Productos Vendidos
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Cantidad Total
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Ingresos Totales
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Producto Más Vendido
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        % del Total
-                      </th>
-                      <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
-                        Acciones
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {reportes.map((reporte, index) => (
-                      <tr key={`${reporte.idCategoria}-${reporte.categoria}`} className="hover:bg-gray-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="flex-shrink-0 h-8 w-8 rounded-full flex items-center justify-center"
-                                 style={{ backgroundColor: coloresPie[index % coloresPie.length] + '20' }}>
-                              <TableCellsIcon className="h-4 w-4" style={{ color: coloresPie[index % coloresPie.length] }} />
-                            </div>
-                            <div className="ml-3">
-                              <div className="text-sm font-medium text-gray-900">{reporte.categoria}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                          {reporte.cantidadProductosVendidos}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                          {reporte.cantidadTotalVendida}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                          S/.{reporte.ingresosTotales.toLocaleString()}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {reporte.productoMasVendido?.nombre || 'No disponible'}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {reporte.productoMasVendido?.cantidadVendida || 0} unidades
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                          {((reporte.ingresosTotales / totalIngresos) * 100).toFixed(1)}%
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {/* Solo mostrar botón de drill-down si no estamos en el último nivel */}
-                          {nivelActual !== 'segunda-subcategoria' && reporte.idCategoria && (
-                            <button
-                              onClick={() => navegarHacia(reporte)}
-                              className="inline-flex items-center px-3 py-1 border border-transparent text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors"
-                              title={`Ver ${nivelActual === 'padre' ? 'subcategorías' : 'segunda subcategoría'}`}
-                            >
-                              <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
-                              {nivelActual === 'padre' ? 'Ver Subcategorías' : 'Ver Siguiente Nivel'}
-                            </button>
-                          )}
-                          {nivelActual === 'segunda-subcategoria' && (
-                            <span className="text-xs text-gray-400 italic">Último nivel</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              
-              {/* Mensaje cuando no hay datos */}
-              {reportes.length === 0 && (
-                <div className="text-center py-8">
-                  <TableCellsIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-500">
-                    {nivelActual === 'padre' ? 'No hay categorías principales con ventas' :
-                     nivelActual === 'subcategoria' ? 'No hay subcategorías en esta categoría' :
-                     'No hay segunda subcategoría en esta categoría'}
-                  </p>
+              ) : (
+                <div className="h-64 flex items-center justify-center app-text-muted text-sm font-medium">
+                  No hay datos disponibles
                 </div>
               )}
             </div>
-          )}
 
-          {/* Panel Expandible de Análisis Detallado - Solo se muestra en vista tabla cuando se navega */}
-          {panelExpandido && breadcrumbs.length > 1 && vistaGrafico === 'tabla' && (
-            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-lg border border-blue-200 overflow-hidden animate-slide-down">
-              {/* Header del panel de análisis */}
-              <div className="p-4 border-b border-blue-200 bg-gradient-to-r from-blue-100 to-indigo-100">
-                <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
-                  <div className="p-2 bg-blue-500 rounded-lg w-fit">
-                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-blue-900">
-                      📊 Análisis Detallado: {breadcrumbs[breadcrumbs.length - 1].nombre}
-                    </h3>
-                  </div>
-                  <button
-                    onClick={() => setPanelExpandido(false)}
-                    className="flex-shrink-0 p-2 hover:bg-blue-200 rounded-lg transition-colors"
-                    title="Cerrar panel de análisis"
-                  >
-                    <svg className="w-5 h-5 text-blue-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
+            {/* Leyenda personalizada debajo */}
+            {reportes.length > 0 && (
+              <div className="space-y-2 mt-4 max-h-36 overflow-y-auto custom-scrollbar">
+                {reportes.slice(0, 5).map((reporte, index) => {
+                  const pct = totalIngresos > 0 ? (reporte.ingresosTotales / totalIngresos) * 100 : 0;
+                  return (
+                    <div key={reporte.categoria} className="flex items-center justify-between text-xs">
+                      <div className="flex items-center space-x-2 truncate">
+                        <span
+                          className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{
+                            backgroundColor:
+                              CATEGORY_CHART_SLICE_COLORS[index % CATEGORY_CHART_SLICE_COLORS.length],
+                          }}
+                        />
+                        <span className="app-heading font-medium truncate">{reporte.categoria}</span>
+                      </div>
+                      <span className="app-heading font-bold ml-2 tabular-nums">{pct.toFixed(1)}%</span>
+                    </div>
+                  );
+                })}
               </div>
+            )}
+          </DashboardPanel>
 
-              {/* Contenido del panel de análisis reorganizado en 4 filas */}
-              <div className="p-4 sm:p-6 bg-white space-y-6">
-                
-                {/* FILA 1: Gráfico de Barras Completo - Mismo estilo que el principal */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                  <h4 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    📊 <span className="ml-2">Gráfico de Barras - Vista Detallada</span>
-                  </h4>
-                  <div className="h-96">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={reportes} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                        <defs>
-                          <linearGradient id="colorCategoriaIngresosDetallada" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.95}/>
-                            <stop offset="100%" stopColor="#0EA5E9" stopOpacity={0.35}/>
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-                        <XAxis 
-                          dataKey="categoria" 
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fill: '#64748b', fontSize: 11 }}
-                        />
-                        <YAxis 
-                          tickLine={false}
-                          axisLine={false}
-                          tick={{ fill: '#64748b', fontSize: 11 }}
-                        />
-                        <Tooltip content={<CustomTooltipCategoria />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
-                        <Bar 
-                          dataKey="ingresosTotales" 
-                          fill="url(#colorCategoriaIngresosDetallada)" 
-                          radius={[8, 8, 0, 0]}
-                          maxBarSize={50}
-                        />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+          <ReportCategoryBarChart
+            layout="horizontal"
+            variant="ranked"
+            data={reportes}
+            maxItems={6}
+            height={320}
+            title="Ingresos por Categoría"
+            subtitle={
+              puedeDrillDown
+                ? 'Comparativo general · clic en barra para subcategorías'
+                : 'Comparativo general de facturación'
+            }
+            drillDownEnabled={puedeDrillDown}
+            onCategorySelect={puedeDrillDown ? navegarHacia : undefined}
+          />
 
-                {/* FILA 2: Gráfico Circular */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                  <h4 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    🍰 <span className="ml-2">Distribución Porcentual</span>
-                  </h4>
-                  <div className="h-80 sm:h-96">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={reportes}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={65}
-                          outerRadius={window.innerWidth < 640 ? 80 : 105}
-                          paddingAngle={4}
-                          cornerRadius={5}
-                          dataKey="ingresosTotales"
-                          label={((props: any) => 
-                            `${props.categoria}: ${props.value ? ((props.value / totalIngresos) * 100).toFixed(1) : '0'}%`
-                          ) as any}
-                          labelLine={false}
-                          stroke="#ffffff"
-                          strokeWidth={1.5}
-                        >
-                          {reportes.map((_entry, index) => (
-                            <Cell key={`analysis-cell-${index}`} fill={coloresPie[index % coloresPie.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltipCategoria />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* FILA 3: Métricas Clave - Eliminada la métrica de variación max/min */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                  <h4 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    📈 <span className="ml-2">Métricas Clave</span>
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    <div className="bg-blue-50 rounded-lg p-4 text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-blue-600">
-                        {reportes.length}
-                      </div>
-                      <div className="text-xs sm:text-sm text-blue-800 font-medium">
-                        {nivelActual === 'subcategoria' ? 'Subcategorías' : 'Items'}
-                      </div>
-                    </div>
-                    
-                    <div className="bg-green-50 rounded-lg p-4 text-center">
-                      <div className="text-xl sm:text-2xl font-bold text-green-600">
-                        S/ {totalIngresos.toLocaleString()}
-                      </div>
-                      <div className="text-xs sm:text-sm text-green-800 font-medium">Ingresos Totales</div>
-                    </div>
-                    
-                    <div className="bg-purple-50 rounded-lg p-4 text-center sm:col-span-2 lg:col-span-1">
-                      <div className="text-xl sm:text-2xl font-bold text-purple-600">
-                        {reportes.reduce((sum, r) => sum + r.cantidadTotalVendida, 0)}
-                      </div>
-                      <div className="text-xs sm:text-sm text-purple-800 font-medium">Unidades Vendidas</div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* FILA 4: Resumen de Elementos */}
-                <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-6">
-                  <h4 className="text-base sm:text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                    📋 <span className="ml-2">Resumen de Elementos</span>
-                  </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {reportes.map((reporte, index) => (
-                      <div key={`summary-${reporte.idCategoria}`} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:bg-gray-100 transition-colors">
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className="w-4 h-4 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: coloresPie[index % coloresPie.length] }}
-                          ></div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-semibold text-gray-900 truncate">
-                              {reporte.categoria}
-                            </div>
-                            <div className="text-xs text-gray-600 mt-1">
-                              <span className="font-medium">S/ {reporte.ingresosTotales.toLocaleString()}</span>
-                              <span className="mx-2">•</span>
-                              <span>{reporte.cantidadTotalVendida} unidades</span>
-                            </div>
-                            <div className="text-xs text-gray-500 mt-1">
-                              {reporte.cantidadProductosVendidos} productos diferentes
-                            </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <div className="text-base sm:text-lg font-bold text-gray-700">
-                              {((reporte.ingresosTotales / totalIngresos) * 100).toFixed(1)}%
-                            </div>
-                            <div className="text-xs text-gray-500">del total</div>
-                          </div>
+          {/* Columna 3: Lista Resumen con Mini Barras + Destacados */}
+          <DashboardPanel className="flex flex-col justify-between">
+            <div>
+              <SectionHeader title="Rendimiento y Progreso" subtitle="Porcentaje e impacto en catálogo" />
+              {reportes.length > 0 ? (
+                <div className="space-y-4 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                  {reportes.map((reporte, index) => {
+                    const pct = totalIngresos > 0 ? (reporte.ingresosTotales / totalIngresos) * 100 : 0;
+                    return (
+                      <div key={reporte.categoria} className="space-y-1">
+                        <div className="flex justify-between items-center text-xs font-semibold app-heading">
+                          <span className="truncate max-w-[150px]">{reporte.categoria}</span>
+                          <span className="tabular-nums">{pct.toFixed(1)}%</span>
+                        </div>
+                        <div className="w-full bg-[var(--app-bg-muted)] rounded-full h-1.5">
+                          <div
+                            className="h-1.5 rounded-full transition-all duration-500"
+                            style={{
+                              width: `${pct}%`,
+                              backgroundColor:
+                                index === 0
+                                  ? 'var(--app-accent)'
+                                  : 'color-mix(in srgb, var(--app-text-faint) 22%, var(--app-bg-muted))',
+                            }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-[10px] app-text-muted">
+                          <span>S/ {reporte.ingresosTotales.toLocaleString()}</span>
+                          <span>{reporte.cantidadTotalVendida} uds</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
-
-              </div>
+              ) : (
+                <div className="h-[280px] flex items-center justify-center app-text-muted text-sm font-medium">
+                  No hay datos disponibles
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Mayor crecimiento / Mayor declive */}
+            {reportes.length > 0 && (
+              <div className="grid grid-cols-2 gap-4 mt-6 pt-4 border-t border-[var(--app-border)]">
+                {topCategoria && (
+                  <div className="report-day-callout report-day-callout--best">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-[var(--app-metric-icon-1-fg)]">
+                      Líder de ventas
+                    </div>
+                    <div className="text-sm font-black app-heading truncate mt-1" title={topCategoria.categoria}>
+                      {topCategoria.categoria}
+                    </div>
+                    <div className="text-xs font-black tabular-nums text-[var(--app-metric-icon-1-fg)] mt-2">
+                      S/ {topCategoria.ingresosTotales.toLocaleString('es-PE')}
+                    </div>
+                  </div>
+                )}
+                {bottomCategoria && (
+                  <div className="report-day-callout report-day-callout--worst">
+                    <div className="text-[10px] font-black uppercase tracking-wider text-[var(--app-metric-icon-5-fg)]">
+                      Menor rotación
+                    </div>
+                    <div className="text-sm font-black app-heading truncate mt-1" title={bottomCategoria.categoria}>
+                      {bottomCategoria.categoria}
+                    </div>
+                    <div className="text-xs font-black tabular-nums text-[var(--app-metric-icon-5-fg)] mt-2">
+                      S/ {bottomCategoria.ingresosTotales.toLocaleString('es-PE')}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </DashboardPanel>
         </div>
-      </div>
+      )}
+
+      {vistaGrafico === 'barras' && (
+        <ReportCategoryBarChart
+          layout="vertical"
+          variant="gradient"
+          data={reportes}
+          height={384}
+          title="Ingresos por categoría"
+          drillDownEnabled={puedeDrillDown}
+          onCategorySelect={puedeDrillDown ? navegarHacia : undefined}
+        />
+      )}
 
       {/* Alert Modal */}
       <AlertModal

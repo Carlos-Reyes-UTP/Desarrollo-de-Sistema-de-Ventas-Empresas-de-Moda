@@ -15,8 +15,14 @@ export function esDniValido(documento: string): boolean {
   return documento.length === 8 && /^\d+$/.test(documento);
 }
 
+import { validarRucMod11 } from './validarDocumentosPeru';
+
 export function esRucValido(documento: string): boolean {
   return documento.length === 11 && /^\d+$/.test(documento);
+}
+
+export function esRucValidoMod11(documento: string): boolean {
+  return esRucValido(documento) && validarRucMod11(documento);
 }
 
 export function esDocumentoReal(numeroDocumento: string): boolean {

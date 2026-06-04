@@ -268,6 +268,10 @@ const DashboardAdminPage = () => {
   }, [isReady, isAuthenticated, aplicarPeriodoADatos, wsMessages]);
 
   useEffect(() => {
+    if (wsMessages.length < wsProcessedRef.current) {
+      wsProcessedRef.current = wsMessages.length;
+      return;
+    }
     if (wsMessages.length <= wsProcessedRef.current) return;
     wsProcessedRef.current = wsMessages.length;
     const sinLiveBase = construirActividadDashboard(

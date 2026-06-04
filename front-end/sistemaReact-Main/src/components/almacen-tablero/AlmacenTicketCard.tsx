@@ -49,8 +49,11 @@ export function AlmacenTicketCard({
   seleccionado,
   onClick,
 }: Props) {
-  const esVenta = tipoSolicitud === "VENTA";
+  const esVentaCard = tipoSolicitud === "VENTA";
   const { texto: tiempo, minutos } = useTiempoMins(fechaMasAntigua);
+
+  const seleccionVenta = seleccionado && esVentaCard;
+  const seleccionRepo = seleccionado && !esVentaCard;
 
   // Determinar nivel de alerta dinámico por el tiempo en espera real
   let alertaTiempo: "baja" | "media" | "alta" = "baja";
@@ -119,9 +122,11 @@ export function AlmacenTicketCard({
         type="button"
         onClick={onClick}
         className={`group relative w-full flex flex-col gap-2.5 p-4 rounded-[2rem] border-2 transition-all duration-300 text-left overflow-hidden ${
-          seleccionado
-            ? "bg-black border-black shadow-xl scale-[1.01] pl-7"
-            : `${bgUrgencia} hover:border-gray-300 hover:bg-white active:scale-[0.99]`
+          seleccionVenta
+            ? "bg-app-accent border-app-accent shadow-xl scale-[1.01] pl-7"
+            : seleccionRepo
+              ? "bg-app-accent border-app-accent shadow-xl scale-[1.01] pl-7"
+              : `${bgUrgencia} hover:border-app-border-strong hover:bg-app-surface active:scale-[0.99]`
         } ${
           !seleccionado
             ? alertaTiempo === "alta"
@@ -135,7 +140,7 @@ export function AlmacenTicketCard({
         {/* Left Vertical Selector Pill inside the card */}
         {seleccionado && (
           <div className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-1.5 h-9 rounded-full animate-fadeIn ${
-            alertaTiempo === "alta" ? "bg-red-400" : alertaTiempo === "media" ? "bg-amber-400" : "bg-white"
+            alertaTiempo === "alta" ? "bg-red-400" : alertaTiempo === "media" ? "bg-amber-400" : "bg-app-surface"
           }`} />
         )}
 
@@ -144,13 +149,13 @@ export function AlmacenTicketCard({
             <span
               className={`text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full ${
                 seleccionado
-                  ? "bg-white/10 text-white/60"
-                  : esVenta
-                    ? "bg-black/5 text-black/40"
-                    : "bg-blue-50 text-blue-500"
+                  ? "bg-app-surface/20 text-app-accent-fg/70"
+                  : esVentaCard
+                    ? "bg-app-text-muted/10 text-app-text-muted"
+                    : "bg-app-text-muted/10 text-app-text-muted"
               }`}
             >
-              {esVenta ? "VENTA" : "REPOSICIÓN"}
+              {esVentaCard ? "VENTA" : "REPOSICIÓN"}
             </span>
             
             {/* Pequeño tag textual de alerta de retardo */}
@@ -204,7 +209,7 @@ export function AlmacenTicketCard({
         <div className="flex items-center gap-3">
           <div
             className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
-              seleccionado ? "bg-white/10 text-white" : "bg-white text-black shadow-sm"
+              seleccionado ? "bg-app-surface/10 text-app-accent-fg" : "bg-app-surface text-app-text shadow-sm"
             }`}
           >
             <MaterialIcon icon="person" className="w-4.5 h-4.5" />
@@ -212,14 +217,14 @@ export function AlmacenTicketCard({
           <div className="min-w-0">
             <p
               className={`text-xs font-black uppercase tracking-tight truncate ${
-                seleccionado ? "text-white" : "text-black"
+                seleccionado ? "text-app-accent-fg" : "text-app-text"
               }`}
             >
               {vendedor || "Sin vendedor"}
             </p>
             <div
               className={`flex items-center gap-1.5 mt-0.5 ${
-                seleccionado ? "text-white/40" : "text-gray-400"
+                seleccionado ? "text-app-accent-fg/50" : "text-app-text-muted"
               }`}
             >
               <MaterialIcon icon="layers" className="w-3 h-3" />

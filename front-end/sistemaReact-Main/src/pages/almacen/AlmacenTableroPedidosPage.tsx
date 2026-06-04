@@ -14,23 +14,30 @@ import {
   type SoundTheme,
 } from "../../components/almacen-tablero/almacenTableroSound";
 import {
+  combinarReposConAlertas,
+  esReposicion,
+  esTicketDesdeAlerta,
+  esVenta,
+  idPrimeraVenta,
+  idPrincipalDeCard,
   idsSolicitudEnMismoGrupo,
   primeraPrioridad,
+  ventasOrdenadas,
 } from "../../components/almacen-tablero/almacenTableroUtils";
 import { AlmacenSolicitudesApi } from "../../services/AlmacenSolicitudesService";
+import { DashboardService } from "../../services/DashboardService";
 import type { AlmacenSolicitud, AlmacenTicketConsolidado, MotivoRechazoApi } from "../../types/AlmacenSolicitudes";
+import type { AlertaReposicion } from "../../types/DashboardStats";
 import { mensajeErrorApi } from "../../utils/apiErrors";
 import { destinosUnicosEnLote } from "../../utils/solicitudUbicacion";
 
 const PULSE_MS = 8000;
-
-function esVenta(c: AlmacenSolicitud): boolean {
-  return c.tipoSolicitud === "VENTA";
-}
+const MANUAL_OVERRIDE_MS = 30_000;
 
 export default function AlmacenTableroPedidosPage() {
   const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
   const [cards, setCards] = useState<AlmacenSolicitud[]>([]);
+  const [alertasReposicion, setAlertasReposicion] = useState<AlertaReposicion[]>([]);
   const [seleccionId, setSeleccionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pulsando, setPulsando] = useState<Set<number>>(new Set());
@@ -44,53 +51,96 @@ export default function AlmacenTableroPedidosPage() {
   const sectorParaCola = undefined;
 
   const prevVentaIdsRef = useRef<Set<number>>(new Set());
+  const prevRepoIdsRef = useRef<Set<number>>(new Set());
   const inicializadoRef = useRef(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const despachoLockRef = useRef(false);
+  const seleccionManualUntilRef = useRef(0);
+  const syncColaRef = useRef<{ nuevosVentas: number[]; nuevosRepos: number[] }>({
+    nuevosVentas: [],
+    nuevosRepos: [],
+  });
 
-  const aplicarNuevasVentas = useCallback((lista: AlmacenSolicitud[]) => {
+  const puedeAutoPriorizarVentas = () => Date.now() >= seleccionManualUntilRef.current;
+
+  const marcarSeleccionManual = useCallback(() => {
+    seleccionManualUntilRef.current = Date.now() + MANUAL_OVERRIDE_MS;
+  }, []);
+
+  const limpiarSeleccionManual = useCallback(() => {
+    seleccionManualUntilRef.current = 0;
+  }, []);
+
+  const agregarPulso = useCallback((ids: number[]) => {
+    if (ids.length === 0) return;
+    setPulsando((old) => {
+      const next = new Set(old);
+      ids.forEach((id) => next.add(id));
+      return next;
+    });
+    window.setTimeout(() => {
+      setPulsando((old) => {
+        const next = new Set(old);
+        ids.forEach((id) => next.delete(id));
+        return next;
+      });
+    }, PULSE_MS);
+  }, []);
+
+  const detectarCambiosCola = useCallback((lista: AlmacenSolicitud[]) => {
     const ventaIds = new Set<number>();
+    const repoIds = new Set<number>();
     for (const c of lista) {
       if (esVenta(c)) {
         ventaIds.add(c.idSolicitud);
+      } else if (!esTicketDesdeAlerta(c)) {
+        repoIds.add(c.idSolicitud);
       }
     }
-    const prev = prevVentaIdsRef.current;
+
+    const prevVentas = prevVentaIdsRef.current;
+    const prevRepos = prevRepoIdsRef.current;
+    let nuevosVentas: number[] = [];
+    let nuevosRepos: number[] = [];
+
     if (inicializadoRef.current) {
-      const nuevos = [...ventaIds].filter((id) => !prev.has(id));
-      if (nuevos.length > 0) {
+      nuevosVentas = [...ventaIds].filter((id) => !prevVentas.has(id));
+      nuevosRepos = [...repoIds].filter((id) => !prevRepos.has(id));
+      if (nuevosVentas.length > 0) {
         void playKioskChime();
-        setPulsando((old) => {
-          const next = new Set(old);
-          nuevos.forEach((id) => next.add(id));
-          return next;
-        });
-        window.setTimeout(() => {
-          setPulsando((old) => {
-            const next = new Set(old);
-            nuevos.forEach((id) => next.delete(id));
-            return next;
-          });
-        }, PULSE_MS);
+        agregarPulso(nuevosVentas);
       }
     } else {
       inicializadoRef.current = true;
     }
+
     prevVentaIdsRef.current = ventaIds;
-  }, []);
+    prevRepoIdsRef.current = repoIds;
+    syncColaRef.current = { nuevosVentas, nuevosRepos };
+  }, [agregarPulso]);
 
   const cargar = useCallback(async () => {
     try {
-      const data = await AlmacenSolicitudesApi.cola(sectorParaCola);
+      const [data, alertas] = await Promise.all([
+        AlmacenSolicitudesApi.cola(sectorParaCola),
+        DashboardService.obtenerAlertasReposicion().catch(() => [] as AlertaReposicion[]),
+      ]);
       setError(null);
-      aplicarNuevasVentas(data);
+      detectarCambiosCola(data);
       setCards(data);
+      setAlertasReposicion(alertas);
     } catch (e: any) {
       setError(mensajeErrorApi(e));
     }
-  }, [aplicarNuevasVentas, sectorParaCola]);
+  }, [detectarCambiosCola, sectorParaCola]);
 
-  useAutoSync(cargar, ['SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA', 'NUEVA_VENTA'], 800);
+  useAutoSync(cargar, [
+    'SOLICITUD_CREADA',
+    'SOLICITUD_ATENDIDA',
+    'SOLICITUD_RECHAZADA',
+    'NUEVA_VENTA',
+    'REPOSICION_AUTOMATICA',
+  ], 800);
 
   useEffect(() => {
     void cargar();
@@ -107,24 +157,118 @@ export default function AlmacenTableroPedidosPage() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [showSettings]);
 
+  const ventas = useMemo(() => cards.filter(esVenta), [cards]);
+  const repos = useMemo(
+    () => combinarReposConAlertas(cards, alertasReposicion),
+    [cards, alertasReposicion]
+  );
+
+  const primerVentaId = useMemo(() => idPrimeraVenta(cards), [cards]);
+
+  const ticketsCola = useMemo(
+    () => [...ventas, ...repos],
+    [ventas, repos]
+  );
+
   useEffect(() => {
+    const { nuevosVentas, nuevosRepos } = syncColaRef.current;
+    syncColaRef.current = { nuevosVentas: [], nuevosRepos: [] };
+
+    const idsValidos = new Set(ticketsCola.map((c) => c.idSolicitud));
+    const hayVentas = ventas.length > 0;
+
+    if (nuevosRepos.length > 0 && !hayVentas) {
+      const idsPulso = nuevosRepos.flatMap((id) => {
+        const card = cards.find((c) => c.idSolicitud === id);
+        if (!card) return [id];
+        return idsSolicitudEnMismoGrupo(cards, card);
+      });
+      agregarPulso(idsPulso);
+    }
+
+    if (nuevosVentas.length > 0) {
+      limpiarSeleccionManual();
+      setActiveTab("ventas");
+      const ordenadas = ventasOrdenadas(cards);
+      const objetivo =
+        ordenadas.find((c) => nuevosVentas.includes(c.idSolicitud)) ?? ordenadas[0];
+      if (objetivo) {
+        setSeleccionId(idPrincipalDeCard(cards, objetivo));
+      }
+      return;
+    }
+
     const isMobile = window.innerWidth < 1024;
-    if (isMobile) return;
+    let forzarTabVentas = false;
 
     setSeleccionId((prev) => {
-      const ids = new Set(cards.map((c) => c.idSolicitud));
-      if (prev != null && ids.has(prev)) return prev;
-      return primeraPrioridad(cards);
+      if (prev != null && !idsValidos.has(prev)) {
+        return primeraPrioridad(ticketsCola);
+      }
+
+      if (
+        !isMobile &&
+        hayVentas &&
+        prev != null &&
+        puedeAutoPriorizarVentas()
+      ) {
+        const sel = ticketsCola.find((c) => c.idSolicitud === prev);
+        if (sel && esReposicion(sel)) {
+          forzarTabVentas = true;
+          return idPrimeraVenta(cards);
+        }
+      }
+
+      if (prev != null && idsValidos.has(prev)) {
+        return prev;
+      }
+
+      if (isMobile) return prev;
+
+      return primeraPrioridad(ticketsCola);
     });
-  }, [cards]);
 
-  const ventas = useMemo(() => cards.filter(esVenta), [cards]);
-  const repos = useMemo(() => cards.filter((c) => !esVenta(c)), [cards]);
+    if (forzarTabVentas) {
+      setActiveTab("ventas");
+    }
+  }, [
+    cards,
+    ventas.length,
+    ticketsCola,
+    alertasReposicion,
+    agregarPulso,
+    limpiarSeleccionManual,
+  ]);
 
-  const seleccionada = useMemo(
-    () => cards.find((c) => c.idSolicitud === seleccionId) ?? null,
-    [cards, seleccionId]
+  const handleTabChange = useCallback(
+    (tab: "ventas" | "repos") => {
+      if (tab === "repos") {
+        marcarSeleccionManual();
+      }
+      setActiveTab(tab);
+    },
+    [marcarSeleccionManual]
   );
+
+  const handleSelect = useCallback(
+    (id: number) => {
+      const card = ticketsCola.find((c) => c.idSolicitud === id);
+      if (card && esReposicion(card)) {
+        marcarSeleccionManual();
+      }
+      setSeleccionId(id);
+    },
+    [ticketsCola, marcarSeleccionManual]
+  );
+
+  const handleIrAVentas = useCallback(() => {
+    limpiarSeleccionManual();
+  }, [limpiarSeleccionManual]);
+
+  const seleccionada = useMemo(() => {
+    const todos = [...ventas, ...repos];
+    return todos.find((c) => c.idSolicitud === seleccionId) ?? null;
+  }, [ventas, repos, seleccionId]);
 
   const ticketConsolidado = useMemo((): AlmacenTicketConsolidado | null => {
     if (!seleccionada) return null;
@@ -147,8 +291,41 @@ export default function AlmacenTableroPedidosPage() {
     };
   }, [cards, seleccionada]);
 
-  const onConfirmarTodo = async () => {
+  const onConfirmarTodo = async (cantidadEnvio?: number) => {
     if (!ticketConsolidado || despachoLockRef.current) return;
+
+    if (esTicketDesdeAlerta(ticketConsolidado)) {
+      const idVariante = ticketConsolidado.idVarianteAlerta;
+      const idUa = ticketConsolidado.idUbicacionAreaAlerta;
+      if (idVariante == null || idUa == null) return;
+      despachoLockRef.current = true;
+      setProcesandoId(seleccionId);
+      try {
+        await DashboardService.reponerAlerta(idVariante, idUa, cantidadEnvio);
+        const data = await AlmacenSolicitudesApi.cola(sectorParaCola);
+        setCards(data);
+        const creada = data.find(
+          (c) =>
+            !esVenta(c) &&
+            c.idUbicacionAreaDestino === idUa &&
+            c.lineas.some((l) => l.idVariante === idVariante)
+        );
+        if (creada) {
+          await AlmacenSolicitudesApi.atender(creada.idSolicitud);
+        }
+        setError(null);
+        await cargar();
+        limpiarSeleccionManual();
+        setSeleccionId(null);
+      } catch (e: unknown) {
+        setError(mensajeErrorApi(e));
+      } finally {
+        despachoLockRef.current = false;
+        setProcesandoId(null);
+      }
+      return;
+    }
+
     const ids = [
       ...new Set(
         ticketConsolidado.idsEnLote?.length
@@ -170,6 +347,7 @@ export default function AlmacenTableroPedidosPage() {
         setError(null);
       }
       await cargar();
+      limpiarSeleccionManual();
       setSeleccionId(null);
     } catch (e: any) {
       setError(mensajeErrorApi(e));
@@ -191,6 +369,7 @@ export default function AlmacenTableroPedidosPage() {
       setError(null);
       setRechazoCard(null);
       await cargar();
+      limpiarSeleccionManual();
       setSeleccionId(null);
     } catch (e: any) {
       setError(mensajeErrorApi(e));
@@ -335,8 +514,10 @@ export default function AlmacenTableroPedidosPage() {
             seleccionId={seleccionId}
             pulsando={pulsando}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
-            onSelect={setSeleccionId}
+            onTabChange={handleTabChange}
+            onSelect={handleSelect}
+            primerVentaId={primerVentaId}
+            onIrAVentas={handleIrAVentas}
             encabezadoExtra={
               accesoAreaAlmacen?.etiquetaAreaAsignada ? (
                 <div className="px-4 py-3 border-b border-[var(--app-border)] shrink-0">
@@ -361,8 +542,11 @@ export default function AlmacenTableroPedidosPage() {
               <AlmacenPickingList
                 ticket={ticketConsolidado}
                 procesando={procesandoId != null}
-                onConfirmarTodo={() => void onConfirmarTodo()}
-                onRechazar={() => seleccionada && setRechazoCard(seleccionada)}
+                esDesdeAlerta={esTicketDesdeAlerta(ticketConsolidado)}
+                onConfirmarTodo={(cantidad) => void onConfirmarTodo(cantidad)}
+                onRechazar={() =>
+                  seleccionada && !esTicketDesdeAlerta(seleccionada) && setRechazoCard(seleccionada)
+                }
               />
             </div>
           ) : (

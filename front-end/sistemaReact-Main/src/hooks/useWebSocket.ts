@@ -2,11 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { API_BASE_URL } from '../config/apiConfig';
+import { logger } from '../utils/logger';
+
+const MAX_MESSAGES = 200;
 
 interface WebSocketMessage {
     type: string;
     message: string;
     [key: string]: unknown;
+}
+
+function appendCappedMessage(
+    prev: WebSocketMessage[],
+    parsedMessage: WebSocketMessage
+): WebSocketMessage[] {
+    const next = [...prev, parsedMessage];
+    return next.length > MAX_MESSAGES ? next.slice(-MAX_MESSAGES) : next;
 }
 
 export function useWebSocket(topic: string = '/topic/notifications') {
@@ -24,7 +35,7 @@ export function useWebSocket(topic: string = '/topic/notifications') {
                 Authorization: token ? `Bearer ${token}` : '',
             },
             debug: (str) => {
-                console.log('[STOMP]:', str);
+                logger.debug('[STOMP]:', str);
             },
             reconnectDelay: 5000,
             heartbeatIncoming: 4000,
@@ -38,18 +49,20 @@ export function useWebSocket(topic: string = '/topic/notifications') {
             client.subscribe(topic, (message) => {
                 if (message.body) {
                     try {
-                        const parsedMessage = JSON.parse(message.body);
-                        setMessages((prev) => [...prev, parsedMessage]);
+                        const parsedMessage = JSON.parse(message.body) as WebSocketMessage;
+                        setMessages((prev) => appendCappedMessage(prev, parsedMessage));
                     } catch {
-                        setMessages((prev) => [...prev, { type: 'TEXT', message: message.body }]);
+                        setMessages((prev) =>
+                            appendCappedMessage(prev, { type: 'TEXT', message: message.body })
+                        );
                     }
                 }
             });
         };
 
         client.onStompError = (frame) => {
-            console.error('STOMP Broker error:', frame.headers['message']);
-            console.error('Detalles:', frame.body);
+            logger.error('STOMP Broker error:', frame.headers['message']);
+            logger.error('Detalles:', frame.body);
         };
 
         client.onWebSocketClose = () => {
@@ -75,7 +88,7 @@ export function useWebSocket(topic: string = '/topic/notifications') {
                 body: JSON.stringify(body),
             });
         } else {
-            console.warn('Cannot send message, WebSocket is not connected');
+            logger.warn('Cannot send message, WebSocket is not connected');
         }
     };
 

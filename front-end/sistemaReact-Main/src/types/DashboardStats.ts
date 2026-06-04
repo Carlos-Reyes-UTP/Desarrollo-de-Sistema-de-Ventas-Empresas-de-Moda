@@ -34,6 +34,22 @@ export interface ProductoInventario {
   proveedor?: string;
 }
 
+export interface AlertaReposicion {
+  idVariante: number;
+  idProducto: number;
+  nombreProducto: string;
+  color: string;
+  talla: string;
+  sku: string;
+  ubicacionPiso: string;
+  area: string;
+  stockActual: number;
+  stockObjetivo: number;
+  cantidadSugerida: number;
+  tieneSolicitudPendiente: boolean;
+  idUbicacionArea: number;
+}
+
 export interface ActividadReciente {
   id: string;
   tipo: 'producto_actualizado' | 'producto_creado' | 'venta_realizada' | 'stock_bajo' | 'stock_critico';

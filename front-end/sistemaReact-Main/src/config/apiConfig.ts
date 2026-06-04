@@ -277,6 +277,9 @@ export const RUTAS_DASHBOARD = {
   ESTADISTICAS: `${API_BASE_URL}/api/almacenero/dashboard/estadisticas`,
   DISTRIBUCION_CATEGORIAS: `${API_BASE_URL}/api/almacenero/dashboard/distribucion-categorias`,
   ESTADO_INVENTARIO: `${API_BASE_URL}/api/almacenero/dashboard/estado-inventario`,
+  ALERTAS_REPOSICION: `${API_BASE_URL}/api/almacenero/dashboard/alertas-reposicion`,
+  REPONER_ALERTA: (idVariante: number, idUbicacionArea: number) =>
+    `${API_BASE_URL}/api/almacenero/dashboard/alertas-reposicion/${idVariante}/${idUbicacionArea}/reponer`,
 };
 
 // Rutas de Reportes

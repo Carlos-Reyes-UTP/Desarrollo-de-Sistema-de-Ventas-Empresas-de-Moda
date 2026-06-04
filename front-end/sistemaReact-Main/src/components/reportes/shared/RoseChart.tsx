@@ -317,7 +317,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
 
   return (
     <div 
-      className="relative w-full rounded-2xl bg-white/40 border border-gray-100/50 p-4 transition-all duration-300" 
+      className="relative w-full rounded-2xl app-panel border p-4 transition-all duration-300" 
       ref={containerRef}
       style={{ minHeight: `${height}px` }}
     >
@@ -337,14 +337,14 @@ export const RoseChart: React.FC<RoseChartProps> = ({
       {/* Tooltip interactivo premium con Glassmorphism */}
       {tooltip && tooltip.visible && (
         <div
-          className="absolute z-50 pointer-events-none rounded-xl border border-gray-200/80 dark:border-gray-800 bg-white/95 dark:bg-gray-900/95 p-3 shadow-xl backdrop-blur-md transition-all duration-100 ease-out flex flex-col gap-1 text-xs"
+          className="absolute z-50 pointer-events-none app-chart-tooltip backdrop-blur-md p-3 shadow-xl transition-all duration-100 ease-out flex flex-col gap-1 text-xs"
           style={{
             left: `${tooltip.x}px`,
             top: `${tooltip.y}px`,
             transform: 'translate(-50%, -100%)',
           }}
         >
-          <div className="flex items-center gap-2 border-b border-gray-100 dark:border-gray-800 pb-1 mb-1 font-bold text-gray-900 dark:text-white">
+          <div className="flex items-center gap-2 border-b border-[var(--app-border)] pb-1 mb-1 font-bold app-heading">
             <span 
               className="inline-block w-2.5 h-2.5 rounded-full shrink-0" 
               style={{ backgroundColor: tooltip.color }}
@@ -357,7 +357,7 @@ export const RoseChart: React.FC<RoseChartProps> = ({
           </div>
           <div className="flex justify-between gap-4 text-gray-500 dark:text-gray-400">
             <span>Porcentaje:</span>
-            <span className="font-semibold text-indigo-600 dark:text-indigo-400">{tooltip.percent}</span>
+            <span className="font-semibold text-[var(--app-accent)]">{tooltip.percent}</span>
           </div>
         </div>
       )}

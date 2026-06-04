@@ -26,7 +26,7 @@ export function RechazoPedidoModal({
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-lg rounded-3xl border border-gray-200 bg-white/90 p-6 shadow-md backdrop-blur-md md:p-10"
+        className="w-full max-w-lg rounded-3xl border border-app-border bg-app-surface/90 p-6 shadow-md backdrop-blur-md md:p-10"
         onClick={(e) => e.stopPropagation()}
       >
         <h2
@@ -44,7 +44,7 @@ export function RechazoPedidoModal({
             type="button"
             disabled={cargando}
             onClick={() => onElegirMotivo("SIN_STOCK_FISICO")}
-            className="min-h-[64px] rounded-2xl bg-black py-4 text-lg font-semibold text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.99] disabled:opacity-50"
+            className="min-h-[64px] rounded-2xl bg-app-accent py-4 text-lg font-semibold text-app-accent-fg shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
           >
             No hay stock físico
           </button>
@@ -52,7 +52,7 @@ export function RechazoPedidoModal({
             type="button"
             disabled={cargando}
             onClick={() => onElegirMotivo("PRENDA_DEFECTUOSA")}
-            className="min-h-[64px] rounded-2xl border border-gray-200 bg-white py-4 text-lg font-semibold text-gray-900 shadow-sm transition-all hover:bg-gray-100 active:scale-[0.99] disabled:opacity-50"
+            className="min-h-[64px] rounded-2xl border border-app-border-strong bg-app-surface py-4 text-lg font-semibold text-app-text shadow-sm transition-all hover:bg-app-bg-muted active:scale-[0.99] disabled:opacity-50"
           >
             Prenda defectuosa
           </button>

@@ -31,27 +31,27 @@ export function AlmacenPedidoFilaCola({
       className={
         "flex w-full items-start gap-2 rounded-xl border p-2 text-left shadow-sm transition-all " +
         (seleccionado
-          ? "border-black bg-gray-50 ring-1 ring-black/10"
-          : "border-gray-200 bg-white/90 hover:bg-gray-100") +
-        (resaltar ? " ring-2 ring-black/20 animate-pulse" : "")
+        ? "border-app-border-strong bg-app-bg-muted ring-1 ring-app-ring"
+        : "border-app-border bg-app-surface/90 hover:bg-app-bg-muted") +
+      (resaltar ? " ring-2 ring-app-ring animate-pulse" : "")
       }
     >
       <span
         className={
           "mt-2 h-2 w-2 shrink-0 rounded-full " +
-          (urgente ? "bg-black" : "bg-gray-300")
+          (urgente ? "bg-app-accent" : "bg-app-border-strong")
         }
         aria-hidden
       />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-semibold text-black">
+        <p className="truncate text-xs font-semibold text-app-text">
           {card.nombreVendedor}
         </p>
-        <p className="mt-0.5 truncate text-[11px] text-gray-600">
+        <p className="mt-0.5 truncate text-[11px] text-app-text-muted">
           {resumenLinea(card)}
         </p>
       </div>
-      <span className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-bold tabular-nums text-black">
+      <span className="shrink-0 rounded-full border border-app-border-strong bg-app-bg-muted px-2 py-0.5 text-xs font-bold tabular-nums text-app-text">
         {cant}
       </span>
     </button>

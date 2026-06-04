@@ -37,6 +37,9 @@ interface DatosCierreCaja {
   diferencias: DiferenciasCierreCaja;
 }
 
+/** Umbral (en soles) a partir del cual se muestra advertencia confirmativa antes de cerrar caja. */
+const UMBRAL_DISCREPANCIA_ALERTA = 50;
+
 const CierreCaja = () => {
   const { usuario } = useAuth();
   const navigate = useNavigate();
@@ -57,6 +60,7 @@ const CierreCaja = () => {
   const [error, setError] = useState<string | null>(null);
   const [cierreExitoso, setCierreExitoso] = useState<boolean>(false);
   const [datosCierre, setDatosCierre] = useState<DatosCierreCaja | null>(null);
+  const [confirmarCierreConDiscrepancia, setConfirmarCierreConDiscrepancia] = useState(false);
 
   const obtenerFechaHoraActual = () => {
     const ahora = new Date();
@@ -131,6 +135,14 @@ const CierreCaja = () => {
     e.preventDefault();
     setError(null);
     if (!validarCampos()) return;
+
+    // Guardia de discrepancia significativa
+    const discrepanciaActual = (parseFloat(efectivoContado) || 0) - ((parseFloat(montoInicial) || 0) + efectivoVentas);
+    if (Math.abs(discrepanciaActual) >= UMBRAL_DISCREPANCIA_ALERTA && !confirmarCierreConDiscrepancia) {
+      setConfirmarCierreConDiscrepancia(true);
+      return;
+    }
+    setConfirmarCierreConDiscrepancia(false);
     try {
       setCargando(true);
       const cajaAbierta = await CajaService.obtenerCajaAbierta();
@@ -569,6 +581,44 @@ const CierreCaja = () => {
             />
           </div>
         </div>
+
+        {/* ─ ALERTA DE DISCREPANCIA SIGNIFICATIVA ─────────────────────────── */}
+        {confirmarCierreConDiscrepancia && (
+          <div className="rounded-[2rem] border-2 border-amber-400/80 bg-amber-50/70 dark:bg-amber-950/30 overflow-hidden animate-fadeIn">
+            <div className="px-10 py-8 flex items-start gap-6">
+              <div className="w-12 h-12 rounded-2xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center flex-shrink-0 shadow-sm">
+                <MaterialIcon icon="warning" className="h-6 w-6 text-amber-600 dark:text-amber-300" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-[11px] font-bold uppercase tracking-[0.3em] text-amber-900 dark:text-amber-100 mb-2">
+                  Discrepancia significativa detectada
+                </h3>
+                <p className="text-[11px] font-medium text-amber-800 dark:text-amber-200 leading-relaxed">
+                  La diferencia entre el efectivo contado y el esperado supera{' '}
+                  <strong>S/ {UMBRAL_DISCREPANCIA_ALERTA.toFixed(2)}</strong>. Verifique el conteo antes de continuar.
+                  Si el monto es correcto, confirme el cierre.
+                </p>
+                <div className="flex items-center gap-4 mt-6">
+                  <button
+                    type="submit"
+                    disabled={cargando}
+                    className="px-7 py-3.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-md active:scale-95 flex items-center gap-2"
+                  >
+                    <MaterialIcon icon="check_circle" className="h-4 w-4" />
+                    Sí, cerrar de todas formas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmarCierreConDiscrepancia(false)}
+                    className="px-7 py-3.5 rounded-xl border border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-300 hover:bg-amber-100/50 dark:hover:bg-amber-900/30 text-[10px] font-bold uppercase tracking-widest transition-all"
+                  >
+                    Revisar conteo
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ─ SUBMIT ──────────────────────────────────────────────────────────── */}
         <button

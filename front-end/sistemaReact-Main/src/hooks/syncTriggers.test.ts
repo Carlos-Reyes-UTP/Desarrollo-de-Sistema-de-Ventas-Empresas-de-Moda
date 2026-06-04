@@ -66,4 +66,13 @@ describe('sliceUnprocessedMessages', () => {
     expect(newMessages).toEqual([]);
     expect(nextProcessedCount).toBe(1);
   });
+
+  it('reajusta el contador si el array fue podado', () => {
+    const { newMessages, nextProcessedCount } = sliceUnprocessedMessages(
+      [{ type: 'B' }, { type: 'C' }],
+      150
+    );
+    expect(newMessages).toEqual([]);
+    expect(nextProcessedCount).toBe(2);
+  });
 });

@@ -42,6 +42,10 @@ export function sliceUnprocessedMessages<T>(
   allMessages: T[],
   processedCount: number
 ): { newMessages: T[]; nextProcessedCount: number } {
+  // Tras podar el array de mensajes (ventana deslizante), el contador queda desincronizado.
+  if (allMessages.length < processedCount) {
+    return { newMessages: [], nextProcessedCount: allMessages.length };
+  }
   if (allMessages.length <= processedCount) {
     return { newMessages: [], nextProcessedCount: processedCount };
   }

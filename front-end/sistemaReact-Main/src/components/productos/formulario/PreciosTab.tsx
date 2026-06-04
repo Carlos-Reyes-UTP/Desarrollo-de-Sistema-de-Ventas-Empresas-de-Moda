@@ -17,10 +17,23 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
   handleInputChange,
   errorPrecio
 }) => {
+  const [touched, setTouched] = React.useState<Record<string, boolean>>({});
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    setTouched(prev => ({ ...prev, [e.target.name]: true }));
+  };
+
+  const getFieldError = (name: string, value: string, isRequired: boolean) => {
+    if (!touched[name]) return null;
+    if (isRequired && (!value || value.trim() === '')) return 'Este campo es requerido';
+    if (value && parseFloat(value) < 0) return 'No puede ser negativo';
+    return null;
+  };
+
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-app-surface p-8 shadow-sm">
       <h3 className="text-xs font-bold tracking-[0.2em] text-gray-500 uppercase mb-6 flex items-center gap-2">
-        <MaterialIcon icon="sell" className="w-4 h-4 text-black" />
+        <MaterialIcon icon="sell" className="w-4 h-4 text-app-text" />
         Precios por volumen
       </h3>
 
@@ -45,10 +58,14 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
                 name="precioUnitario"
                 value={formData.precioUnitario}
                 onChange={handleInputChange}
-                className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
+                onBlur={handleBlur}
+                className={`w-full pl-9 pr-4 py-3 bg-app-surface border ${getFieldError('precioUnitario', formData.precioUnitario, true) ? 'border-red-500' : 'border-gray-100'} rounded-xl focus:ring-2 focus:border-gray-200 shadow-sm`}
                 required
               />
             </div>
+            {getFieldError('precioUnitario', formData.precioUnitario, true) && (
+              <p className="mt-1 text-xs text-red-500 font-bold">{getFieldError('precioUnitario', formData.precioUnitario, true)}</p>
+            )}
             <p className="mt-1 text-xs text-gray-500">
               Precio por unidad individual
             </p>
@@ -67,9 +84,13 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
                 name="precioMediaDocena"
                 value={formData.precioMediaDocena}
                 onChange={handleInputChange}
-                className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
+                onBlur={handleBlur}
+                className={`w-full pl-9 pr-4 py-3 bg-app-surface border ${getFieldError('precioMediaDocena', formData.precioMediaDocena, true) ? 'border-red-500' : 'border-gray-100'} rounded-xl focus:ring-2 focus:border-gray-200 shadow-sm`}
               />
             </div>
+            {getFieldError('precioMediaDocena', formData.precioMediaDocena, true) && (
+              <p className="mt-1 text-xs text-red-500 font-bold">{getFieldError('precioMediaDocena', formData.precioMediaDocena, true)}</p>
+            )}
             <p className="mt-1 text-xs text-gray-500">
               Precio por 6 unidades (1/2 docena)
             </p>
@@ -90,9 +111,13 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
                 name="precioCuarto"
                 value={formData.precioCuarto}
                 onChange={handleInputChange}
-                className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
+                onBlur={handleBlur}
+                className={`w-full pl-9 pr-4 py-3 bg-app-surface border ${getFieldError('precioCuarto', formData.precioCuarto, true) ? 'border-red-500' : 'border-gray-100'} rounded-xl focus:ring-2 focus:border-gray-200 shadow-sm`}
               />
             </div>
+            {getFieldError('precioCuarto', formData.precioCuarto, true) && (
+              <p className="mt-1 text-xs text-red-500 font-bold">{getFieldError('precioCuarto', formData.precioCuarto, true)}</p>
+            )}
             <p className="mt-1 text-xs text-gray-500">
               Precio por 3 unidades (1/4 docena)
             </p>
@@ -111,9 +136,13 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
                 name="precioDocena"
                 value={formData.precioDocena}
                 onChange={handleInputChange}
-                className="w-full pl-9 pr-4 py-3 bg-white border border-gray-100 rounded-xl focus:ring-2 focus:ring-gray-200 focus:border-gray-200 shadow-sm"
+                onBlur={handleBlur}
+                className={`w-full pl-9 pr-4 py-3 bg-app-surface border ${getFieldError('precioDocena', formData.precioDocena, true) ? 'border-red-500' : 'border-gray-100'} rounded-xl focus:ring-2 focus:border-gray-200 shadow-sm`}
               />
             </div>
+            {getFieldError('precioDocena', formData.precioDocena, true) && (
+              <p className="mt-1 text-xs text-red-500 font-bold">{getFieldError('precioDocena', formData.precioDocena, true)}</p>
+            )}
             <p className="mt-1 text-xs text-gray-500">
               Precio por 12 unidades (docena completa)
             </p>
@@ -121,31 +150,31 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
         </div>
       </div>
       
-      <div className="mt-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+      <div className="mt-6 p-4 bg-app-surface rounded-xl border border-gray-100 shadow-sm">
         <h4 className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">Resumen de descuentos</h4>
         <div className="grid grid-cols-3 gap-4">
           {formData.precioCuarto && formData.precioUnitario && !isNaN(parseFloat(formData.precioUnitario)) && parseFloat(formData.precioUnitario) > 0 && (
-            <div className="bg-white p-3 rounded-lg border border-gray-200">
+            <div className="bg-app-surface p-3 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500">Descuento por 1/4 docena</p>
-              <p className="text-lg font-black text-black">
+              <p className="text-lg font-black text-app-text">
                 {(((parseFloat(formData.precioUnitario) * 3) - parseFloat(formData.precioCuarto)) / (parseFloat(formData.precioUnitario) * 3) * 100).toFixed(1)}%
               </p>
             </div>
           )}
           
           {formData.precioMediaDocena && formData.precioUnitario && !isNaN(parseFloat(formData.precioUnitario)) && parseFloat(formData.precioUnitario) > 0 && (
-            <div className="bg-white p-3 rounded-lg border border-gray-200">
+            <div className="bg-app-surface p-3 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500">Descuento por 1/2 docena</p>
-              <p className="text-lg font-black text-black">
+              <p className="text-lg font-black text-app-text">
                 {(((parseFloat(formData.precioUnitario) * 6) - parseFloat(formData.precioMediaDocena)) / (parseFloat(formData.precioUnitario) * 6) * 100).toFixed(1)}%
               </p>
             </div>
           )}
           
           {formData.precioDocena && formData.precioUnitario && !isNaN(parseFloat(formData.precioUnitario)) && parseFloat(formData.precioUnitario) > 0 && (
-            <div className="bg-white p-3 rounded-lg border border-gray-200">
+            <div className="bg-app-surface p-3 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-500">Descuento por docena</p>
-              <p className="text-lg font-black text-black">
+              <p className="text-lg font-black text-app-text">
                 {(((parseFloat(formData.precioUnitario) * 12) - parseFloat(formData.precioDocena)) / (parseFloat(formData.precioUnitario) * 12) * 100).toFixed(1)}%
               </p>
             </div>

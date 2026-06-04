@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   CubeIcon,
   FunnelIcon,
@@ -30,8 +30,23 @@ import {
   CustomTooltip,
   CustomTooltipVariantes,
 } from './productos-mas-vendidos/chartRenderers';
-import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton } from '@/shared/ui';
+import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton, SectionHeader, PageActionButton } from '@/shared/ui';
 import { RoseChart } from './shared/RoseChart';
+import { useReportPeriodContext } from '@/components/reportes/context/ReportPeriodContext';
+import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
+import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
+import { ReportViewPills } from '@/components/reportes/layout/ReportViewPills';
+import { reportChartAxisTick } from '@/components/reportes/layout/reportChartTheme';
+import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
+import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
+import { generarInsightProductos } from '@/utils/reportInsights';
+
+const VISTAS_PRODUCTOS = [
+  { id: 'barras' as const, label: 'Barras' },
+  { id: 'linea' as const, label: 'Línea' },
+  { id: 'rose' as const, label: 'Rose' },
+  { id: 'tabla' as const, label: 'Tabla' },
+];
 
 // Estilos CSS para animaciones
 const animationStyles = `
@@ -108,9 +123,9 @@ type FiltrosReporte = {
   fechaInicio?: string;
   fechaFin?: string;
 };
-const VISTAS_GRAFICO: VistaGraficoReporte[] = ['barras', 'linea', 'rose', 'tabla'];
-
 const ProductosMasVendidos: React.FC = () => {
+  const { setActions } = useReportPageActions();
+  const { filtrosFecha, etiqueta } = useReportPeriodContext();
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -146,6 +161,26 @@ const ProductosMasVendidos: React.FC = () => {
   useEffect(() => {
     CategoriaService.obtenerCategoriasPrincipales().then(setCategorias);
   }, []);
+
+  useEffect(() => {
+    if (filtrosFecha.fechaInicio && filtrosFecha.fechaFin) {
+      setFechaInicio(filtrosFecha.fechaInicio);
+      setFechaFin(filtrosFecha.fechaFin);
+      setFiltrosAplicados((prev) => ({
+        ...prev,
+        fechaInicio: filtrosFecha.fechaInicio,
+        fechaFin: filtrosFecha.fechaFin,
+      }));
+    }
+  }, [filtrosFecha.fechaInicio, filtrosFecha.fechaFin]);
+
+  const insightProductos = useMemo(
+    () =>
+      generarInsightProductos(
+        productos.map((p) => ({ nombreProducto: p.nombreProducto, cantidadVendida: p.cantidadVendida }))
+      ),
+    [productos]
+  );
 
   // Manejar clics fuera del componente de búsqueda para cerrar la lista
   useEffect(() => {
@@ -235,6 +270,12 @@ const ProductosMasVendidos: React.FC = () => {
       (producto.categoria?.toLowerCase().includes(busqueda.toLowerCase()))
     ), [productos, busqueda]
   );
+
+  const top5 = useMemo(() => productosFiltrados.slice(0, 5), [productosFiltrados]);
+  const bottom5 = useMemo(() => {
+    if (productosFiltrados.length <= 5) return [];
+    return [...productosFiltrados].slice(-5).reverse();
+  }, [productosFiltrados]);
 
   // Función para limpiar la selección de categoría
   const limpiarSeleccionCategoria = () => {
@@ -349,7 +390,7 @@ const ProductosMasVendidos: React.FC = () => {
     return partes.length > 0 ? partes.join('-') : 'Sin categoría';
   };
 
-  const exportarDatos = async () => {
+  const exportarDatos = useCallback(async () => {
     if (productosFiltrados.length === 0) {
       setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
@@ -573,11 +614,21 @@ const ProductosMasVendidos: React.FC = () => {
       console.error('Error al exportar datos:', error);
       setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
-  };
+  }, [productosFiltrados, categorias, filtrosAplicados]);
+
+  useEffect(() => {
+    setActions(
+      <PageActionButton onClick={exportarDatos} disabled={loading || productosFiltrados.length === 0}>
+        <ArrowDownTrayIcon className="h-4 w-4" />
+        Exportar Excel
+      </PageActionButton>
+    );
+    return () => setActions(null);
+  }, [setActions, exportarDatos, loading, productosFiltrados.length]);
 
   if (loading) {
     return (
-      <div className="space-y-6 p-6 bg-gray-50">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-64" />
         <ChartSkeleton />
         <TableSkeleton rows={10} columns={6} />
@@ -589,56 +640,59 @@ const ProductosMasVendidos: React.FC = () => {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <CubeIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-600">{error}</p>
+          <CubeIcon className="h-12 w-12 app-text-faint mx-auto mb-3" />
+          <p className="app-text-muted">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 bg-gray-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="space-y-6">
-      {/* Cabecera con controles */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Productos Más Vendidos</h2>
-          <p className="text-gray-600 mt-1">
-            Ranking de productos por cantidad vendida e ingresos generados
-          </p>
-        </div>
-        <div className="flex gap-2 flex-wrap">
-          <button 
-            onClick={() => setMostrarFiltros(!mostrarFiltros)}
-            className={`relative flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-300 ease-out transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-              mostrarFiltros 
-                ? 'bg-blue-600 text-white shadow-lg hover:bg-blue-700' 
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:shadow-md'
-            }`}
-          >
-            <FunnelIcon className={`h-4 w-4 transition-transform duration-300 ${
-              mostrarFiltros ? 'rotate-180' : 'rotate-0'
-            }`} />
-            <span className="font-medium">
-              {mostrarFiltros ? 'Ocultar Filtros' : 'Mostrar Filtros'}
-            </span>
-            {(filtrosAplicados.fechaInicio || filtrosAplicados.fechaFin || filtrosAplicados.categoriaPadre) && !mostrarFiltros && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
-                !
-              </span>
-            )}
-          </button>
-          <button
-            onClick={exportarDatos}
-            disabled={loading || productosFiltrados.length === 0}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Exportar reporte detallado con variantes por talla y color"
-          >
-            <ArrowDownTrayIcon className="h-4 w-4" />
-            Exportar Excel
-          </button>
-        </div>
+    <div className="space-y-6">
+      {insightProductos ? (
+        <ReportInsightBanner message={insightProductos} headline="Mix de productos" icon="inventory_2" />
+      ) : null}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+        <DashboardMetricCard label="En ranking" value={productosFiltrados.length} icon="inventory_2" iconIndex={1} sub={etiqueta} />
+        <DashboardMetricCard
+          label="Unidades"
+          value={productosFiltrados.reduce((sum, p) => sum + p.cantidadVendida, 0)}
+          icon="shopping_bag"
+          iconIndex={2}
+          sub={etiqueta}
+        />
+        <DashboardMetricCard
+          label="Ingresos"
+          value={`S/ ${productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString('es-PE')}`}
+          icon="payments"
+          iconIndex={3}
+          sub={etiqueta}
+        />
+        <DashboardMetricCard
+          label="Precio prom."
+          value={`S/ ${
+            productosFiltrados.length > 0
+              ? (productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0)
+              : '0'
+          }`}
+          icon="sell"
+          iconIndex={4}
+          sub={etiqueta}
+        />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setMostrarFiltros(!mostrarFiltros)}
+          className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+            mostrarFiltros ? 'app-btn-primary shadow-sm' : 'app-panel border border-[var(--app-border)] app-text-muted hover:app-heading'
+          }`}
+        >
+          <FunnelIcon className="h-4 w-4" />
+          {mostrarFiltros ? 'Ocultar filtros' : 'Filtros avanzados'}
+        </button>
       </div>
 
       {/* Panel de filtros expandible con animación */}
@@ -647,12 +701,13 @@ const ProductosMasVendidos: React.FC = () => {
           ? 'max-h-screen opacity-100 transform translate-y-0' 
           : 'max-h-0 opacity-0 transform -translate-y-2 overflow-hidden'
       }`}>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transform transition-all duration-300 ease-out relative">
+        <div className="app-panel rounded-xl p-6 transform transition-all duration-300 ease-out relative">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Filtros de Búsqueda</h3>
+            <h3 className="text-lg font-black app-heading">Filtros de búsqueda</h3>
             <button
+              type="button"
               onClick={() => setMostrarFiltros(false)}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+              className="app-text-faint hover:app-heading transition-colors p-1 rounded-full hover:bg-[var(--app-bg-muted)]"
               aria-label="Cerrar filtros"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -682,14 +737,14 @@ const ProductosMasVendidos: React.FC = () => {
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
                     (isCategoriaFocused || searchCategoria) && !categoriaPadre 
                       ? 'border-blue-300 shadow-md bg-blue-50/30' 
-                      : 'border-gray-300 bg-white'
+                      : 'border-[var(--app-border)] bg-[var(--app-bg)]'
                   }`}
                   disabled={!!categoriaPadre}
                 />
                 
                 {/* Indicador de resultados */}
                 {searchCategoria && !categoriaPadre && (
-                  <div className="absolute right-3 top-2.5 text-xs text-blue-600 bg-white px-2 py-1 rounded-full shadow-sm border border-blue-200">
+                  <div className="absolute right-3 top-2.5 text-xs text-[var(--app-accent)] bg-[var(--app-panel)] px-2 py-1 rounded-full shadow-sm border border-[var(--app-border)]">
                     {categoriasFiltradas.length} resultado{categoriasFiltradas.length !== 1 ? 's' : ''}
                   </div>
                 )}
@@ -713,7 +768,7 @@ const ProductosMasVendidos: React.FC = () => {
               
               {/* Lista de resultados - NUEVO DISEÑO INTEGRADO */}
               {(isCategoriaFocused || searchCategoria) && !categoriaPadre && (
-                <div className="mt-2 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-hidden">
+                <div className="mt-2 app-panel border rounded-lg shadow-lg max-h-48 overflow-hidden">
                   {categoriasFiltradas.length > 0 ? (
                     <>
                       {/* Header */}
@@ -885,163 +940,168 @@ const ProductosMasVendidos: React.FC = () => {
         </div>
       </div>
 
-      {/* Barra de búsqueda y vista */}
-      <div className="flex flex-col sm:flex-row gap-4 relative" style={{ zIndex: 1 }}>
+      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center relative z-[1]">
         <div className="relative flex-1">
-          <MagnifyingGlassIcon className="h-6 w-6 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 z-10 pointer-events-none" />
+          <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 app-text-faint pointer-events-none" />
           <input
-            type="text"
+            type="search"
             placeholder="Buscar productos..."
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-12 pr-4 py-2 bg-white border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm z-0"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] app-heading text-sm"
           />
         </div>
-        
-        <div className="flex bg-gray-100 rounded-lg p-1">
-          {VISTAS_GRAFICO.map((vista) => {
-            let textoVista = 'Tabla';
-            if (vista === 'barras') textoVista = 'Barras';
-            else if (vista === 'linea') textoVista = 'Línea';
-            else if (vista === 'rose') textoVista = 'Rose Chart';
-            
-            return (
-              <button
-                key={vista}
-                onClick={() => setVistaGrafico(vista)}
-                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                  vistaGrafico === vista
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                {textoVista}
-              </button>
-            );
-          })}
-        </div>
+        <ReportViewPills options={VISTAS_PRODUCTOS} value={vistaGrafico} onChange={setVistaGrafico} />
       </div>
 
-      {/* Resumen estadístico */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Productos En Ranking</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {productosFiltrados.length}
-              </p>
-            </div>
-            <div className="p-3 bg-blue-100 rounded-full">
-              <CubeIcon className="h-8 w-8 text-blue-600" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Unidades Vendidas</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {productosFiltrados.reduce((sum, p) => sum + p.cantidadVendida, 0)}
-              </p>
-            </div>
-            <div className="p-2 bg-green-100 rounded-full">
-              <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Ingresos totales</p>
-              <p className="text-2xl font-bold text-gray-900">
-                S/ {productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString()}
-              </p>
-            </div>
-            <div className="p-1 bg-purple-100 rounded-full">
-              <svg className="h-10 w-10 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Precio promedio</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {`S/ ${(productosFiltrados.length > 0 ? (productosFiltrados.reduce((sum, p) => sum + p.precioPromedio, 0) / productosFiltrados.length).toFixed(0) : '0')}`}
-              </p>
-            </div>
-            <div className="p-3 bg-orange-100 rounded-full">
-              <svg className="h-6 w-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Visualización de datos */}
       {vistaGrafico === 'barras' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Cantidad Vendida por Producto</h3>
-          <div className="h-96">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={productosFiltrados.slice(0, 10)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
-                <defs>
-                  <linearGradient id="colorCantidad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.95}/>
-                    <stop offset="100%" stopColor="#6366F1" stopOpacity={0.35}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-                <XAxis 
-                  dataKey="nombreProducto" 
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                  interval={0}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
-                />
-                <YAxis 
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
-                <Bar 
-                  dataKey="cantidadVendida" 
-                  fill="url(#colorCantidad)" 
-                  radius={[8, 8, 0, 0]} 
-                  maxBarSize={45}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Top 5 Más Vendidos */}
+          <DashboardPanel>
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-base font-black app-heading">Top 5 más vendidos</h3>
+                <p className="text-xs app-text-muted mt-0.5">Productos con mayor volumen de ventas</p>
+              </div>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-50 text-green-700 border border-green-100">
+                Líderes
+              </span>
+            </div>
+
+            {top5.length > 0 ? (
+              <>
+                <div className="h-44 mb-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={top5}
+                      margin={{ top: 5, right: 20, left: -20, bottom: 5 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="nombreProducto" hide />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f9fafb' }} />
+                      <Bar
+                        dataKey="cantidadVendida"
+                        radius={[0, 4, 4, 0]}
+                        barSize={16}
+                      >
+                        {top5.map((_entry, index) => {
+                          const colors = ['#111827', '#374151', '#4b5563', '#6b7280', '#9ca3af'];
+                          return <Cell key={`cell-${index}`} fill={colors[index] || '#4f46e5'} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-3">
+                  {top5.map((producto, index) => (
+                    <div key={producto.idProducto} className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3 overflow-hidden mr-2">
+                        <span className={`flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full text-xs font-bold ${
+                          index === 0 ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-700'
+                        }`}>
+                          {index + 1}
+                        </span>
+                        <span className="text-sm font-medium text-gray-800 truncate" title={producto.nombreProducto}>
+                          {producto.nombreProducto}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-4 flex-shrink-0">
+                        <span className="text-xs text-gray-500">{producto.cantidadVendida} uds</span>
+                        <span className="text-sm font-semibold text-gray-900">S/ {producto.ingresosTotales.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-400">
+                No hay datos disponibles
+              </div>
+            )}
+          </DashboardPanel>
+
+          {/* Bottom 5 Menos Vendidos */}
+          <DashboardPanel>
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-base font-bold text-gray-900">5 Menos Vendidos</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Productos con menor rotación de inventario</p>
+              </div>
+              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-100">
+                Revisión
+              </span>
+            </div>
+
+            {bottom5.length > 0 ? (
+              <>
+                <div className="h-44 mb-6">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      layout="vertical"
+                      data={bottom5}
+                      margin={{ top: 5, right: 20, left: -20, bottom: 5 }}
+                    >
+                      <XAxis type="number" hide />
+                      <YAxis type="category" dataKey="nombreProducto" hide />
+                      <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f9fafb' }} />
+                      <Bar
+                        dataKey="cantidadVendida"
+                        radius={[0, 4, 4, 0]}
+                        barSize={16}
+                      >
+                        {bottom5.map((_entry, index) => {
+                          const coralColors = ['#f43f5e', '#fb7185', '#fda4af', '#fecdd3', '#ffe4e6'];
+                          return <Cell key={`cell-${index}`} fill={coralColors[index] || '#f43f5e'} />;
+                        })}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-3">
+                  {bottom5.map((producto, index) => (
+                    <div key={producto.idProducto} className="flex items-center justify-between p-2 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center space-x-3 overflow-hidden mr-2">
+                        <span className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full bg-red-50 text-red-700 text-xs font-bold border border-red-100">
+                          {productosFiltrados.length - bottom5.length + index + 1}
+                        </span>
+                        <span className="text-sm font-medium text-gray-800 truncate" title={producto.nombreProducto}>
+                          {producto.nombreProducto}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-4 flex-shrink-0">
+                        <span className="text-xs text-gray-500">{producto.cantidadVendida} uds</span>
+                        <span className="text-sm font-semibold text-gray-900">S/ {producto.ingresosTotales.toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="h-64 flex items-center justify-center text-gray-400">
+                {productosFiltrados.length <= 5 
+                  ? "Se requieren más de 5 productos para mostrar el ranking inferior" 
+                  : "No hay datos disponibles"}
+              </div>
+            )}
+          </DashboardPanel>
         </div>
       )}
 
       {vistaGrafico === 'linea' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Ingresos por Producto</h3>
+        <DashboardPanel>
+          <SectionHeader title="Ingresos por producto (top 10)" />
           <div className="h-96">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={productosFiltrados.slice(0, 10)} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
                 <defs>
-                  <linearGradient id="colorIngresos" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#10B981" stopOpacity={0.35}/>
-                    <stop offset="100%" stopColor="#10B981" stopOpacity={0.0}/>
+                  <linearGradient id="colorIngresosArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--app-chart-gradient-start)" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="var(--app-chart-gradient-end)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="nombreProducto" 
                   angle={-45}
@@ -1050,45 +1110,30 @@ const ProductosMasVendidos: React.FC = () => {
                   interval={0}
                   tickLine={false}
                   axisLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
+                  tick={reportChartAxisTick}
                 />
-                <YAxis 
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fill: '#64748b', fontSize: 11 }}
-                />
+                <YAxis tickLine={false} axisLine={false} tick={reportChartAxisTick} width={52} />
                 <Tooltip content={<CustomTooltip />} />
-                <Area 
-                  type="monotone" 
-                  dataKey="ingresosTotales" 
-                  stroke="#10B981" 
-                  strokeWidth={3} 
-                  fill="url(#colorIngresos)"
+                <Area
+                  type="monotone"
+                  dataKey="ingresosTotales"
+                  stroke="var(--app-accent)"
+                  strokeWidth={2}
+                  fill="url(#colorIngresosArea)"
                   dot={false}
-                  activeDot={{ r: 6, strokeWidth: 0, fill: '#10B981' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </DashboardPanel>
       )}
 
       {vistaGrafico === 'rose' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Distribución de Ventas por Producto</h3>
-              <p className="text-xs text-gray-500">
-                Análisis radial de los top 10 productos más vendidos (haz clic en cualquier sector para ver variantes)
-              </p>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 px-3 py-1.5 rounded-lg">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-              </svg>
-              <span>Sectores proporcionales a unidades vendidas</span>
-            </div>
-          </div>
+        <DashboardPanel>
+          <SectionHeader
+            title="Distribución radial (top 10)"
+            subtitle="Clic en un sector para análisis por talla/color"
+          />
           <div className="min-h-[420px] flex items-center justify-center">
             <RoseChart
               data={productosFiltrados.slice(0, 10) as any}
@@ -1099,14 +1144,15 @@ const ProductosMasVendidos: React.FC = () => {
               height={400}
             />
           </div>
-        </div>
+        </DashboardPanel>
       )}
 
       {vistaGrafico === 'tabla' && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+        <DashboardPanel className="overflow-hidden p-0">
+          <div className="overflow-x-auto p-6">
+            <SectionHeader title="Ranking completo" />
+            <table className="min-w-full divide-y divide-[var(--app-border)]">
+              <thead className="bg-[var(--app-bg-muted)]">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Producto
@@ -1131,7 +1177,7 @@ const ProductosMasVendidos: React.FC = () => {
                   </th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-[var(--app-border)]">
                 {productosFiltrados.map((producto, index) => (
                   <tr key={producto.idProducto} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1164,7 +1210,7 @@ const ProductosMasVendidos: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <button
                         onClick={() => seleccionarProducto(producto)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md app-btn-primary transition-colors"
                         title="Análisis detallado por tallas y colores"
                       >
                         📊 Analizar
@@ -1175,12 +1221,12 @@ const ProductosMasVendidos: React.FC = () => {
               </tbody>
             </table>
           </div>
-        </div>
+        </DashboardPanel>
       )}
 
       {/* Panel de análisis detallado */}
       {mostrarAnalisisDetallado && productoSeleccionado && (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-bottom-4">
+        <div className="app-panel rounded-xl p-6 transform transition-all duration-500 ease-out">
           <div className="flex justify-between items-center mb-6">
             <div className="transform transition-all duration-300 ease-out">
               <h3 className="text-xl font-bold text-gray-900">📊 Análisis Detallado</h3>
@@ -1216,7 +1262,7 @@ const ProductosMasVendidos: React.FC = () => {
                     className={`p-3 rounded-lg border-2 font-medium transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-md ${
                       tallaSeleccionada === talla.nombreTalla
                         ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105'
-                        : 'border-gray-200 bg-white text-gray-700 hover:border-blue-300 hover:bg-blue-50'
+                        : 'border-[var(--app-border)] bg-[var(--app-panel)] app-text-muted hover:border-[color-mix(in_srgb,var(--app-accent)_40%,var(--app-border))]'
                     }`}
                     style={{
                       animationDelay: `${index * 50}ms`,
@@ -1249,7 +1295,7 @@ const ProductosMasVendidos: React.FC = () => {
                     onClick={() => setTipoGraficoVariantes('barras')}
                     className={`px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
                       tipoGraficoVariantes === 'barras'
-                        ? 'bg-white text-blue-600 shadow-sm transform scale-105'
+                        ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm transform scale-105'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
@@ -1259,7 +1305,7 @@ const ProductosMasVendidos: React.FC = () => {
                     onClick={() => setTipoGraficoVariantes('torta')}
                     className={`px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
                       tipoGraficoVariantes === 'torta'
-                        ? 'bg-white text-blue-600 shadow-sm transform scale-105'
+                        ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm transform scale-105'
                         : 'text-gray-600 hover:text-gray-900'
                     }`}
                   >
@@ -1270,7 +1316,7 @@ const ProductosMasVendidos: React.FC = () => {
               {/* Contenedor con altura fija para evitar saltos visuales */}
               <div className="min-h-[400px] relative">
                 {loadingVariantes && (
-                  <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                  <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--app-panel)_85%,transparent)] backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
                     <div className="flex items-center space-x-3">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                       <span className="text-gray-700 font-medium">Cargando variantes...</span>
@@ -1363,7 +1409,7 @@ const ProductosMasVendidos: React.FC = () => {
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
+                      <tbody className="divide-y divide-[var(--app-border)]">
                         {variantesPorColor.map((variante, vi) => (
                           <tr key={`${variante.nombreColor}-${vi}`} className="hover:bg-gray-50">
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -1403,8 +1449,6 @@ const ProductosMasVendidos: React.FC = () => {
           )}
         </div>
       )}
-        </div>
-      </div>
 
       {/* Alert Modal */}
       <AlertModal
@@ -1512,18 +1556,17 @@ const styles = `
     bottom: 0;
     background: rgba(0, 0, 0, 0.1);
     backdrop-filter: blur(2px);
-    z-index: 99998;
+    z-index: 40;
   }
 
-  /* Estilos para evitar conflictos de z-index */
   .dropdown-container {
     position: relative;
-    z-index: 99999 !important;
+    z-index: 50;
   }
 
   .dropdown-container .dropdown-list {
     position: absolute !important;
-    z-index: 99999 !important;
+    z-index: 50;
     top: 100% !important;
     left: 0 !important;
     right: 0 !important;

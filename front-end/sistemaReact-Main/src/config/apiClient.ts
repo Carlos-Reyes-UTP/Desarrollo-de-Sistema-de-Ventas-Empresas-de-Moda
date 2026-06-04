@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { useState, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { API_BASE_URL as BASE_URL_CONSTANTE } from './apiConfig';
 import type { TokenDecodificado } from '../types/TokenDecodificado';
@@ -16,6 +17,9 @@ const apiClient = axios.create({
 
 // Variable para almacenar el token actual, pre-hidratada desde localStorage en el cliente
 let currentToken: string | null = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+
+/** Minutos antes de expiración en que se emite el aviso de sesión próxima a expirar. */
+export const UMBRAL_AVISO_SESION_MIN = 5;
 
 // Función para actualizar el token y sincronizar con localStorage
 export const setAuthToken = (token: string | null) => {
@@ -44,9 +48,18 @@ export const isTokenExpiringSoon = (): boolean => {
       return true;
     }
     
-    // Solo advertir si el token expira en menos de 30 segundos, pero no bloquear la operación
-    if (decodificado.exp && decodificado.exp - tiempoActual < 30) {
-      console.warn('Token próximo a expirar en menos de 30 segundos');
+    // Advertir cuando el token expira en menos de UMBRAL_AVISO_SESION_MIN minutos
+    const minutosRestantes = decodificado.exp ? (decodificado.exp - tiempoActual) / 60 : Infinity;
+    if (minutosRestantes < UMBRAL_AVISO_SESION_MIN && minutosRestantes > 0) {
+      console.warn(`Token próximo a expirar en ${minutosRestantes.toFixed(1)} minutos`);
+      // Emitir evento global para que la UI muestre el aviso
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(
+          new CustomEvent('session-expiring-soon', {
+            detail: { minutosRestantes: Math.ceil(minutosRestantes) },
+          })
+        );
+      }
     }
     
     return false;
@@ -54,6 +67,24 @@ export const isTokenExpiringSoon = (): boolean => {
     console.error('Error al verificar token:', error);
     return false; // En caso de error, no bloquear la operación
   }
+};
+
+export const useSessionExpiryWarning = () => {
+  const [minutosRestantes, setMinutosRestantes] = useState<number | null>(null);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const customEvent = e as CustomEvent<{ minutosRestantes: number }>;
+      setMinutosRestantes(customEvent.detail.minutosRestantes);
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('session-expiring-soon', handler);
+      return () => window.removeEventListener('session-expiring-soon', handler);
+    }
+  }, []);
+
+  return minutosRestantes;
 };
 
 // Interceptor para añadir el token JWT a las cabeceras

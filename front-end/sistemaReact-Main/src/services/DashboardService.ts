@@ -6,10 +6,41 @@ import type {
   CategoriaDistribucion, 
   EstadoInventario, 
   ProductoInventario, 
-  ActividadReciente
+  ActividadReciente,
+  AlertaReposicion
 } from '../types/DashboardStats';
 import type { Producto } from '../types/Producto';
 import type { Venta } from '../types/Venta';
+
+/** Mismos umbrales que el backend (DashboardService / alertas de reposición en pisos). */
+export const UMBRAL_CRITICO_INVENTARIO = 5;
+export const UMBRAL_BAJO_INVENTARIO = 15;
+export const UMBRAL_ALERTA_REPOSICION_PISO = 4;
+/** Objetivo de stock en piso cuando el backend no define stock_maximo por fila. */
+export const STOCK_OBJETIVO_PISO = 15;
+
+export type EstadoStockProducto = 'normal' | 'bajo' | 'critico' | 'sin-stock';
+
+export function clasificarEstadoStock(stock: number): EstadoStockProducto {
+  if (stock === 0) return 'sin-stock';
+  if (stock <= UMBRAL_CRITICO_INVENTARIO) return 'critico';
+  if (stock <= UMBRAL_BAJO_INVENTARIO) return 'bajo';
+  return 'normal';
+}
+
+/** Stock mostrado al almacenero: solo su almacén asignado (no cantidad global del catálogo). */
+export function stockProductoParaAlmacenero(producto: Producto): number {
+  return producto.stockAlmacen ?? producto.cantidad ?? 0;
+}
+
+function etiquetaCategoriaProducto(producto: Producto): string {
+  const sub = producto.categoria?.nombre?.trim();
+  const padre = producto.categoriaPadre?.nombre?.trim();
+  if (sub && padre && sub.toLowerCase() !== padre.toLowerCase()) {
+    return `${padre} · ${sub}`;
+  }
+  return sub || padre || producto.tipoPublico || 'Sin categoría';
+}
 
 export const DashboardService = {
   // Obtener estadísticas generales de productos (Server-Side)
@@ -45,24 +76,47 @@ export const DashboardService = {
     }
   },
 
-  // Obtener productos del inventario con estado (AHORA USANDO PAGINACIÓN)
-  obtenerProductosInventario: async (limite: number = 20, busqueda?: string): Promise<ProductoInventario[]> => {
+  // Obtener alertas de reposición automática (stock ≤ 4 en pisos)
+  obtenerAlertasReposicion: async (): Promise<AlertaReposicion[]> => {
     try {
-      // Usar endpoint paginado para no cargar 10,000 items en memoria para la lista
-      const pagina = await ProductoService.getProductosPaginados(0, limite, busqueda, 'ROLE_ADMIN');
+      const response = await apiClient.get<AlertaReposicion[]>(RUTAS_DASHBOARD.ALERTAS_REPOSICION);
+      return response.data;
+    } catch (error) {
+      console.error('Error obteniendo alertas de reposición:', error);
+      return [];
+    }
+  },
+
+  // Reponer una alerta: crea solicitud de reposición desde almacén
+  reponerAlerta: async (
+    idVariante: number,
+    idUbicacionArea: number,
+    cantidad?: number
+  ): Promise<void> => {
+    const body =
+      cantidad != null && cantidad > 0 ? { cantidad } : undefined;
+    await apiClient.post(
+      RUTAS_DASHBOARD.REPONER_ALERTA(idVariante, idUbicacionArea),
+      body
+    );
+  },
+
+  // Obtener productos del inventario con estado (AHORA USANDO PAGINACIÓN)
+  obtenerProductosInventario: async (
+    limite: number = 20,
+    busqueda?: string,
+    userRole: string = 'ROLE_ALMACENERO',
+    sector?: string
+  ): Promise<ProductoInventario[]> => {
+    try {
+      const pagina = await ProductoService.getProductosPaginados(0, limite, busqueda, userRole, sector);
       const productos = pagina.content || [];
       
       return productos.map(producto => {
-        let estado: 'normal' | 'bajo' | 'critico' | 'sin-stock';
-        const stock = producto.cantidadTotal ?? producto.cantidad ?? 0;
-        
-        if (stock === 0) estado = 'sin-stock';
-        else if (stock <= 5) estado = 'critico';
-        else if (stock <= 15) estado = 'bajo';
-        else estado = 'normal';
+        const stock = stockProductoParaAlmacenero(producto);
+        const estado = clasificarEstadoStock(stock);
+        const categoriaNombre = etiquetaCategoriaProducto(producto);
 
-        const categoriaNombre = producto.categoriaPadre?.nombre ?? producto.categoria?.nombre ?? 'Sin categoría';
-        
         return {
           idProducto: producto.idProducto ?? 0,
           nombre: producto.nombre,
@@ -88,13 +142,16 @@ export const DashboardService = {
       const actividades: ActividadReciente[] = [];
       // Ya no pedimos los 10,000 productos. Si queremos stock crítico, podríamos hacer un endpoint paginado
       // o consultar solo 5. Por ahora lo simulamos con los primeros de la página para no romper el front
-      const paginaCriticos = await ProductoService.getProductosPaginados(0, 5, '', 'ROLE_ADMIN');
+      const rol = userRole === 'ROLE_SUPERVISOR_ALMACEN' ? 'ROLE_SUPERVISOR_ALMACEN' : 'ROLE_ALMACENERO';
+      const paginaCriticos = await ProductoService.getProductosPaginados(0, 5, '', rol);
       const productos = paginaCriticos.content || [];
-      
-      const productosCriticos = productos.filter(p => (p?.cantidadTotal ?? p?.cantidad ?? 0) <= 5);
-      
+
+      const productosCriticos = productos.filter(
+        p => clasificarEstadoStock(stockProductoParaAlmacenero(p)) === 'critico'
+      );
+
       productosCriticos.slice(0, 2).forEach((producto, index) => {
-        const stock = producto?.cantidadTotal ?? producto?.cantidad ?? 0;
+        const stock = stockProductoParaAlmacenero(producto);
         actividades.push({
           id: `stock-critico-${producto.idProducto}`,
           tipo: 'stock_critico',

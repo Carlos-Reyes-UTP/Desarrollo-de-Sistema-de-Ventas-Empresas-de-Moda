@@ -3,13 +3,13 @@ package com.tienda.ropa.config;
 import com.tienda.ropa.config.filter.JwtAuthenticationFilter;
 import com.tienda.ropa.service.UsuarioService;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -27,11 +27,18 @@ import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
+@EnableMethodSecurity
 public class SecurityConfiguration {
 
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
         private final UsuarioService usuarioService;
+
+        public SecurityConfiguration(
+                        JwtAuthenticationFilter jwtAuthenticationFilter,
+                        UsuarioService usuarioService) {
+                this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+                this.usuarioService = usuarioService;
+        }
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -126,6 +133,10 @@ public class SecurityConfiguration {
                                                 .hasRole("SUPERVISOR_ALMACEN")
                                                 .requestMatchers(HttpMethod.GET, "/api/almacenero/productos")
                                                 .hasRole("SUPERVISOR_ALMACEN")
+
+                                                // Dashboard almacenero: escritura solo almacén (reposición manual, etc.)
+                                                .requestMatchers(HttpMethod.POST, "/api/almacenero/dashboard/**")
+                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN")
 
                                                 // Inventario (productos, categorías, proveedores, etc.) — sin ADMIN
                                                 .requestMatchers("/api/almacenero/**")

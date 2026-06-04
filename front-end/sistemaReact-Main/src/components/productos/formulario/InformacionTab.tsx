@@ -109,7 +109,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
   );
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-app-surface p-8 shadow-sm">
       <h3 className="text-xs font-bold tracking-[0.2em] text-gray-400 uppercase mb-6">
         Información básica
       </h3>
@@ -123,7 +123,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             name="codigoIdentificacion"
             value={formData.codigoIdentificacion}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
+            className="w-full px-4 py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
             placeholder="Ingrese el código de identificación..."
             required
           />
@@ -140,12 +140,12 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               value={formData.codigoBarras}
               onChange={handleInputChange}
               placeholder="Código de barras (opcional)"
-              className="flex-1 px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm font-mono"
+              className="flex-1 px-4 py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm font-mono"
             />
             <button
               type="button"
               onClick={generarCodigoBarrasAutomatico}
-              className="px-4 py-2 bg-black text-white rounded-xl hover:bg-gray-800 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
+              className="px-4 py-2 bg-app-accent text-app-accent-fg rounded-xl hover:bg-gray-800 transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest"
               title="Generar código de barras automático"
             >
               <MaterialIcon icon="barcode" className="w-4 h-4" />
@@ -166,7 +166,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             name="nombre"
             value={formData.nombre}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
+            className="w-full px-4 py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
             placeholder="Ingrese el nombre del producto..."
             required
           />
@@ -220,7 +220,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             name="marca"
             value={formData.marca}
             onChange={handleInputChange}
-            className="w-full px-4 py-3 bg-white border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
+            className="w-full px-4 py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm"
             placeholder="Ingrese la marca del producto..."
             required
           />
@@ -254,18 +254,18 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                   handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } });
                 }
               }}
-              className={`w-full ${!categoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+              className={`w-full ${!categoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
               disabled={!!categoriaSeleccionada}
               required
             />
             {searchCategoria && !categoriaSeleccionada && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-app-surface px-1">
                 {categoriasPrincipalesFiltradas.length} resultado{categoriasPrincipalesFiltradas.length !== 1 ? 's' : ''}
               </div>
             )}
             
             {(isCategoriaFocused || searchCategoria) && !categoriaSeleccionada && categoriasPrincipalesFiltradas.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                 {categoriasPrincipalesFiltradas.map(categoria => (
                   <button
                     key={categoria.idCategoria}
@@ -286,16 +286,16 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             )}
             
             {searchCategoria && categoriasPrincipalesFiltradas.length === 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+              <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
                 No se encontraron categorías principales
               </div>
             )}
             
             {categoriaSeleccionada && !searchCategoria && (
-              <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+              <div className="absolute inset-0 px-4 py-3 bg-app-accent rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <MaterialIcon icon="folder" className="w-4 h-4 text-white/60" />
-                  <span className="text-white font-bold text-sm">{categoriaSeleccionada}</span>
+                  <MaterialIcon icon="folder" className="w-4 h-4 text-app-accent-fg/60" />
+                  <span className="text-app-accent-fg font-bold text-sm">{categoriaSeleccionada}</span>
                 </div>
                 <button
                   onClick={() => {
@@ -304,7 +304,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     setSearchCategoria('');
                     handleCategoriaChange({ target: { value: '' } });
                   }}
-                  className="text-white/60 hover:text-white transition-colors"
+                  className="text-app-accent-fg/60 hover:text-app-accent-fg transition-colors"
                   title="Limpiar selección"
                   type="button"
                 >
@@ -344,19 +344,19 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } });
                   }
                 }}
-                className={`w-full ${!subcategoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+                className={`w-full ${!subcategoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
                 disabled={!!subcategoriaSeleccionada}
                 required
               />
               
               {searchSubcategoria && !subcategoriaSeleccionada && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-app-surface px-1">
                   {subcategoriasFiltradas.length} resultado{subcategoriasFiltradas.length !== 1 ? 's' : ''}
                 </div>
               )}
               
               {(isSubcategoriaFocused || searchSubcategoria) && !subcategoriaSeleccionada && subcategoriasFiltradas.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {subcategoriasFiltradas.map(subcategoria => (
                     <button
                       key={subcategoria.idCategoria}
@@ -377,10 +377,10 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               )}
               
               {subcategoriaSeleccionada && !searchSubcategoria && (
-                <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+                <div className="absolute inset-0 px-4 py-3 bg-app-accent rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MaterialIcon icon="folder" className="w-4 h-4 text-white/60" />
-                    <span className="text-white font-bold text-sm">{subcategoriaSeleccionada}</span>
+                    <MaterialIcon icon="folder" className="w-4 h-4 text-app-accent-fg/60" />
+                    <span className="text-app-accent-fg font-bold text-sm">{subcategoriaSeleccionada}</span>
                   </div>
                   <button
                     onClick={() => {
@@ -389,7 +389,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                       setSearchSubcategoria('');
                       handleSubcategoriaChange({ target: { value: '' } });
                     }}
-                    className="text-white/60 hover:text-white transition-colors"
+                    className="text-app-accent-fg/60 hover:text-app-accent-fg transition-colors"
                     title="Limpiar selección"
                     type="button"
                   >
@@ -399,7 +399,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               )}
               
               {searchSubcategoria && subcategoriasFiltradas.length === 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+                <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
                   No se encontraron subcategorías
                 </div>
               )}
@@ -435,19 +435,19 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     setSearchSubcategoria2('');
                   }
                 }}
-                className={`w-full ${!subcategoria2Seleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+                className={`w-full ${!subcategoria2Seleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
                 disabled={!!subcategoria2Seleccionada}
                 required
               />
               
               {searchSubcategoria2 && !subcategoria2Seleccionada && (
-                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-app-surface px-1">
                   {subcategorias2Filtradas.length} resultado{subcategorias2Filtradas.length !== 1 ? 's' : ''}
                 </div>
               )}
               
               {(isSubcategoria2Focused || searchSubcategoria2) && !subcategoria2Seleccionada && subcategorias2Filtradas.length > 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                   {subcategorias2Filtradas.map(subcategoria2 => (
                     <button
                       key={subcategoria2.idCategoria}
@@ -467,10 +467,10 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               )}
               
               {subcategoria2Seleccionada && !searchSubcategoria2 && (
-                <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+                <div className="absolute inset-0 px-4 py-3 bg-app-accent rounded-xl flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <MaterialIcon icon="folder" className="w-4 h-4 text-white/60" />
-                    <span className="text-white font-bold text-sm">{subcategoria2Seleccionada}</span>
+                    <MaterialIcon icon="folder" className="w-4 h-4 text-app-accent-fg/60" />
+                    <span className="text-app-accent-fg font-bold text-sm">{subcategoria2Seleccionada}</span>
                   </div>
                   <button
                     onClick={() => {
@@ -478,7 +478,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                       setFormData(prev => ({ ...prev, subCategoria2Id: '' }));
                       setSearchSubcategoria2('');
                     }}
-                    className="text-white/60 hover:text-white transition-colors"
+                    className="text-app-accent-fg/60 hover:text-app-accent-fg transition-colors"
                     title="Limpiar selección"
                     type="button"
                   >
@@ -488,7 +488,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
               )}
               
               {searchSubcategoria2 && subcategorias2Filtradas.length === 0 && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+                <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
                   No se encontraron segundas subcategorías
                 </div>
               )}
@@ -534,19 +534,19 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                   setSearchProveedor('');
                 }
               }}
-              className={`w-full ${!proveedorSeleccionado ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-white focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+              className={`w-full ${!proveedorSeleccionado ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
               disabled={!!proveedorSeleccionado}
               required
             />
             
             {searchProveedor && !proveedorSeleccionado && (
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-white px-1">
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-500 bg-app-surface px-1">
                 {proveedoresFiltrados.length} resultado{proveedoresFiltrados.length !== 1 ? 's' : ''}
               </div>
             )}
             
             {(isProveedorFocused || searchProveedor) && !proveedorSeleccionado && proveedoresFiltrados.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+              <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                 {proveedoresFiltrados.map(proveedor => (
                   <button
                     key={proveedor.idProveedor}
@@ -566,10 +566,10 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             )}
             
             {proveedorSeleccionado && !searchProveedor && (
-              <div className="absolute inset-0 px-4 py-3 bg-black rounded-xl flex items-center justify-between">
+              <div className="absolute inset-0 px-4 py-3 bg-app-accent rounded-xl flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <MaterialIcon icon="corporate_fare" className="w-4 h-4 text-white/60" />
-                  <span className="text-white font-bold text-sm">{proveedorSeleccionado}</span>
+                  <MaterialIcon icon="corporate_fare" className="w-4 h-4 text-app-accent-fg/60" />
+                  <span className="text-app-accent-fg font-bold text-sm">{proveedorSeleccionado}</span>
                 </div>
                 <button
                   onClick={() => {
@@ -577,7 +577,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     setFormData(prev => ({ ...prev, proveedorId: '' }));
                     setSearchProveedor('');
                   }}
-                  className="text-white/60 hover:text-white transition-colors"
+                  className="text-app-accent-fg/60 hover:text-app-accent-fg transition-colors"
                   title="Limpiar selección"
                   type="button"
                 >
@@ -587,7 +587,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             )}
             
             {searchProveedor && proveedoresFiltrados.length === 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
+              <div className="absolute z-10 w-full mt-1 bg-app-surface border border-gray-300 rounded-lg shadow-lg p-3 text-center text-gray-500 text-sm">
                 No se encontraron proveedores
               </div>
             )}

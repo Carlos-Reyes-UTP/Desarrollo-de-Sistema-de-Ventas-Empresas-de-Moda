@@ -1,8 +1,10 @@
 @import "tailwindcss";
+@config "../tailwind.config.js";
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 @import "./styles/app-themes.css";
 @import "./styles/theme-contrast-overrides.css";
 @import "./styles/cajero-theme.css";
+@import "./styles/reports-analytics.css";
 
 :root {
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
@@ -347,9 +349,9 @@ div[data-view]:not([data-view="vendedor-piso"]):not([data-user-role="ROLE_VENDED
 /* Efecto focus en inputs al estilo Material You */
 .focus-ring-google:focus {
   outline: none;
-  border-color: #000;
-  box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.06);
-  background-color: #fff;
+  border-color: var(--app-border-strong);
+  box-shadow: 0 0 0 4px var(--app-ring);
+  background-color: var(--app-surface);
 }
 
 /* Acordeón elástico usando grid-template-rows */
