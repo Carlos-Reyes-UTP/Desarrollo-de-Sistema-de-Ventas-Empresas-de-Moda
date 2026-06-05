@@ -175,6 +175,14 @@ const GestionPisos = ({
   const [cargandoPisos, setCargandoPisos] = useState(false);
   const [cargandoAreas, setCargandoAreas] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
 
   // Nuevos estados para el detalle del área
   const [areaDetalle, setAreaDetalle] = useState<UbicacionArea | null>(null);
@@ -319,6 +327,13 @@ const GestionPisos = ({
             </PageActionGroup>
           }
         />
+      )}
+
+      {successMsg && (
+        <div className="mb-4 sm:mb-6 bg-green-50 border border-green-100 rounded-xl sm:rounded-2xl text-green-700 text-sm font-semibold px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3">
+          <MaterialIcon icon="check_circle" className="w-5 h-5 shrink-0" />
+          <span className="min-w-0">{successMsg}</span>
+        </div>
       )}
 
       {error && (
@@ -660,7 +675,10 @@ const GestionPisos = ({
             setOrigenAreaModal(null);
             setTrasladoGlobalAbierto(false);
           }}
-          onExito={refrescar}
+          onExito={() => {
+            setSuccessMsg("Mercadería trasladada exitosamente");
+            refrescar();
+          }}
         />
       )}
     </div>

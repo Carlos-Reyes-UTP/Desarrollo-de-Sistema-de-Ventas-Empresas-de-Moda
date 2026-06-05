@@ -5,6 +5,7 @@ import type {
   StockDesdeAlmacen,
   StockUbicacion,
   TrasladoInventarioPayload,
+  TrasladoMasivoPayload,
   UbicacionArea,
 } from "../types/Almacen";
 import { num } from "../utils/num";
@@ -139,5 +140,9 @@ export const AlmacenService = {
 
   moverMercaderia: async (payload: TrasladoInventarioPayload): Promise<void> => {
     await apiClient.post<void>(RUTAS_ALMACEN.TRASLADO, payload);
+  },
+
+  moverMercaderiaMasiva: async (payload: TrasladoMasivoPayload): Promise<void> => {
+    await apiClient.post<void>(RUTAS_ALMACEN.TRASLADO_MASIVO, payload);
   },
 };

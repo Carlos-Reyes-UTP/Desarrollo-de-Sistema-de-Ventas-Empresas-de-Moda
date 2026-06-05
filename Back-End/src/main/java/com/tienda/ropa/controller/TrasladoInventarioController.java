@@ -1,6 +1,7 @@
 package com.tienda.ropa.controller;
 
 import com.tienda.ropa.dto.TrasladoInventarioDTO;
+import com.tienda.ropa.dto.TrasladoMasivoDTO;
 import com.tienda.ropa.entity.Usuario;
 import com.tienda.ropa.service.TrasladoInventarioService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +29,14 @@ public class TrasladoInventarioController {
             @RequestBody TrasladoInventarioDTO dto,
             @AuthenticationPrincipal Usuario usuario) {
         trasladoInventarioService.mover(dto, usuario);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/traslado-masivo")
+    public ResponseEntity<Void> moverMasivo(
+            @RequestBody TrasladoMasivoDTO dto,
+            @AuthenticationPrincipal Usuario usuario) {
+        trasladoInventarioService.moverMasivo(dto, usuario);
         return ResponseEntity.noContent().build();
     }
 }

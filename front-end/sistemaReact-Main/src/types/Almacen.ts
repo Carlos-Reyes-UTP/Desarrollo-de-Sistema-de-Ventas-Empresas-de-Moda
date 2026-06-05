@@ -36,6 +36,17 @@ export interface TrasladoInventarioPayload {
   cantidad: number;
 }
 
+export interface ItemTraslado {
+  idVariante: number;
+  cantidad: number;
+}
+
+export interface TrasladoMasivoPayload {
+  idUbicacionAreaOrigen: number;
+  idUbicacionAreaDestino: number;
+  items: ItemTraslado[];
+}
+
 /** Respuesta de GET /ubicaciones/stock/almacen */
 export interface StockDesdeAlmacen {
   idUbicacionAreaOrigen: number;

@@ -1,6 +1,8 @@
 package com.tienda.ropa.service;
 
+import com.tienda.ropa.dto.ItemTrasladoDTO;
 import com.tienda.ropa.dto.TrasladoInventarioDTO;
+import com.tienda.ropa.dto.TrasladoMasivoDTO;
 import com.tienda.ropa.entity.MovimientoInventario;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.TipoMovimientoInventario;
@@ -15,6 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -103,6 +107,81 @@ public class TrasladoInventarioService {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST, "La ubicación de destino no está activa.");
         }
+    }
+
+    @Transactional
+    public void moverMasivo(TrasladoMasivoDTO dto, Usuario usuario) {
+        if (dto == null || dto.items() == null || dto.items().isEmpty()) {
+            throw new IllegalArgumentException("Debe indicar al menos un producto para trasladar");
+        }
+        if (dto.idUbicacionAreaOrigen() == null || dto.idUbicacionAreaDestino() == null) {
+            throw new IllegalArgumentException("Origen y destino son obligatorios");
+        }
+        if (dto.idUbicacionAreaOrigen().equals(dto.idUbicacionAreaDestino())) {
+            throw new IllegalArgumentException("La ubicación de origen y destino no pueden coincidir");
+        }
+
+        UbicacionArea origen = ubicacionAreaRepository.findByIdWithUbicacionYArea(dto.idUbicacionAreaOrigen())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Ubicación-área origen no encontrada: " + dto.idUbicacionAreaOrigen()));
+        UbicacionArea destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(dto.idUbicacionAreaDestino())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Ubicación-área destino no encontrada: " + dto.idUbicacionAreaDestino()));
+
+        validarUbicacionesActivas(origen, destino);
+
+        for (ItemTrasladoDTO item : dto.items()) {
+            if (item.idVariante() == null || item.cantidad() == null || item.cantidad() <= 0) {
+                throw new IllegalArgumentException("Cada item debe tener idVariante y cantidad mayor a cero");
+            }
+        }
+
+        List<ProductoVariante> variantes = new ArrayList<>();
+        for (ItemTrasladoDTO item : dto.items()) {
+            ProductoVariante variante = productoVarianteRepository.findById(item.idVariante())
+                    .orElseThrow(() -> new IllegalArgumentException(
+                            "Variante no encontrada: " + item.idVariante()));
+            variantes.add(variante);
+
+            if (usuario != null && inventarioContextService.esAlmaceneroDeLinea(usuario)) {
+                validarTrasladoAlmacenero(usuario, origen, destino, item.idVariante());
+            }
+        }
+
+        for (int i = 0; i < dto.items().size(); i++) {
+            ItemTrasladoDTO item = dto.items().get(i);
+            ProductoVariante variante = variantes.get(i);
+
+            String mensajeStock = "Stock insuficiente en '"
+                    + InventarioService.etiquetaUbicacionArea(origen)
+                    + "' para '" + variante.getColor() + " / " + variante.getTalla()
+                    + "' (solicitado: " + item.cantidad() + ")";
+
+            inventarioService.aplicarDeltaEnUbicacionArea(
+                    variante.getIdProductoVariante(),
+                    origen,
+                    -item.cantidad(),
+                    mensajeStock);
+            inventarioService.aplicarDeltaEnUbicacionArea(
+                    variante.getIdProductoVariante(),
+                    destino,
+                    item.cantidad(),
+                    "No se pudo aumentar stock en destino");
+
+            MovimientoInventario movimiento = new MovimientoInventario();
+            movimiento.setVariante(variante);
+            movimiento.setUbicacionAreaOrigen(origen);
+            movimiento.setUbicacionAreaDestino(destino);
+            movimiento.setCantidad(item.cantidad());
+            movimiento.setTipoMovimiento(TipoMovimientoInventario.TRASLADO);
+            movimientoInventarioRepository.save(movimiento);
+        }
+
+        notificationService.sendNotificationObject(Map.of(
+                "type", "INVENTARIO_TRASLADO_MASIVO",
+                "cantidadItems", dto.items().size(),
+                "idUbicacionAreaOrigen", dto.idUbicacionAreaOrigen(),
+                "idUbicacionAreaDestino", dto.idUbicacionAreaDestino()));
     }
 
     private void validarTrasladoAlmacenero(

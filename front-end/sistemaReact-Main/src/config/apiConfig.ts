@@ -265,6 +265,7 @@ export const RUTAS_ALMACEN = {
     return `${API_BASE_URL}/api/almacenero/ubicaciones/stock/almacen/buscar?${params.toString()}`;
   },
   TRASLADO: `${API_BASE_URL}/api/almacenero/inventario/traslado`,
+  TRASLADO_MASIVO: `${API_BASE_URL}/api/almacenero/inventario/traslado-masivo`,
 };
 
 export const RUTAS_INVENTARIO_CONTEXTO = {
