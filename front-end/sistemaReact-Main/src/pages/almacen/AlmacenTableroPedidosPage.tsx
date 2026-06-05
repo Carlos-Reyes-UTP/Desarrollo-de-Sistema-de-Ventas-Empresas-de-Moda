@@ -235,6 +235,10 @@ export default function AlmacenTableroPedidosPage() {
     if (!hayVentas && repos.length > 0) {
       setActiveTab("repos");
     }
+
+    if (hayVentas && puedeAutoPriorizarVentas()) {
+      setActiveTab((prev) => prev === "repos" ? "ventas" : prev);
+    }
   }, [
     cards,
     ventas.length,
