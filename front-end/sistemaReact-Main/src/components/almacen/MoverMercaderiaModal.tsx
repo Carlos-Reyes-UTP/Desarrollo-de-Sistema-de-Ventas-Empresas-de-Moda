@@ -845,14 +845,12 @@ const MoverMercaderiaModal = ({
           )}
         </div>
 
-        {confirmando && (
-          <p className="px-4 sm:px-8 text-xs sm:text-sm app-text-muted text-center">
-            ¿Está seguro de realizar esta operación?
-          </p>
-        )}
-        <footer className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-8 flex flex-col-reverse sm:flex-row justify-stretch sm:justify-center items-stretch sm:items-center gap-2 sm:gap-4 bg-[var(--app-surface)] shrink-0">
+        <footer className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-8 flex flex-col-reverse sm:flex-row justify-stretch sm:justify-end items-stretch sm:items-center gap-2 sm:gap-4 bg-[var(--app-surface)] shrink-0">
           {confirmando ? (
             <>
+              <p className="flex-1 text-xs sm:text-sm app-text-muted text-center sm:text-left min-w-0">
+                ¿Está seguro de realizar esta operación?
+              </p>
               <button
                 type="button"
                 onClick={() => setConfirmando(false)}
