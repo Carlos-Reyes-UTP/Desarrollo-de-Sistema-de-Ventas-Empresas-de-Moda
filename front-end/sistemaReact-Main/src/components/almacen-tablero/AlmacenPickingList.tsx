@@ -276,7 +276,7 @@ export function AlmacenPickingList({
       <div className="flex-1 min-h-0 space-y-3 pb-36 lg:pb-8">
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">
           {esDesdeAlerta
-            ? "Reposición sugerida desde piso — ajusta cantidad, marca e inicia despacho"
+            ? "Reposicion sugerida para el área - marca cada ítem"
             : "Lista de recolección — marca cada ítem"}
         </p>
 
@@ -285,7 +285,6 @@ export function AlmacenPickingList({
             Objetivo: {stockObjetivo} uds
             {stockPiso != null ? ` · Stock en piso: ${stockPiso}` : ""}
             {` · Envío sugerido: ${cantidadEnvio}`}
-            {" · Toca la barra para marcar"}
           </p>
         )}
 
@@ -361,7 +360,7 @@ export function AlmacenPickingList({
           ) : (
             <>
               <MaterialIcon icon="check" className="w-5 h-5" />
-              {esDesdeAlerta ? "Crear solicitud y despachar" : "Finalizar despacho"}
+              {esDesdeAlerta ? "Despachar Mercaderia" : "Finalizar despacho"}
             </>
           )}
         </button>
