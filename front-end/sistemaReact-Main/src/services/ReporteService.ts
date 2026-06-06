@@ -11,8 +11,21 @@ import type {
   TallaProducto,
   VariantesPorColor,
   PrediccionIARequest,
-  PrediccionIAResponse
+  PrediccionIAResponse,
+  PrediccionLoteResponse
 } from '../types/ReporteVentas';
+
+const formatFechaInicio = (fechaStr?: string): string => {
+  if (!fechaStr) return '';
+  if (fechaStr.includes('T')) return fechaStr;
+  return `${fechaStr}T00:00:00`;
+};
+
+const formatFechaFin = (fechaStr?: string): string => {
+  if (!fechaStr) return '';
+  if (fechaStr.includes('T')) return fechaStr;
+  return `${fechaStr}T23:59:59`;
+};
 
 export const ReporteService = {
   
@@ -23,8 +36,8 @@ export const ReporteService = {
     try {
       const params = new URLSearchParams();
       
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
       if (filtros?.categoria) params.append('categoria', filtros.categoria);
       if (filtros?.subcategoria) params.append('subcategoria', filtros.subcategoria);
       if (filtros?.proveedor) params.append('proveedor', filtros.proveedor);
@@ -60,14 +73,27 @@ export const ReporteService = {
   },
 
   /**
+   * Envía la lista de datos al backend principal para obtener predicciones en lote de IA.
+   */
+  predecirLote: async (datos: PrediccionIARequest[]): Promise<PrediccionLoteResponse> => {
+    try {
+      const response = await apiClient.post<PrediccionLoteResponse>(RUTAS_REPORTES.PREDICCION_LOTE, datos);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener la predicción por lote de IA:', error);
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al obtener la predicción por lote');
+    }
+  },
+
+  /**
    * Obtiene el reporte de ventas por categoría
    */
   getReportePorCategoria: async (filtros?: FiltrosReporte): Promise<ReporteCategoriaData[]> => {
     try {
       const params = new URLSearchParams();
       
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
       if (filtros?.categoria) params.append('categoria', filtros.categoria);
       if (filtros?.subcategoria) params.append('subcategoria', filtros.subcategoria);
       
@@ -91,8 +117,8 @@ export const ReporteService = {
       const params = new URLSearchParams();
       params.append('idCategoriaPadre', idCategoriaPadre.toString());
       
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
       
       const url = `${RUTAS_REPORTES.POR_CATEGORIA}/subcategorias?${params.toString()}`;
       const response = await apiClient.get<ReporteCategoriaData[]>(url);
@@ -111,8 +137,8 @@ export const ReporteService = {
       const params = new URLSearchParams();
       params.append('idSubcategoria', idSubcategoria.toString());
       
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
       
       const url = `${RUTAS_REPORTES.POR_CATEGORIA}/segunda-subcategoria?${params.toString()}`;
       const response = await apiClient.get<ReporteCategoriaData[]>(url);
@@ -130,8 +156,8 @@ export const ReporteService = {
     try {
       const params = new URLSearchParams();
       
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
       
       const url = params.toString() 
         ? `${RUTAS_REPORTES.RESUMEN_GENERAL}?${params.toString()}`
@@ -187,8 +213,8 @@ export const ReporteService = {
     try {
       const params = new URLSearchParams();
       
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
       
       const url = params.toString() 
         ? `${RUTAS_REPORTES.VENTAS_POR_PERIODO}?${params.toString()}`
@@ -209,8 +235,8 @@ export const ReporteService = {
     try {
       const params = new URLSearchParams();
       
-      if (filtros?.fechaInicio) params.append('fechaInicio', filtros.fechaInicio);
-      if (filtros?.fechaFin) params.append('fechaFin', filtros.fechaFin);
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
       if (filtros?.categoria) params.append('categoria', filtros.categoria);
       if (filtros?.subcategoria) params.append('subcategoria', filtros.subcategoria);
       if (filtros?.limite) params.append('limite', filtros.limite.toString());

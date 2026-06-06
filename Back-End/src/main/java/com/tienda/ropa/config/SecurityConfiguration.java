@@ -92,7 +92,7 @@ public class SecurityConfiguration {
                                                 // incluir VENDEDOR ni ADMIN).
                                                 .requestMatchers(HttpMethod.GET, "/api/cajero/productos/**")
                                                 .hasAnyRole("CAJERO", "ALMACENERO", "SUPERVISOR_ALMACEN",
-                                                                "VENDEDOR")
+                                                                "VENDEDOR", "ADMIN", "GERENTE")
 
                                                 // Clientes (búsqueda DNI/RUC) — ADMIN también necesita acceso (crear mayoristas)
                                                 .requestMatchers("/api/cajero/clientes/**")

@@ -109,3 +109,14 @@ export interface PrediccionIARequest {
 export interface PrediccionIAResponse {
   cantidad_recomendada: number;
 }
+
+export interface PrediccionLoteItemResponse {
+  id_producto: number;
+  variante: string;
+  prediccion_ventas: number;
+}
+
+export interface PrediccionLoteResponse {
+  status: string;
+  resultados: PrediccionLoteItemResponse[];
+}

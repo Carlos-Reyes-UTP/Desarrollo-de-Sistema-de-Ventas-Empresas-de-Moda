@@ -292,6 +292,7 @@ export const RUTAS_REPORTES = {
   VENTAS_POR_PERIODO: `${API_BASE_URL}/api/admin/reportes/ventas-por-periodo`,
   PRODUCTOS_DETALLE: `${API_BASE_URL}/api/admin/reportes/productos-detalle`,
   PREDICCION: `${API_BASE_URL}/api/admin/reportes/prediccion`,
+  PREDICCION_LOTE: `${API_BASE_URL}/api/admin/reportes/prediccion/lote`,
   TALLAS_POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/admin/reportes/producto/tallas?idProducto=${idProducto}`,
   VARIANTES_POR_COLOR: (idProducto: number, nombreTalla: string) => `${API_BASE_URL}/api/admin/reportes/producto/variantes-por-color?idProducto=${idProducto}&nombreTalla=${encodeURIComponent(nombreTalla)}`,
 };
