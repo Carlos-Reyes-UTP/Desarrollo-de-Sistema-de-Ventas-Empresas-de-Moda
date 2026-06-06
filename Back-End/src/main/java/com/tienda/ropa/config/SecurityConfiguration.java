@@ -128,19 +128,19 @@ public class SecurityConfiguration {
 
                                                 // Endpoints legacy de carga total (mantenimiento / migración)
                                                 .requestMatchers(HttpMethod.GET, "/api/almacenero/variantes/todas")
-                                                .hasRole("SUPERVISOR_ALMACEN")
+                                                .hasAnyRole("SUPERVISOR_ALMACEN", "ADMIN", "GERENTE")
                                                 .requestMatchers(HttpMethod.GET, "/api/cajero/productos/variantes")
-                                                .hasRole("SUPERVISOR_ALMACEN")
+                                                .hasAnyRole("SUPERVISOR_ALMACEN", "ADMIN", "GERENTE")
                                                 .requestMatchers(HttpMethod.GET, "/api/almacenero/productos")
-                                                .hasRole("SUPERVISOR_ALMACEN")
+                                                .hasAnyRole("SUPERVISOR_ALMACEN", "ADMIN", "GERENTE")
 
                                                 // Dashboard almacenero: escritura solo almacén (reposición manual, etc.)
                                                 .requestMatchers(HttpMethod.POST, "/api/almacenero/dashboard/**")
-                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN")
+                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "ADMIN", "GERENTE")
 
                                                 // Inventario (productos, categorías, proveedores, etc.) — sin ADMIN
                                                 .requestMatchers("/api/almacenero/**")
-                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR")
+                                                .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR", "ADMIN", "GERENTE")
 
                                                 // Catálogo y solicitudes a almacén (vendedor)
                                                 .requestMatchers("/api/vendedor/**")

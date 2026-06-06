@@ -82,11 +82,11 @@ const TABS: ReportTabConfig[] = [
 
     id: 'prediccion',
 
-    nombre: 'Predicción',
+    nombre: 'Inventario y Demanda',
 
-    icon: 'query_stats',
+    icon: 'insights',
 
-    descripcion: 'Proyección de ventas con exportación Excel y CSV detallado',
+    descripcion: 'Control de stock físico de productos y predicción de demanda con IA',
 
   },
 
