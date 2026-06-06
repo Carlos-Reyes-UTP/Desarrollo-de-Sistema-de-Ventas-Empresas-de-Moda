@@ -4,30 +4,39 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestBody;
 
+import com.tienda.ropa.dto.PrediccionIARequestDTO;
+import com.tienda.ropa.dto.PrediccionIAResponseDTO;
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
+import com.tienda.ropa.service.PrediccionIAService;
 import com.tienda.ropa.service.ReporteService;
 
 @RestController
 @RequestMapping("/api/admin/reportes")
 @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
-@CrossOrigin(origins = "*")
 public class ReporteController {
 
-    @Autowired
-    private ReporteService reporteService;
+    private final ReporteService reporteService;
+
+    private final PrediccionIAService prediccionIAService;
+
+    public ReporteController(ReporteService reporteService, PrediccionIAService prediccionIAService) {
+        this.reporteService = reporteService;
+        this.prediccionIAService = prediccionIAService;
+    }
 
     // Endpoints para productos más vendidos
     @GetMapping("/productos-mas-vendidos")
@@ -178,6 +187,17 @@ public class ReporteController {
             List<VariantesPorColorDTO> variantes = reporteService.obtenerVariantesPorColor(idProducto, nombreTalla);
             return ResponseEntity.ok(variantes);
         } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/prediccion")
+    public ResponseEntity<PrediccionIAResponseDTO> predecirCantidadRecomendada(
+            @RequestBody PrediccionIARequestDTO request) {
+        try {
+            PrediccionIAResponseDTO response = prediccionIAService.predecirCantidadRecomendada(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
         }
     }

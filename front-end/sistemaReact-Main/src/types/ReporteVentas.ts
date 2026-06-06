@@ -96,3 +96,16 @@ export interface VentasPorPeriodo {
   ingresosTotales: number;
   productosVendidos: number;
 }
+
+export interface PrediccionIARequest {
+  id_producto: number;
+  color: string;
+  talla: string;
+  semana_ano: number;
+  es_campana: number;
+  ventas_semana_pasada: number;
+}
+
+export interface PrediccionIAResponse {
+  cantidad_recomendada: number;
+}

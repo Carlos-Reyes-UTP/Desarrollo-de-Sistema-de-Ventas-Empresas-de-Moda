@@ -9,7 +9,9 @@ import type {
   ProductoDetalleVenta,
   VentasPorPeriodo,
   TallaProducto,
-  VariantesPorColor
+  VariantesPorColor,
+  PrediccionIARequest,
+  PrediccionIAResponse
 } from '../types/ReporteVentas';
 
 export const ReporteService = {
@@ -41,6 +43,19 @@ export const ReporteService = {
     } catch (error: any) {
       console.error('Error al obtener productos más vendidos:', error);
       throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar los productos más vendidos');
+    }
+  },
+
+  /**
+   * Envía los datos al backend principal para obtener la predicción de IA.
+   */
+  predecirCantidadRecomendada: async (datos: PrediccionIARequest): Promise<PrediccionIAResponse> => {
+    try {
+      const response = await apiClient.post<PrediccionIAResponse>(RUTAS_REPORTES.PREDICCION, datos);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener la predicción de IA:', error);
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al obtener la predicción');
     }
   },
 
@@ -345,7 +360,7 @@ export const ReporteService = {
         const todasLasVentas = await VentaService.obtenerTodasVentas();
         
         if (!Array.isArray(todasLasVentas)) {
-          throw new Error('No se pudieron obtener las ventas');
+          throw new TypeError('No se pudieron obtener las ventas');
         }
 
         // Filtrar ventas del mes actual
