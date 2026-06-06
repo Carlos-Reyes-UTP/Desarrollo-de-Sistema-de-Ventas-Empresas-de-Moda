@@ -9,8 +9,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.List;
+
 import com.tienda.ropa.dto.PrediccionIARequestDTO;
 import com.tienda.ropa.dto.PrediccionIAResponseDTO;
+import com.tienda.ropa.dto.PrediccionLoteResponseDTO;
 
 @Service
 public class PrediccionIAService {
@@ -39,6 +42,27 @@ public class PrediccionIAService {
             }
 
             return new PrediccionIAResponseDTO(response.getCantidadRecomendada());
+        } catch (WebClientResponseException ex) {
+            throw new IllegalStateException(
+                    "Error del microservicio de IA: " + ex.getStatusCode().value() + " " + ex.getResponseBodyAsString(),
+                    ex);
+        }
+    }
+
+    public PrediccionLoteResponseDTO predecirLote(List<PrediccionIARequestDTO> requests) {
+        try {
+            PrediccionLoteResponseDTO response = webClient.post()
+                    .uri("/predecir_lote")
+                    .bodyValue(requests)
+                    .retrieve()
+                    .bodyToMono(PrediccionLoteResponseDTO.class)
+                    .block(Duration.ofSeconds(30));
+
+            if (response == null || response.getResultados() == null) {
+                throw new IllegalStateException("El microservicio de IA no devolvió resultados");
+            }
+
+            return response;
         } catch (WebClientResponseException ex) {
             throw new IllegalStateException(
                     "Error del microservicio de IA: " + ex.getStatusCode().value() + " " + ex.getResponseBodyAsString(),

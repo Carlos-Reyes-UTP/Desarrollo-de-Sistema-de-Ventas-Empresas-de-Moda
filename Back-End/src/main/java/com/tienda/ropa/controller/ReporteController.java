@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import com.tienda.ropa.dto.PrediccionIARequestDTO;
 import com.tienda.ropa.dto.PrediccionIAResponseDTO;
+import com.tienda.ropa.dto.PrediccionLoteResponseDTO;
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
@@ -196,6 +197,17 @@ public class ReporteController {
             @RequestBody PrediccionIARequestDTO request) {
         try {
             PrediccionIAResponseDTO response = prediccionIAService.predecirCantidadRecomendada(request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/prediccion/lote")
+    public ResponseEntity<PrediccionLoteResponseDTO> predecirLote(
+            @RequestBody List<PrediccionIARequestDTO> requests) {
+        try {
+            PrediccionLoteResponseDTO response = prediccionIAService.predecirLote(requests);
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
