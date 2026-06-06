@@ -8,6 +8,8 @@ import ProductosMasVendidos from '@/components/reportes/ProductosMasVendidos';
 
 import ReportePorCategoria from '@/components/reportes/ReportePorCategoria';
 
+import PrediccionVentas from '@/components/reportes/PrediccionVentas';
+
 import ResumenGeneral from '@/components/reportes/ResumenGeneral';
 
 import ReporteDeVentas from '@/components/reportes/ReporteDeVentas';
@@ -22,7 +24,7 @@ import { ReportPageShell, type ReportTabConfig } from '@/components/reportes/lay
 
 
 
-type TabReporte = 'resumen' | 'productos' | 'categorias' | 'ventas';
+type TabReporte = 'resumen' | 'productos' | 'categorias' | 'ventas' | 'prediccion';
 
 
 
@@ -73,6 +75,18 @@ const TABS: ReportTabConfig[] = [
     icon: 'category',
 
     descripcion: 'Drill-down por líneas y subcategorías',
+
+  },
+
+  {
+
+    id: 'prediccion',
+
+    nombre: 'Predicción',
+
+    icon: 'query_stats',
+
+    descripcion: 'Proyección de ventas con exportación Excel y CSV detallado',
 
   },
 
@@ -133,6 +147,10 @@ const ReportesPageContent: React.FC = () => {
       case 'categorias':
 
         return <ReportePorCategoria />;
+
+      case 'prediccion':
+
+        return <PrediccionVentas />;
 
       default:
 
