@@ -510,9 +510,33 @@ const PrediccionVentas: React.FC = () => {
                       <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Producto</th>
                       <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Variante</th>
                       <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Stock Actual</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Predicción IA</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Stock Seg.</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">A Comprar</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5 reports-tooltip-trigger">
+                          <span>Predicción IA</span>
+                          <MaterialIcon icon="help_outline" className="w-3.5 h-3.5 text-gray-400 hover:text-[var(--app-accent)]" />
+                          <span className="reports-tooltip-content">
+                            Es la predicción de ventas para el siguiente mes y lo que se recomienda comprar.
+                          </span>
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5 reports-tooltip-trigger">
+                          <span>Stock Seg.</span>
+                          <MaterialIcon icon="help_outline" className="w-3.5 h-3.5 text-gray-400 hover:text-[var(--app-accent)]" />
+                          <span className="reports-tooltip-content">
+                            Este stock sirve para subsanar o mitigar el posible margen de error del modelo de predicción.
+                          </span>
+                        </div>
+                      </th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5 reports-tooltip-trigger">
+                          <span>A Comprar</span>
+                          <MaterialIcon icon="help_outline" className="w-3.5 h-3.5 text-gray-400 hover:text-[var(--app-accent)]" />
+                          <span className="reports-tooltip-content reports-tooltip-content--right">
+                            Es el total que se recomienda comprar considerando el stock actual, más la predicción IA y el stock de seguridad.
+                          </span>
+                        </div>
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--app-border)] bg-[var(--app-bg)]">
