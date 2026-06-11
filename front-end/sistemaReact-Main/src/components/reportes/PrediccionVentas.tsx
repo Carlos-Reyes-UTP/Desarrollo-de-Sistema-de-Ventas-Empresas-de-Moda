@@ -20,6 +20,8 @@ const PrediccionVentas: React.FC = () => {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [cargandoStock, setCargandoStock] = useState(false);
   const [errorStock, setErrorStock] = useState<string | null>(null);
+  const [filtroStock, setFiltroStock] = useState<'todos' | 'sobreestock' | 'normal' | 'bajo'>('todos');
+  const [paginaActual, setPaginaActual] = useState<number>(1);
 
   // Sección 2: Predicción de Demanda
   const [variantes, setVariantes] = useState<ProductoVariante[]>([]);
@@ -33,22 +35,49 @@ const PrediccionVentas: React.FC = () => {
   // Cargar datos según la pestaña activa
   useEffect(() => {
     if (subTabActiva === 'stock') {
-      const fetchProductos = async () => {
+      const fetchProductosYVariantes = async () => {
         try {
           setCargandoStock(true);
           setErrorStock(null);
-          const data = await ProductoService.getAllProductos(rolPrincipal);
-          // Ordenar de mayor a menor stock (cantidad)
-          const sorted = [...data].sort((a, b) => b.cantidad - a.cantidad);
-          setProductos(sorted.slice(0, 10));
+          
+          // Fetch products and variants concurrently
+          const [productosData, variantesData] = await Promise.all([
+            ProductoService.getAllProductos(rolPrincipal),
+            ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, true),
+          ]);
+          
+          // Map variants to their product to compute the sum of variant stocks
+          const stockMap = new Map<number, number>();
+          variantesData.forEach((v) => {
+            const pId = v.producto?.idProducto;
+            if (pId !== undefined) {
+              stockMap.set(pId, (stockMap.get(pId) || 0) + v.cantidad);
+            }
+          });
+
+          // Create products with mapped stock
+          const productsWithStock = productosData.map((p) => {
+            const calculatedStock = p.idProducto !== undefined && stockMap.has(p.idProducto)
+              ? (stockMap.get(p.idProducto) ?? 0)
+              : p.cantidad;
+            return {
+              ...p,
+              cantidad: calculatedStock // Sum of variant stocks, or base quantity if no variants
+            };
+          });
+
+          // Sort products by ID
+          const sorted = [...productsWithStock].sort((a, b) => (a.idProducto || 0) - (b.idProducto || 0));
+          setProductos(sorted);
+          setPaginaActual(1); // Reset page on fetch
         } catch (err: any) {
-          console.error('Error al obtener productos:', err);
+          console.error('Error al obtener productos y variantes:', err);
           setErrorStock('No se pudieron cargar los datos de inventario.');
         } finally {
           setCargandoStock(false);
         }
       };
-      fetchProductos();
+      fetchProductosYVariantes();
     } else {
       const fetchVariantes = async () => {
         try {
@@ -68,35 +97,7 @@ const PrediccionVentas: React.FC = () => {
     }
   }, [subTabActiva, rolPrincipal]);
 
-  // Función para obtener la insignia del rank de forma visual
-  const getRankBadge = (index: number) => {
-    switch (index) {
-      case 0:
-        return (
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-400 text-amber-950 font-black text-xs shadow-sm">
-            1
-          </span>
-        );
-      case 1:
-        return (
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-300 text-slate-900 font-black text-xs shadow-sm">
-            2
-          </span>
-        );
-      case 2:
-        return (
-          <span className="flex items-center justify-center w-6 h-6 rounded-full bg-amber-600 text-amber-50 font-black text-xs shadow-sm">
-            3
-          </span>
-        );
-      default:
-        return (
-          <span className="flex items-center justify-center w-6 h-6 text-[var(--app-text-muted)] font-bold text-xs">
-            {index + 1}
-          </span>
-        );
-    }
-  };
+
 
   // Generar sugerencias llamando al microservicio de IA por lote
   const handleGenerarSugerencias = async () => {
@@ -169,7 +170,23 @@ const PrediccionVentas: React.FC = () => {
     XLSX.writeFile(workbook, 'Proyecciones_Demanda_IA.xlsx');
   };
 
-  const maxStockVal = productos[0]?.cantidad || 1;
+  // Preparar datos filtrados y paginados
+  const countTodos = productos.length;
+  const countSobreestock = productos.filter(p => p.cantidad > 180).length;
+  const countNormal = productos.filter(p => p.cantidad >= 30 && p.cantidad <= 180).length;
+  const countBajo = productos.filter(p => p.cantidad < 30).length;
+
+  const productosFiltrados = productos.filter((p) => {
+    if (filtroStock === 'sobreestock') return p.cantidad > 180;
+    if (filtroStock === 'normal') return p.cantidad >= 30 && p.cantidad <= 180;
+    if (filtroStock === 'bajo') return p.cantidad < 30;
+    return true;
+  });
+
+  const elementosPorPagina = 8;
+  const totalPaginas = Math.ceil(productosFiltrados.length / elementosPorPagina);
+  const indexInicio = (paginaActual - 1) * elementosPorPagina;
+  const productosPaginados = productosFiltrados.slice(indexInicio, indexInicio + elementosPorPagina);
 
   return (
     <div className="space-y-6 w-full animate-in">
@@ -222,80 +239,247 @@ const PrediccionVentas: React.FC = () => {
       {subTabActiva === 'stock' ? (
         <DashboardPanel className="p-5 sm:p-6">
           <SectionHeader
-            title="Productos con Mayor Existencia"
-            subtitle="Top 10 de productos con los niveles de stock más altos en el catálogo general"
+            title="Stock General de Productos"
+            subtitle="Niveles de stock consolidado para todos los productos base en el catálogo general"
           />
+
+          {/* Barra de Filtros */}
+          <div className="flex flex-wrap gap-2 mb-6 mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setFiltroStock('todos');
+                setPaginaActual(1);
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
+                filtroStock === 'todos'
+                  ? 'bg-[var(--app-accent)] text-white border-transparent shadow-sm'
+                  : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
+              }`}
+            >
+              Todos
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                filtroStock === 'todos' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {countTodos}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFiltroStock('sobreestock');
+                setPaginaActual(1);
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
+                filtroStock === 'sobreestock'
+                  ? 'bg-emerald-600 text-white border-transparent shadow-sm'
+                  : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
+              }`}
+            >
+              Sobreestock ({'>'}180)
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                filtroStock === 'sobreestock' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {countSobreestock}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFiltroStock('normal');
+                setPaginaActual(1);
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
+                filtroStock === 'normal'
+                  ? 'bg-blue-600 text-white border-transparent shadow-sm'
+                  : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
+              }`}
+            >
+              Stock Normal (30-180)
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                filtroStock === 'normal' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {countNormal}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setFiltroStock('bajo');
+                setPaginaActual(1);
+              }}
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
+                filtroStock === 'bajo'
+                  ? 'bg-red-600 text-white border-transparent shadow-sm'
+                  : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
+              }`}
+            >
+              Bajo Stock ({'<'}30)
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                filtroStock === 'bajo' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {countBajo}
+              </span>
+            </button>
+          </div>
 
           {cargandoStock ? (
             <div className="py-12">
-              <TableSkeleton rows={10} columns={6} />
+              <TableSkeleton rows={8} columns={5} />
             </div>
           ) : errorStock ? (
             <div className="py-8 text-center text-red-500 font-medium">
               {errorStock}
             </div>
-          ) : productos.length === 0 ? (
+          ) : productosFiltrados.length === 0 ? (
             <div className="py-8 text-center app-text-muted">
-              No hay productos registrados en el sistema.
+              No se encontraron productos que coincidan con el filtro.
             </div>
           ) : (
-            <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--app-border)]">
-              <table className="min-w-full divide-y divide-[var(--app-border)]">
-                <thead className="bg-[var(--app-bg-muted)]">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider w-16">Rank</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Producto</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Código</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Categoría</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Precio Unit.</th>
-                    <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Stock Físico</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--app-border)] bg-[var(--app-bg)]">
-                  {productos.map((prod, index) => {
-                    const percentage = Math.min(100, Math.max(0, (prod.cantidad / maxStockVal) * 100));
-                    return (
-                      <tr
-                        key={prod.idProducto || index}
-                        className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          {getRankBadge(index)}
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="font-bold app-heading text-sm">{prod.nombre}</div>
-                          <div className="text-[11px] app-text-muted">{prod.tipoPublico}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-mono app-text-muted">
-                          {prod.codigoIdentificacion}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--app-bg-muted)] app-text-muted border border-[var(--app-border)]">
-                            {prod.categoriaPadre?.nombre || prod.subCategoria2?.nombre || 'General'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold app-heading tabular-nums">
-                          {new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(prod.precioUnitario)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-3">
-                            <span className="font-black app-heading text-sm tabular-nums w-12 text-right">
-                              {prod.cantidad}
+            <>
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--app-border)]">
+                <table className="min-w-full divide-y divide-[var(--app-border)] bg-[var(--app-bg)]">
+                  <thead className="bg-[var(--app-bg-muted)]">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider w-20">ID</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Nombre Producto</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Código</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Categoría</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Stock</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--app-border)]">
+                    {productosPaginados.map((prod, index) => {
+                      const maxStockRef = Math.max(1, ...productosFiltrados.map(p => p.cantidad), 200);
+                      const percentage = Math.min(100, Math.max(0, (prod.cantidad / maxStockRef) * 100));
+
+                      let stockBadgeClass = "text-[var(--app-text)]";
+                      let barColorClass = "bg-blue-500";
+                      if (prod.cantidad > 180) {
+                        stockBadgeClass = "text-emerald-600 dark:text-emerald-400";
+                        barColorClass = "bg-emerald-500";
+                      } else if (prod.cantidad < 30) {
+                        stockBadgeClass = "text-red-600 dark:text-red-400";
+                        barColorClass = "bg-red-500";
+                      } else {
+                        stockBadgeClass = "text-blue-600 dark:text-blue-400";
+                        barColorClass = "bg-blue-500";
+                      }
+
+                      return (
+                        <tr
+                          key={prod.idProducto || index}
+                          className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors"
+                        >
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono app-text-muted">
+                            #{prod.idProducto}
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="font-bold app-heading text-sm">{prod.nombre}</div>
+                            <div className="text-[11px] app-text-muted">{prod.tipoPublico}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono app-text-muted">
+                            {prod.codigoIdentificacion}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--app-bg-muted)] app-text-muted border border-[var(--app-border)]">
+                              {prod.categoriaPadre?.nombre || prod.subCategoria2?.nombre || 'General'}
                             </span>
-                            <div className="w-24 bg-[var(--app-bg-muted)] h-2 rounded-full overflow-hidden border border-[var(--app-border)]">
-                              <div
-                                className="bg-[var(--app-accent)] h-full rounded-full transition-all duration-500"
-                                style={{ width: `${percentage}%` }}
-                              />
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center gap-3">
+                              <span className={`font-black text-sm tabular-nums w-12 text-right ${stockBadgeClass}`}>
+                                {prod.cantidad}
+                              </span>
+                              <div className="w-24 bg-[var(--app-bg-muted)] h-2 rounded-full overflow-hidden border border-[var(--app-border)]">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-500 ${barColorClass}`}
+                                  style={{ width: `${percentage}%` }}
+                                />
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Paginación */}
+              {totalPaginas > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[var(--app-border)] pt-4">
+                  <p className="text-xs app-text-muted">
+                    Mostrando <span className="font-bold text-[var(--app-text)]">{indexInicio + 1}</span> a{' '}
+                    <span className="font-bold text-[var(--app-text)]">
+                      {Math.min(indexInicio + elementosPorPagina, productosFiltrados.length)}
+                    </span>{' '}
+                    de <span className="font-bold text-[var(--app-text)]">{productosFiltrados.length}</span> productos
+                  </p>
+
+                  <div className="flex items-center gap-1 bg-[var(--app-bg-muted)] p-1 rounded-xl border border-[var(--app-border)]">
+                    <button
+                      type="button"
+                      onClick={() => setPaginaActual(prev => Math.max(1, prev - 1))}
+                      disabled={paginaActual === 1}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    >
+                      <MaterialIcon icon="chevron_left" className="w-4 h-4" />
+                      Ant.
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pag) => {
+                        const shouldShow =
+                          totalPaginas <= 7 ||
+                          pag === 1 ||
+                          pag === totalPaginas ||
+                          Math.abs(pag - paginaActual) <= 1;
+
+                        if (!shouldShow) {
+                          const showEllipsis =
+                            (pag === 2 && paginaActual > 3) ||
+                            (pag === totalPaginas - 1 && paginaActual < totalPaginas - 2);
+                          return showEllipsis ? (
+                            <span key={`el-${pag}`} className="px-2 text-xs font-mono text-[var(--app-text-muted)]">
+                              ...
+                            </span>
+                          ) : null;
+                        }
+
+                        return (
+                          <button
+                            key={pag}
+                            type="button"
+                            onClick={() => setPaginaActual(pag)}
+                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                              paginaActual === pag
+                                ? 'bg-[var(--app-accent)] text-white'
+                                : 'text-[var(--app-text-muted)] hover:bg-[var(--app-bg-hover)]'
+                            }`}
+                          >
+                            {pag}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaginaActual(prev => Math.min(totalPaginas, prev + 1))}
+                      disabled={paginaActual === totalPaginas}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    >
+                      Sig.
+                      <MaterialIcon icon="chevron_right" className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </DashboardPanel>
       ) : (
