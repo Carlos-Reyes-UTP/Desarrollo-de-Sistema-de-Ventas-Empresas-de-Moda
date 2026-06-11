@@ -18,6 +18,8 @@ import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 @Slf4j
 @Service
@@ -45,6 +47,14 @@ public class MlopsPipelineService {
     @Scheduled(cron = "0 0 3 25 * *")
     public void ejecutarEntrenamientoMensual() {
         log.info("Iniciando la tarea programada de MLOps: exportación de ventas y entrenamiento de modelo.");
+        ejecutarEntrenamientoManual();
+    }
+
+    /**
+     * Ejecuta el pipeline de MLOps manualmente y retorna las métricas del entrenamiento
+     */
+    public Map<String, Object> ejecutarEntrenamientoManual() {
+        log.info("Iniciando entrenamiento de MLOps manual.");
 
         try {
             // 1. Consultar base de datos: Obtener historial completo de ventas
@@ -54,12 +64,17 @@ public class MlopsPipelineService {
             // 2. Generar el archivo CSV
             guardarVentasEnCsv(detalles);
 
-            // 3. Llamar al Microservicio de Python
-            llamarMicroservicioEntrenamiento();
+            // 3. Llamar al Microservicio de Python y obtener resultados
+            Map<String, Object> resultado = llamarMicroservicioEntrenamiento();
 
-            log.info("Tarea programada de MLOps completada exitosamente.");
+            log.info("Entrenamiento de MLOps completado exitosamente.");
+            return resultado;
         } catch (Exception e) {
-            log.error("Error crítico durante la ejecución de la tarea de MLOps", e);
+            log.error("Error crítico durante la ejecución del entrenamiento de MLOps", e);
+            Map<String, Object> errorRes = new HashMap<>();
+            errorRes.put("status", "error");
+            errorRes.put("message", e.getMessage());
+            return errorRes;
         }
     }
 
@@ -117,14 +132,35 @@ public class MlopsPipelineService {
         }
     }
 
-    private void llamarMicroservicioEntrenamiento() {
+    private Map<String, Object> llamarMicroservicioEntrenamiento() {
         log.info("Haciendo petición POST al microservicio de Python para entrenar el modelo: {}", pythonTrainUrl);
+        Map<String, Object> resultado = new HashMap<>();
         try {
             // Petición HTTP POST sin cuerpo/body
-            ResponseEntity<Void> response = restTemplate.postForEntity(pythonTrainUrl, null, Void.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(pythonTrainUrl, null, Map.class);
             log.info("Respuesta del microservicio de entrenamiento recibida con código HTTP: {}", response.getStatusCode().value());
+            
+            if (response.getBody() != null) {
+                Map<?, ?> body = response.getBody();
+                Object mae = body.get("mae");
+                Object rmse = body.get("rmse");
+                log.info("--- MÉTRICAS DE EVALUACIÓN RECIBIDAS ---");
+                log.info("Error Absoluto Medio (MAE): {}", mae);
+                log.info("Raíz del Error Cuadrático Medio (RMSE): {}", rmse);
+                
+                resultado.put("status", body.get("status"));
+                resultado.put("message", body.get("message"));
+                resultado.put("mae", mae);
+                resultado.put("rmse", rmse);
+            } else {
+                resultado.put("status", "success");
+                resultado.put("message", "Entrenamiento completado sin métricas devueltas.");
+            }
         } catch (Exception e) {
             log.error("Fallo al llamar al microservicio de entrenamiento en la URL {}", pythonTrainUrl, e);
+            resultado.put("status", "error");
+            resultado.put("message", "Fallo al llamar al microservicio de entrenamiento: " + e.getMessage());
         }
+        return resultado;
     }
 }

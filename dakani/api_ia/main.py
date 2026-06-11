@@ -108,7 +108,7 @@ def predecir_stock(consulta: ConsultaStock):
             "id_producto": consulta.id_producto,
             "color": consulta.color,
             "talla": consulta.talla,
-            "cantidad_recomendada": cantidad_final if cantidad_final > 0 else 0
+            "cantidad_recommended": cantidad_final if cantidad_final > 0 else 0
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -138,9 +138,23 @@ def reentrenar_ia():
         encoder_talla = joblib.load("encoder_talla.pkl")
         print("Nuevo modelo y codificadores cargados en memoria.")
 
+        # 4. Leer las nuevas métricas del archivo generado
+        import json
+        try:
+            with open("metricas_modelo.json", "r") as f:
+                metricas = json.load(f)
+            mae = metricas.get("mae", 0.0)
+            rmse = metricas.get("rmse", 0.0)
+        except Exception as e:
+            print(f"Error al leer métricas del modelo: {e}")
+            mae = 0.0
+            rmse = 0.0
+
         return {
             "status": "success",
-            "message": "Pipeline completado. El modelo ha sido actualizado con los datos más recientes."
+            "message": "Pipeline completado. El modelo ha sido actualizado con los datos más recientes.",
+            "mae": mae,
+            "rmse": rmse
         }
 
     except subprocess.CalledProcessError as e:

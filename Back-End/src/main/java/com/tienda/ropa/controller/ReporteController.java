@@ -31,12 +31,15 @@ import com.tienda.ropa.service.ReporteService;
 public class ReporteController {
 
     private final ReporteService reporteService;
-
     private final PrediccionIAService prediccionIAService;
+    private final com.tienda.ropa.service.MlopsPipelineService mlopsPipelineService;
 
-    public ReporteController(ReporteService reporteService, PrediccionIAService prediccionIAService) {
+    public ReporteController(ReporteService reporteService, 
+                             PrediccionIAService prediccionIAService,
+                             com.tienda.ropa.service.MlopsPipelineService mlopsPipelineService) {
         this.reporteService = reporteService;
         this.prediccionIAService = prediccionIAService;
+        this.mlopsPipelineService = mlopsPipelineService;
     }
 
     // Endpoints para productos más vendidos
@@ -211,6 +214,17 @@ public class ReporteController {
             return ResponseEntity.ok(response);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PostMapping("/mlops/entrenar")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Map<String, Object>> entrenarModelo() {
+        try {
+            Map<String, Object> resultado = mlopsPipelineService.ejecutarEntrenamientoManual();
+            return ResponseEntity.ok(resultado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
 }

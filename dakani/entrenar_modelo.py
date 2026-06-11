@@ -48,6 +48,13 @@ print(f"Raíz del Error Cuadrático Medio (RMSE): {error_cuadratico:.2f} unidade
 nombre_modelo = 'modelo_dakani.json'
 modelo.save_model(nombre_modelo)
 
-print(f"\n¡Entrenamiento finalizado! Modelo guardado como '{nombre_modelo}'")
+# 8. Guardar las métricas de evaluación en un JSON
+import json
+metricas = {
+    "mae": float(error_absoluto),
+    "rmse": float(error_cuadratico)
+}
+with open("metricas_modelo.json", "w") as f:
+    json.dump(metricas, f, indent=4)
 
-#.\.venv\Scripts\python.exe entrenar_modelo.py
+print(f"\n¡Entrenamiento finalizado! Modelo guardado como '{nombre_modelo}' y métricas en 'metricas_modelo.json'")
