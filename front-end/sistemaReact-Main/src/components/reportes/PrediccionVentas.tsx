@@ -53,6 +53,7 @@ const PrediccionVentas: React.FC = () => {
           if (response && response.status === 'success') {
             setMae(response.mae);
             setRmse(response.rmse);
+            setStockSeguridad(Math.round(response.mae));
           } else {
             setErrorMetricas('No se recibieron métricas válidas.');
           }
@@ -75,6 +76,7 @@ const PrediccionVentas: React.FC = () => {
       if (response && response.status === 'success') {
         setMae(response.mae);
         setRmse(response.rmse);
+        setStockSeguridad(Math.round(response.mae));
         setStatusIA('Modelo reentrenado con éxito');
       } else {
         setStatusIA('Error al reentrenar el modelo');
@@ -647,6 +649,87 @@ const PrediccionVentas: React.FC = () => {
             </div>
           ) : (
             <div className="mt-5">
+              {/* Barra de Herramientas y Acciones de la IA */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 p-4 bg-[var(--app-bg-muted)] border border-[var(--app-border)] rounded-2xl">
+                
+                {/* Ajuste de Stock de Seguridad */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)]">
+                      Ajuste Stock Seguridad (0 - 30)
+                    </span>
+                    <div className="flex items-center gap-3 mt-1.5">
+                      <input
+                        type="range"
+                        min="0"
+                        max="30"
+                        value={stockSeguridad}
+                        onChange={(e) => setStockSeguridad(Number(e.target.value))}
+                        className="w-36 sm:w-48 accent-[var(--app-accent)]"
+                      />
+                      <span className="flex items-center justify-center bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-xs font-black w-8 h-8 rounded-lg text-[var(--app-accent)] shrink-0">
+                        {stockSeguridad}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Separador vertical visible en MD+ */}
+                  <div className="hidden md:block h-8 w-px bg-[var(--app-border)] mx-2" />
+
+                  {/* Estado del Microservicio / IA */}
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)]">
+                      Estado IA
+                    </span>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                        statusIA.toLowerCase().includes('success') || statusIA.toLowerCase().includes('éxito')
+                          ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
+                          : statusIA.toLowerCase().includes('error') || statusIA.toLowerCase().includes('conexión') || statusIA.toLowerCase().includes('permisos')
+                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                          : statusIA.toLowerCase().includes('procesando') || statusIA.toLowerCase().includes('entrenando') || statusIA.toLowerCase().includes('ejecutando')
+                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse'
+                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                      }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${
+                          statusIA.toLowerCase().includes('success') || statusIA.toLowerCase().includes('éxito')
+                            ? 'bg-emerald-500'
+                            : statusIA.toLowerCase().includes('error') || statusIA.toLowerCase().includes('conexión') || statusIA.toLowerCase().includes('permisos')
+                            ? 'bg-red-500'
+                            : statusIA.toLowerCase().includes('procesando') || statusIA.toLowerCase().includes('entrenando') || statusIA.toLowerCase().includes('ejecutando')
+                            ? 'bg-blue-500'
+                            : 'bg-amber-500'
+                        }`} />
+                        {statusIA === 'success' || statusIA === 'Esperando IA' ? 'Modelo Listo' : statusIA}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Acciones principales: Exportar y Predicción */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleExportarExcel}
+                    disabled={variantes.length === 0}
+                    className="px-4 py-2.5 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] text-[var(--app-text)] font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
+                  >
+                    <MaterialIcon icon="download" className="w-4 h-4 text-[var(--app-text-muted)]" />
+                    Exportar Excel
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleGenerarSugerencias}
+                    disabled={procesandoIA || variantes.length === 0}
+                    className="px-5 py-2.5 rounded-xl bg-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_85%,black)] text-white font-black text-xs uppercase tracking-widest transition-all shadow-md shadow-[color-mix(in_srgb,var(--app-accent)_15%,transparent)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    <MaterialIcon icon="psychology" className="w-4 h-4" />
+                    {procesandoIA ? 'Calculando...' : 'Realizar Predicción IA'}
+                  </button>
+                </div>
+              </div>
+
               <div className="overflow-x-auto rounded-2xl border border-[var(--app-border)]">
                 <table className="min-w-full divide-y divide-[var(--app-border)]">
                   <thead className="bg-[var(--app-bg-muted)]">
@@ -704,7 +787,7 @@ const PrediccionVentas: React.FC = () => {
                             {v.cantidad}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[var(--app-accent)] tabular-nums">
-                            {pred !== undefined ? pred : '---'}
+                            {pred !== undefined ? `${pred} ± ${Math.round(mae)}` : '---'}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm app-text-muted font-bold tabular-nums">
                             {stockSeguridad}
@@ -717,53 +800,6 @@ const PrediccionVentas: React.FC = () => {
                     })}
                   </tbody>
                 </table>
-              </div>
-
-              {/* Status and Controls Section */}
-              <div className="mt-8 border-t border-[var(--app-border)] pt-6">
-                <div className="text-center mb-6">
-                  <p className="text-xs font-bold uppercase tracking-wider text-[var(--app-text-muted)]">Status</p>
-                  <p className="text-lg font-mono font-bold mt-1 text-[var(--app-accent)]">{statusIA}</p>
-                </div>
-
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 w-full sm:w-auto">
-                    <span className="text-xs font-black uppercase tracking-wider text-[var(--app-text-muted)] whitespace-nowrap">
-                      Ajuste Stock Seguridad
-                    </span>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={stockSeguridad}
-                      onChange={(e) => setStockSeguridad(Number(e.target.value))}
-                      className="w-32 sm:w-48 accent-[var(--app-accent)]"
-                    />
-                    <span className="flex items-center justify-center bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-xs font-black w-8 h-8 rounded-lg text-[var(--app-accent)]">
-                      {stockSeguridad}
-                    </span>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleGenerarSugerencias}
-                    disabled={procesandoIA || variantes.length === 0}
-                    className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_85%,black)] text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-[color-mix(in_srgb,var(--app-accent)_20%,transparent)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                  >
-                    <MaterialIcon icon="psychology" className="w-4 h-4" />
-                    {procesandoIA ? 'Generando...' : 'Generar Sugerencias IA'}
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleExportarExcel}
-                  disabled={variantes.length === 0}
-                  className="w-full mt-4 py-3 rounded-2xl bg-[var(--app-bg-muted)] border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] text-[var(--app-text)] font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2"
-                >
-                  <MaterialIcon icon="download" className="w-4 h-4" />
-                  Exportar a Excel
-                </button>
               </div>
             </div>
           )}
