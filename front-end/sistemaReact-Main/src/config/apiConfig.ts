@@ -295,5 +295,7 @@ export const RUTAS_REPORTES = {
   PREDICCION_LOTE: `${API_BASE_URL}/api/admin/reportes/prediccion/lote`,
   TALLAS_POR_PRODUCTO: (idProducto: number) => `${API_BASE_URL}/api/admin/reportes/producto/tallas?idProducto=${idProducto}`,
   VARIANTES_POR_COLOR: (idProducto: number, nombreTalla: string) => `${API_BASE_URL}/api/admin/reportes/producto/variantes-por-color?idProducto=${idProducto}&nombreTalla=${encodeURIComponent(nombreTalla)}`,
+  MLOPS_METRICAS: `${API_BASE_URL}/api/admin/reportes/mlops/metricas`,
+  MLOPS_ENTRENAR: `${API_BASE_URL}/api/admin/reportes/mlops/entrenar`,
 };
 

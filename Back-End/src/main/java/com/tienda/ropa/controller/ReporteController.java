@@ -227,4 +227,15 @@ public class ReporteController {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
         }
     }
+
+    @GetMapping("/mlops/metricas")
+    @PreAuthorize("hasAnyRole('ADMIN', 'GERENTE')")
+    public ResponseEntity<Map<String, Object>> obtenerMetricas() {
+        try {
+            Map<String, Object> resultado = mlopsPipelineService.obtenerMetricasActuales();
+            return ResponseEntity.ok(resultado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
 }

@@ -12,7 +12,9 @@ import type {
   VariantesPorColor,
   PrediccionIARequest,
   PrediccionIAResponse,
-  PrediccionLoteResponse
+  PrediccionLoteResponse,
+  MetricasModeloResponse,
+  EntrenarModeloResponse
 } from '../types/ReporteVentas';
 
 const formatFechaInicio = (fechaStr?: string): string => {
@@ -464,6 +466,32 @@ export const ReporteService = {
           rangos: ReporteService.calcularCrecimiento.obtenerRangosMensuales()
         };
       }
+    }
+  },
+
+  /**
+   * Obtiene las métricas reales del modelo (MAE y RMSE) desde el backend principal
+   */
+  getMetricasModelo: async (): Promise<MetricasModeloResponse> => {
+    try {
+      const response = await apiClient.get<MetricasModeloResponse>(RUTAS_REPORTES.MLOPS_METRICAS);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener métricas del modelo:', error);
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al obtener las métricas del modelo');
+    }
+  },
+
+  /**
+   * Ejecuta el entrenamiento manual del modelo en el backend principal
+   */
+  entrenarModelo: async (): Promise<EntrenarModeloResponse> => {
+    try {
+      const response = await apiClient.post<EntrenarModeloResponse>(RUTAS_REPORTES.MLOPS_ENTRENAR);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al entrenar el modelo:', error);
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al iniciar el entrenamiento del modelo');
     }
   }
 };

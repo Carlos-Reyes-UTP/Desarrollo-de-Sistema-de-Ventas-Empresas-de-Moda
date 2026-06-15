@@ -32,6 +32,61 @@ const PrediccionVentas: React.FC = () => {
   const [statusIA, setStatusIA] = useState<string>('Esperando IA');
   const [procesandoIA, setProcesandoIA] = useState<boolean>(false);
 
+  const { tieneRol } = useAuth();
+  const esAdmin = tieneRol('ROLE_ADMIN');
+
+  // Métricas del modelo de IA (Reales)
+  const [mae, setMae] = useState<number>(0.0);
+  const [rmse, setRmse] = useState<number>(0.0);
+  const [cargandoMetricas, setCargandoMetricas] = useState<boolean>(false);
+  const [reentrenando, setReentrenando] = useState<boolean>(false);
+  const [errorMetricas, setErrorMetricas] = useState<string | null>(null);
+
+  // Cargar métricas del modelo al activar la subpestaña de demanda
+  useEffect(() => {
+    if (subTabActiva === 'demanda') {
+      const fetchMetricas = async () => {
+        try {
+          setCargandoMetricas(true);
+          setErrorMetricas(null);
+          const response = await ReporteService.getMetricasModelo();
+          if (response && response.status === 'success') {
+            setMae(response.mae);
+            setRmse(response.rmse);
+          } else {
+            setErrorMetricas('No se recibieron métricas válidas.');
+          }
+        } catch (err: any) {
+          console.error('Error al cargar métricas del modelo:', err);
+          setErrorMetricas('No se pudieron obtener las métricas de precisión de la IA.');
+        } finally {
+          setCargandoMetricas(false);
+        }
+      };
+      fetchMetricas();
+    }
+  }, [subTabActiva]);
+
+  const handleReentrenarIA = async () => {
+    try {
+      setReentrenando(true);
+      setStatusIA('Ejecutando pipeline de reentrenamiento...');
+      const response = await ReporteService.entrenarModelo();
+      if (response && response.status === 'success') {
+        setMae(response.mae);
+        setRmse(response.rmse);
+        setStatusIA('Modelo reentrenado con éxito');
+      } else {
+        setStatusIA('Error al reentrenar el modelo');
+      }
+    } catch (err: any) {
+      console.error('Error al reentrenar modelo de IA:', err);
+      setStatusIA('Error de Conexión / Permisos');
+    } finally {
+      setReentrenando(false);
+    }
+  };
+
   // Cargar datos según la pestaña activa
   useEffect(() => {
     if (subTabActiva === 'stock') {
@@ -488,6 +543,95 @@ const PrediccionVentas: React.FC = () => {
             title="Predicción de Demanda y Planificación de Compras"
             subtitle="Cálculo dinámico de stock de seguridad y generación de compras sugeridas con Inteligencia Artificial"
           />
+
+          {/* Panel de Métricas de Precisión de la IA (Reales) */}
+          {errorMetricas && (
+            <div className="p-3 mb-4 text-xs text-red-600 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-xl flex items-center gap-2">
+              <MaterialIcon icon="warning" className="w-4 h-4 text-red-500" />
+              <span>{errorMetricas}</span>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 mt-6">
+            <div className="relative overflow-hidden p-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] hover:border-[var(--app-accent)] transition-all duration-300 group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
+              <div className="flex items-start gap-4">
+                <span className="h-12 w-12 rounded-xl bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center shrink-0">
+                  <MaterialIcon icon="center_focus_strong" className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </span>
+                <div className="w-full">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)]">Error Absoluto Medio (MAE)</p>
+                  <h3 className="text-3xl font-black mt-1.5 app-heading tracking-tight text-blue-600 dark:text-blue-400">
+                    {cargandoMetricas ? (
+                      <span className="inline-block animate-pulse w-16 h-8 bg-gray-300 dark:bg-gray-700 rounded" />
+                    ) : (
+                      <>
+                        {mae.toFixed(2)} <span className="text-xs font-normal text-[var(--app-text-muted)]">unidades</span>
+                      </>
+                    )}
+                  </h3>
+                  <p className="text-[11px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed">
+                    Indica que las predicciones del modelo se desvían, en promedio, {mae.toFixed(2)} unidades del valor real de ventas.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden p-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] hover:border-[var(--app-accent)] transition-all duration-300 group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-full pointer-events-none" />
+              <div className="flex items-start gap-4">
+                <span className="h-12 w-12 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center shrink-0">
+                  <MaterialIcon icon="analytics" className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
+                </span>
+                <div className="w-full">
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)]">Raíz Error Cuadrático Medio (RMSE)</p>
+                  <h3 className="text-3xl font-black mt-1.5 app-heading tracking-tight text-indigo-600 dark:text-indigo-400">
+                    {cargandoMetricas ? (
+                      <span className="inline-block animate-pulse w-16 h-8 bg-gray-300 dark:bg-gray-700 rounded" />
+                    ) : (
+                      <>
+                        {rmse.toFixed(2)} <span className="text-xs font-normal text-[var(--app-text-muted)]">unidades</span>
+                      </>
+                    )}
+                  </h3>
+                  <p className="text-[11px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed">
+                    Penaliza los errores de mayor magnitud, permitiendo planificar con mayor seguridad frente a picos de demanda inusuales.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative overflow-hidden p-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] hover:border-[var(--app-accent)] transition-all duration-300 group flex flex-col justify-between">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-[var(--app-accent)]/10 to-transparent rounded-bl-full pointer-events-none" />
+              <div className="flex items-start gap-4">
+                <span className="h-12 w-12 rounded-xl bg-[color-mix(in_srgb,var(--app-accent)_12%,transparent)] flex items-center justify-center shrink-0">
+                  <MaterialIcon icon="psychology" className="h-6 w-6 text-[var(--app-accent)]" />
+                </span>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)]">Calibración y Aprendizaje</p>
+                  <p className="text-[11px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed">
+                    Reajusta las ramas de árboles de decisión en XGBoost utilizando el histórico completo de ventas.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={handleReentrenarIA}
+                  disabled={reentrenando || !esAdmin}
+                  className="w-full py-2.5 px-4 rounded-xl bg-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_85%,black)] disabled:bg-gray-400 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+                >
+                  <MaterialIcon icon="sync" className={`w-4 h-4 ${reentrenando ? 'animate-spin' : ''}`} />
+                  {reentrenando ? 'Entrenando Cerebro...' : 'Reentrenar IA'}
+                </button>
+                {!esAdmin && (
+                  <p className="text-[9px] text-red-500 dark:text-red-400 mt-1.5 text-center font-bold uppercase tracking-wider">
+                    * Solo administradores pueden reentrenar
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
 
           {cargandoVariantes ? (
             <div className="py-12">

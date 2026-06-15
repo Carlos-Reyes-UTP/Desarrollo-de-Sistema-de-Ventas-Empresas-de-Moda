@@ -120,3 +120,17 @@ export interface PrediccionLoteResponse {
   status: string;
   resultados: PrediccionLoteItemResponse[];
 }
+
+export interface MetricasModeloResponse {
+  status: string;
+  mae: number;
+  rmse: number;
+  message?: string;
+}
+
+export interface EntrenarModeloResponse {
+  status: string;
+  message: string;
+  mae: number;
+  rmse: number;
+}

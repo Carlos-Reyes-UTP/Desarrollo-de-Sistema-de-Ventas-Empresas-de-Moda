@@ -163,4 +163,37 @@ public class MlopsPipelineService {
         }
         return resultado;
     }
+
+    /**
+     * Obtiene las métricas actuales de evaluación desde el microservicio de Python
+     */
+    public Map<String, Object> obtenerMetricasActuales() {
+        log.info("Obteniendo métricas de evaluación del modelo...");
+        Map<String, Object> resultado = new HashMap<>();
+        try {
+            // Reemplazamos /entrenar_modelo por /metricas para la URL de consulta
+            String urlMetricas = pythonTrainUrl.replace("/entrenar_modelo", "/metricas");
+            log.info("Haciendo petición GET al microservicio de Python para métricas: {}", urlMetricas);
+            
+            ResponseEntity<Map> response = restTemplate.getForEntity(urlMetricas, Map.class);
+            log.info("Respuesta recibida de métricas con código: {}", response.getStatusCode().value());
+            
+            if (response.getBody() != null) {
+                Map<?, ?> body = response.getBody();
+                resultado.put("status", body.get("status"));
+                resultado.put("mae", body.get("mae"));
+                resultado.put("rmse", body.get("rmse"));
+            } else {
+                resultado.put("status", "error");
+                resultado.put("message", "Respuesta vacía del microservicio de métricas.");
+            }
+        } catch (Exception e) {
+            log.error("Fallo al llamar al microservicio de métricas", e);
+            resultado.put("status", "error");
+            resultado.put("message", "Fallo al obtener métricas del microservicio: " + e.getMessage());
+            resultado.put("mae", 0.0);
+            resultado.put("rmse", 0.0);
+        }
+        return resultado;
+    }
 }

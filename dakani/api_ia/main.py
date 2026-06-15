@@ -161,3 +161,32 @@ def reentrenar_ia():
         raise HTTPException(status_code=500, detail=f"Error al ejecutar scripts: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/metricas")
+def obtener_metricas():
+    try:
+        import json
+        try:
+            with open("metricas_modelo.json", "r") as f:
+                metricas = json.load(f)
+            return {
+                "status": "success",
+                "mae": metricas.get("mae", 0.0),
+                "rmse": metricas.get("rmse", 0.0)
+            }
+        except FileNotFoundError:
+            with open("../metricas_modelo.json", "r") as f:
+                metricas = json.load(f)
+            return {
+                "status": "success",
+                "mae": metricas.get("mae", 0.0),
+                "rmse": metricas.get("rmse", 0.0)
+            }
+    except FileNotFoundError:
+        return {
+            "status": "success",
+            "mae": 0.0,
+            "rmse": 0.0
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
