@@ -9,6 +9,7 @@ import type { Producto } from '@/types/Producto';
 import type { ProductoVariante } from '@/types/ProductoVariante';
 import type { PrediccionIARequest } from '@/types/ReporteVentas';
 import * as XLSX from 'xlsx';
+import AppModal from '@/shared/ui/AppModal';
 
 const PrediccionVentas: React.FC = () => {
   const { usuario } = useAuth();
@@ -25,6 +26,7 @@ const PrediccionVentas: React.FC = () => {
 
   // Sección 2: Predicción de Demanda
   const [variantes, setVariantes] = useState<ProductoVariante[]>([]);
+  const [todasLasVariantes, setTodasLasVariantes] = useState<ProductoVariante[]>([]);
   const [cargandoVariantes, setCargandoVariantes] = useState(false);
   const [errorVariantes, setErrorVariantes] = useState<string | null>(null);
   const [stockSeguridad, setStockSeguridad] = useState<number>(0);
@@ -41,6 +43,17 @@ const PrediccionVentas: React.FC = () => {
   const [cargandoMetricas, setCargandoMetricas] = useState<boolean>(false);
   const [reentrenando, setReentrenando] = useState<boolean>(false);
   const [errorMetricas, setErrorMetricas] = useState<string | null>(null);
+
+  // Configuración de Exportación a Excel
+  const [modalExportarAbierto, setModalExportarAbierto] = useState<boolean>(false);
+  const [exportConfig, setExportConfig] = useState({
+    inventarioGeneral: true,
+    altoStock: false,
+    stockNormal: false,
+    bajoStock: false,
+    prediccionDemanda: true,
+    incluirStockSeguridad: true,
+  });
 
   // Cargar métricas del modelo al activar la subpestaña de demanda
   useEffect(() => {
@@ -89,70 +102,62 @@ const PrediccionVentas: React.FC = () => {
     }
   };
 
-  // Cargar datos según la pestaña activa
+  // Cargar todos los datos de inventario y variantes una sola vez o cuando cambie el rol
   useEffect(() => {
-    if (subTabActiva === 'stock') {
-      const fetchProductosYVariantes = async () => {
-        try {
-          setCargandoStock(true);
-          setErrorStock(null);
-          
-          // Fetch products and variants concurrently
-          const [productosData, variantesData] = await Promise.all([
-            ProductoService.getAllProductos(rolPrincipal),
-            ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, true),
-          ]);
-          
-          // Map variants to their product to compute the sum of variant stocks
-          const stockMap = new Map<number, number>();
-          variantesData.forEach((v) => {
-            const pId = v.producto?.idProducto;
-            if (pId !== undefined) {
-              stockMap.set(pId, (stockMap.get(pId) || 0) + v.cantidad);
-            }
-          });
+    const cargarTodoElInventario = async () => {
+      try {
+        setCargandoStock(true);
+        setCargandoVariantes(true);
+        setErrorStock(null);
+        setErrorVariantes(null);
 
-          // Create products with mapped stock
-          const productsWithStock = productosData.map((p) => {
-            const calculatedStock = p.idProducto !== undefined && stockMap.has(p.idProducto)
-              ? (stockMap.get(p.idProducto) ?? 0)
-              : p.cantidad;
-            return {
-              ...p,
-              cantidad: calculatedStock // Sum of variant stocks, or base quantity if no variants
-            };
-          });
+        // Fetch products and variants concurrently
+        const [productosData, variantesData] = await Promise.all([
+          ProductoService.getAllProductos(rolPrincipal),
+          ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, true),
+        ]);
 
-          // Sort products by ID
-          const sorted = [...productsWithStock].sort((a, b) => (a.idProducto || 0) - (b.idProducto || 0));
-          setProductos(sorted);
-          setPaginaActual(1); // Reset page on fetch
-        } catch (err: any) {
-          console.error('Error al obtener productos y variantes:', err);
-          setErrorStock('No se pudieron cargar los datos de inventario.');
-        } finally {
-          setCargandoStock(false);
-        }
-      };
-      fetchProductosYVariantes();
-    } else {
-      const fetchVariantes = async () => {
-        try {
-          setCargandoVariantes(true);
-          setErrorVariantes(null);
-          const data = await ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, true);
-          // Mostrar máximo 7 productos (variantes)
-          setVariantes(data.slice(0, 7));
-        } catch (err: any) {
-          console.error('Error al obtener variantes:', err);
-          setErrorVariantes('No se pudieron cargar las variantes de los productos.');
-        } finally {
-          setCargandoVariantes(false);
-        }
-      };
-      fetchVariantes();
-    }
-  }, [subTabActiva, rolPrincipal]);
+        // Guardar todas las variantes completas para la exportación a Excel
+        setTodasLasVariantes(variantesData);
+
+        // Mostrar máximo 7 variantes en la tabla de predicciones
+        setVariantes(variantesData.slice(0, 7));
+
+        // Map variants to their product to compute the sum of variant stocks
+        const stockMap = new Map<number, number>();
+        variantesData.forEach((v) => {
+          const pId = v.producto?.idProducto;
+          if (pId !== undefined) {
+            stockMap.set(pId, (stockMap.get(pId) || 0) + v.cantidad);
+          }
+        });
+
+        // Create products with mapped stock
+        const productsWithStock = productosData.map((p) => {
+          const calculatedStock = p.idProducto !== undefined && stockMap.has(p.idProducto)
+            ? (stockMap.get(p.idProducto) ?? 0)
+            : p.cantidad;
+          return {
+            ...p,
+            cantidad: calculatedStock // Sum of variant stocks, or base quantity if no variants
+          };
+        });
+
+        // Sort products by ID
+        const sorted = [...productsWithStock].sort((a, b) => (a.idProducto || 0) - (b.idProducto || 0));
+        setProductos(sorted);
+        setPaginaActual(1);
+      } catch (err: any) {
+        console.error('Error al obtener productos y variantes:', err);
+        setErrorStock('No se pudieron cargar los datos de inventario.');
+        setErrorVariantes('No se pudieron cargar las variantes de los productos.');
+      } finally {
+        setCargandoStock(false);
+        setCargandoVariantes(false);
+      }
+    };
+    cargarTodoElInventario();
+  }, [rolPrincipal]);
 
 
 
@@ -202,29 +207,106 @@ const PrediccionVentas: React.FC = () => {
     }
   };
 
-  // Exportar la tabla de predicciones a Excel
-  const handleExportarExcel = () => {
-    if (variantes.length === 0) return;
-
-    const dataToExport = variantes.map((v, index) => {
-      const key = v.idProductoVariante ?? v.idVariante ?? index;
-      const pred = predicciones[key];
-      const aComprar = pred !== undefined ? Math.max(0, pred + stockSeguridad - v.cantidad) : '---';
-
-      return {
-        Producto: v.producto?.nombre || 'Desconocido',
-        Variante: `${v.color?.nombre || 'N/A'}-${v.talla?.nombreTalla || 'N/A'}`,
-        'Stock Actual': v.cantidad,
-        'Predicción IA': pred !== undefined ? pred : '---',
-        'Stock Seguridad': stockSeguridad,
-        'Cantidad a Comprar': aComprar,
-      };
-    });
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+  // Ejecutar exportación de Excel configurada
+  const ejecutarExportarExcel = () => {
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Proyecciones de Compra');
-    XLSX.writeFile(workbook, 'Proyecciones_Demanda_IA.xlsx');
+    let sheetsAdded = 0;
+
+    // 1. Inventario General (Variantes)
+    if (exportConfig.inventarioGeneral && todasLasVariantes.length > 0) {
+      const data = todasLasVariantes.map((v) => ({
+        'ID Variante': v.idProductoVariante ?? v.idVariante ?? 'N/A',
+        Producto: v.producto?.nombre || 'Desconocido',
+        'Código': v.codigoIdentificacion || 'N/A',
+        Color: v.color?.nombre || 'N/A',
+        Talla: v.talla?.nombreTalla || 'N/A',
+        'Stock Actual': v.cantidad,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(workbook, ws, 'Inventario General');
+      sheetsAdded++;
+    }
+
+    // 2. Alto Stock (sobrestock >180, productos base sin variantes)
+    if (exportConfig.altoStock && productos.length > 0) {
+      const filtered = productos.filter((p) => p.cantidad > 180);
+      const data = filtered.map((p) => ({
+        'ID Producto': p.idProducto || 'N/A',
+        Producto: p.nombre || 'Desconocido',
+        'Código': p.codigoIdentificacion || 'N/A',
+        'Categoría': p.categoriaPadre?.nombre || p.subCategoria2?.nombre || 'General',
+        'Stock Consolidado': p.cantidad,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(workbook, ws, 'Alto Stock (>180)');
+      sheetsAdded++;
+    }
+
+    // 3. Stock Normal (30 - 180, productos base sin variantes)
+    if (exportConfig.stockNormal && productos.length > 0) {
+      const filtered = productos.filter((p) => p.cantidad >= 30 && p.cantidad <= 180);
+      const data = filtered.map((p) => ({
+        'ID Producto': p.idProducto || 'N/A',
+        Producto: p.nombre || 'Desconocido',
+        'Código': p.codigoIdentificacion || 'N/A',
+        'Categoría': p.categoriaPadre?.nombre || p.subCategoria2?.nombre || 'General',
+        'Stock Consolidado': p.cantidad,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(workbook, ws, 'Stock Normal (30-180)');
+      sheetsAdded++;
+    }
+
+    // 4. Bajo Stock (<30, productos base sin variantes)
+    if (exportConfig.bajoStock && productos.length > 0) {
+      const filtered = productos.filter((p) => p.cantidad < 30);
+      const data = filtered.map((p) => ({
+        'ID Producto': p.idProducto || 'N/A',
+        Producto: p.nombre || 'Desconocido',
+        'Código': p.codigoIdentificacion || 'N/A',
+        'Categoría': p.categoriaPadre?.nombre || p.subCategoria2?.nombre || 'General',
+        'Stock Consolidado': p.cantidad,
+      }));
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(workbook, ws, 'Bajo Stock (<30)');
+      sheetsAdded++;
+    }
+
+    // 5. Predicción y Demanda (Variantes)
+    if (exportConfig.prediccionDemanda && variantes.length > 0) {
+      const data = variantes.map((v, index) => {
+        const key = v.idProductoVariante ?? v.idVariante ?? index;
+        const pred = predicciones[key];
+        const tienePrediccion = pred !== undefined;
+
+        const row: Record<string, any> = {
+          Producto: v.producto?.nombre || 'Desconocido',
+          Color: v.color?.nombre || 'N/A',
+          Talla: v.talla?.nombreTalla || 'N/A',
+        };
+
+        if (tienePrediccion) {
+          row['Stock a Pedir'] = exportConfig.incluirStockSeguridad
+            ? Math.max(0, pred + stockSeguridad - v.cantidad)
+            : Math.max(0, pred - v.cantidad);
+        } else {
+          row['Stock a Pedir'] = '---';
+        }
+
+        return row;
+      });
+      const ws = XLSX.utils.json_to_sheet(data);
+      XLSX.utils.book_append_sheet(workbook, ws, 'Predicción de Demanda');
+      sheetsAdded++;
+    }
+
+    if (sheetsAdded === 0) {
+      alert('Por favor selecciona al menos una opción para exportar.');
+      return;
+    }
+
+    XLSX.writeFile(workbook, 'Reporte_Inventario_Demanda_IA.xlsx');
+    setModalExportarAbierto(false);
   };
 
   // Preparar datos filtrados y paginados
@@ -710,7 +792,7 @@ const PrediccionVentas: React.FC = () => {
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     type="button"
-                    onClick={handleExportarExcel}
+                    onClick={() => setModalExportarAbierto(true)}
                     disabled={variantes.length === 0}
                     className="px-4 py-2.5 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] text-[var(--app-text)] font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2"
                   >
@@ -805,6 +887,238 @@ const PrediccionVentas: React.FC = () => {
           )}
         </DashboardPanel>
       )}
+
+      {/* Modal de Configuración de Exportación */}
+      <AppModal
+        open={modalExportarAbierto}
+        onClose={() => setModalExportarAbierto(false)}
+        title="Configuración de Exportación a Excel"
+        subtitle="Selecciona las hojas de datos que deseas incluir en el archivo excel"
+        icon={<MaterialIcon icon="download" />}
+        maxWidth="2xl"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setModalExportarAbierto(false)}
+              className="px-4 py-2.5 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] text-[var(--app-text)] font-bold text-xs uppercase tracking-wider transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={ejecutarExportarExcel}
+              className="px-5 py-2.5 rounded-xl bg-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_85%,black)] text-white font-black text-xs uppercase tracking-widest transition-all shadow-md shadow-[color-mix(in_srgb,var(--app-accent)_15%,transparent)]"
+            >
+              Exportar Excel
+            </button>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* Opciones de Selección */}
+          <div className="space-y-4">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--app-text-muted)] mb-3">
+              Seleccionar Hojas de Datos
+            </h4>
+
+            {/* Inventario General */}
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] cursor-pointer transition-all select-none">
+              <input
+                type="checkbox"
+                checked={exportConfig.inventarioGeneral}
+                onChange={(e) => setExportConfig(prev => ({ ...prev, inventarioGeneral: e.target.checked }))}
+                className="mt-1 accent-[var(--app-accent)] h-4 w-4"
+              />
+              <div>
+                <span className="text-sm font-bold text-[var(--app-text)] block text-left">Inventario General</span>
+                <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
+                  Exporta una hoja con el listado detallado de todas las variantes de productos y su stock actual.
+                </span>
+              </div>
+            </label>
+
+            {/* Alto Stock */}
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] cursor-pointer transition-all select-none">
+              <input
+                type="checkbox"
+                checked={exportConfig.altoStock}
+                onChange={(e) => setExportConfig(prev => ({ ...prev, altoStock: e.target.checked }))}
+                className="mt-1 accent-[var(--app-accent)] h-4 w-4"
+              />
+              <div>
+                <span className="text-sm font-bold text-[var(--app-text)] block text-left">Alto Stock (Sobrestock)</span>
+                <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
+                  Exporta productos base con stock mayor a 180 unidades (excluye variantes).
+                </span>
+              </div>
+            </label>
+
+            {/* Stock Normal */}
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] cursor-pointer transition-all select-none">
+              <input
+                type="checkbox"
+                checked={exportConfig.stockNormal}
+                onChange={(e) => setExportConfig(prev => ({ ...prev, stockNormal: e.target.checked }))}
+                className="mt-1 accent-[var(--app-accent)] h-4 w-4"
+              />
+              <div>
+                <span className="text-sm font-bold text-[var(--app-text)] block text-left">Stock Normal (Adecuado)</span>
+                <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
+                  Exporta productos base con stock entre 30 y 180 unidades.
+                </span>
+              </div>
+            </label>
+
+            {/* Bajo Stock */}
+            <label className="flex items-start gap-3 p-3 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] cursor-pointer transition-all select-none">
+              <input
+                type="checkbox"
+                checked={exportConfig.bajoStock}
+                onChange={(e) => setExportConfig(prev => ({ ...prev, bajoStock: e.target.checked }))}
+                className="mt-1 accent-[var(--app-accent)] h-4 w-4"
+              />
+              <div>
+                <span className="text-sm font-bold text-[var(--app-text)] block text-left">Bajo Stock (Crítico)</span>
+                <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
+                  Exporta productos base con stock menor a 30 unidades.
+                </span>
+              </div>
+            </label>
+
+            {/* Predicción y Demanda */}
+            <div className="p-3 rounded-xl border border-[var(--app-border)] space-y-3">
+              <label className="flex items-start gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={exportConfig.prediccionDemanda}
+                  onChange={(e) => setExportConfig(prev => ({ ...prev, prediccionDemanda: e.target.checked }))}
+                  className="mt-1 accent-[var(--app-accent)] h-4 w-4"
+                />
+                <div>
+                  <span className="text-sm font-bold text-[var(--app-text)] block text-left">Predicción de Demanda e IA</span>
+                  <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
+                    Exporta las variantes de productos con sus predicciones de IA y recomendaciones de compra.
+                  </span>
+                </div>
+              </label>
+
+              {exportConfig.prediccionDemanda && (
+                <div className="ml-7 pt-2.5 border-t border-[var(--app-border)]">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={exportConfig.incluirStockSeguridad}
+                      onChange={(e) => setExportConfig(prev => ({ ...prev, incluirStockSeguridad: e.target.checked }))}
+                      className="accent-[var(--app-accent)] h-3.5 w-3.5"
+                    />
+                    <span className="text-xs font-semibold text-[var(--app-text)] text-left">
+                      Incluir Stock de Seguridad en el cálculo
+                    </span>
+                  </label>
+                  <p className="text-[10px] text-[var(--app-text-muted)] mt-1 text-left">
+                    Si se desmarca, la sugerencia de compra se basará únicamente en la predicción directa de la IA.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Vista Previa de Estructura de Excel */}
+          <div className="flex flex-col justify-between p-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)]">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-[var(--app-accent)] mb-3 flex items-center gap-1.5">
+                <MaterialIcon icon="visibility" className="w-4.5 h-4.5" />
+                Estructura del Archivo Generado
+              </h4>
+              <p className="text-xs text-[var(--app-text-muted)] mb-4 leading-relaxed text-left">
+                A continuación se muestra el esquema de las pestañas que se inyectarán en tu libro de Excel según tu selección activa:
+              </p>
+
+              <div className="space-y-2.5">
+                {exportConfig.inventarioGeneral && (
+                  <div className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
+                    <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
+                      <MaterialIcon icon="table_chart" className="w-4 h-4 text-blue-500" />
+                      Pestaña: Inventario General
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
+                      {todasLasVariantes.length} variantes
+                    </span>
+                  </div>
+                )}
+
+                {exportConfig.altoStock && (
+                  <div className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
+                    <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
+                      <MaterialIcon icon="table_chart" className="w-4 h-4 text-emerald-500" />
+                      Pestaña: Alto Stock
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
+                      {productos.filter(p => p.cantidad > 180).length} productos
+                    </span>
+                  </div>
+                )}
+
+                {exportConfig.stockNormal && (
+                  <div className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
+                    <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
+                      <MaterialIcon icon="table_chart" className="w-4 h-4 text-indigo-500" />
+                      Pestaña: Stock Normal
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
+                      {productos.filter(p => p.cantidad >= 30 && p.cantidad <= 180).length} productos
+                    </span>
+                  </div>
+                )}
+
+                {exportConfig.bajoStock && (
+                  <div className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
+                    <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
+                      <MaterialIcon icon="table_chart" className="w-4 h-4 text-red-500" />
+                      Pestaña: Bajo Stock
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
+                      {productos.filter(p => p.cantidad < 30).length} productos
+                    </span>
+                  </div>
+                )}
+
+                {exportConfig.prediccionDemanda && (
+                  <div className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
+                    <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
+                      <MaterialIcon icon="table_chart" className="w-4 h-4 text-amber-500" />
+                      Pestaña: Predicción de Demanda
+                    </span>
+                    <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
+                      {variantes.length} variantes
+                    </span>
+                  </div>
+                )}
+
+                {!exportConfig.inventarioGeneral && 
+                 !exportConfig.altoStock && 
+                 !exportConfig.stockNormal && 
+                 !exportConfig.bajoStock && 
+                 !exportConfig.prediccionDemanda && (
+                  <div className="p-4 rounded-xl border border-dashed border-red-300 bg-red-50/50 dark:bg-red-950/10 text-center text-xs text-red-500 font-semibold italic">
+                    Debes seleccionar al menos una hoja para poder generar el Excel.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[var(--app-border)] text-[10px] text-[var(--app-text-muted)] leading-relaxed flex items-start gap-1.5 text-left">
+              <MaterialIcon icon="info" className="w-3.5 h-3.5 shrink-0 text-[var(--app-accent)]" />
+              <span>
+                El formato de archivo generado será `xlsx` compatible con Microsoft Excel, Google Sheets y Numbers. Las columnas se formatean automáticamente para mejor legibilidad.
+              </span>
+            </div>
+          </div>
+
+        </div>
+      </AppModal>
     </div>
   );
 };
