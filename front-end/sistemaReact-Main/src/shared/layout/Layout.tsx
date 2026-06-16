@@ -1,23 +1,27 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Outlet, useLocation, useNavigationType } from "react-router-dom";
 import SidebarMenu from "./SidebarMenu";
 import { VendedorPisoLayoutChrome } from "./VendedorPisoLayoutChrome";
 import { useAuth } from "@/context/AuthContext";
 import { resolveRouteView } from "./navigationConfig";
+import { usePageTransition } from "./usePageTransition";
 import MeshGradientBackground from "../ui/MeshGradientBackground";
 import { useAppTheme } from "@/context/AppThemeContext";
 import { useSessionExpiryWarning } from "@/hooks/useSessionExpiryWarning";
 
 const Layout = ({ children }: { children?: React.ReactNode }) => {
   const location = useLocation();
+  const navigationType = useNavigationType();
   const { usuario, cerrarSesion, tieneRol } = useAuth();
   const { showMesh } = useAppTheme();
   const { avisoVisible, minutosRestantes, descartar } = useSessionExpiryWarning();
 
-  // visible controla el fade-in del contenido.
-  // Se oculta INSTANTÁNEAMENTE (sin transición) y se muestra SUAVEMENTE.
-  const [visible, setVisible] = useState(true);
-  const rafRef = useRef<number | null>(null);
+  const pageContent = children ?? <Outlet />;
+  const { displayedContent, transitionClass, phase } = usePageTransition(
+    location,
+    pageContent,
+    navigationType
+  );
 
   const meshRgb =
     typeof document !== "undefined"
@@ -32,28 +36,7 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     hasRole: tieneRol,
   });
   const [vistaActual, setVistaActual] = useState(vistaDesdeRuta);
-
-  useEffect(() => {
-    // 1. Ocultar instantáneamente (sin transición, evita ver el contenido viejo+nuevo superpuestos)
-    setVisible(false);
-
-    // 2. Resetear scroll mientras el contenido es invisible
-    const mainEl = document.getElementById("main-scroll-area");
-    if (mainEl) mainEl.scrollTo({ top: 0, behavior: "instant" });
-
-    // 3. Esperar dos frames: el primero permite que React renderice el nuevo contenido,
-    //    el segundo garantiza que el browser lo haya pintado antes del fade-in.
-    if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    rafRef.current = requestAnimationFrame(() => {
-      rafRef.current = requestAnimationFrame(() => {
-        setVisible(true); // Ahora sí fade-in suave con el contenido ya listo
-      });
-    });
-
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [location.pathname]);
+  const [vistaLayout, setVistaLayout] = useState(vistaDesdeRuta);
 
   useEffect(() => {
     setVistaActual((vistaAnterior) =>
@@ -61,8 +44,14 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
     );
   }, [vistaDesdeRuta]);
 
-  const esKioskAlmacen = vistaActual === "almacen-tablero";
-  const esVendedorPisoKiosk = vistaActual === "vendedor-piso";
+  useEffect(() => {
+    if (phase === "idle" || phase === "enter-prep" || phase === "entering") {
+      setVistaLayout(vistaActual);
+    }
+  }, [phase, vistaActual]);
+
+  const esKioskAlmacen = vistaLayout === "almacen-tablero";
+  const esVendedorPisoKiosk = vistaLayout === "vendedor-piso";
 
   return (
     <div 
@@ -102,14 +91,19 @@ const Layout = ({ children }: { children?: React.ReactNode }) => {
             esKioskAlmacen ? "overflow-hidden" : "overflow-y-auto"
           }`}
         >
-          <div
-            className={`w-full h-full min-h-0 page-transition ${
-              visible ? "page-transition--visible" : "page-transition--hidden"
-            } ${
-              esKioskAlmacen || esVendedorPisoKiosk ? "" : "px-4 py-6 sm:px-6 lg:px-8"
-            }`}
-          >
-            {children || <Outlet />}
+          <div className="relative w-full h-full min-h-0">
+            {phase !== "idle" && (
+              <div id="page-transition-live-mount" className="page-transition-live-mount" aria-hidden="true">
+                {pageContent}
+              </div>
+            )}
+            <div
+              className={`w-full h-full min-h-0 page-transition ${transitionClass} ${
+                esKioskAlmacen || esVendedorPisoKiosk ? "" : "px-4 py-6 sm:px-6 lg:px-8"
+              }`}
+            >
+              {displayedContent}
+            </div>
           </div>
         </main>
       </div>

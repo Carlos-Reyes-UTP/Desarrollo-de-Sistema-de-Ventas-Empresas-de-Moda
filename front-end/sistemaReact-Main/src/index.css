@@ -7,15 +7,46 @@
 @import "./styles/reports-analytics.css";
 
 :root {
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-sans: "DM Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   /* Acento suave para barra activa del menú (sin pintar toda la app) */
   --accent: #334155;
 
-  /* Google Material 3 (Material You) Soft Easings */
-  --ease-google-emphasized: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-google-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
-  --ease-google-accelerate: cubic-bezier(0.3, 0, 1, 1);
-  --ease-google-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  /* M3 Easing tokens */
+  --m3-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --m3-ease-emphasized-decelerate: cubic-bezier(0.05, 0.7, 0.1, 1);
+  --m3-ease-emphasized-accelerate: cubic-bezier(0.3, 0, 0.8, 0.15);
+  --m3-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --m3-ease-standard-decelerate: cubic-bezier(0, 0, 0, 1);
+  --m3-ease-standard-accelerate: cubic-bezier(0.3, 0, 1, 1);
+
+  /* M3 Duration tokens */
+  --m3-duration-short4: 200ms;
+  --m3-duration-medium4: 400ms;
+
+  /* Modal fade pattern (M3 dialogs) */
+  --modal-enter-duration: var(--m3-duration-medium4);
+  --modal-exit-duration: var(--m3-duration-short4);
+  --modal-enter-easing: var(--m3-ease-emphasized-decelerate);
+  --modal-exit-easing: var(--m3-ease-emphasized-accelerate);
+  --modal-enter-scale-from: 0.92;
+
+  /* Page transition pattern (M3) */
+  --m3-duration-short3: 150ms;
+  --m3-duration-medium3: 350ms;
+  --page-enter-duration: var(--m3-duration-medium3);
+  --page-exit-duration: var(--m3-duration-short3);
+  --page-enter-easing: var(--m3-ease-emphasized-decelerate);
+  --page-exit-easing: var(--m3-ease-emphasized-accelerate);
+  --page-fade-through-scale-from: 0.96;
+  --page-fade-through-exit-opacity: 0;
+  --page-shared-axis-offset: 16px;
+  --page-mini-enter-duration: 150ms;
+
+  /* Aliases legacy */
+  --ease-google-emphasized: var(--m3-ease-emphasized);
+  --ease-google-decelerate: var(--m3-ease-emphasized-decelerate);
+  --ease-google-accelerate: var(--m3-ease-emphasized-accelerate);
+  --ease-google-standard: var(--m3-ease-standard);
 }
 
 /* Tablas: filas alternas según tema */
@@ -82,6 +113,73 @@
   animation: scaleOut 0.3s ease-out forwards;
 }
 
+/* M3 modal motion (fade pattern for dialogs) */
+@keyframes m3ModalFadeEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes m3ModalScaleEnter {
+  from {
+    opacity: 0;
+    transform: scale(var(--modal-enter-scale-from));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes m3ModalFadeExit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes m3SheetSlideEnter {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes m3SheetSlideExit {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+.modal-motion-overlay--enter {
+  opacity: 0;
+  animation: m3ModalFadeEnter var(--modal-enter-duration) var(--modal-enter-easing) both;
+}
+
+.modal-motion-overlay--exit {
+  animation: m3ModalFadeExit var(--modal-exit-duration) var(--modal-exit-easing) forwards;
+}
+
+.modal-motion-panel--enter {
+  opacity: 0;
+  transform: scale(var(--modal-enter-scale-from));
+  transform-origin: center center;
+  will-change: opacity, transform;
+  animation: m3ModalScaleEnter var(--modal-enter-duration) var(--modal-enter-easing) both;
+}
+
+.modal-motion-panel--exit {
+  animation: m3ModalFadeExit var(--modal-exit-duration) var(--modal-exit-easing) forwards;
+}
+
+.modal-motion-sheet--enter {
+  transform: translateY(100%);
+  animation: m3SheetSlideEnter var(--modal-enter-duration) var(--modal-enter-easing) both;
+}
+
+.modal-motion-sheet--exit {
+  animation: m3SheetSlideExit var(--modal-exit-duration) var(--modal-exit-easing) forwards;
+}
+
+/* Capa de blur estática (no animar opacity sobre backdrop-filter) */
+.modal-motion-backdrop-blur {
+  pointer-events: none;
+}
+
 @keyframes slideUpFade {
   from {
     opacity: 0;
@@ -126,6 +224,23 @@
   animation: fadeInUp 0.3s ease-out forwards;
 }
 
+@keyframes navFlyoutEnter {
+  from {
+    opacity: 0;
+    transform: translateX(-10px) translateY(-50%) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) translateY(-50%) scale(1);
+  }
+}
+
+.animate-nav-flyout-enter {
+  transform: translateY(-50%);
+  transform-origin: left center;
+  animation: navFlyoutEnter 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
 @keyframes googleSoftFadeIn {
   from {
     opacity: 0;
@@ -156,21 +271,213 @@
   animation: countPop 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
 }
 
-/* Transición entre páginas:
-   - Ocultar: instantáneo (sin transición) → evita ver viejo+nuevo superpuestos
-   - Mostrar: fade-in suave → 240 ms, solo opacidad, sin movimiento */
-.page-transition {
-  /* Solo aplicamos transición en el estado visible */
-}
-
-.page-transition--visible {
-  opacity: 1;
-  transition: opacity 240ms var(--ease-google-decelerate);
-}
-
-.page-transition--hidden {
+/* M3 page transitions */
+.page-transition-live-mount {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   opacity: 0;
-  transition: none; /* Instantáneo: no damos tiempo a ver contenido mezclado */
+  visibility: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.page-transition {
+  transform-origin: center top;
+  background-color: var(--app-bg);
+}
+
+.page-transition--idle {
+  opacity: 1;
+  transform: none;
+}
+
+.page-transition--active {
+  will-change: opacity, transform;
+}
+
+.page-transition--loading {
+  opacity: var(--page-fade-through-exit-opacity);
+  animation: none;
+  transform: none;
+}
+
+.page-transition--enter-prep {
+  opacity: 0;
+  transform: scale(var(--page-fade-through-scale-from));
+  animation: none;
+}
+
+.page-transition--mini-enter {
+  opacity: 0;
+  animation: m3PageFadeEnter var(--page-mini-enter-duration) var(--page-enter-easing) both;
+}
+
+.page-transition--fade-through-enter {
+  opacity: 0;
+  transform: scale(var(--page-fade-through-scale-from));
+}
+
+@keyframes m3PageFadeThroughExit {
+  from { opacity: 1; }
+  to { opacity: var(--page-fade-through-exit-opacity); }
+}
+
+@keyframes m3PageFadeThroughEnter {
+  from {
+    opacity: 0;
+    transform: scale(var(--page-fade-through-scale-from));
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes m3PageSharedXForwardExit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(calc(var(--page-shared-axis-offset) * -1));
+  }
+}
+
+@keyframes m3PageSharedXForwardEnter {
+  from {
+    opacity: 0;
+    transform: translateX(var(--page-shared-axis-offset));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes m3PageSharedXBackwardExit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(var(--page-shared-axis-offset));
+  }
+}
+
+@keyframes m3PageSharedXBackwardEnter {
+  from {
+    opacity: 0;
+    transform: translateX(calc(var(--page-shared-axis-offset) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes m3PageSharedYForwardExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(calc(var(--page-shared-axis-offset) * -1));
+  }
+}
+
+@keyframes m3PageSharedYForwardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(var(--page-shared-axis-offset));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes m3PageSharedYBackwardExit {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(var(--page-shared-axis-offset));
+  }
+}
+
+@keyframes m3PageSharedYBackwardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(calc(var(--page-shared-axis-offset) * -1));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes m3PageFadeExit {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes m3PageFadeEnter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.page-transition--fade-through-exit {
+  animation: m3PageFadeThroughExit var(--page-exit-duration) var(--page-exit-easing) forwards;
+}
+
+.page-transition--fade-through-enter {
+  animation: m3PageFadeThroughEnter var(--page-enter-duration) var(--page-enter-easing) both;
+}
+
+.page-transition--shared-x-forward-exit {
+  animation: m3PageSharedXForwardExit var(--page-exit-duration) var(--page-exit-easing) forwards;
+}
+
+.page-transition--shared-x-forward-enter {
+  animation: m3PageSharedXForwardEnter var(--page-enter-duration) var(--page-enter-easing) both;
+}
+
+.page-transition--shared-x-backward-exit {
+  animation: m3PageSharedXBackwardExit var(--page-exit-duration) var(--page-exit-easing) forwards;
+}
+
+.page-transition--shared-x-backward-enter {
+  animation: m3PageSharedXBackwardEnter var(--page-enter-duration) var(--page-enter-easing) both;
+}
+
+.page-transition--shared-y-forward-exit {
+  animation: m3PageSharedYForwardExit var(--page-exit-duration) var(--page-exit-easing) forwards;
+}
+
+.page-transition--shared-y-forward-enter {
+  animation: m3PageSharedYForwardEnter var(--page-enter-duration) var(--page-enter-easing) both;
+}
+
+.page-transition--shared-y-backward-exit {
+  animation: m3PageSharedYBackwardExit var(--page-exit-duration) var(--page-exit-easing) forwards;
+}
+
+.page-transition--shared-y-backward-enter {
+  animation: m3PageSharedYBackwardEnter var(--page-enter-duration) var(--page-enter-easing) both;
+}
+
+.page-transition--fade-exit {
+  animation: m3PageFadeExit var(--page-exit-duration) var(--page-exit-easing) forwards;
+}
+
+.page-transition--fade-enter {
+  animation: m3PageFadeEnter var(--page-enter-duration) var(--page-enter-easing) both;
 }
 
 /* Skeleton loading — brillo deslizante */
@@ -224,7 +531,51 @@
 
 @media (prefers-reduced-motion: reduce) {
   .page-transition {
+    animation: none !important;
     transition: none;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .page-transition--active {
+    will-change: auto;
+  }
+
+  .page-transition--loading,
+  .page-transition--enter-prep,
+  .page-transition--mini-enter {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  .page-transition--fade-through-enter {
+    opacity: 1;
+    transform: none;
+  }
+
+  .page-transition--fade-through-exit,
+  .page-transition--fade-through-enter,
+  .page-transition--shared-x-forward-exit,
+  .page-transition--shared-x-forward-enter,
+  .page-transition--shared-x-backward-exit,
+  .page-transition--shared-x-backward-enter,
+  .page-transition--shared-y-forward-exit,
+  .page-transition--shared-y-forward-enter,
+  .page-transition--shared-y-backward-exit,
+  .page-transition--shared-y-backward-enter,
+  .page-transition--fade-exit,
+  .page-transition--fade-enter {
+    animation: none !important;
+  }
+
+  .modal-motion-overlay--enter,
+  .modal-motion-overlay--exit,
+  .modal-motion-panel--enter,
+  .modal-motion-panel--exit,
+  .modal-motion-sheet--enter,
+  .modal-motion-sheet--exit {
+    animation: none;
   }
 
   .skeleton-shimmer,

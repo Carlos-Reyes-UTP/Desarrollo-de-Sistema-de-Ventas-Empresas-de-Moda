@@ -6,7 +6,7 @@ import 'sileo/styles.css'
 import App from './App'
 import { AuthProvider } from '@/context/AuthContext'
 import { AppThemeProvider } from './context/AppThemeContext'
-import 'material-symbols/rounded.css';
+import 'material-symbols/outlined.css';
 import './styles/material-symbols-lcp.css';
 import './index.css'
 import './styles/mobile-navbar.css'

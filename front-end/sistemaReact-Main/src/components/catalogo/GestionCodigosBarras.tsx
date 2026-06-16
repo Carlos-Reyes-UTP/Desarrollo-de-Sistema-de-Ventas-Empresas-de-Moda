@@ -5,7 +5,7 @@ import type { ProductoVariante } from '../../types/ProductoVariante';
 import type { CodigoBarras, GenerarCodigoRequest, AsignarCodigoRequest } from '../../types/CodigoBarras';
 import { CodigoBarrasService } from '../../services/CodigoBarrasService';
 import { ProductoVarianteService } from '../../services/ProductoVarianteService';
-import { ConfirmModal, TableSkeleton, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { ConfirmModal, TableSkeleton, ModalPortal, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 
 interface GestionCodigosBarrasProps {
   producto?: Producto;
@@ -29,6 +29,9 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
   const [showGenerarCodigo, setShowGenerarCodigo] = useState(false);
   const [showAsignarCodigo, setShowAsignarCodigo] = useState(false);
   const [showScannerModal, setShowScannerModal] = useState(false);
+  const generarMotion = useModalMotion({ open: showGenerarCodigo });
+  const asignarMotion = useModalMotion({ open: showAsignarCodigo });
+  const scannerMotion = useModalMotion({ open: showScannerModal });
   const [entidadSeleccionada, setEntidadSeleccionada] = useState<{
     id: number;
     tipo: 'PRODUCTO' | 'VARIANTE';
@@ -599,16 +602,16 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
       {renderContent()}
 
       {/* Modales */}
-      {showGenerarCodigo && entidadSeleccionada && (
+      {generarMotion.shouldRender && entidadSeleccionada && (
         <ModalPortal>
-        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+        <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${generarMotion.overlayClass}`}>
+          <div className={`bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden ${generarMotion.panelClass}`}>
             <div className="bg-black px-8 py-6 flex items-center justify-between">
               <div>
                 <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Generar Código de Barras</h3>
                 <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">{entidadSeleccionada.nombre}</p>
               </div>
-              <button onClick={() => setShowGenerarCodigo(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+              <button onClick={() => generarMotion.requestClose(() => setShowGenerarCodigo(false))} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
                 <MaterialIcon icon="close" className="w-4 h-4 text-white" />
               </button>
             </div>
@@ -631,7 +634,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               </div>
             </div>
             <div className="px-8 pb-8 flex gap-3">
-              <button onClick={() => setShowGenerarCodigo(false)} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+              <button onClick={() => generarMotion.requestClose(() => setShowGenerarCodigo(false))} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
                 Cancelar
               </button>
               <button onClick={handleGenerarCodigo} disabled={loading} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">
@@ -643,16 +646,16 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
         </ModalPortal>
       )}
 
-      {showAsignarCodigo && entidadSeleccionada && (
+      {asignarMotion.shouldRender && entidadSeleccionada && (
         <ModalPortal>
-        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+        <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${asignarMotion.overlayClass}`}>
+          <div className={`bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden ${asignarMotion.panelClass}`}>
             <div className="bg-black px-8 py-6 flex items-center justify-between">
               <div>
                 <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Asignar Código de Barras</h3>
                 <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">{entidadSeleccionada.nombre}</p>
               </div>
-              <button onClick={() => setShowAsignarCodigo(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+              <button onClick={() => asignarMotion.requestClose(() => setShowAsignarCodigo(false))} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
                 <MaterialIcon icon="close" className="w-4 h-4 text-white" />
               </button>
             </div>
@@ -696,7 +699,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               </div>
             </div>
             <div className="px-8 pb-8 flex gap-3">
-              <button onClick={() => setShowAsignarCodigo(false)} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+              <button onClick={() => asignarMotion.requestClose(() => setShowAsignarCodigo(false))} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
                 Cancelar
               </button>
               <button onClick={handleAsignarCodigo} disabled={loading || !formAsignar.codigo.trim()} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">
@@ -708,16 +711,16 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
         </ModalPortal>
       )}
 
-      {showScannerModal && (
+      {scannerMotion.shouldRender && (
         <ModalPortal>
-        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-          <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden animate-scaleIn">
+        <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${scannerMotion.overlayClass}`}>
+          <div className={`bg-white rounded-[2.5rem] border border-gray-100 shadow-sm w-full max-w-md overflow-hidden ${scannerMotion.panelClass}`}>
             <div className="bg-black px-8 py-6 flex items-center justify-between">
               <div>
                 <h3 className="text-[11px] font-bold tracking-[0.3em] text-white uppercase">Escanear Código</h3>
                 <p className="text-gray-400 text-[10px] font-medium uppercase tracking-widest mt-0.5">Ingrese o escanee un código de barras</p>
               </div>
-              <button onClick={() => setShowScannerModal(false)} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
+              <button onClick={() => scannerMotion.requestClose(() => setShowScannerModal(false))} className="w-8 h-8 bg-white/10 rounded-xl flex items-center justify-center hover:bg-white/20 transition-all">
                 <MaterialIcon icon="close" className="w-4 h-4 text-white" />
               </button>
             </div>
@@ -735,7 +738,7 @@ const GestionCodigosBarras: React.FC<GestionCodigosBarrasProps> = ({
               />
             </div>
             <div className="px-8 pb-8 flex gap-3">
-              <button onClick={() => setShowScannerModal(false)} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
+              <button onClick={() => scannerMotion.requestClose(() => setShowScannerModal(false))} className="flex-1 py-4 bg-app-surface border border-gray-100 rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 hover:bg-gray-100 transition-all">
                 Cancelar
               </button>
               <button onClick={handleBuscarPorCodigo} disabled={loading || !scannerInput.trim()} className="flex-1 py-4 bg-black text-white rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] hover:bg-gray-800 transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] disabled:opacity-30">

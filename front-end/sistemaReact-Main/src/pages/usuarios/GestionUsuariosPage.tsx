@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon, ConfirmModal, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon, ConfirmModal, ModalPortal, ModalMotionOverlay, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { UsuarioService, resolveRutasUsuarios } from '@/services/UsuarioService';
 import { AccesoAreaAlmacenService } from '@/services/AccesoAreaAlmacenService';
@@ -50,7 +50,6 @@ const GestionUsuariosPage = () => {
   
   // Estados para el modal de usuario
   const [mostrarModal, setMostrarModal] = useState(false);
-  const [cerrandoModal, setCerrandoModal] = useState(false);
   const [modoEdicion, setModoEdicion] = useState(false);
   const [usuarioEditando, setUsuarioEditando] = useState<Usuario | null>(null);
   const [cambiarPassword, setCambiarPassword] = useState(false);
@@ -101,6 +100,9 @@ const GestionUsuariosPage = () => {
     open: false,
     mensaje: '',
   });
+  const { overlayClass, panelClass, shouldRender: shouldRenderModal, requestClose: requestCloseModal } = useModalMotion({ open: mostrarModal });
+  const { overlayClass: passwordOverlayClass, panelClass: passwordPanelClass, shouldRender: shouldRenderPasswordModal, requestClose: requestClosePasswordModal } = useModalMotion({ open: mostrarModalPassword });
+  const { overlayClass: avisoOverlayClass, panelClass: avisoPanelClass, shouldRender: shouldRenderAviso } = useModalMotion({ open: avisoReinicioSesion.open });
   const cierreSesionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [confirmarEstadoUsuario, setConfirmarEstadoUsuario] = useState<{
     open: boolean;
@@ -210,10 +212,8 @@ const GestionUsuariosPage = () => {
   }, [mostrarModal, formUsuario.roles]);
 
   const cerrarModalConAnimacion = () => {
-    setCerrandoModal(true);
-    setTimeout(() => {
+    requestCloseModal(() => {
       setMostrarModal(false);
-      setCerrandoModal(false);
       setFormUsuario({
         usuario: '',
         password: '',
@@ -235,7 +235,7 @@ const GestionUsuariosPage = () => {
       setPasswordActual('');
       setErrorPasswordActual(null);
       setError(null);
-    }, 300);
+    });
   };
 
   const cargarUsuarios = async () => {
@@ -613,7 +613,7 @@ const GestionUsuariosPage = () => {
   useEffect(() => { setPaginaActual(1); }, [usuariosFiltrados]);
 
   return (
-    <div className="app-page p-4 sm:p-6 max-w-[1600px] mx-auto min-h-screen animate-fadeIn text-left">
+    <div className="app-page p-4 sm:p-6 max-w-[1600px] mx-auto min-h-screen text-left">
       <PageHeader
         surface="elevated"
         eyebrow="Administración"
@@ -860,10 +860,18 @@ const GestionUsuariosPage = () => {
       </div>
 
       {/* Modal: Creation/Edit */}
-      {mostrarModal && (
+      {shouldRenderModal && (
         <ModalPortal>
-        <div className={`app-modal-overlay fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-white dark:bg-gray-950 rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden border border-transparent dark:border-gray-800/80 transition-colors ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+        <ModalMotionOverlay
+          overlayClass={overlayClass}
+          onClick={cerrarModalConAnimacion}
+          className="app-modal-overlay"
+          scrimClassName="bg-black/60 dark:bg-black/80"
+        >
+          <div
+            className={`relative z-10 bg-white dark:bg-gray-950 rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden border border-transparent dark:border-gray-800/80 transition-colors ${panelClass}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-10 text-left">
               <div className="mb-6 w-12 h-1 bg-[var(--app-accent)] rounded-full"></div>
               <h2 className="text-2xl font-bold tracking-tight text-black dark:text-white mb-2 uppercase transition-colors">
@@ -1104,15 +1112,24 @@ const GestionUsuariosPage = () => {
               </form>
             </div>
           </div>
-        </div>
+        </ModalMotionOverlay>
         </ModalPortal>
       )}
 
       {/* Modal: Password Verification */}
-      {mostrarModalPassword && (
+      {shouldRenderPasswordModal && (
         <ModalPortal>
-        <div className="app-modal-overlay fixed inset-0 bg-black/60 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn" style={{ zIndex: 'calc(var(--app-z-modal) + 10)' }}>
-          <div className="bg-white dark:bg-gray-955 rounded-[2.5rem] border border-transparent dark:border-gray-800/40 shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn transition-colors">
+        <ModalMotionOverlay
+          overlayClass={passwordOverlayClass}
+          onClick={() => requestClosePasswordModal(() => setMostrarModalPassword(false))}
+          className="app-modal-overlay"
+          scrimClassName="bg-black/60 dark:bg-black/80"
+          style={{ zIndex: 'calc(var(--app-z-modal) + 10)' }}
+        >
+          <div
+            className={`relative z-10 bg-white dark:bg-gray-955 rounded-[2.5rem] border border-transparent dark:border-gray-800/40 shadow-2xl w-full max-w-md overflow-hidden transition-colors ${passwordPanelClass}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             {/* Header */}
             <div className="bg-[var(--app-surface)] px-8 pt-8 pb-2 flex items-center gap-4 transition-colors">
               <div className="w-10 h-10 bg-[var(--app-bg-muted)] text-[var(--app-accent)] rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -1157,7 +1174,7 @@ const GestionUsuariosPage = () => {
             <div className="px-8 pb-8 flex gap-3">
               <button
                 type="button"
-                onClick={() => setMostrarModalPassword(false)}
+                onClick={() => requestClosePasswordModal(() => setMostrarModalPassword(false))}
                 className="flex-1 py-4 bg-[#f8f8f8] dark:bg-gray-900 border border-transparent rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-855 transition-all hover-scale-google"
               >
                 Cancelar
@@ -1171,7 +1188,7 @@ const GestionUsuariosPage = () => {
               </button>
             </div>
           </div>
-        </div>
+        </ModalMotionOverlay>
         </ModalPortal>
       )}
 
@@ -1199,10 +1216,10 @@ const GestionUsuariosPage = () => {
         variant={confirmarEstadoUsuario.activo ? 'danger' : 'warning'}
       />
 
-      {avisoReinicioSesion.open && (
+      {shouldRenderAviso && (
         <ModalPortal>
-          <div className="fixed inset-0 z-[9999] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-            <div className="w-full max-w-md rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-955 shadow-2xl overflow-hidden animate-scaleIn">
+          <div className={`fixed inset-0 z-[9999] bg-black/55 backdrop-blur-sm flex items-center justify-center p-4 ${avisoOverlayClass}`}>
+            <div className={`w-full max-w-md rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-955 shadow-2xl overflow-hidden ${avisoPanelClass}`}>
               <div className="px-8 pt-8 pb-4 flex items-center gap-4 bg-[var(--app-surface)]">
                 <div className="w-11 h-11 rounded-2xl bg-[var(--app-bg-muted)] flex items-center justify-center text-[var(--app-accent)]">
                   <MaterialIcon icon="info" className="w-6 h-6" />

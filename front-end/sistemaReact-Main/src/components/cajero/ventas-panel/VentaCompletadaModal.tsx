@@ -1,4 +1,4 @@
-import { MaterialIcon } from '@/shared/ui';
+import { MaterialIcon, useModalMotion } from '@/shared/ui';
 import type { DatosVentaBoleta } from './types';
 
 interface VentaCompletadaModalProps {
@@ -14,11 +14,15 @@ export const VentaCompletadaModal = ({
   onPrint,
   onClose,
 }: VentaCompletadaModalProps) => {
-  if (!open || !datos) return null;
+  const { overlayClass, panelClass, shouldRender, requestClose } = useModalMotion({ open: open && !!datos });
+
+  if (!shouldRender || !datos) return null;
+
+  const handleClose = () => requestClose(onClose);
 
   return (
-    <div className="caj-modal-overlay fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn">
-      <div className="caj-modal-panel rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden animate-scaleIn border caj-border">
+    <div className={`caj-modal-overlay fixed inset-0 backdrop-blur-sm flex items-center justify-center z-50 p-4 ${overlayClass}`}>
+      <div className={`caj-modal-panel rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden border caj-border ${panelClass}`}>
 
         <div className="caj-banner px-8 py-6 flex items-center gap-4">
           <div className="w-10 h-10 caj-banner-icon-wrap rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -84,7 +88,7 @@ export const VentaCompletadaModal = ({
             Imprimir Boleta
           </button>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 py-4 caj-btn-primary rounded-[1.5rem] text-[11px] font-bold uppercase tracking-[0.2em] transition-all shadow-[0_8px_24px_rgba(0,0,0,0.15)] active:scale-[0.97]"
           >
             Nueva Venta

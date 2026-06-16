@@ -10,112 +10,6 @@ import type { Cliente } from '../../types/Cliente';
 import type { MayoristaDTO, CrearMayoristaCompletoDTO } from '../../types/MayoristaDTO';
 import { AppModal, ConfirmModal } from '@/shared/ui';
 
-// Estilos CSS para las animaciones del modal
-const modalStyles = `
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-  
-  @keyframes fadeOut {
-    from { opacity: 1; }
-    to { opacity: 0; }
-  }
-  
-  @keyframes scaleIn {
-    from { 
-      opacity: 0; 
-      transform: scale(0.9); 
-    }
-    to { 
-      opacity: 1; 
-      transform: scale(1); 
-    }
-  }
-  
-  @keyframes scaleOut {
-    from { 
-      opacity: 1; 
-      transform: scale(1); 
-    }
-    to { 
-      opacity: 0; 
-      transform: scale(0.9); 
-    }
-  }
-  
-  @keyframes bounce {
-    0%, 20%, 53%, 80%, 100% {
-      transform: translate3d(0,0,0);
-    }
-    40%, 43% {
-      transform: translate3d(0, -8px, 0);
-    }
-    70% {
-      transform: translate3d(0, -4px, 0);
-    }
-    90% {
-      transform: translate3d(0, -2px, 0);
-    }
-  }
-  
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.05);
-    }
-    100% {
-      transform: scale(1);
-    }
-  }
-  
-  @keyframes shake {
-    0%, 100% {
-      transform: translateX(0);
-    }
-    10%, 30%, 50%, 70%, 90% {
-      transform: translateX(-4px);
-    }
-    20%, 40%, 60%, 80% {
-      transform: translateX(4px);
-    }
-  }
-  
-  @keyframes successPulse {
-    0% {
-      transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
-    }
-    70% {
-      transform: scale(1.02);
-      box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
-    }
-    100% {
-      transform: scale(1);
-      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
-    }
-  }
-  
-  .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
-  .animate-fadeOut { animation: fadeOut 0.3s ease-out; }
-  .animate-scaleIn { animation: scaleIn 0.3s ease-out; }
-  .animate-scaleOut { animation: scaleOut 0.3s ease-out; }
-  .animate-bounce { animation: bounce 0.6s ease-in-out; }
-  .animate-pulse-custom { animation: pulse 1s ease-in-out infinite; }
-  .animate-shake { animation: shake 0.5s ease-in-out; }
-  .animate-success-pulse { animation: successPulse 0.8s ease-out; }
-`;
-
-// Inyectar estilos si no existen
-if (typeof document !== 'undefined' && !document.getElementById('modal-animations-mayorista')) {
-  const style = document.createElement('style');
-  style.id = 'modal-animations-mayorista';
-  style.textContent = modalStyles;
-  document.head.appendChild(style);
-}
-
 // Tipos para el modal
 type ModoModal = 'buscar' | 'crear';
 
@@ -183,26 +77,17 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
   const [mostrarConfirmacionExito, setMostrarConfirmacionExito] = useState(false);
   const [mostrarConfirmacionEliminacion, setMostrarConfirmacionEliminacion] = useState(false);
   const [mostrarModalConfirmacionEliminar, setMostrarModalConfirmacionEliminar] = useState(false);
-  
-  // Estado para animación de cierre
-  const [cerrandoModal, setCerrandoModal] = useState(false);
-  
-  // Estados para animaciones de botones
+
   const [animacionBotonConvertir, setAnimacionBotonConvertir] = useState('');
 
-  // Mensaje para el modal de confirmación de eliminación
-  const mensajeConfirmacionEliminar = clienteSeleccionado 
+  const mensajeConfirmacionEliminar = clienteSeleccionado
     ? `¿Estás seguro de que deseas revocar el estatus de mayorista a ${clienteSeleccionado.nombreCliente}? Esta acción suspenderá sus beneficios actuales.`
     : '¿Estás seguro de que deseas revocar el estatus de mayorista?';
 
   // Función para cerrar modal con animación
   const cerrarModalConAnimacion = () => {
-    setCerrandoModal(true);
-    setTimeout(() => {
-      resetModal(); // Resetear el modal DESPUÉS de la animación
-      onClose();
-      setCerrandoModal(false);
-    }, 300); // Duración de la animación
+    resetModal();
+    onClose();
   };
 
   // Función para buscar clientes
@@ -1190,7 +1075,6 @@ const ModalHacerMayorista: React.FC<ModalHacerMayoristaProps> = ({
     <>
       <AppModal
         open={isOpen}
-        closing={cerrandoModal}
         onClose={cerrarModalConAnimacion}
         title="Gestión de Membresías"
         subtitle="Conversión y Registro de Clientes Mayoristas"

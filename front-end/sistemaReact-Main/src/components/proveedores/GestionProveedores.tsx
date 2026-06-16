@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MaterialIcon } from '@/shared/ui';
 import type { Proveedor } from '../../types/Proveedor';
 import { ProveedorService } from '../../services/ProveedorService';
-import { ConfirmModal, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { ConfirmModal, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, ModalPortal, ModalMotionOverlay, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 import { mensajeErrorRuc } from '../../utils/validarDocumentosPeru';
 
 const GestionProveedores: React.FC = () => {
@@ -11,7 +11,7 @@ const GestionProveedores: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showFormulario, setShowFormulario] = useState(false);
-  const [cerrandoModal, setCerrandoModal] = useState(false);
+  const { overlayClass, panelClass, shouldRender: shouldRenderFormulario, requestClose: requestCloseFormulario } = useModalMotion({ open: showFormulario });
   const [proveedorEditar, setProveedorEditar] = useState<Proveedor | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorRucInline, setErrorRucInline] = useState<string | null>(null);
@@ -54,15 +54,13 @@ const GestionProveedores: React.FC = () => {
   };
 
   const cerrarModalConAnimacion = () => {
-    setCerrandoModal(true);
-    setTimeout(() => {
+    requestCloseFormulario(() => {
       setShowFormulario(false);
-      setCerrandoModal(false);
       setFormData({ nombre: '', ruc: '' });
       setProveedorEditar(null);
       setError(null);
       setErrorRucInline(null);
-    }, 300);
+    });
   };
 
   const verificarRUC = async () => {
@@ -229,7 +227,7 @@ const GestionProveedores: React.FC = () => {
   );
 
   return (
-    <div className="max-w-[1600px] mx-auto animate-fadeIn pb-8">
+    <div className="max-w-[1600px] mx-auto pb-8">
       <PageHeader
         surface="elevated"
         eyebrow="Catálogo · Proveedores"
@@ -455,10 +453,17 @@ const GestionProveedores: React.FC = () => {
         </div>
       </div>
 
-      {showFormulario && (
+      {shouldRenderFormulario && (
         <ModalPortal>
-        <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-white rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+        <ModalMotionOverlay
+          overlayClass={overlayClass}
+          onClick={cerrarModalConAnimacion}
+          className="app-modal-overlay"
+        >
+          <div
+            className={`relative z-10 bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden ${panelClass}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-10">
               <div className="mb-6 w-12 h-1 bg-black"></div>
               <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
@@ -560,7 +565,7 @@ const GestionProveedores: React.FC = () => {
               </form>
             </div>
           </div>
-        </div>
+        </ModalMotionOverlay>
         </ModalPortal>
       )}
 

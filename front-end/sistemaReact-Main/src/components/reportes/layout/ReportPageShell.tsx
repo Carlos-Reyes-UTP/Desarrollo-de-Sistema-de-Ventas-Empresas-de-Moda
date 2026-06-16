@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { ReportCommandDeck } from '@/components/reportes/layout/ReportCommandDeck';
+import { SubViewTransition } from '@/shared/ui/SubViewTransition';
+import { getReportTabIndexById } from '@/shared/layout/pageTransitionConfig';
 
 export interface ReportTabConfig {
   id: string;
@@ -23,6 +25,14 @@ export const ReportPageShell = ({
 }: ReportPageShellProps) => (
   <div className="mx-auto max-w-[1600px] space-y-5 sm:space-y-6">
     <ReportCommandDeck tabs={tabs} tabActiva={tabActiva} onTabChange={onTabChange} />
-    <div className="min-h-[320px]">{children}</div>
+    <div className="min-h-[320px]">
+      <SubViewTransition
+        viewKey={tabActiva}
+        pattern="shared-x"
+        indexOf={getReportTabIndexById}
+      >
+        {children}
+      </SubViewTransition>
+    </div>
   </div>
 );

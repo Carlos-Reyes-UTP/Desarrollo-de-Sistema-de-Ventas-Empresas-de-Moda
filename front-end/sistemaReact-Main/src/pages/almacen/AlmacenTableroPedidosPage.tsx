@@ -388,7 +388,7 @@ export default function AlmacenTableroPedidosPage() {
   };
 
   return (
-    <div className="bg-[var(--app-bg)] text-left flex flex-col h-full min-h-0 overflow-hidden animate-fadeIn">
+    <div className="bg-[var(--app-bg)] text-left flex flex-col h-full min-h-0 overflow-hidden">
       <header className="flex justify-between items-center px-6 py-4 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0">
         <div className="flex items-center gap-3">
           {seleccionId && (

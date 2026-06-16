@@ -532,4 +532,48 @@
   background: var(--app-text-faint) !important;
 }
 
+/* === Navigation Rail M3: contraste en temas oscuros/pastel === */
+[data-theme="dark"] .app-nav-rail,
+[data-theme="pastel-dama"] .app-nav-rail,
+[data-theme="pastel-caballero"] .app-nav-rail,
+[data-theme="soft-neutral"] .app-nav-rail {
+  background-color: var(--app-rail-bg) !important;
+  border-color: var(--app-rail-border) !important;
+}
+
+[data-theme="dark"] .app-nav-flyout,
+[data-theme="pastel-dama"] .app-nav-flyout,
+[data-theme="pastel-caballero"] .app-nav-flyout,
+[data-theme="soft-neutral"] .app-nav-flyout {
+  background-color: var(--app-flyout-bg) !important;
+  color: var(--app-flyout-text) !important;
+  border-color: var(--app-flyout-border) !important;
+}
+
+[data-theme="dark"] .app-nav-flyout-item--active,
+[data-theme="pastel-dama"] .app-nav-flyout-item--active,
+[data-theme="pastel-caballero"] .app-nav-flyout-item--active,
+[data-theme="soft-neutral"] .app-nav-flyout-item--active {
+  background-color: var(--app-flyout-selected) !important;
+  color: var(--app-flyout-text) !important;
+}
+
+[data-theme="dark"] .app-nav-rail-logo,
+[data-theme="pastel-dama"] .app-nav-rail-logo,
+[data-theme="pastel-caballero"] .app-nav-rail-logo,
+[data-theme="soft-neutral"] .app-nav-rail-logo {
+  background-color: var(--app-rail-logo-bg) !important;
+  color: var(--app-rail-logo-fg) !important;
+  border-color: var(--app-rail-logo-border) !important;
+  box-shadow: none !important;
+}
+
+[data-theme="dark"] .app-nav-flyout--compact,
+[data-theme="pastel-dama"] .app-nav-flyout--compact,
+[data-theme="pastel-caballero"] .app-nav-flyout--compact,
+[data-theme="soft-neutral"] .app-nav-flyout--compact {
+  background-color: var(--app-flyout-bg) !important;
+  border-color: var(--app-flyout-border) !important;
+  box-shadow: var(--app-flyout-shadow) !important;
+}
 

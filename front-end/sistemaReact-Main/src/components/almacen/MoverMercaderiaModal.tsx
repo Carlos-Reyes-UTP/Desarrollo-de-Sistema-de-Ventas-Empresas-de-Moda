@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { MaterialIcon, ModalPortal, useModalBodyScrollLock } from "@/shared/ui";
+import { MaterialIcon, ModalPortal, useModalBodyScrollLock, useModalMotion } from "@/shared/ui";
 import axios from "axios";
 import { AlmacenService } from "@/services/AlmacenService";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
@@ -500,6 +500,8 @@ const MoverMercaderiaModal = ({
     : "Seleccionar Destino";
 
   useModalBodyScrollLock(abierto);
+  const { overlayClass, panelClass, shouldRender, requestClose } = useModalMotion({ open: abierto });
+  const handleCerrar = () => requestClose(onCerrar);
 
   useEffect(() => {
     if (itemsTraslado.length === 0) {
@@ -514,17 +516,17 @@ const MoverMercaderiaModal = ({
     }
   }, [abierto]);
 
-  if (!abierto) {
+  if (!shouldRender) {
     return null;
   }
 
   return (
     <ModalPortal>
-    <div className="app-modal-overlay fixed inset-0 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 animate-fadeIn">
-      <div className="absolute inset-0 -z-10" onClick={onCerrar} />
+    <div className={`app-modal-overlay fixed inset-0 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4 ${overlayClass}`}>
+      <div className="absolute inset-0 -z-10" onClick={handleCerrar} />
 
       <div
-        className="app-modal-panel w-full border border-transparent dark:border-gray-800/40 shadow-2xl transition-all duration-300 ease-out rounded-t-3xl sm:rounded-3xl max-h-[94dvh] sm:max-h-[85vh] flex flex-col overflow-hidden animate-scaleIn max-w-xl sm:mx-auto"
+        className={`app-modal-panel w-full border border-transparent dark:border-gray-800/40 shadow-2xl rounded-t-3xl sm:rounded-3xl max-h-[94dvh] sm:max-h-[85vh] flex flex-col overflow-hidden max-w-xl sm:mx-auto ${panelClass}`}
       >
         <header className="flex items-start justify-between gap-3 px-4 pt-6 pb-2 sm:px-8 sm:pt-8 sm:pb-3 shrink-0 bg-[var(--app-surface)]">
           <div className="min-w-0 pr-2">
@@ -535,7 +537,7 @@ const MoverMercaderiaModal = ({
           </div>
           <button
             type="button"
-            onClick={onCerrar}
+            onClick={handleCerrar}
             className="p-2 rounded-full app-text-faint hover:app-heading hover:bg-[var(--app-hover-overlay)] transition-colors"
             aria-label="Cerrar"
           >

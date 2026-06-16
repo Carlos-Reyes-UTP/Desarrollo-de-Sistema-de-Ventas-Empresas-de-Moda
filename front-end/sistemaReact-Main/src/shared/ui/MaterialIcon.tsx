@@ -10,7 +10,7 @@ export interface MaterialIconProps extends React.HTMLAttributes<HTMLSpanElement>
 export function MaterialIcon({
   icon,
   className = '',
-  variant = 'rounded', // rounded style matches modern premium aesthetics
+  variant = 'outlined',
   fill = false,
   ...props
 }: MaterialIconProps) {

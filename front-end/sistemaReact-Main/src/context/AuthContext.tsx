@@ -6,7 +6,7 @@ import type { Usuario, CredencialesLogin, RespuestaAutenticacion } from '../type
 import type { RolNombre } from '../types/enums';
 import type { TokenDecodificado } from '../types/TokenDecodificado';
 import { leerSesionDesdeStorage } from '@/utils/authBootstrap';
-import { MaterialIcon, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { MaterialIcon, ModalPortal, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 
 const sesionInicial = leerSesionDesdeStorage();
 if (sesionInicial.token) {
@@ -56,6 +56,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const expiracionIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useModalBodyScrollLock(avisoSesionExpirada.open);
+  const { overlayClass, panelClass, shouldRender: shouldRenderAvisoSesion } = useModalMotion({ open: avisoSesionExpirada.open });
   
   const extraerRolesDelToken = (decodificado: TokenDecodificado): RolNombre[] => {
     let roles: RolNombre[] = [];
@@ -247,10 +248,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     >
       {children}
 
-      {avisoSesionExpirada.open && (
+      {shouldRenderAvisoSesion && (
         <ModalPortal>
-          <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn">
-            <div className="w-full max-w-md rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-955 shadow-2xl overflow-hidden animate-scaleIn">
+          <div className={`fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${overlayClass}`}>
+            <div className={`w-full max-w-md rounded-[2rem] border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-955 shadow-2xl overflow-hidden ${panelClass}`}>
               <div className="px-8 pt-8 pb-4 flex items-center gap-4 bg-[var(--app-surface)]">
                 <div className="w-11 h-11 rounded-2xl bg-[var(--app-bg-muted)] flex items-center justify-center text-[var(--app-accent)]">
                   <MaterialIcon icon="warning" className="w-6 h-6" />

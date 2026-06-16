@@ -28,7 +28,12 @@ const GestionProveedoresPage = lazy(() => import("./pages/inventario/GestionProv
 const ReportesPage = lazy(() => import("./pages/reportes/ReportesPage"));
 
 const PageFallback = () => (
-  <div className="p-4 md:p-8 max-w-[1600px] mx-auto w-full animate-pulse" aria-busy aria-label="Cargando vista">
+  <div
+    className="p-4 md:p-8 max-w-[1600px] mx-auto w-full animate-pulse"
+    data-page-fallback
+    aria-busy
+    aria-label="Cargando vista"
+  >
     {/* Cabecera */}
     <div className="mb-3 h-7 w-48 max-w-full rounded-lg bg-[var(--app-bg-muted)]" />
     <div className="mb-8 h-4 w-72 max-w-full rounded-md bg-[var(--app-bg-muted)] opacity-60" />

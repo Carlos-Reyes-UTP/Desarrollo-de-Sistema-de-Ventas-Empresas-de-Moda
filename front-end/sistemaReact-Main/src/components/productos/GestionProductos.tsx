@@ -7,6 +7,8 @@ import { ProductoService } from '../../services/ProductoService';
 import { CategoriaService } from '../../services/CategoriaService';
 import { ProveedorService } from '../../services/ProveedorService';
 import { ConfirmModal, TableSkeleton, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, MaterialIcon } from '@/shared/ui';
+import { SubViewTransition } from '@/shared/ui/SubViewTransition';
+import { getProductTabIndex } from '@/shared/layout/pageTransitionConfig';
 import FormularioProducto from './FormularioProducto'
 import GestionVariantes from './GestionVariantes';
 import GestionPisos from '../almacen/GestionPisos';
@@ -444,7 +446,11 @@ const GestionProductos: React.FC = () => {
         </div>
       )}
 
-      <div key={tabActual} className="animate-fadeIn">
+      <SubViewTransition
+        viewKey={tabActual}
+        pattern="shared-x"
+        indexOf={getProductTabIndex}
+      >
       {tabActual === 'pisos' ? (
         <GestionPisos embedded />
       ) : (
@@ -937,7 +943,7 @@ const GestionProductos: React.FC = () => {
         {/* Cierre de la vista Catálogo */}
         </>
       )}
-      </div>
+      </SubViewTransition>
 
       {/* Modales */}
       {showFormulario && (

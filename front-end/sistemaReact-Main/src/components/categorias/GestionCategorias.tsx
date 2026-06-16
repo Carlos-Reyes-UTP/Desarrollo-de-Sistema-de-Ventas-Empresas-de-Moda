@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MaterialIcon } from '@/shared/ui';
 import type { CategoriaDTO } from '../../types/CategoriaDTO';
 import { CategoriaService } from '../../services/CategoriaService';
-import { ConfirmModal, ListItemSkeleton, PageHeader, PageActionButton, PageActionGroup, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { ConfirmModal, ListItemSkeleton, PageHeader, PageActionButton, PageActionGroup, ModalPortal, ModalMotionOverlay, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 
 interface ArbolCategoriaProps {
   categoria: CategoriaDTO;
@@ -162,7 +162,7 @@ const GestionCategorias: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [errorNombre, setErrorNombre] = useState<string | null>(null);
   const [categoriasExpandidas, setCategoriasExpandidas] = useState<Set<number>>(new Set());
-  const [cerrandoModal, setCerrandoModal] = useState(false);
+  const { overlayClass, panelClass, shouldRender: shouldRenderFormulario, requestClose: requestCloseFormulario } = useModalMotion({ open: showFormulario });
   const [confirmModal, setConfirmModal] = useState<{ open: boolean; categoriaId: number | null }>({ open: false, categoriaId: null });
 
   const [formData, setFormData] = useState({
@@ -299,16 +299,14 @@ const GestionCategorias: React.FC = () => {
   };
 
   const cerrarModalConAnimacion = () => {
-    setCerrandoModal(true);
-    setTimeout(() => {
+    requestCloseFormulario(() => {
       setShowFormulario(false);
-      setCerrandoModal(false);
       setCategoriaEditar(null);
       setCategoriaPadreId(null);
       setFormData({ nombre: '' });
       setError(null);
       setErrorNombre(null);
-    }, 300);
+    });
   };
 
   const toggleExpansion = (id: number) => {
@@ -360,7 +358,7 @@ const GestionCategorias: React.FC = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent min-h-screen animate-fadeIn">
+    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent min-h-screen">
       <PageHeader
         surface="elevated"
         eyebrow="Catálogo · Taxonomía"
@@ -459,10 +457,18 @@ const GestionCategorias: React.FC = () => {
       </div>
 
       {/* Modal Rediseñado (Strict Monochrome as per AGENTE.md) */}
-      {showFormulario && (
+      {shouldRenderFormulario && (
         <ModalPortal>
-        <div className={`app-modal-overlay fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 ${cerrandoModal ? 'animate-fadeOut' : 'animate-fadeIn'}`}>
-          <div className={`bg-app-surface rounded-[2.5rem] shadow-xl w-full max-w-lg relative overflow-hidden border border-app-border ${cerrandoModal ? 'animate-scaleOut' : 'animate-scaleIn'}`}>
+        <ModalMotionOverlay
+          overlayClass={overlayClass}
+          onClick={cerrarModalConAnimacion}
+          className="app-modal-overlay"
+          scrimClassName="bg-black/50"
+        >
+          <div
+            className={`relative z-10 bg-app-surface rounded-[2.5rem] shadow-xl w-full max-w-lg overflow-hidden border border-app-border ${panelClass}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-12">
               <div className="flex justify-between items-start mb-10">
                 <div>
@@ -534,7 +540,7 @@ const GestionCategorias: React.FC = () => {
               </form>
             </div>
           </div>
-        </div>
+        </ModalMotionOverlay>
         </ModalPortal>
       )}
 

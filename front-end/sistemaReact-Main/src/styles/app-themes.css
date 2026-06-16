@@ -3,10 +3,16 @@
 /* Capas de apilamiento (independientes del tema) */
 :root {
   --app-z-sidebar-rail: 30;
+  --app-z-nav-flyout-backdrop: 34;
+  --app-z-nav-flyout: 35;
   --app-z-drawer-overlay: 45;
   --app-z-drawer: 50;
   --app-z-modal: 200;
   --app-z-modal-nested: 210;
+  --app-rail-width: 80px;
+  --app-flyout-width: 256px;
+  --app-flyout-radius: 24px;
+  --app-flyout-item-radius: 16px;
 }
 
 html.modal-open {
@@ -39,6 +45,27 @@ html.modal-open {
   --app-mesh-rgb: 15, 15, 15;
   --app-sidebar-rail-bg: rgb(255 255 255 / 0.95);
   --app-sidebar-rail-border: rgb(229 231 235 / 0.9);
+  --app-rail-bg: var(--app-surface);
+  --app-rail-border: var(--app-border-strong);
+  --app-rail-indicator: #e8e8e8;
+  --app-rail-hover: rgb(0 0 0 / 0.04);
+  --app-rail-icon-active: #000000;
+  --app-rail-icon-inactive: rgb(0 0 0 / 0.55);
+  --app-rail-label: rgb(0 0 0 / 0.55);
+  --app-rail-label-active: #000000;
+  --app-rail-logo-bg: #f4f4f5;
+  --app-rail-logo-fg: #18181b;
+  --app-rail-logo-border: #e4e4e7;
+  --app-flyout-bg: var(--app-surface-elevated);
+  --app-flyout-border: var(--app-border-strong);
+  --app-flyout-text: var(--app-text);
+  --app-flyout-muted: var(--app-text-muted);
+  --app-flyout-hover: var(--app-hover-overlay);
+  --app-flyout-selected: #e8e8e8;
+  --app-flyout-close-hover: var(--app-hover-overlay);
+  --app-flyout-shadow: 0 12px 40px rgb(0 0 0 / 0.12);
+  --app-flyout-icon-wrap-bg: #f4f4f5;
+  --app-flyout-icon-wrap-active: #e8e8e8;
   --accent: #334155;
   --app-canvas: #f8fafc;
   --app-panel: #ffffff;
@@ -141,6 +168,27 @@ html.modal-open {
   --app-mesh-rgb: 14, 14, 14;
   --app-sidebar-rail-bg: rgb(17 17 17 / 0.97);
   --app-sidebar-rail-border: rgb(255 255 255 / 0.08);
+  --app-rail-bg: var(--app-surface);
+  --app-rail-border: var(--app-border-strong);
+  --app-rail-indicator: rgb(255 255 255 / 0.12);
+  --app-rail-hover: rgb(255 255 255 / 0.06);
+  --app-rail-icon-active: #f5f5f5;
+  --app-rail-icon-inactive: rgb(255 255 255 / 0.55);
+  --app-rail-label: rgb(255 255 255 / 0.55);
+  --app-rail-label-active: #f5f5f5;
+  --app-rail-logo-bg: rgb(255 255 255 / 0.08);
+  --app-rail-logo-fg: #f5f5f5;
+  --app-rail-logo-border: rgb(255 255 255 / 0.12);
+  --app-flyout-bg: var(--app-surface-elevated);
+  --app-flyout-border: var(--app-border-strong);
+  --app-flyout-text: var(--app-text);
+  --app-flyout-muted: var(--app-text-muted);
+  --app-flyout-hover: var(--app-hover-overlay);
+  --app-flyout-selected: rgb(255 255 255 / 0.1);
+  --app-flyout-close-hover: var(--app-hover-overlay);
+  --app-flyout-shadow: 0 16px 48px rgb(0 0 0 / 0.45);
+  --app-flyout-icon-wrap-bg: rgb(255 255 255 / 0.06);
+  --app-flyout-icon-wrap-active: rgb(255 255 255 / 0.12);
   --accent: #9e9e9e;
   --app-canvas: #0a0a0a;
   --app-panel: #171717;
@@ -243,6 +291,27 @@ html.modal-open {
   --app-mesh-rgb: 200, 170, 175;
   --app-sidebar-rail-bg: rgb(255 251 252 / 0.95);
   --app-sidebar-rail-border: #e8d4da;
+  --app-rail-bg: var(--app-surface);
+  --app-rail-border: var(--app-border-strong);
+  --app-rail-indicator: #f0dde2;
+  --app-rail-hover: rgb(139 107 111 / 0.08);
+  --app-rail-icon-active: #3d3236;
+  --app-rail-icon-inactive: rgb(61 50 54 / 0.55);
+  --app-rail-label: rgb(61 50 54 / 0.55);
+  --app-rail-label-active: #3d3236;
+  --app-rail-logo-bg: #f5e8eb;
+  --app-rail-logo-fg: #3d3236;
+  --app-rail-logo-border: #e8d4da;
+  --app-flyout-bg: var(--app-surface-elevated);
+  --app-flyout-border: var(--app-border-strong);
+  --app-flyout-text: var(--app-text);
+  --app-flyout-muted: var(--app-text-muted);
+  --app-flyout-hover: var(--app-hover-overlay);
+  --app-flyout-selected: #f0dde2;
+  --app-flyout-close-hover: var(--app-hover-overlay);
+  --app-flyout-shadow: 0 12px 36px rgb(139 107 111 / 0.18);
+  --app-flyout-icon-wrap-bg: #f5e8eb;
+  --app-flyout-icon-wrap-active: #f0dde2;
   --accent: #a88a8e;
   --app-canvas: #fdf6f6;
   --app-panel: #fffbfc;
@@ -345,6 +414,27 @@ html.modal-open {
   --app-mesh-rgb: 160, 185, 200;
   --app-sidebar-rail-bg: rgb(250 251 252 / 0.95);
   --app-sidebar-rail-border: #c5d4e0;
+  --app-rail-bg: var(--app-surface);
+  --app-rail-border: var(--app-border-strong);
+  --app-rail-indicator: #dce6ee;
+  --app-rail-hover: rgb(107 132 153 / 0.08);
+  --app-rail-icon-active: #2e3a42;
+  --app-rail-icon-inactive: rgb(46 58 66 / 0.55);
+  --app-rail-label: rgb(46 58 66 / 0.55);
+  --app-rail-label-active: #2e3a42;
+  --app-rail-logo-bg: #e8eef4;
+  --app-rail-logo-fg: #2e3a42;
+  --app-rail-logo-border: #c5d4e0;
+  --app-flyout-bg: var(--app-surface-elevated);
+  --app-flyout-border: var(--app-border-strong);
+  --app-flyout-text: var(--app-text);
+  --app-flyout-muted: var(--app-text-muted);
+  --app-flyout-hover: var(--app-hover-overlay);
+  --app-flyout-selected: #dce6ee;
+  --app-flyout-close-hover: var(--app-hover-overlay);
+  --app-flyout-shadow: 0 12px 36px rgb(107 132 153 / 0.2);
+  --app-flyout-icon-wrap-bg: #e8eef4;
+  --app-flyout-icon-wrap-active: #dce6ee;
   --accent: #7a94a8;
   --app-canvas: #f4f7fa;
   --app-panel: #fafbfc;
@@ -447,6 +537,27 @@ html.modal-open {
   --app-mesh-rgb: 180, 175, 168;
   --app-sidebar-rail-bg: rgb(252 250 247 / 0.95);
   --app-sidebar-rail-border: #d8d2c8;
+  --app-rail-bg: var(--app-surface);
+  --app-rail-border: var(--app-border-strong);
+  --app-rail-indicator: #e8e2d8;
+  --app-rail-hover: rgb(110 104 96 / 0.08);
+  --app-rail-icon-active: #3a3835;
+  --app-rail-icon-inactive: rgb(58 56 53 / 0.55);
+  --app-rail-label: rgb(58 56 53 / 0.55);
+  --app-rail-label-active: #3a3835;
+  --app-rail-logo-bg: #ebe6df;
+  --app-rail-logo-fg: #3a3835;
+  --app-rail-logo-border: #d8d2c8;
+  --app-flyout-bg: var(--app-surface-elevated);
+  --app-flyout-border: var(--app-border-strong);
+  --app-flyout-text: var(--app-text);
+  --app-flyout-muted: var(--app-text-muted);
+  --app-flyout-hover: var(--app-hover-overlay);
+  --app-flyout-selected: #e8e2d8;
+  --app-flyout-close-hover: var(--app-hover-overlay);
+  --app-flyout-shadow: 0 12px 36px rgb(110 104 96 / 0.16);
+  --app-flyout-icon-wrap-bg: #ebe6df;
+  --app-flyout-icon-wrap-active: #e8e2d8;
   --accent: #8a847c;
   --app-canvas: #f7f5f2;
   --app-panel: #fcfaf7;
@@ -633,6 +744,101 @@ html.modal-open {
 .app-sidebar-rail {
   background-color: var(--app-sidebar-rail-bg);
   border-color: var(--app-sidebar-rail-border);
+}
+
+.app-nav-rail {
+  background-color: var(--app-rail-bg);
+  border-color: var(--app-rail-border);
+}
+
+.app-nav-rail-logo {
+  background-color: var(--app-rail-logo-bg);
+  color: var(--app-rail-logo-fg);
+  border: 1px solid var(--app-rail-logo-border);
+  box-shadow: none;
+}
+
+.app-nav-rail-footer {
+  border-color: var(--app-rail-border);
+}
+
+.app-nav-rail-item:hover .app-nav-rail-indicator:not(.app-nav-rail-indicator--active) {
+  background-color: var(--app-rail-hover);
+}
+
+.app-nav-rail-indicator--active {
+  background-color: var(--app-rail-indicator);
+}
+
+.app-nav-rail-icon-active {
+  color: var(--app-rail-icon-active);
+}
+
+.app-nav-rail-icon-inactive {
+  color: var(--app-rail-icon-inactive);
+}
+
+.app-nav-rail-label {
+  color: var(--app-rail-label);
+}
+
+.app-nav-rail-label-active {
+  color: var(--app-rail-label-active);
+}
+
+.app-nav-flyout {
+  background-color: var(--app-flyout-bg);
+  border-color: var(--app-flyout-border);
+  color: var(--app-flyout-text);
+}
+
+.app-nav-flyout--compact {
+  border: 1px solid var(--app-flyout-border);
+  border-radius: var(--app-flyout-radius);
+  box-shadow: var(--app-flyout-shadow);
+}
+
+.app-nav-flyout-header {
+  border-color: var(--app-flyout-border);
+}
+
+.app-nav-flyout-text {
+  color: var(--app-flyout-text);
+}
+
+.app-nav-flyout-muted {
+  color: var(--app-flyout-muted);
+}
+
+.app-nav-flyout-close {
+  color: var(--app-flyout-muted);
+}
+
+.app-nav-flyout-close:hover {
+  background-color: var(--app-flyout-close-hover);
+  color: var(--app-flyout-text);
+}
+
+.app-nav-flyout-item {
+  color: var(--app-flyout-text);
+  border-radius: var(--app-flyout-item-radius);
+}
+
+.app-nav-flyout-item:hover {
+  background-color: var(--app-flyout-hover);
+}
+
+.app-nav-flyout-item--active {
+  background-color: var(--app-flyout-selected);
+  color: var(--app-flyout-text);
+}
+
+.app-nav-flyout-icon-wrap {
+  background-color: var(--app-flyout-icon-wrap-bg);
+}
+
+.app-nav-flyout-icon-wrap--active {
+  background-color: var(--app-flyout-icon-wrap-active);
 }
 
 .app-modal-panel {

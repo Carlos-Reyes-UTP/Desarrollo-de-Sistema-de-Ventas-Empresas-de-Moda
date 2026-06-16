@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { MaterialIcon } from "@/shared/ui";
+import { MaterialIcon, useModalMotion } from "@/shared/ui";
 
 const REGION_ID = "vendedor-html5qrcode-region";
 
@@ -14,6 +14,9 @@ export const BarcodeScannerModal = ({
   onClose,
   onDecoded,
 }: BarcodeScannerModalProps) => {
+  const { overlayClass, panelClass, shouldRender, requestClose } = useModalMotion({ open });
+  const handleClose = () => requestClose(onClose);
+
   const onDecodedRef = useRef(onDecoded);
   const onCloseRef = useRef(onClose);
   onDecodedRef.current = onDecoded;
@@ -107,18 +110,18 @@ export const BarcodeScannerModal = ({
     };
   }, [open]);
 
-  if (!open) {
+  if (!shouldRender) {
     return null;
   }
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 backdrop-blur-sm p-4 sm:items-center animate-fadeIn"
+      className={`fixed inset-0 z-[120] flex items-end justify-center bg-black/50 backdrop-blur-sm p-4 sm:items-center ${overlayClass}`}
       role="presentation"
-      onClick={() => onClose()}
+      onClick={handleClose}
     >
       <div
-        className="w-full max-w-md rounded-3xl border border-gray-200 bg-white/95 p-5 shadow-xl backdrop-blur-md"
+        className={`w-full max-w-md rounded-3xl border border-gray-200 bg-white/95 p-5 shadow-xl backdrop-blur-md ${panelClass}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="vendedor-scan-titulo"
@@ -130,7 +133,7 @@ export const BarcodeScannerModal = ({
           </h2>
           <button
             type="button"
-            onClick={() => onClose()}
+            onClick={handleClose}
             className="rounded-xl p-2 text-gray-500 transition-all hover:bg-gray-100 hover:text-black"
             aria-label="Cerrar escáner"
           >

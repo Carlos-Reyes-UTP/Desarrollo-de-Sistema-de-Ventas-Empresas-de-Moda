@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MaterialIcon } from "@/shared/ui";
+import { MaterialIcon, useModalMotion } from "@/shared/ui";
 import { useBandeja, type ItemBandeja } from "../../context/BandejaSolicitudContext";
 import { VendedorService } from "../../services/VendedorService";
 import { mensajeErrorApi } from "@/utils/apiErrors";
@@ -22,21 +22,12 @@ interface Props {
 
 export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props) {
   const { items, quitar, limpiar } = useBandeja();
+  const { overlayClass, sheetClass, shouldRender, requestClose } = useModalMotion({ open });
+  const handleClose = () => requestClose(onClose);
   const [enviando, setEnviando] = useState(false);
   const [estados, setEstados] = useState<EstadoEnvio>({});
-  const [visible, setVisible] = useState(false);
   const sheetRef = useRef<HTMLDivElement>(null);
   const envioLockRef = useRef(false);
-
-  // Animate in/out
-  useEffect(() => {
-    if (open) {
-      setVisible(true);
-    } else {
-      const t = setTimeout(() => setVisible(false), 350);
-      return () => clearTimeout(t);
-    }
-  }, [open]);
 
   // Bloquear scroll del body cuando está abierto
   useEffect(() => {
@@ -79,7 +70,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
       limpiar();
       setEstados({});
       onEnvioCompleto();
-      onClose();
+      handleClose();
     } catch (e) {
       items.forEach((item) =>
         setEstadoItem(item.key, "error", mensajeErrorApi(e))
@@ -88,30 +79,26 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
       envioLockRef.current = false;
       setEnviando(false);
     }
-  }, [enviando, items, limpiar, onClose, onEnvioCompleto]);
+  }, [enviando, items, limpiar, handleClose, onEnvioCompleto]);
 
-  if (!visible) return null;
+  if (!shouldRender) return null;
 
   const okCount = Object.values(estados).filter((e) => e.estado === "ok").length;
   const errCount = Object.values(estados).filter((e) => e.estado === "error").length;
   const hayEstados = Object.keys(estados).length > 0;
 
   return (
-    <div
-      className={`fixed inset-0 z-[200] transition-all duration-350 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`}
-    >
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[200]">
+      <div className="modal-motion-backdrop-blur absolute inset-0 backdrop-blur-sm" aria-hidden />
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={!enviando ? onClose : undefined}
+        className={`modal-motion-backdrop-blur absolute inset-0 bg-black/60 ${overlayClass}`}
+        onClick={!enviando ? handleClose : undefined}
+        aria-hidden
       />
 
-      {/* Sheet */}
       <div
         ref={sheetRef}
-        className={`absolute bottom-0 left-0 right-0 mx-auto max-w-xl rounded-t-[2.5rem] border-t border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/98 backdrop-blur-xl shadow-2xl transition-transform duration-350 ease-out ${
-          open ? "translate-y-0" : "translate-y-full"
-        }`}
+        className={`absolute bottom-0 left-0 right-0 z-10 mx-auto max-w-xl rounded-t-[2.5rem] border-t border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/98 backdrop-blur-xl shadow-2xl ${sheetClass}`}
         style={{ maxHeight: "88dvh", display: "flex", flexDirection: "column" }}
       >
         {/* Handle + Header */}
@@ -126,7 +113,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={enviando}
               className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-[var(--app-text-muted)] transition hover:bg-white/20 hover:text-white disabled:opacity-40"
               aria-label="Cerrar"

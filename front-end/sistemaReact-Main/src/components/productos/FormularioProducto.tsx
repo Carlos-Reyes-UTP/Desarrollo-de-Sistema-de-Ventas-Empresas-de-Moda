@@ -16,7 +16,7 @@ import {
 import { validarJerarquiaPreciosProducto } from '../../utils/validarPreciosProducto';
 import { getErrorMessage, getStatusCode } from '@/utils/errorUtils';
 import { extractApiErrorMessage } from '@/utils/handleApiError';
-import { AlertModal, MaterialIcon, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { AlertModal, MaterialIcon, ModalPortal, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
 
 // Subcomponentes especializados
@@ -167,7 +167,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   const [tabActiva, setTabActiva] = useState<TabType>('informacion');
   const [codigoBarrasPreview, setCodigoBarrasPreview] = useState<string | null>(null);
   const [varianteSeleccionada, setVarianteSeleccionada] = useState<number | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const { overlayClass, panelClass, requestClose } = useModalMotion({ open: true });
   const [showFormularioVariante, setShowFormularioVariante] = useState(false);
   const [alertModal, setAlertModal] = useState<{
     open: boolean;
@@ -196,13 +196,11 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
 
   // Cargar datos iniciales
   useEffect(() => {
-    setIsModalVisible(true);
     cargarSugerenciasCatalogo();
   }, []);
 
   const handleClose = () => {
-    setIsModalVisible(false);
-    setTimeout(onClose, 300);
+    requestClose(onClose);
   };
 
   // Inicializar en modo Edición
@@ -816,8 +814,8 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
 
   return (
     <ModalPortal>
-    <div className={`app-modal-overlay fixed inset-0 bg-[#0c0c0e]/80 backdrop-blur-md flex items-center justify-center transition-opacity duration-300 ${isModalVisible ? 'opacity-100' : 'opacity-0'}`}>
-      <div className={`bg-app-surface rounded-[2.5rem] shadow-[0_32px_80px_rgba(0,0,0,0.25)] w-full max-w-6xl max-h-[92vh] overflow-hidden border border-app-border relative transform flex flex-col transition-all duration-300 ${isModalVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}>
+    <div className={`app-modal-overlay fixed inset-0 bg-[#0c0c0e]/80 backdrop-blur-md flex items-center justify-center ${overlayClass}`}>
+      <div className={`bg-app-surface rounded-[2.5rem] shadow-[0_32px_80px_rgba(0,0,0,0.25)] w-full max-w-6xl max-h-[92vh] overflow-hidden border border-app-border relative flex flex-col ${panelClass}`}>
         {/* Elegant Modal Header with Luxury Accents */}
         <div className="relative bg-app-surface border-b border-app-border px-10 py-7">
           {/* Subtle gold line accent for premium luxury look */}

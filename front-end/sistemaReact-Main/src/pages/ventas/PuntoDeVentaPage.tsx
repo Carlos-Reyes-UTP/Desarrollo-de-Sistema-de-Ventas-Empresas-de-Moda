@@ -5,6 +5,8 @@ import CierreCaja from '@/components/cajero/CierreCaja';
 import VentasPanel from '@/components/cajero/VentasPanel';
 import { useAuth } from '@/context/AuthContext';
 import { resolveCajeroView } from '@/shared/layout/navigationConfig';
+import { getCajeroViewIndex } from '@/shared/layout/pageTransitionConfig';
+import { SubViewTransition } from '@/shared/ui/SubViewTransition';
 
 const PuntoDeVentaPage = () => {
   const { state } = useLocation();
@@ -35,10 +37,15 @@ const PuntoDeVentaPage = () => {
   };
 
   return (
-    // Se elimina SidebarMenu aquí para que no se duplique
     <div className="flex-1 flex flex-col overflow-hidden">
       <main className="flex-1 overflow-y-auto p-5">
-        {renderContenido()}
+        <SubViewTransition
+          viewKey={vistaActual}
+          pattern="shared-y"
+          indexOf={getCajeroViewIndex}
+        >
+          {renderContenido()}
+        </SubViewTransition>
       </main>
     </div>
   );

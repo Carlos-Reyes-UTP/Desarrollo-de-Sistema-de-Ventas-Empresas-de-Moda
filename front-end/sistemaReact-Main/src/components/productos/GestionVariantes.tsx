@@ -8,7 +8,7 @@ import {
   mismoParTallaColor,
   nombresUnicosOrdenados,
 } from '../../utils/varianteCatalogoHelpers';
-import { AlertModal, ConfirmModal, Skeleton, MaterialIcon, ModalPortal, useModalBodyScrollLock } from '@/shared/ui';
+import { AlertModal, ConfirmModal, Skeleton, MaterialIcon, ModalPortal, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 
 interface GestionVariantesProps {
   producto: Producto;
@@ -41,7 +41,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   const [varianteAEliminar, setVarianteAEliminar] = useState<number | null>(null);
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' | 'warning' }>({ open: false, message: '', variant: 'info' });
 
-  const [isModalVisible, setIsModalVisible] = useState(true);
+  const { overlayClass, panelClass, requestClose } = useModalMotion({ open: true });
+  const { overlayClass: nuevaOverlayClass, panelClass: nuevaPanelClass, shouldRender: shouldRenderNuevaVariante, requestClose: requestCloseNuevaVariante } = useModalMotion({ open: showNuevaVariante });
 
   useModalBodyScrollLock(true);
 
@@ -50,8 +51,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
   }, [producto.idProducto]);
 
   const handleClose = () => {
-    setIsModalVisible(false);
-    setTimeout(onClose, 300);
+    requestClose(onClose);
   };
 
   const cargarDatos = async () => {
@@ -125,7 +125,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         return cT !== 0 ? cT : a.color.nombre.localeCompare(b.color.nombre);
       }));
       setFormVariante({ nombreTalla: '', nombreColor: '', cantidad: '', codigoIdentificacion: '' });
-      setShowNuevaVariante(false);
+      requestCloseNuevaVariante(() => setShowNuevaVariante(false));
       setError(null);
       setSugerenciasTallas((p) => nombresUnicosOrdenados([...p, nombreTalla]));
       setSugerenciasColores((p) => nombresUnicosOrdenados([...p, nombreColor]));
@@ -178,8 +178,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
 
   return (
     <ModalPortal>
-    <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${isModalVisible ? 'animate-fadeIn' : 'animate-fadeOut'}`}>
-      <div className={`bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${isModalVisible ? 'animate-scaleIn' : 'animate-scaleOut'}`}>
+    <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${overlayClass}`}>
+      <div className={`bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${panelClass}`}>
 
         <div className="p-10 pb-6 border-b border-app-border">
           <div className="mb-6 w-12 h-1 bg-app-accent"></div>
@@ -281,9 +281,9 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         </div>
       </div>
 
-      {showNuevaVariante && (
-        <div className="app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fadeIn" style={{ zIndex: 'calc(var(--app-z-modal) + 10)' }}>
-          <div className="bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden animate-scaleIn">
+      {shouldRenderNuevaVariante && (
+        <div className={`app-modal-overlay fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 ${nuevaOverlayClass}`} style={{ zIndex: 'calc(var(--app-z-modal) + 10)' }}>
+          <div className={`bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-lg relative overflow-hidden ${nuevaPanelClass}`}>
             <div className="p-10">
               <div className="mb-6 w-12 h-1 bg-app-accent"></div>
               <h3 className="text-2xl font-bold tracking-tight text-app-text mb-2 uppercase">
@@ -393,7 +393,7 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      setShowNuevaVariante(false);
+                      requestCloseNuevaVariante(() => setShowNuevaVariante(false));
                       setFormVariante({ nombreTalla: '', nombreColor: '', cantidad: '', codigoIdentificacion: '' });
                       setError(null);
                     }}

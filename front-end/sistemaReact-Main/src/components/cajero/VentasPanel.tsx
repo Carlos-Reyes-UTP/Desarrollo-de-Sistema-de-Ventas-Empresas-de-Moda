@@ -9,13 +9,16 @@ import { ClienteSection } from './ventas-panel/ClienteSection';
 import { CatalogoSection } from './ventas-panel/CatalogoSection';
 import { CarritoSection } from './ventas-panel/CarritoSection';
 import { useVentas } from './ventas-panel/useVentas';
-import { PageHeader, MaterialIcon, Skeleton } from '@/shared/ui';
+import { PageHeader, MaterialIcon, Skeleton, useModalMotion } from '@/shared/ui';
 
 const VentasPanel = () => {
   const ventas = useVentas();
   const navigate = useNavigate();
   const [cargandoVerificacion, setCargandoVerificacion] = useState(true);
   const [cajaAbierta, setCajaAbierta] = useState<boolean>(false);
+  const { overlayClass, panelClass, shouldRender: shouldRenderBloqueo } = useModalMotion({
+    open: !cargandoVerificacion && !cajaAbierta,
+  });
 
   useEffect(() => {
     const verificarCaja = async () => {
@@ -49,10 +52,10 @@ const VentasPanel = () => {
 
   return (
     <div className="relative caj-page p-4 sm:p-6 max-w-[1600px] mx-auto lg:bg-transparent min-h-screen animate-fadeIn text-left font-sans">
-      {!cajaAbierta && (
+      {!cajaAbierta && shouldRenderBloqueo && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" />
-          <div className="relative caj-card rounded-[3rem] border caj-border shadow-2xl p-10 max-w-md w-full mx-4 text-center animate-fadeIn">
+          <div className={`absolute inset-0 bg-black/40 backdrop-blur-md ${overlayClass}`} />
+          <div className={`relative caj-card rounded-[3rem] border caj-border shadow-2xl p-10 max-w-md w-full mx-4 text-center ${panelClass}`}>
             <div className="w-16 h-16 mx-auto mb-6 caj-icon-chip rounded-2xl flex items-center justify-center shadow-lg">
               <MaterialIcon icon="lock" className="h-8 w-8" />
             </div>

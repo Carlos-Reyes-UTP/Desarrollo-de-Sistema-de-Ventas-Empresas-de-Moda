@@ -1,4 +1,5 @@
 import type { MotivoRechazoApi } from "../../types/AlmacenSolicitudes";
+import { useModalMotion } from "@/shared/ui";
 
 interface RechazoPedidoModalProps {
   nombreVendedor: string;
@@ -15,18 +16,22 @@ export function RechazoPedidoModal({
   onCerrar,
   onElegirMotivo,
 }: RechazoPedidoModalProps) {
-  if (!abierto) return null;
+  const { overlayClass, panelClass, shouldRender, requestClose } = useModalMotion({ open: abierto });
+
+  const handleCerrar = () => requestClose(onCerrar);
+
+  if (!shouldRender) return null;
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
+      className={`fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm ${overlayClass}`}
       role="dialog"
       aria-modal="true"
       aria-labelledby="rechazo-titulo"
-      onClick={onCerrar}
+      onClick={handleCerrar}
     >
       <div
-        className="w-full max-w-lg rounded-3xl border border-app-border bg-app-surface/90 p-6 shadow-md backdrop-blur-md md:p-10"
+        className={`w-full max-w-lg rounded-3xl border border-app-border bg-app-surface/90 p-6 shadow-md backdrop-blur-md md:p-10 ${panelClass}`}
         onClick={(e) => e.stopPropagation()}
       >
         <h2
@@ -59,7 +64,7 @@ export function RechazoPedidoModal({
           <button
             type="button"
             disabled={cargando}
-            onClick={onCerrar}
+            onClick={handleCerrar}
             className="mt-2 text-center text-sm font-semibold text-gray-600 underline-offset-2 transition-all hover:text-black hover:underline"
           >
             Volver
