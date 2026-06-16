@@ -112,7 +112,7 @@ function useDeferredViewTransition(
       setDisplayedContent(pendingContentRef.current);
     });
 
-    showingFallbackRef.current = isPageFallbackContent(pendingContentRef.current);
+    showingFallbackRef.current = isPageFallbackContent();
     prevKeyRef.current = activeTargetKeyRef.current;
 
     rafRef.current = requestAnimationFrame(() => {
