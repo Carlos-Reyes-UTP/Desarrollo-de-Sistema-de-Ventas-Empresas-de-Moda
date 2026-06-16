@@ -9,6 +9,5 @@ QA-LOGS.md
 # Scripts and Fixes
 **/scripts/
 *.cjs
-*.py
 build_output.txt
 build-output.txt

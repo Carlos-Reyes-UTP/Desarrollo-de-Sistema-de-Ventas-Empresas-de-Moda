@@ -7,7 +7,7 @@ import {
   PieChart, Pie, Cell, ResponsiveContainer,
   Tooltip, Label
 } from 'recharts';
-import { AlmacenSolicitudesApi } from '@/services/AlmacenSolicitudesService';
+import { AlmacenSolicitudesApi } from '@/services/almacenSolicitudesService';
 import type { AlmacenSolicitud } from '@/types/AlmacenSolicitudes';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
 import { useAuth } from '@/context/AuthContext';

@@ -24,7 +24,7 @@ import {
   primeraPrioridad,
   ventasOrdenadas,
 } from "../../components/almacen-tablero/almacenTableroUtils";
-import { AlmacenSolicitudesApi } from "../../services/AlmacenSolicitudesService";
+import { AlmacenSolicitudesApi } from "../../services/almacenSolicitudesService";
 import { DashboardService } from "../../services/DashboardService";
 import type { AlmacenSolicitud, AlmacenTicketConsolidado, MotivoRechazoApi } from "../../types/AlmacenSolicitudes";
 import type { AlertaReposicion } from "../../types/DashboardStats";

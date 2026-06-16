@@ -16,7 +16,7 @@ import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
 import { DashboardCtaPanel } from '@/shared/ui/dashboard/DashboardCtaPanel';
 import { APP_PATHS } from '@/shared/layout/navigationConfig';
 import { VentaService } from '@/services/VentaService';
-import { AlmacenSolicitudesApi } from '@/services/AlmacenSolicitudesService';
+import { AlmacenSolicitudesApi } from '@/services/almacenSolicitudesService';
 import type { Venta } from '@/types/Venta';
 import type { Cliente } from '@/types/Cliente';
 import {

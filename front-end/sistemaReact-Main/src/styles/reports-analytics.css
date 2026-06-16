@@ -495,3 +495,67 @@
   color: var(--app-accent-fg, #fff);
   border-color: var(--app-accent);
 }
+
+/* Tooltips de ayuda en el cockpit de reportes */
+.reports-tooltip-trigger {
+  position: relative;
+  z-index: 10;
+  cursor: help;
+}
+
+.reports-tooltip-trigger:hover {
+  z-index: 30;
+}
+
+.reports-tooltip-content {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.5rem;
+  width: 13rem; /* 208px = w-52 */
+  padding: 0.625rem;
+  background-color: var(--app-surface-elevated);
+  border: 1px solid var(--app-border);
+  color: var(--app-text);
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  text-align: center;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: normal;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+.reports-tooltip-trigger:hover .reports-tooltip-content {
+  opacity: 1;
+  visibility: visible;
+}
+
+.reports-tooltip-content--right {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+
+/* Asegurar que las celdas de la cabecera de la tabla y filas de la tabla permitan desbordamiento y posicionamiento correcto */
+.reports-analytics table,
+.reports-analytics thead,
+.reports-analytics tr,
+.reports-analytics th {
+  overflow: visible !important;
+}
+
+.reports-analytics th:has(.reports-tooltip-trigger) {
+  position: relative;
+  z-index: 10;
+}
+
+.reports-analytics th:has(.reports-tooltip-trigger):hover {
+  z-index: 30;
+}
