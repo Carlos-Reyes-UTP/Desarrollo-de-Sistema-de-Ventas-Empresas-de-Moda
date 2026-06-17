@@ -232,19 +232,7 @@ const GestionProveedores: React.FC = () => {
         surface="elevated"
         eyebrow="Catálogo · Proveedores"
         title="Gestión de proveedores"
-        belowTitle={
-          ultimaCargaLista ? (
-            <>
-              <PageHeaderMetaChip variant="stat">
-                {proveedoresOriginal.length}{" "}
-                {proveedoresOriginal.length === 1 ? "proveedor registrado" : "proveedores registrados"}
-              </PageHeaderMetaChip>
-              <PageHeaderMetaChip variant="muted">
-                Datos cargados · {ultimaCargaLista}
-              </PageHeaderMetaChip>
-            </>
-          ) : undefined
-        }
+
         actions={
           <PageActionGroup>
             <PageActionButton grouped onClick={handleNuevo}>
@@ -284,26 +272,26 @@ const GestionProveedores: React.FC = () => {
       </div>
 
       {/* Main Table Content */}
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-app-surface rounded-2xl shadow-sm border border-app-border overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse table-zebra">
+          <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-white border-b border-gray-50">
-                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+              <tr className="bg-app-surface border-b border-app-border">
+                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-app-text-muted uppercase">
                   Identidad del Socio
                 </th>
-                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-app-text-muted uppercase">
                   RUC / Identificación
                 </th>
-                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                <th className="px-8 py-6 text-left text-[10px] font-bold tracking-[0.2em] text-app-text-muted uppercase">
                   Estado
                 </th>
-                <th className="px-8 py-6 text-right text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">
+                <th className="px-8 py-6 text-right text-[10px] font-bold tracking-[0.2em] text-app-text-muted uppercase">
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-app-border">
               {loading &&
                 Array.from({ length: 8 }, (_, row) => (
                   <tr key={`sk-prov-${row}`}>
@@ -320,15 +308,15 @@ const GestionProveedores: React.FC = () => {
                 ))}
               {!loading && proveedores.length === 0 && (
                 <tr>
-                  <td colSpan={4} className="px-8 py-16 text-center bg-slate-50/50">
+                  <td colSpan={4} className="px-8 py-16 text-center bg-app-bg-muted">
                     <div className="flex flex-col items-center max-w-md mx-auto">
-                      <MaterialIcon icon="corporate_fare" className="w-14 h-14 text-slate-300 mb-4" />
-                      <p className="text-base font-bold text-gray-900">
+                      <MaterialIcon icon="corporate_fare" className="w-14 h-14 text-app-text-muted mb-4" />
+                      <p className="text-base font-bold text-app-text">
                         {proveedoresOriginal.length === 0
                           ? "Aún no hay proveedores"
                           : "Sin resultados para esta búsqueda"}
                       </p>
-                      <p className="text-sm text-gray-500 mt-2">
+                      <p className="text-sm text-app-text-muted mt-2">
                         {proveedoresOriginal.length === 0
                           ? "Registra el primero para vincularlo a productos y compras."
                           : "Prueba con otro nombre o RUC, o borra el filtro para ver la lista completa."}
@@ -337,7 +325,7 @@ const GestionProveedores: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleNuevo}
-                          className="inline-flex items-center gap-2 rounded-xl bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-gray-800 active:scale-[0.98]"
+                          className="inline-flex items-center gap-2 rounded-xl bg-app-accent px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-app-accent-fg shadow-sm transition-all hover:opacity-90 active:scale-[0.98]"
                         >
                           <MaterialIcon icon="add" className="w-4 h-4" />
                           Nuevo proveedor
@@ -346,7 +334,7 @@ const GestionProveedores: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => setSearchTerm("")}
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98]"
+                            className="inline-flex items-center gap-2 rounded-xl border border-app-border bg-app-surface px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-app-text shadow-sm transition-all hover:bg-app-hover-overlay active:scale-[0.98]"
                           >
                             Limpiar búsqueda
                           </button>
@@ -357,25 +345,25 @@ const GestionProveedores: React.FC = () => {
                 </tr>
               )}
               {proveedoresPaginados.map((proveedor) => (
-                <tr key={proveedor.idProveedor} className="hover:bg-slate-100/60 transition-colors duration-150 group">
+                <tr key={proveedor.idProveedor} className="hover:bg-app-hover-overlay transition-colors duration-150 group">
                   <td className="px-8 py-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-2xl bg-black flex items-center justify-center text-white shadow-lg">
+                      <div className="w-12 h-12 rounded-2xl bg-app-accent flex items-center justify-center text-app-accent-fg shadow-lg">
                         <MaterialIcon icon="corporate_fare" className="w-5 h-5" />
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-black leading-tight mb-1">
+                        <span className="text-sm font-bold text-app-text leading-tight mb-1">
                           {proveedor.nombre}
                         </span>
-                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                        <span className="text-[10px] font-bold text-app-text-muted uppercase tracking-wider">
                           Socio Logístico • ID {proveedor.idProveedor}
                         </span>
                       </div>
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <div className="flex items-center gap-2 text-gray-600">
-                       <span className="px-3 py-1 bg-gray-100 rounded-lg text-sm font-mono font-bold tracking-tighter">
+                    <div className="flex items-center gap-2 text-app-text-muted">
+                       <span className="px-3 py-1 bg-app-bg-muted rounded-lg text-sm font-mono font-bold tracking-tighter text-app-text">
                         {proveedor.ruc}
                       </span>
                     </div>
@@ -389,10 +377,10 @@ const GestionProveedores: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-8 py-6 text-right">
-                    <div className="flex items-center justify-end gap-2 text-gray-400 opacity-60 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2 text-app-text-muted opacity-60 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleEditar(proveedor)}
-                        className="p-2.5 hover:bg-black hover:text-white rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent"
+                        className="p-2.5 hover:bg-app-accent hover:text-app-accent-fg rounded-xl transition-all shadow-sm hover:shadow-md border border-transparent"
                         title="Editar"
                       >
                         <MaterialIcon icon="edit" className="w-4 h-4" />
@@ -414,8 +402,8 @@ const GestionProveedores: React.FC = () => {
       </div>
 
       <div className="px-8 py-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
-          Mostrando <span className="text-black">{proveedoresPaginados.length}</span> de <span className="text-black">{proveedores.length}</span> proveedores
+        <p className="text-xs font-bold text-app-text-muted uppercase tracking-widest">
+          Mostrando <span className="text-app-text">{proveedoresPaginados.length}</span> de <span className="text-app-text">{proveedores.length}</span> proveedores
         </p>
         
         <div className="flex items-center gap-1 bg-white p-1 rounded-[14px] shadow-sm border border-gray-100">
@@ -457,30 +445,40 @@ const GestionProveedores: React.FC = () => {
           overlayClass={overlayClass}
           onClick={cerrarModalConAnimacion}
           className="app-modal-overlay"
+          scrimClassName="bg-black/50"
         >
           <div
-            className={`relative z-10 bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden ${panelClass}`}
+            className={`relative z-10 bg-app-surface rounded-[2.5rem] shadow-xl w-full max-w-lg overflow-hidden border border-app-border ${panelClass}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-10">
-              <div className="mb-6 w-12 h-1 bg-black"></div>
-              <h2 className="text-2xl font-bold tracking-tight text-black mb-2 uppercase">
-                {proveedorEditar ? 'Editar Proveedor' : 'Nuevo Proveedor'}
-              </h2>
-              <p className="text-gray-500 text-sm mb-10 font-medium">
-                Sincronización de datos con SUNAT y gestión de registros logísticos.
-              </p>
+            <div className="p-12">
+              <div className="flex justify-between items-start mb-10">
+                <div>
+                  <h2 className="text-[24px] font-black tracking-tighter text-app-text uppercase">
+                    {proveedorEditar ? 'Editar Proveedor' : 'Nuevo Proveedor'}
+                  </h2>
+                  <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-2">
+                    Registro de Socios Logísticos
+                  </p>
+                </div>
+                <button
+                  onClick={cerrarModalConAnimacion}
+                  className="p-3 bg-app-bg-muted hover:bg-app-hover-overlay rounded-2xl transition-colors text-app-text-muted"
+                >
+                  <MaterialIcon icon="add" className="w-6 h-6 rotate-45" />
+                </button>
+              </div>
 
-              <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-10">
                 {error && (
-                  <div className="bg-red-50 p-4 rounded-xl border border-red-100 text-red-600 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                    <MaterialIcon icon="error" className="w-4 h-4" />
-                    {error}
+                  <div className="bg-red-50 p-5 rounded-2xl border border-red-100 text-red-600 text-[10px] font-black uppercase tracking-widest flex items-center gap-3">
+                    <MaterialIcon icon="error" className="w-5 h-5 flex-shrink-0" />
+                    <span>{error}</span>
                   </div>
                 )}
                 
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">
                     RUC / Identificación Fiscal
                   </label>
                   <div className="flex gap-2">
@@ -490,7 +488,6 @@ const GestionProveedores: React.FC = () => {
                       onChange={(e) => {
                         if (e.target.value === '' || /^\d+$/.test(e.target.value)) {
                           setFormData(prev => ({ ...prev, ruc: e.target.value }));
-                          // Limpiar error inline al escribir
                           if (errorRucInline) setErrorRucInline(null);
                         }
                       }}
@@ -499,10 +496,10 @@ const GestionProveedores: React.FC = () => {
                           setErrorRucInline(mensajeErrorRuc(formData.ruc));
                         }
                       }}
-                      className={`flex-1 px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 transition-all disabled:opacity-50 ${
+                      className={`flex-1 px-6 py-5 bg-app-input border-2 rounded-2xl text-sm font-black text-app-text focus:bg-app-surface focus:border-app-border-strong transition-all outline-none disabled:opacity-50 ${
                         errorRucInline
-                          ? 'border border-red-300 focus:ring-red-100 bg-red-50'
-                          : 'focus:ring-gray-100'
+                          ? 'border-red-500'
+                          : 'border-transparent'
                       }`}
                       placeholder="11 Dígitos..."
                       maxLength={11}
@@ -514,14 +511,13 @@ const GestionProveedores: React.FC = () => {
                         type="button"
                         onClick={verificarRUC}
                         disabled={buscandoProveedor || !!mensajeErrorRuc(formData.ruc)}
-                        className="px-6 py-4 bg-black text-white rounded-xl hover:bg-gray-800 disabled:opacity-30 transition-all shadow-lg text-[10px] font-bold uppercase tracking-widest flex items-center gap-2"
+                        className="px-6 py-4 bg-app-accent text-app-accent-fg rounded-2xl hover:opacity-90 disabled:opacity-30 transition-all shadow-md text-[10px] font-black uppercase tracking-widest flex items-center gap-2"
                       >
                         {buscandoProveedor ? <MaterialIcon icon="sync" className="w-4 h-4 animate-spin" /> : <MaterialIcon icon="search" className="w-4 h-4" />}
                         Verificar
                       </button>
                     )}
                   </div>
-                  {/* Error inline del RUC */}
                   {errorRucInline && (
                     <p className="flex items-center gap-1.5 text-[10px] font-bold text-red-500 uppercase tracking-wider pl-1 animate-fadeIn">
                       <MaterialIcon icon="error" className="w-3.5 h-3.5 flex-shrink-0" />
@@ -530,34 +526,35 @@ const GestionProveedores: React.FC = () => {
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black tracking-[0.2em] text-gray-400 uppercase">
                     Nombre o Razón Social
                   </label>
                   <input
                     type="text"
+                    autoFocus
                     value={formData.nombre}
                     onChange={(e) => setFormData(prev => ({ ...prev, nombre: e.target.value }))}
-                    className="w-full px-5 py-4 bg-[#f8f8f8] border-transparent rounded-xl text-sm font-bold focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all"
+                    className="w-full px-6 py-5 bg-app-input border-2 border-transparent rounded-2xl text-sm font-black text-app-text focus:bg-app-surface focus:border-app-border-strong transition-all outline-none"
                     placeholder="Nombre completo..."
                     required
                   />
                 </div>
 
-                <div className="flex gap-3 pt-6">
+                <div className="flex gap-3 pt-4">
                   <button
                     type="button"
                     onClick={handleCancelar}
-                    className="flex-1 py-4 bg-gray-100 hover:bg-gray-200 text-gray-900 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all"
+                    className="flex-1 py-5 bg-app-bg-muted hover:bg-app-hover-overlay text-app-text rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-4 bg-black hover:bg-gray-900 text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2"
+                    className="flex-1 py-5 bg-app-accent hover:opacity-90 text-app-accent-fg rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2"
                   >
                     <MaterialIcon icon="save" className="w-4 h-4" />
-                    {proveedorEditar ? 'Actualizar' : 'Guardar'}
+                    <span>{proveedorEditar ? 'Actualizar' : 'Guardar'}</span>
                   </button>
                 </div>
               </form>

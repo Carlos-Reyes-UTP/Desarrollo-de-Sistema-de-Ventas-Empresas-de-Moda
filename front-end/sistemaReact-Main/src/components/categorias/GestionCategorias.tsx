@@ -474,7 +474,7 @@ const GestionCategorias: React.FC = () => {
                 <div>
                     <h2 className="text-[24px] font-black tracking-tighter text-app-text uppercase">
                         {categoriaEditar 
-                        ? 'Editar Nodo' 
+                        ? 'Editar Categoria' 
                         : categoriaPadreId 
                             ? 'Nueva Subrama' 
                             : 'Categoría Raíz'}
