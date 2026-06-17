@@ -75,9 +75,14 @@ const RedirectToDashboard = () => {
     return <Navigate to={APP_PATHS.dashboardGerente} />;
   }
 
-  if (tieneRol("ROLE_ALMACENERO") || tieneRol("ROLE_SUPERVISOR_ALMACEN")) {
+  if (tieneRol("ROLE_ALMACENERO")) {
     logger.debug("RedirectToDashboard - redirigiendo al tablero de pedidos");
     return <Navigate to={APP_PATHS.almacenTablero} />;
+  }
+
+  if (tieneRol("ROLE_SUPERVISOR_ALMACEN")) {
+    logger.debug("RedirectToDashboard - redirigiendo al dashboard de almacén");
+    return <Navigate to={APP_PATHS.dashboardAlmacenero} />;
   }
 
   if (tieneRol("ROLE_VENDEDOR")) {

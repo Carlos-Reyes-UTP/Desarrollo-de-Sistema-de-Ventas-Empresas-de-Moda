@@ -182,7 +182,7 @@ export function AlmacenTicketCard({
                 ? "bg-red-500/20 border-red-400/30 text-red-300" 
                 : "bg-red-50 border-red-100 text-red-600 animate-pulse"
             }`}>
-              <MaterialIcon icon="warning" className="w-3.5 h-3.5 text-red-500" fill />
+              <MaterialIcon icon="warning" className="w-4 h-4 text-red-500" fill />
               <span>{tiempo || "—"}</span>
             </div>
           ) : alertaTiempo === "media" ? (
@@ -191,7 +191,7 @@ export function AlmacenTicketCard({
                 ? "bg-amber-500/20 border-amber-400/30 text-amber-300" 
                 : "bg-amber-50 border-amber-100 text-amber-600"
             }`}>
-              <MaterialIcon icon="schedule" className="w-3.5 h-3.5 text-amber-500" />
+              <MaterialIcon icon="schedule" className="w-4 h-4 text-amber-500" />
               <span>{tiempo || "—"}</span>
             </div>
           ) : (
@@ -200,7 +200,7 @@ export function AlmacenTicketCard({
                 ? "bg-white/10 border-white/10 text-white/60" 
                 : "bg-emerald-50 border-emerald-100 text-emerald-600"
             }`}>
-              <MaterialIcon icon="schedule" className="w-3.5 h-3.5 text-emerald-500 animate-spin-slow" />
+              <MaterialIcon icon="schedule" className="w-4 h-4 text-emerald-500 animate-spin-slow" />
               <span>{tiempo || "—"}</span>
             </div>
           )}

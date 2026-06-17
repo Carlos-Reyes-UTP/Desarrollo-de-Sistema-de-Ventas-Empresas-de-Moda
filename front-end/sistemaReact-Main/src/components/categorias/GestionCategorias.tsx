@@ -361,8 +361,8 @@ const GestionCategorias: React.FC = () => {
     <div className="p-4 sm:p-6 max-w-[1600px] mx-auto bg-[#fafafa] lg:bg-transparent min-h-screen">
       <PageHeader
         surface="elevated"
-        eyebrow="Catálogo · Taxonomía"
-        title="Arquitectura de categorías"
+        eyebrow="Catálogo · Categorías"
+        title="Gestión de Categorías"
         actions={
           <PageActionGroup>
             <PageActionButton grouped onClick={handleNuevaCategoria}>
@@ -382,7 +382,7 @@ const GestionCategorias: React.FC = () => {
             <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-black transition-colors" />
             <input
               type="text"
-              placeholder="Buscar en la estructura..."
+              placeholder="Nombre de la categoria"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyPress}

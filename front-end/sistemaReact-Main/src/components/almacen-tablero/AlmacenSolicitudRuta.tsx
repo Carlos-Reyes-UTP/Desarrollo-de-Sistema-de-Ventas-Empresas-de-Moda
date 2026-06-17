@@ -36,7 +36,7 @@ function FilaUbicacion({
   return (
     <Row className="min-w-0 flex-1">
       <p
-        className={`text-[8px] font-black uppercase tracking-[0.2em] mb-0.5 ${
+        className={`text-[10px] font-black uppercase tracking-[0.2em] mb-0.5 ${
           oscuro ? "text-white/50" : "text-gray-400"
         }`}
       >
@@ -44,17 +44,17 @@ function FilaUbicacion({
       </p>
       <Row className={`flex items-start gap-1.5 ${oscuro ? "text-white" : "text-black"}`}>
         {icono === "almacen" ? (
-          <MaterialIcon icon="warehouse" className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-70" />
+          <MaterialIcon icon="warehouse" className="w-5 h-5 shrink-0 mt-0.5 opacity-70" />
         ) : (
-          <MaterialIcon icon="location_on" className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-70" />
+          <MaterialIcon icon="location_on" className="w-5 h-5 shrink-0 mt-0.5 opacity-70" />
         )}
         <Row className="min-w-0">
-          <p className="text-[11px] font-black uppercase tracking-tight leading-tight truncate">
+          <p className="text-[13px] font-black uppercase tracking-tight leading-tight truncate">
             {etiqueta}
           </p>
           {u.piso && u.area && (
             <p
-              className={`text-[9px] font-bold uppercase tracking-wider truncate mt-0.5 ${
+              className={`text-[10px] font-bold uppercase tracking-wider truncate mt-0.5 ${
                 oscuro ? "text-white/50" : "text-gray-500"
               }`}
             >
@@ -98,7 +98,7 @@ export function AlmacenSolicitudRuta({
             invertido ? "text-white/40" : "text-gray-300"
           }`}
         >
-          <MaterialIcon icon="arrow_forward" className="w-4 h-4" />
+          <MaterialIcon icon="arrow_forward" className="w-5 h-5" />
         </Box>
         <FilaUbicacion titulo="Entregar en" u={destino} icono="piso" oscuro={invertido} />
       </Box>
@@ -109,7 +109,7 @@ export function AlmacenSolicitudRuta({
           }`}
         >
           <p
-            className={`text-[8px] font-black uppercase tracking-widest mb-1 ${
+            className={`text-[10px] font-black uppercase tracking-widest mb-1 ${
               invertido ? "text-white/50" : "text-gray-400"
             }`}
           >

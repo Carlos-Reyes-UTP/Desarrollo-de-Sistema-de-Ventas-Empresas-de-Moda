@@ -4,7 +4,9 @@ import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
 import { MaterialIcon } from "@/shared/ui";
 import { AlmacenColaLateral } from "../../components/almacen-tablero/AlmacenColaLateral";
 import { AlmacenPickingList } from "../../components/almacen-tablero/AlmacenPickingList";
+import { SupervisorTicketView } from "../../components/almacen-tablero/SupervisorTicketView";
 import { RechazoPedidoModal } from "../../components/almacen-tablero/RechazoPedidoModal";
+import { useAuth } from "@/context/AuthContext";
 import {
   playKioskChime,
   setSilence15Min,
@@ -36,6 +38,8 @@ const MANUAL_OVERRIDE_MS = 30_000;
 
 export default function AlmacenTableroPedidosPage() {
   const { acceso: accesoAreaAlmacen } = useAccesoAreaAlmacen(true);
+  const { tieneRol } = useAuth();
+  const esSupervisor = tieneRol('ROLE_SUPERVISOR_ALMACEN');
   const [cards, setCards] = useState<AlmacenSolicitud[]>([]);
   const [alertasReposicion, setAlertasReposicion] = useState<AlertaReposicion[]>([]);
   const [seleccionId, setSeleccionId] = useState<number | null>(null);
@@ -402,11 +406,11 @@ export default function AlmacenTableroPedidosPage() {
             </button>
           )}
           <div>
-            <h1 className="text-xl font-black tracking-tight app-heading leading-none uppercase">
-              {seleccionId ? "Picking" : "Tickets"}
+            <h1 className="text-xl font-black tracking-tight app-heading leading-none">
+              {seleccionId ? "Gestion de Tickets" : "Tickets"}
             </h1>
             <p className="text-[9px] font-black app-text-faint uppercase tracking-widest leading-none mt-1">
-              Dakani Warehouse
+              Gestion de Solicitudes de Venta y Reposicion de Mercaderia
             </p>
           </div>
         </div>
@@ -526,6 +530,7 @@ export default function AlmacenTableroPedidosPage() {
             onSelect={handleSelect}
             primerVentaId={primerVentaId}
             onIrAVentas={handleIrAVentas}
+            esSupervisor={esSupervisor}
             encabezadoExtra={
               accesoAreaAlmacen?.etiquetaAreaAsignada ? (
                 <div className="px-4 py-3 border-b border-[var(--app-border)] shrink-0">
@@ -547,15 +552,19 @@ export default function AlmacenTableroPedidosPage() {
         >
           {ticketConsolidado ? (
             <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 min-h-0">
-              <AlmacenPickingList
-                ticket={ticketConsolidado}
-                procesando={procesandoId != null}
-                esDesdeAlerta={esTicketDesdeAlerta(ticketConsolidado)}
-                onConfirmarTodo={(cantidad) => void onConfirmarTodo(cantidad)}
-                onRechazar={() =>
-                  seleccionada && !esTicketDesdeAlerta(seleccionada) && setRechazoCard(seleccionada)
-                }
-              />
+              {esSupervisor ? (
+                <SupervisorTicketView ticket={ticketConsolidado} />
+              ) : (
+                <AlmacenPickingList
+                  ticket={ticketConsolidado}
+                  procesando={procesandoId != null}
+                  esDesdeAlerta={esTicketDesdeAlerta(ticketConsolidado)}
+                  onConfirmarTodo={(cantidad) => void onConfirmarTodo(cantidad)}
+                  onRechazar={() =>
+                    seleccionada && !esTicketDesdeAlerta(seleccionada) && setRechazoCard(seleccionada)
+                  }
+                />
+              )}
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
@@ -563,7 +572,9 @@ export default function AlmacenTableroPedidosPage() {
                 <MaterialIcon icon="inbox" className="w-10 h-10 app-text-faint" />
               </div>
               <p className="text-[10px] font-black app-text-faint uppercase tracking-[0.2em] max-w-[200px]">
-                Selecciona un ticket para comenzar el picking
+                {esSupervisor
+                  ? "Selecciona un ticket para ver el detalle"
+                  : "Selecciona un ticket para comenzar el picking"}
               </p>
             </div>
           )}

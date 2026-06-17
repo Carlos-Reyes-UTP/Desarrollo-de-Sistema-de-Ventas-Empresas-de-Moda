@@ -256,30 +256,28 @@ const GestionProveedores: React.FC = () => {
       />
 
       {/* Primary Filters Bar */}
-      <div className="bg-white rounded-[2rem] p-8 mb-8 shadow-sm border border-gray-100">
-        <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-6 gap-8 items-end">
+      <div className="bg-app-surface/80 backdrop-blur-md rounded-3xl p-4 mb-10 shadow-sm border border-app-border sticky top-4 z-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
           
-          <div className="lg:col-span-3">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Buscar Proveedor
-            </label>
-            <div className="relative">
-              <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Nombre o RUC..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyPress}
-                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] border-transparent rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-gray-100 transition-all font-medium"
-              />
-            </div>
+          <div className="lg:col-span-5 relative group">
+            <MaterialIcon icon="search" className="w-4 h-4 text-gray-400 absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none group-focus-within:text-black transition-colors" />
+            <input
+              type="text"
+              placeholder="Razon Social o RUC"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={handleKeyPress}
+              className="w-full pl-12 pr-6 py-4 bg-app-input border border-app-border rounded-2xl text-sm focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all font-bold text-app-text placeholder:text-app-text-muted"
+            />
           </div>
 
-          <div className="lg:col-span-1">
-            <div className="h-[46px] flex items-center justify-center bg-[#f8f8f8] rounded-xl px-4 text-gray-400">
-              <MaterialIcon icon="corporate_fare" className="w-4 h-4" />
-              <span className="ml-2 text-xs font-bold uppercase tracking-widest">{proveedores.length} Total</span>
+          <div className="lg:col-span-3">
+            <div className="h-[56px] flex items-center justify-between bg-app-bg-muted border border-app-border rounded-2xl px-6 text-app-text">
+              <div className="flex items-center gap-3">
+                <MaterialIcon icon="corporate_fare" className="w-4 h-4 text-gray-300" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Total</span>
+              </div>
+              <span className="text-xl font-black tabular-nums">{proveedores.length}</span>
             </div>
           </div>
         </div>

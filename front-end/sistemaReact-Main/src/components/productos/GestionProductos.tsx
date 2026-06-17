@@ -19,7 +19,7 @@ const GestionProductos: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const tabParam = searchParams.get('tab');
   const { tieneRol } = useAuth();
-  const puedeVerPisos = tieneRol('ROLE_ALMACENERO');
+  const puedeVerPisos = tieneRol('ROLE_ALMACENERO') || tieneRol('ROLE_SUPERVISOR_ALMACEN');
   const tabActual =
     tabParam === 'pisos' && puedeVerPisos ? 'pisos' : 'catalogo';
   const { acceso: accesoAreaAlmacen, etiquetaStock } = useAccesoAreaAlmacen(true);

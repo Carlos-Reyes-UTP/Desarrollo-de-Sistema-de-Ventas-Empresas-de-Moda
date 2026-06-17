@@ -32,6 +32,8 @@ interface AlmacenColaLateralProps {
 
   encabezadoExtra?: ReactNode;
 
+  esSupervisor?: boolean;
+
 }
 
 
@@ -57,6 +59,8 @@ export function AlmacenColaLateral({
   onIrAVentas,
 
   encabezadoExtra,
+
+  esSupervisor = false,
 
 }: AlmacenColaLateralProps) {
 
@@ -212,7 +216,7 @@ export function AlmacenColaLateral({
 
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar min-h-0">
 
-        {ventasPrioritariasEnRepo && (
+        {!esSupervisor && ventasPrioritariasEnRepo && (
 
           <div className="mb-3 p-3 rounded-2xl bg-amber-50 border border-amber-200 flex flex-col gap-2">
 
