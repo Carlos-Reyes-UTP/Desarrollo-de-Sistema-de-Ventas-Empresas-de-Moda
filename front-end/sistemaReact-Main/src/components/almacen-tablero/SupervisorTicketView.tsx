@@ -6,7 +6,7 @@ import {
   resumenDestinoDeSolicitud,
   resumenOrigenDeSolicitud,
 } from "../../utils/solicitudUbicacion";
-import { esReposicionPisoSistema } from "./almacenTableroUtils";
+
 
 interface Props {
   ticket: AlmacenTicketConsolidado;
@@ -48,7 +48,6 @@ export function SupervisorTicketView({ ticket }: Props) {
   const alertaTiempo = nivelAlertaPorTiempo(minutos);
 
   const esVentaTicket = ticket.tipoSolicitud === "VENTA";
-  const esRepoSistema = esReposicionPisoSistema(ticket.nombreVendedor);
   const esLote = Boolean(ticket.codigoLote && (ticket.idsEnLote?.length ?? 0) > 1);
   const totalUnidades = ticket.lineas.reduce((acc, l) => acc + l.cantidad, 0);
 
@@ -85,11 +84,6 @@ export function SupervisorTicketView({ ticket }: Props) {
               <h2 className="text-2xl font-black text-app-text leading-tight uppercase tracking-tight truncate">
                 {ticket.nombreVendedor || "Sin vendedor"}
               </h2>
-              {esRepoSistema && !esVentaTicket && (
-                <p className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest mt-0.5">
-                  Automática · no bloquea ventas
-                </p>
-              )}
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <span className="px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-app-surface border border-app-border text-app-text-muted">
                   {ticket.tipoSolicitud}

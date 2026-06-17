@@ -373,15 +373,10 @@ const GestionProductos: React.FC = () => {
                 Sector asignado: {etiquetaStock}
               </PageHeaderMetaChip>
             )}
-            {tabActual === "catalogo" && ultimaCargaLista && (
-              <>
-                <PageHeaderMetaChip variant="stat">
-                  {totalElements} producto{totalElements !== 1 ? "s" : ""} en catálogo
-                </PageHeaderMetaChip>
-                <PageHeaderMetaChip variant="muted">
-                  Lista actualizada · {ultimaCargaLista}
-                </PageHeaderMetaChip>
-              </>
+            {tabActual === "catalogo" && (
+              <PageHeaderMetaChip variant="stat">
+                {totalElements} producto{totalElements !== 1 ? "s" : ""} en catálogo
+              </PageHeaderMetaChip>
             )}
           </>
         }

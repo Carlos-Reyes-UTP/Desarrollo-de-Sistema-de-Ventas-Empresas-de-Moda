@@ -3,7 +3,7 @@ import { MaterialIcon } from "@/shared/ui";
 import type { AlmacenTicketConsolidado } from "../../types/AlmacenSolicitudes";
 import { STOCK_OBJETIVO_PISO } from "../../services/DashboardService";
 import { AlmacenSolicitudRuta } from "./AlmacenSolicitudRuta";
-import { esReposicionPisoSistema } from "./almacenTableroUtils";
+
 import {
   resumenDestinoDeSolicitud,
   resumenOrigenDeSolicitud,
@@ -121,7 +121,7 @@ export function AlmacenPickingList({
     : ticket.lineas.reduce((acc, l) => acc + l.cantidad, 0);
   const esLote = Boolean(ticket.codigoLote && (ticket.idsEnLote?.length ?? 0) > 1);
   const esVentaTicket = ticket.tipoSolicitud === "VENTA";
-  const esRepoSistema = esReposicionPisoSistema(ticket.nombreVendedor);
+
   const stockPiso = ticket.stockPisoAlerta;
   const stockObjetivo = ticket.stockObjetivoAlerta ?? STOCK_OBJETIVO_PISO;
 
@@ -221,11 +221,6 @@ export function AlmacenPickingList({
               <h2 className="text-2xl font-black text-app-text leading-tight uppercase tracking-tight truncate">
                 {ticket.nombreVendedor || "Sin vendedor"}
               </h2>
-              {esRepoSistema && !esVentaTicket && (
-                <p className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest mt-0.5">
-                  Automática · no bloquea ventas
-                </p>
-              )}
               <div className="flex flex-wrap items-center gap-2 mt-1">
                   <span
                     className={`px-2 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wider bg-app-surface border border-app-border text-app-text-muted`}

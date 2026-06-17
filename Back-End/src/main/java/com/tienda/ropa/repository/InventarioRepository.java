@@ -114,6 +114,16 @@ public interface InventarioRepository extends JpaRepository<Inventario, Long> {
             @Param("nombresAlmacenLower") List<String> nombresAlmacenLower,
             @Param("idAreaCatalogo") Long idAreaCatalogo);
 
+    @Query("SELECT i FROM Inventario i "
+            + "JOIN FETCH i.variante v JOIN FETCH v.producto p "
+            + "JOIN FETCH i.ubicacionArea ua JOIN FETCH ua.ubicacion u JOIN FETCH ua.area a "
+            + "WHERE i.stockMinimo IS NOT NULL "
+            + "AND COALESCE(i.stock, 0) <= i.stockMinimo "
+            + "AND LOWER(TRIM(u.nombre)) NOT IN :nombresAlmacenLower "
+            + "ORDER BY p.nombre, v.color, v.talla")
+    List<Inventario> findParaReposicionAutomatica(
+            @Param("nombresAlmacenLower") List<String> nombresAlmacenLower);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT i FROM Inventario i "
             + "JOIN i.ubicacionArea ua JOIN ua.ubicacion u JOIN ua.area a "

@@ -3,6 +3,7 @@ package com.tienda.ropa.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -151,6 +152,18 @@ public class ReposicionAutomaticaService {
                     null);
             solicitudService.crear(dto, sistema.getId());
             return;
+        }
+    }
+
+    @Scheduled(fixedRate = 600_000)
+    @Transactional
+    public void escanearStockBajo() {
+        List<Inventario> filas = inventarioRepository.findParaReposicionAutomatica(
+                List.of("almacén", "almacen"));
+        for (Inventario fila : filas) {
+            evaluarTrasSalidaEnUbicacionArea(
+                    fila.getVariante().getIdProductoVariante(),
+                    fila.getUbicacionArea().getIdUbicacionArea());
         }
     }
 

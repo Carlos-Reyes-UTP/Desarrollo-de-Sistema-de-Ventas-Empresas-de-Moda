@@ -666,7 +666,15 @@ const DashboardAlmaceneroPage = () => {
                             </div>
                           </div>
                           <div className="shrink-0">
-                            {alerta.tieneSolicitudPendiente ? (
+                            {tieneRol('ROLE_SUPERVISOR_ALMACEN') ? (
+                              <button
+                                onClick={() => navigate(APP_PATHS.almacenTablero)}
+                                className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                <MaterialIcon icon="visibility" className="w-3.5 h-3.5 mr-1 -ml-0.5 inline-block align-middle" />
+                                Ver
+                              </button>
+                            ) : alerta.tieneSolicitudPendiente ? (
                               <span className="inline-flex items-center gap-1 h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600">
                                 <MaterialIcon icon="check" className="w-3 h-3" />
                                 Pendiente
