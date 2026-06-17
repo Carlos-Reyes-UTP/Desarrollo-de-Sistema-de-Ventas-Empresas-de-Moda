@@ -266,6 +266,15 @@ export const RUTAS_ALMACEN = {
   },
   TRASLADO: `${API_BASE_URL}/api/almacenero/inventario/traslado`,
   TRASLADO_MASIVO: `${API_BASE_URL}/api/almacenero/inventario/traslado-masivo`,
+  HISTORIAL: (mes: number, anio: number, page = 0, size = 20) => {
+    const params = new URLSearchParams();
+    params.set("mes", String(mes));
+    params.set("anio", String(anio));
+    params.set("page", String(page));
+    params.set("size", String(size));
+    return `${API_BASE_URL}/api/almacenero/inventario/historial?${params.toString()}`;
+  },
+  HISTORIAL_BASE: `${API_BASE_URL}/api/almacenero/inventario/historial`,
 };
 
 export const RUTAS_INVENTARIO_CONTEXTO = {

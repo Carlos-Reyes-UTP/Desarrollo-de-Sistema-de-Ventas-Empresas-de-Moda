@@ -2,6 +2,7 @@ import apiClient from "../config/apiClient";
 import { RUTAS_ALMACEN } from "../config/apiConfig";
 import type {
   AreaStockResumen,
+  MovimientoHistorialItem,
   StockDesdeAlmacen,
   StockUbicacion,
   TrasladoInventarioPayload,
@@ -144,5 +145,22 @@ export const AlmacenService = {
 
   moverMercaderiaMasiva: async (payload: TrasladoMasivoPayload): Promise<void> => {
     await apiClient.post<void>(RUTAS_ALMACEN.TRASLADO_MASIVO, payload);
+  },
+
+  getHistorialMovimientos: async (
+    mes: number,
+    anio: number,
+    page = 0,
+    size = 20,
+    idArea?: number,
+    fechaDesde?: string,
+    fechaHasta?: string
+  ): Promise<{ content: MovimientoHistorialItem[]; totalElements: number; totalPages: number; number: number; size: number }> => {
+    const params: Record<string, string | number> = { mes, anio, page, size };
+    if (idArea != null) params.area = idArea;
+    if (fechaDesde) params.fechaDesde = fechaDesde;
+    if (fechaHasta) params.fechaHasta = fechaHasta;
+    const response = await apiClient.get(RUTAS_ALMACEN.HISTORIAL_BASE, { params });
+    return response.data;
   },
 };

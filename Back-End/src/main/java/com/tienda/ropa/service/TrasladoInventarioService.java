@@ -17,9 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -74,12 +76,18 @@ public class TrasladoInventarioService {
                 dto.cantidad(),
                 "No se pudo aumentar stock en destino");
 
+        UUID grupoMovimiento = UUID.randomUUID();
+        LocalDateTime ahora = LocalDateTime.now();
+
         MovimientoInventario movimiento = new MovimientoInventario();
         movimiento.setVariante(variante);
         movimiento.setUbicacionAreaOrigen(origen);
         movimiento.setUbicacionAreaDestino(destino);
         movimiento.setCantidad(dto.cantidad());
         movimiento.setTipoMovimiento(TipoMovimientoInventario.TRASLADO);
+        movimiento.setFechaCreacion(ahora);
+        movimiento.setUsuario(usuario);
+        movimiento.setGrupoMovimiento(grupoMovimiento);
         movimientoInventarioRepository.save(movimiento);
 
         notificationService.sendNotificationObject(Map.of(
@@ -136,6 +144,9 @@ public class TrasladoInventarioService {
             }
         }
 
+        UUID grupoMovimiento = UUID.randomUUID();
+        LocalDateTime ahora = LocalDateTime.now();
+
         List<ProductoVariante> variantes = new ArrayList<>();
         for (ItemTrasladoDTO item : dto.items()) {
             ProductoVariante variante = productoVarianteRepository.findById(item.idVariante())
@@ -174,6 +185,9 @@ public class TrasladoInventarioService {
             movimiento.setUbicacionAreaDestino(destino);
             movimiento.setCantidad(item.cantidad());
             movimiento.setTipoMovimiento(TipoMovimientoInventario.TRASLADO);
+            movimiento.setFechaCreacion(ahora);
+            movimiento.setUsuario(usuario);
+            movimiento.setGrupoMovimiento(grupoMovimiento);
             movimientoInventarioRepository.save(movimiento);
         }
 

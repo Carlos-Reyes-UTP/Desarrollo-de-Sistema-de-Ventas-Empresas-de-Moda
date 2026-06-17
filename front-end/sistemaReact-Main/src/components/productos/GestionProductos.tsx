@@ -12,6 +12,7 @@ import { getProductTabIndex } from '@/shared/layout/pageTransitionConfig';
 import FormularioProducto from './FormularioProducto'
 import GestionVariantes from './GestionVariantes';
 import GestionPisos from '../almacen/GestionPisos';
+import HistorialMovimientos from './HistorialMovimientos';
 import { useAuth } from '@/context/AuthContext';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
 
@@ -20,8 +21,11 @@ const GestionProductos: React.FC = () => {
   const tabParam = searchParams.get('tab');
   const { tieneRol } = useAuth();
   const puedeVerPisos = tieneRol('ROLE_ALMACENERO') || tieneRol('ROLE_SUPERVISOR_ALMACEN');
+  const puedeVerHistorial = tieneRol('ROLE_SUPERVISOR_ALMACEN');
   const tabActual =
-    tabParam === 'pisos' && puedeVerPisos ? 'pisos' : 'catalogo';
+    tabParam === 'pisos' && puedeVerPisos ? 'pisos'
+    : tabParam === 'historial' && puedeVerHistorial ? 'historial'
+    : 'catalogo';
   const { acceso: accesoAreaAlmacen, etiquetaStock } = useAccesoAreaAlmacen(true);
 
   const sectorParaApi = useMemo(() => {
@@ -416,6 +420,23 @@ const GestionProductos: React.FC = () => {
                   Pisos y áreas
                 </button>
               )}
+              {puedeVerHistorial && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set('tab', 'historial');
+                    setSearchParams(newParams);
+                  }}
+                  className={`shrink-0 snap-start min-h-10 px-4 py-2 text-xs sm:text-sm font-bold tracking-wide uppercase transition-all rounded-lg touch-manipulation whitespace-nowrap ${
+                    tabActual === 'historial'
+                      ? 'app-btn-primary shadow-sm'
+                      : 'app-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+                  }`}
+                >
+                  Historial de movimientos
+                </button>
+              )}
             </div>
           </div>
         }
@@ -453,6 +474,8 @@ const GestionProductos: React.FC = () => {
       >
       {tabActual === 'pisos' ? (
         <GestionPisos embedded />
+      ) : tabActual === 'historial' ? (
+        <HistorialMovimientos />
       ) : (
         <>
           {/* Filters and Search Bar */}
@@ -490,7 +513,7 @@ const GestionProductos: React.FC = () => {
               Categoría Principal
             </label>
             <div 
-              onClick={() => !selectedCategoriaPrincipal && setIsCategoriaPrincipalFocused(true)}
+              onClick={() => { if (!selectedCategoriaPrincipal) setIsCategoriaPrincipalFocused(prev => !prev); }}
               className={`relative cursor-pointer ${selectedCategoriaPrincipal ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">
@@ -550,7 +573,7 @@ const GestionProductos: React.FC = () => {
               Subcategoría
             </label>
             <div 
-              onClick={() => selectedCategoriaPrincipal && !selectedSubCategoria && setIsSubCategoriaFocused(true)}
+              onClick={() => { if (selectedCategoriaPrincipal && !selectedSubCategoria) setIsSubCategoriaFocused(prev => !prev); }}
               className={`relative ${!selectedCategoriaPrincipal ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${selectedSubCategoria ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">
@@ -575,7 +598,7 @@ const GestionProductos: React.FC = () => {
             </div>
 
             {isSubCategoriaFocused && selectedCategoriaPrincipal && !selectedSubCategoria && (
-              <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2">
+              <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
                 <input
                   type="text"
                   autoFocus
@@ -608,7 +631,7 @@ const GestionProductos: React.FC = () => {
               Proveedor
             </label>
             <div 
-              onClick={() => !selectedProveedor && setIsProveedorFocused(true)}
+              onClick={() => { if (!selectedProveedor) setIsProveedorFocused(prev => !prev); }}
               className={`relative cursor-pointer ${selectedProveedor ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">

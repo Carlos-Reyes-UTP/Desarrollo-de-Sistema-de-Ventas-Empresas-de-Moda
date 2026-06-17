@@ -42,7 +42,7 @@ const REPORT_TAB_ORDER = [
 
 const CAJERO_VIEW_ORDER: readonly CajeroView[] = ["apertura", "ventas", "cierre"];
 
-const PRODUCT_TAB_ORDER = ["catalogo", "pisos"] as const;
+const PRODUCT_TAB_ORDER = ["catalogo", "pisos", "historial"] as const;
 
 const isInventoryPath = (pathname: string): boolean =>
   INVENTORY_PATHS.some((path) => pathname.includes(path));

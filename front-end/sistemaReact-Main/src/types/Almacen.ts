@@ -53,3 +53,25 @@ export interface StockDesdeAlmacen {
   etiquetaAlmacen: string;
   stock: StockUbicacion[];
 }
+
+/* ───── Historial de movimientos ───── */
+
+export interface MovimientoDetalle {
+  idVariante: number;
+  color: string;
+  talla: string;
+  sku: string;
+  cantidad: number;
+}
+
+export interface MovimientoHistorialItem {
+  idGrupo: string;
+  usuarioNombre: string;
+  origenNombre: string;
+  destinoNombre: string;
+  productoNombre: string;
+  idProducto: number;
+  cantidadTotal: number;
+  fecha: string;
+  detalles: MovimientoDetalle[];
+}
