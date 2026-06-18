@@ -320,11 +320,28 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
 
                     ? stockPorUbicacionBulk(ids, idUbicacionArea)
 
-                    : stockTotalBulk(ids);
+                    : inventarioService.stockEnAlmacenBulk(ids);
 
             variantes.forEach(v -> v.setStockAlmacen(
 
                     stockPorVariante.getOrDefault(v.getIdProductoVariante(), 0)));
+
+            // Cargar idUbicacionArea de cada variante desde su registro en Inventario (solo almacén)
+            Map<Long, Long> areaPorVariante = inventarioRepository.findAllByVariantesIds(ids).stream()
+
+                    .filter(i -> i.getUbicacionArea() != null)
+
+                    .filter(i -> inventarioService.esUbicacionAlmacen(i.getUbicacionArea()))
+
+                    .collect(Collectors.toMap(
+
+                            i -> i.getVariante().getIdProductoVariante(),
+
+                            i -> i.getUbicacionArea().getIdUbicacionArea(),
+
+                            (a, b) -> a));
+
+            variantes.forEach(v -> v.setIdUbicacionArea(areaPorVariante.get(v.getIdProductoVariante())));
 
         }
 

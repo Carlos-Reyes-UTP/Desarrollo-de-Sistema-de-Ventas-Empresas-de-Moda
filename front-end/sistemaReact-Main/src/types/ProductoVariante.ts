@@ -11,6 +11,7 @@ export type ProductoVariante = {
   color: Color;
   cantidad: number;
   stockAlmacen?: number;
+  idUbicacionArea?: number;
   stockEnPiso?: number;
   codigoIdentificacion?: string; // Campo deprecated, usar codigoBarrasVariante
   codigoBarrasVariante?: string; // Campo correcto que corresponde con el backend

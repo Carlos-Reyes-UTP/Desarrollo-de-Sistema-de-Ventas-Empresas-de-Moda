@@ -12,7 +12,6 @@ import { AlertModal, ConfirmModal, Skeleton, MaterialIcon, ModalPortal, useModal
 
 interface GestionVariantesProps {
   producto: Producto;
-  idUbicacionArea?: number;
   onClose: () => void;
   onVariantesActualizadas: () => void;
 }
@@ -22,7 +21,6 @@ const DL_COLORES = 'gestion-variantes-colores-dl';
 
 const GestionVariantes: React.FC<GestionVariantesProps> = ({
   producto,
-  idUbicacionArea,
   onClose,
   onVariantesActualizadas
 }) => {
@@ -121,7 +119,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
         cantidad,
         codigoBarrasVariante: formVariante.codigoIdentificacion
       };
-      const varianteCreada = await ProductoVarianteService.crearVariante(nuevaVariante);
+      const areaId = variantes.length > 0 ? variantes[0].idUbicacionArea : undefined;
+      const varianteCreada = await ProductoVarianteService.crearVariante(nuevaVariante, areaId);
       setVariantes(prev => [...prev, varianteCreada].toSorted((a, b) => {
         const cT = a.talla.nombreTalla.localeCompare(b.talla.nombreTalla);
         return cT !== 0 ? cT : a.color.nombre.localeCompare(b.color.nombre);
@@ -139,7 +138,8 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
 
   const handleActualizarCantidad = async (idVariante: number, nuevaCantidad: number) => {
     try {
-      const varianteActualizada = await ProductoVarianteService.actualizarCantidad(idVariante, nuevaCantidad, idUbicacionArea);
+      const variante = variantes.find(v => v.idVariante === idVariante);
+      const varianteActualizada = await ProductoVarianteService.actualizarCantidad(idVariante, nuevaCantidad, variante?.idUbicacionArea);
       setVariantes(prev => prev.map(v =>
         v.idVariante === idVariante
           ? { ...v, stockAlmacen: varianteActualizada.stockAlmacen ?? nuevaCantidad, cantidad: varianteActualizada.cantidad }
@@ -188,7 +188,9 @@ const GestionVariantes: React.FC<GestionVariantesProps> = ({
           <div className="flex items-start justify-between">
             <div>
               <h2 className="text-2xl font-bold tracking-tight text-app-text mb-2 uppercase flex items-center gap-3">
-                <MaterialIcon icon="package" className="w-6 h-6" />
+                <div className="p-3 bg-app-accent rounded-2xl border border-app-border shadow-sm flex items-center justify-center">
+                  <MaterialIcon icon="package" className="w-6 h-6 text-app-accent-fg" />
+                </div>
                 Gestión de Variantes
               </h2>
               <p className="text-app-text-muted text-sm font-medium">

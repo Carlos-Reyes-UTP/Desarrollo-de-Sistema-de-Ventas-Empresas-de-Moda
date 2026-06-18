@@ -58,6 +58,9 @@ public class ProductoVariante {
     @Transient
     private Integer stockAlmacen = 0;
 
+    @Transient
+    private Long idUbicacionArea;
+
     @JsonIgnore
     @OneToMany(mappedBy = "variante", fetch = FetchType.LAZY)
     private List<Inventario> inventarios = new ArrayList<>();

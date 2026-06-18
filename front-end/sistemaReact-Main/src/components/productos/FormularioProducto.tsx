@@ -824,7 +824,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-5">
               <div className="p-3 bg-app-accent rounded-2xl border border-app-border shadow-sm flex items-center justify-center">
-                <MaterialIcon icon="inventory_2" className="w-6 h-6 text-app-accent-fg" />
+                <MaterialIcon icon="edit" className="w-6 h-6 text-app-accent-fg" />
               </div>
               <div>
                 <h2 className="text-[1.5rem] font-black tracking-tight text-app-text uppercase leading-none mb-1.5">

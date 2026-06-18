@@ -78,17 +78,6 @@ const GestionProductos: React.FC = () => {
   const [isAreaAlmacenFocused, setIsAreaAlmacenFocused] = useState(false);
   const [isStockFocused, setIsStockFocused] = useState(false);
 
-  const defaultIdUbicacionArea = useMemo(() => {
-    if (accesoAreaAlmacen?.idUbicacionAreaAsignada != null) {
-      return accesoAreaAlmacen.idUbicacionAreaAsignada;
-    }
-    if (selectedAreaAlmacen && accesoAreaAlmacen?.areasAlmacen) {
-      const match = accesoAreaAlmacen.areasAlmacen.find(ua => ua.area === selectedAreaAlmacen);
-      return match?.idUbicacionArea;
-    }
-    return undefined;
-  }, [accesoAreaAlmacen, selectedAreaAlmacen]);
-
   // Referencias para los componentes de búsqueda
   const categoriaPrincipalRef = useRef<HTMLDivElement>(null);
   const subcategoriaRef = useRef<HTMLDivElement>(null);
@@ -1146,7 +1135,6 @@ const GestionProductos: React.FC = () => {
       {showVariantes && productoVariantes && (
         <GestionVariantes
           producto={productoVariantes}
-          idUbicacionArea={defaultIdUbicacionArea}
           onClose={() => {
             setShowVariantes(false);
             setProductoVariantes(null);
