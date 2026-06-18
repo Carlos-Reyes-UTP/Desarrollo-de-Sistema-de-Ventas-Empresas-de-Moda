@@ -5,8 +5,6 @@ import {
   mismoParTallaColor,
   nombresUnicosOrdenados,
 } from '../../../utils/varianteCatalogoHelpers';
-import type { AccesoAreaAlmacen } from '../../../types/AccesoAreaAlmacen';
-import { SECTORES_ALMACEN_TEXTO } from '../../../shared/constants/sectoresAlmacen';
 
 interface VarianteFormData {
   id?: number;
@@ -25,13 +23,10 @@ interface VariantesTabProps {
   variantes: VarianteFormData[];
   setVariantes: React.Dispatch<React.SetStateAction<VarianteFormData[]>>;
   
-  // Lógica de área de almacén
-  accesoAreaAlmacen: AccesoAreaAlmacen | null;
+  // Contexto de inventario
   cargandoContextoInventario?: boolean;
   errorContextoInventario?: string | null;
   etiquetaStockActiva: string;
-  idAreaEntradaSupervisor: number | '';
-  setIdAreaEntradaSupervisor: React.Dispatch<React.SetStateAction<number | ''>>;
   
   // Sugerencias para autocompletado
   sugerenciasTallas: string[];
@@ -131,11 +126,8 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
   formData,
   variantes,
   setVariantes,
-  accesoAreaAlmacen,
   errorContextoInventario = null,
   etiquetaStockActiva,
-  idAreaEntradaSupervisor,
-  setIdAreaEntradaSupervisor,
   sugerenciasTallas,
   setSugerenciasTallas,
   sugerenciasColores,
@@ -404,7 +396,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
     setError(null);
     setMensajeMatriz({
       tipo: 'success',
-      texto: `Se registraron ${combinacionesAplicadas} combinación${combinacionesAplicadas === 1 ? '' : 'es'} en el producto. Revise la lista abajo antes de crear el producto.`,
+      texto: `Se registraron ${combinacionesAplicadas} combinación${combinacionesAplicadas === 1 ? '' : 'es'} en el producto. Revise la tabla de variantes antes de crear el producto.`,
     });
 
     setSugerenciasTallas((prev) => nombresUnicosOrdenados([...prev, ...tallasSeleccionadas]));
@@ -503,43 +495,6 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
           <li><span className="font-semibold">Indica stock</span> en la cuadrícula y pulsa <span className="font-semibold">Confirmar combinaciones</span></li>
         </ol>
       </div>
-
-      {/* Control de Área de Almacén (Supervisor) */}
-      {accesoAreaAlmacen?.puedeElegirAreaEntrada && (
-        <div className="mb-6 p-6 bg-slate-50/70 border border-slate-100 rounded-2xl shadow-sm">
-          <div className="flex items-center gap-3 mb-4">
-            <MaterialIcon icon="corporate_fare" className="w-5 h-5 text-app-text" />
-            <h4 className="text-xs font-bold text-app-text uppercase tracking-wider">
-              Área de Ingreso de Mercadería
-            </h4>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-2">
-                Seleccione el área de stock <span className="text-red-500">*</span>
-              </label>
-              <AppSelect
-                value={idAreaEntradaSupervisor}
-                onChange={(v) =>
-                  setIdAreaEntradaSupervisor(v === '' ? '' : Number(v))
-                }
-                placeholder="Seleccionar área destino"
-                options={accesoAreaAlmacen.areasAlmacen.map((a) => ({
-                  value: a.idUbicacionArea,
-                  label:
-                    a.descripcion ?? (a.area ? `${a.nombre} · ${a.area}` : a.nombre),
-                }))}
-              />
-            </div>
-            <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-app-surface p-4 rounded-xl border border-slate-100">
-              <MaterialIcon icon="info" className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
-              <p className="leading-relaxed">
-                Como Supervisor de Almacén, debe indicar en qué sector ({SECTORES_ALMACEN_TEXTO}) se registrarán estas unidades de stock.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {mensajeMatriz && (
         <div
@@ -947,7 +902,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                     <button
                       type="button"
                       onClick={aplicarMatrizAlProducto}
-                      className="px-6 py-3 rounded-xl bg-app-accent hover:bg-gray-800 text-app-accent-fg font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md active:scale-95"
+                      className="px-6 py-3 rounded-xl bg-app-surface border border-app-border text-app-text hover:bg-app-accent hover:text-app-accent-fg font-bold text-xs uppercase tracking-widest transition-all duration-200 ease-in-out active:scale-95"
                     >
                       Confirmar combinaciones
                     </button>
@@ -1053,15 +1008,7 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
           id="combinaciones-registradas"
           className="bg-app-surface rounded-2xl border border-slate-100 overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.015)]"
         >
-          <div className="px-5 py-3 border-b border-slate-50 bg-slate-50/50">
-            <p className="text-xs text-slate-600 leading-relaxed mb-3">
-              Las combinaciones se guardan en el inventario al pulsar{' '}
-              <span className="font-bold text-app-text">Crear producto</span> o{' '}
-              <span className="font-bold text-app-text">Guardar cambios</span>.
-              Los códigos de barras se generan después, en el paso{' '}
-              <span className="font-bold text-app-text">Generar código de barras</span>.
-            </p>
-          </div>
+
           <div className="px-5 py-4 border-b border-slate-50 bg-slate-50/30 flex justify-between items-center">
             <h4 className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">
               Combinaciones registradas
@@ -1109,34 +1056,14 @@ export const VariantesTab: React.FC<VariantesTabProps> = ({
                       {variante.codigoIdentificacion}
                     </td>
                     <td className="py-4 px-5 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        {variante.id ? (
-                          <button
-                            type="button"
-                            onClick={() => generarCodigoBarrasVariante(variante.id)}
-                            className="text-slate-400 hover:text-app-text p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
-                            disabled={loading}
-                            title="Ver código de barras"
-                          >
-                            <MaterialIcon icon="barcode" className="w-4 h-4" />
-                          </button>
-                        ) : (
-                          <span 
-                            className="text-[10px] font-bold text-gray-700 bg-gray-100 px-2.5 py-1 rounded-full uppercase" 
-                            title="Guarda el producto para generar el código"
-                          >
-                            Nueva
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => eliminarVariante(index)}
-                          className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                          title="Eliminar variante"
-                        >
-                          <MaterialIcon icon="delete" className="w-4 h-4" />
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        onClick={() => eliminarVariante(index)}
+                        className="text-red-500 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                        title="Eliminar variante"
+                      >
+                        <MaterialIcon icon="delete" className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
                 ))}

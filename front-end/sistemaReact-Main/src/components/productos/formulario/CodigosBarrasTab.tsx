@@ -261,20 +261,19 @@ export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
           ) : variantes.length > 0 ? (
             <div className="space-y-4 flex-1">
               <span className="text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase block">
-                Seleccione variante para generar código
+                Lista de variantes registradas
               </span>
               <div className="space-y-2 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
                 {variantes.map((variante, index) => {
-                  if (!variante.id) return null;
-
                   const tallaNombre = variante.nombreTalla;
                   const colorNombre = variante.nombreColor;
+                  const sinId = !variante.id;
 
                   return (
                     <button
                       key={variante.id || index}
                       type="button"
-                      onClick={() => generarCodigoBarrasVariante(variante.id)}
+                      onClick={sinId ? undefined : () => generarCodigoBarrasVariante(variante.id)}
                       className="flex items-center justify-between w-full p-4 rounded-xl border border-gray-100 bg-app-surface hover:border-black hover:shadow-sm transition-all text-left group"
                       disabled={loading}
                     >

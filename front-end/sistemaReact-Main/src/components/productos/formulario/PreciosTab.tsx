@@ -149,38 +149,7 @@ export const PreciosTab: React.FC<PreciosTabProps> = ({
           </div>
         </div>
       </div>
-      
-      <div className="mt-6 p-4 bg-app-surface rounded-xl border border-gray-100 shadow-sm">
-        <h4 className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">Resumen de descuentos</h4>
-        <div className="grid grid-cols-3 gap-4">
-          {formData.precioCuarto && formData.precioUnitario && !isNaN(parseFloat(formData.precioUnitario)) && parseFloat(formData.precioUnitario) > 0 && (
-            <div className="bg-app-surface p-3 rounded-lg border border-gray-200">
-              <p className="text-xs text-gray-500">Descuento por 1/4 docena</p>
-              <p className="text-lg font-black text-app-text">
-                {(((parseFloat(formData.precioUnitario) * 3) - parseFloat(formData.precioCuarto)) / (parseFloat(formData.precioUnitario) * 3) * 100).toFixed(1)}%
-              </p>
-            </div>
-          )}
-          
-          {formData.precioMediaDocena && formData.precioUnitario && !isNaN(parseFloat(formData.precioUnitario)) && parseFloat(formData.precioUnitario) > 0 && (
-            <div className="bg-app-surface p-3 rounded-lg border border-gray-200">
-              <p className="text-xs text-gray-500">Descuento por 1/2 docena</p>
-              <p className="text-lg font-black text-app-text">
-                {(((parseFloat(formData.precioUnitario) * 6) - parseFloat(formData.precioMediaDocena)) / (parseFloat(formData.precioUnitario) * 6) * 100).toFixed(1)}%
-              </p>
-            </div>
-          )}
-          
-          {formData.precioDocena && formData.precioUnitario && !isNaN(parseFloat(formData.precioUnitario)) && parseFloat(formData.precioUnitario) > 0 && (
-            <div className="bg-app-surface p-3 rounded-lg border border-gray-200">
-              <p className="text-xs text-gray-500">Descuento por docena</p>
-              <p className="text-lg font-black text-app-text">
-                {(((parseFloat(formData.precioUnitario) * 12) - parseFloat(formData.precioDocena)) / (parseFloat(formData.precioUnitario) * 12) * 100).toFixed(1)}%
-              </p>
-            </div>
-          )}
-        </div>
-      </div>
+
     </div>
   );
 };

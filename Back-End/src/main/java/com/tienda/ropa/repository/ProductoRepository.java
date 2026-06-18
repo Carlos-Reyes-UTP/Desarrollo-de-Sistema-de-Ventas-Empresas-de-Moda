@@ -43,12 +43,11 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     // Stock de Almacén agrupado por producto (todos los sectores)
     @Query(value = """
-        SELECT pv.id_producto, COALESCE(SUM(i.stock), 0)
+        SELECT pv.id_producto, COALESCE(SUM(CASE WHEN LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen') THEN i.stock ELSE 0 END), 0)
         FROM producto_variante pv
         LEFT JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
         LEFT JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
         LEFT JOIN ubicacion u ON u.id_ubicacion = ua.id_ubicacion
-            AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen')
         WHERE pv.id_producto IN :ids
         GROUP BY pv.id_producto
         """, nativeQuery = true)
@@ -67,13 +66,12 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
             @Param("idUbicacionArea") Long idUbicacionArea);
 
     @Query(value = """
-        SELECT pv.id_producto, COALESCE(SUM(i.stock), 0)
+        SELECT pv.id_producto, COALESCE(SUM(CASE WHEN LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen') AND a.id_area = :idAreaCatalogo THEN i.stock ELSE 0 END), 0)
         FROM producto_variante pv
         LEFT JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
         LEFT JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
         LEFT JOIN ubicacion u ON u.id_ubicacion = ua.id_ubicacion
-            AND LOWER(TRIM(u.nombre)) IN ('almacén', 'almacen')
-        LEFT JOIN area a ON a.id_area = ua.id_area AND a.id_area = :idAreaCatalogo
+        LEFT JOIN area a ON a.id_area = ua.id_area
         WHERE pv.id_producto IN :ids
         GROUP BY pv.id_producto
         """, nativeQuery = true)

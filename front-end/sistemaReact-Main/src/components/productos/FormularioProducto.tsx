@@ -102,7 +102,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
     variantes: false,
     precios: false,
   });
-  const [crearSiguiente, setCrearSiguiente] = useState(false);
+
 
   // Nombres descriptivos de selecciones para el autocompletado persistido
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState('');
@@ -111,21 +111,6 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   const [proveedorSeleccionado, setProveedorSeleccionado] = useState('');
 
   // Helpers de validación para el Stepper numerado
-  const isInfoValido = useMemo(() => {
-    const subcategoriaOk =
-      subcategorias.length === 0 || !!formData.subcategoriaId.trim();
-    return !!(
-      formData.nombre.trim() &&
-      formData.codigoIdentificacion.trim() &&
-      formData.categoriaId &&
-      formData.sexo &&
-      formData.marca.trim() &&
-      formData.tipoPublico &&
-      formData.proveedorId &&
-      subcategoriaOk
-    );
-  }, [formData, subcategorias.length]);
-
   const isAreaStockValido = useMemo(() => {
     if (errorContextoInventario) return false;
     if (!accesoAreaAlmacen) return true;
@@ -140,9 +125,25 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
     errorContextoInventario,
   ]);
 
+  const isInfoValido = useMemo(() => {
+    const subcategoriaOk =
+      subcategorias.length === 0 || !!formData.subcategoriaId.trim();
+    return !!(
+      formData.nombre.trim() &&
+      formData.codigoIdentificacion.trim() &&
+      formData.categoriaId &&
+      formData.sexo &&
+      formData.marca.trim() &&
+      formData.tipoPublico &&
+      formData.proveedorId &&
+      subcategoriaOk &&
+      isAreaStockValido
+    );
+  }, [formData, subcategorias.length, isAreaStockValido]);
+
   const isVariantesValido = useMemo(() => {
-    return variantes.length > 0 && isAreaStockValido;
-  }, [variantes, isAreaStockValido]);
+    return variantes.length > 0;
+  }, [variantes]);
 
   const isPreciosValido = useMemo(() => {
     const pu = parseFloat(formData.precioUnitario);
@@ -387,15 +388,22 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       const pmd = parseFloat(nextPmd);
       const pd = parseFloat(nextPd);
 
-      setFormData((prev) => ({ ...prev, [name]: value }));
+      // Bloquear el dígito si viola la jerarquía: unitario >= cuarto >= media docena >= docena
+      if (value !== '') {
+        const snapPu = Number.isFinite(pu) ? pu : NaN;
+        const snapPc = Number.isFinite(pc) ? pc : NaN;
+        const snapPmd = Number.isFinite(pmd) ? pmd : NaN;
+        const snapPd = Number.isFinite(pd) ? pd : NaN;
 
-      const errJer = validarJerarquiaPreciosProducto(
-        Number.isFinite(pu) ? pu : NaN,
-        Number.isFinite(pc) ? pc : NaN,
-        Number.isFinite(pmd) ? pmd : NaN,
-        Number.isFinite(pd) ? pd : NaN
-      );
-      setErrorPrecio(errJer);
+        const errJer = validarJerarquiaPreciosProducto(snapPu, snapPc, snapPmd, snapPd);
+        if (errJer) {
+          setErrorPrecio(errJer);
+          return; // no actualiza el valor — bloquea el dígito
+        }
+      }
+
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      setErrorPrecio(null);
       return;
     }
     setFormData(prev => ({ ...prev, [name]: value }));
@@ -483,27 +491,179 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
     setSubCategorias2([]);
   };
 
+  // --- Lógica de guardado compartida ---
+  async function guardarProducto(): Promise<Producto> {
+    const categoriaPadreSeleccionada = categorias.find(
+      (c) => c.idCategoria?.toString() === formData.categoriaId
+    );
+    
+    let categoriaSeleccionadaObj = categoriaPadreSeleccionada;
+    if (formData.subcategoriaId) {
+      const sub = subcategorias.find(
+        (c) => c.idCategoria?.toString() === formData.subcategoriaId
+      );
+      if (sub) {
+        categoriaSeleccionadaObj = sub;
+      }
+    }
+
+    const proveedor = proveedores.find(
+      (p) => p.idProveedor?.toString() === formData.proveedorId
+    );
+
+    if (!proveedor) throw new Error('Debe seleccionar un proveedor válido');
+
+    let subCategoria2: Categoria | undefined = undefined;
+    if (formData.subCategoria2Id) {
+      subCategoria2 = subCategorias2.find(c => c.idCategoria?.toString() === formData.subCategoria2Id) ||
+                      categorias.find(c => c.idCategoria?.toString() === formData.subCategoria2Id);
+      if (!subCategoria2) throw new Error('Segunda subcategoría no válida');
+    }
+
+    const subCategoria2Final = subCategoria2?.idCategoria
+      ? { ...subCategoria2, idCategoria: subCategoria2.idCategoria }
+      : undefined;
+
+    const productoData: Omit<Producto, 'idProducto'> = {
+      codigoIdentificacion: formData.codigoIdentificacion,
+      codigoBarras: formData.codigoBarras || undefined,
+      nombre: formData.nombre,
+      sexo: formData.sexo,
+      tipoPublico: formData.tipoPublico,
+      categoria: categoriaSeleccionadaObj,
+      subCategoria2: subCategoria2Final as Categoria,
+      categoriaPadre: categoriaPadreSeleccionada,
+      marca: formData.marca,
+      proveedor,
+      cantidad: cantidadTotal,
+      precioUnitario: parseFloat(formData.precioUnitario),
+      precioCuarto: parseFloat(formData.precioCuarto),
+      precioMediaDocena: parseFloat(formData.precioMediaDocena),
+      precioDocena: parseFloat(formData.precioDocena),
+    };
+
+    let productoGuardadoObj: Producto;
+
+    if (producto?.idProducto) {
+      productoGuardadoObj = await ProductoService.updateProducto(producto.idProducto, {
+        ...productoData,
+        idProducto: producto.idProducto
+      });
+    } else {
+      productoGuardadoObj = await ProductoService.createProducto(productoData);
+    }
+
+    // Sincronizar variantes
+    if (productoGuardadoObj.idProducto && variantes.length > 0) {
+      const variantesEnBD = producto?.idProducto
+        ? await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto)
+        : [];
+
+      const mapaVariantesBD = new Map(variantesEnBD.map(v => [v.idProductoVariante, v]));
+      
+      const mapaVariantesFormulario = new Map<number, typeof variantes[0]>();
+      for (const v of variantes) {
+        if (v.id) {
+          mapaVariantesFormulario.set(v.id, v);
+        }
+      }
+
+      const variantesAEliminar = variantesEnBD.filter(vDB => !mapaVariantesFormulario.has(vDB.idProductoVariante!));
+      const variantesAActualizar = variantes.filter(vForm => vForm.id && mapaVariantesBD.has(vForm.id));
+      const variantesACrear = variantes.filter(vForm => !vForm.id);
+
+      // 1. Eliminar
+      for (const v of variantesAEliminar) {
+        await ProductoVarianteService.eliminarVariante(v.idProductoVariante!);
+      }
+
+      // 2. Actualizar
+      for (const v of variantesAActualizar) {
+        const existente = mapaVariantesBD.get(v.id!);
+        if (!existente) continue;
+
+        const stockAlmacenForm = v.stockAlmacen ?? v.cantidad;
+        const stockAlmacenBD = existente.stockAlmacen ?? existente.cantidad;
+        const cantidadCambio = stockAlmacenForm !== stockAlmacenBD;
+        const codigoCambio = existente.codigoBarrasVariante !== v.codigoIdentificacion;
+
+        if (!cantidadCambio && !codigoCambio) continue;
+
+        if (cantidadCambio) {
+          await ProductoVarianteService.actualizarCantidad(v.id!, stockAlmacenForm, idUbicacionAreaParaStock);
+        }
+        if (codigoCambio) {
+          const talla = tallaDesdeNombre(v.nombreTalla);
+          const color = colorDesdeNombre(v.nombreColor);
+          if (!v.nombreTalla.trim() || !v.nombreColor.trim()) continue;
+
+          const data: Omit<ProductoVariante, 'idVariante'> = {
+            producto: productoGuardadoObj,
+            talla,
+            color,
+            cantidad: existente.cantidad,
+            codigoBarrasVariante: v.codigoIdentificacion
+          };
+          await ProductoVarianteService.actualizarVariante(v.id!, {
+            ...data,
+            idProductoVariante: v.id
+          });
+        }
+      }
+
+      // 3. Crear
+      for (const v of variantesACrear) {
+        const talla = tallaDesdeNombre(v.nombreTalla);
+        const color = colorDesdeNombre(v.nombreColor);
+        if (!v.nombreTalla.trim() || !v.nombreColor.trim()) continue;
+
+        const data: Omit<ProductoVariante, 'idVariante'> = {
+          producto: productoGuardadoObj,
+          talla,
+          color,
+          cantidad: v.stockAlmacen ?? v.cantidad,
+          codigoBarrasVariante: v.codigoIdentificacion
+        };
+        try {
+          await ProductoVarianteService.crearVariante(data, idUbicacionAreaParaStock);
+        } catch (varianteErr: any) {
+          const detalle = extractApiErrorMessage(
+            varianteErr,
+            getErrorMessage(varianteErr, 'Error al crear la variante')
+          );
+          throw new Error(
+            `El producto se guardó, pero falló la combinación ${v.nombreTalla} / ${v.nombreColor}: ${detalle}`
+          );
+        }
+      }
+    }
+
+    if (productoGuardadoObj.idProducto) {
+      const variantesActualizadas = await ProductoVarianteService.obtenerVariantesPorProducto(
+        productoGuardadoObj.idProducto,
+        idUbicacionAreaParaStock
+      );
+      const cantidadTotalActualizada = variantesActualizadas.reduce((total, v) => total + (v.stockAlmacen ?? v.cantidad), 0);
+      productoGuardadoObj = {
+        ...productoGuardadoObj,
+        cantidad: cantidadTotalActualizada
+      };
+    }
+
+    return productoGuardadoObj;
+  }
+
+  // --- Submit: valida todo, guarda y cierra ---
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
     setErrorPrecio(null);
 
-    // Reset error steps
-    setPasosConError({
-      informacion: false,
-      variantes: false,
-      precios: false,
-    });
+    setPasosConError({ informacion: false, variantes: false, precios: false });
 
-    // Validate
     let errorsExist = false;
-    const nextPasosError = {
-      informacion: false,
-      variantes: false,
-      precios: false,
-    };
-
+    const nextPasosError = { informacion: false, variantes: false, precios: false };
     const mensajesError: string[] = [];
 
     if (!isInfoValido) {
@@ -518,30 +678,22 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       if (!formData.marca.trim()) faltantes.push('marca');
       if (!formData.tipoPublico) faltantes.push('tipo de público');
       if (!formData.proveedorId) faltantes.push('proveedor');
-      mensajesError.push(
-        `Detalles básicos: complete ${faltantes.join(', ')}.`
-      );
+      mensajesError.push(`Detalles básicos: complete ${faltantes.join(', ')}.`);
     }
 
     if (variantes.length === 0) {
       nextPasosError.variantes = true;
       errorsExist = true;
-      mensajesError.push(
-        'Tallas y colores: agregue al menos una combinación (cuadrícula → Confirmar combinaciones, o modo «Agregar una combinación»).'
-      );
+      mensajesError.push('Tallas y colores: agregue al menos una combinación (cuadrícula → Confirmar combinaciones, o modo «Agregar una combinación»).');
     } else if (!isAreaStockValido) {
       nextPasosError.variantes = true;
       errorsExist = true;
       if (errorContextoInventario) {
         mensajesError.push(`Tallas y colores: ${errorContextoInventario}`);
       } else if (accesoAreaAlmacen?.puedeElegirAreaEntrada) {
-        mensajesError.push(
-          'Tallas y colores: seleccione el sector de almacén (Damas, Caballeros o Niños) donde ingresará el stock.'
-        );
+        mensajesError.push('Tallas y colores: seleccione el sector de almacén (Damas, Caballeros o Niños) donde ingresará el stock.');
       } else {
-        mensajesError.push(
-          'Tallas y colores: su usuario no tiene área de almacén asignada. Contacte al administrador.'
-        );
+        mensajesError.push('Tallas y colores: su usuario no tiene área de almacén asignada. Contacte al administrador.');
       }
     }
 
@@ -573,208 +725,23 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       if (nextPasosError.informacion) setTabActiva('informacion');
       else if (nextPasosError.variantes) setTabActiva('variantes');
       else if (nextPasosError.precios) setTabActiva('precios');
-
       setError(mensajesError.join(' '));
       setLoading(false);
       return;
     }
 
     try {
-      const categoriaPadreSeleccionada = categorias.find(
-        (c) => c.idCategoria?.toString() === formData.categoriaId
-      );
-      
-      let categoriaSeleccionadaObj = categoriaPadreSeleccionada;
-      if (formData.subcategoriaId) {
-        const sub = subcategorias.find(
-          (c) => c.idCategoria?.toString() === formData.subcategoriaId
-        );
-        if (sub) {
-          categoriaSeleccionadaObj = sub;
-        }
-      }
-
-      const proveedor = proveedores.find(
-        (p) => p.idProveedor?.toString() === formData.proveedorId
-      );
-
-      if (!proveedor) throw new Error('Debe seleccionar un proveedor válido');
-
-      let subCategoria2: Categoria | undefined = undefined;
-      if (formData.subCategoria2Id) {
-        subCategoria2 = subCategorias2.find(c => c.idCategoria?.toString() === formData.subCategoria2Id) ||
-                        categorias.find(c => c.idCategoria?.toString() === formData.subCategoria2Id);
-        if (!subCategoria2) throw new Error('Segunda subcategoría no válida');
-      }
-
-      const subCategoria2Final = subCategoria2?.idCategoria
-        ? { ...subCategoria2, idCategoria: subCategoria2.idCategoria }
-        : undefined;
-
-      const productoData: Omit<Producto, 'idProducto'> = {
-        codigoIdentificacion: formData.codigoIdentificacion,
-        codigoBarras: formData.codigoBarras || undefined,
-        nombre: formData.nombre,
-        sexo: formData.sexo,
-        tipoPublico: formData.tipoPublico,
-        categoria: categoriaSeleccionadaObj,
-        subCategoria2: subCategoria2Final as Categoria,
-        categoriaPadre: categoriaPadreSeleccionada,
-        marca: formData.marca,
-        proveedor,
-        cantidad: cantidadTotal,
-        precioUnitario: parseFloat(formData.precioUnitario),
-        precioCuarto: parseFloat(formData.precioCuarto),
-        precioMediaDocena: parseFloat(formData.precioMediaDocena),
-        precioDocena: parseFloat(formData.precioDocena),
-      };
-
-      let productoGuardadoObj: Producto;
-
-      if (producto?.idProducto) {
-        productoGuardadoObj = await ProductoService.updateProducto(producto.idProducto, {
-          ...productoData,
-          idProducto: producto.idProducto
-        });
-      } else {
-        productoGuardadoObj = await ProductoService.createProducto(productoData);
-      }
-
-      // Sincronizar variantes
-      if (productoGuardadoObj.idProducto && variantes.length > 0) {
-        const variantesEnBD = producto?.idProducto
-          ? await ProductoVarianteService.obtenerVariantesPorProducto(producto.idProducto)
-          : [];
-
-        const mapaVariantesBD = new Map(variantesEnBD.map(v => [v.idProductoVariante, v]));
-        
-        const mapaVariantesFormulario = new Map<number, typeof variantes[0]>();
-        for (const v of variantes) {
-          if (v.id) {
-            mapaVariantesFormulario.set(v.id, v);
-          }
-        }
-
-        const variantesAEliminar = variantesEnBD.filter(vDB => !mapaVariantesFormulario.has(vDB.idProductoVariante!));
-        const variantesAActualizar = variantes.filter(vForm => vForm.id && mapaVariantesBD.has(vForm.id));
-        const variantesACrear = variantes.filter(vForm => !vForm.id);
-
-        // 1. Eliminar
-        for (const v of variantesAEliminar) {
-          await ProductoVarianteService.eliminarVariante(v.idProductoVariante!);
-        }
-
-        // 2. Actualizar
-        for (const v of variantesAActualizar) {
-          const existente = mapaVariantesBD.get(v.id!);
-          if (!existente) continue;
-
-          const stockAlmacenForm = v.stockAlmacen ?? v.cantidad;
-          const stockAlmacenBD = existente.stockAlmacen ?? existente.cantidad;
-          const cantidadCambio = stockAlmacenForm !== stockAlmacenBD;
-          const codigoCambio = existente.codigoBarrasVariante !== v.codigoIdentificacion;
-
-          if (!cantidadCambio && !codigoCambio) continue;
-
-          if (cantidadCambio) {
-            await ProductoVarianteService.actualizarCantidad(v.id!, stockAlmacenForm, idUbicacionAreaParaStock);
-          }
-          if (codigoCambio) {
-            const talla = tallaDesdeNombre(v.nombreTalla);
-            const color = colorDesdeNombre(v.nombreColor);
-            if (!v.nombreTalla.trim() || !v.nombreColor.trim()) continue;
-
-            const data: Omit<ProductoVariante, 'idVariante'> = {
-              producto: productoGuardadoObj,
-              talla,
-              color,
-              cantidad: existente.cantidad,
-              codigoBarrasVariante: v.codigoIdentificacion
-            };
-            await ProductoVarianteService.actualizarVariante(v.id!, {
-              ...data,
-              idProductoVariante: v.id
-            });
-          }
-        }
-
-        // 3. Crear
-        for (const v of variantesACrear) {
-          const talla = tallaDesdeNombre(v.nombreTalla);
-          const color = colorDesdeNombre(v.nombreColor);
-          if (!v.nombreTalla.trim() || !v.nombreColor.trim()) continue;
-
-          const data: Omit<ProductoVariante, 'idVariante'> = {
-            producto: productoGuardadoObj,
-            talla,
-            color,
-            cantidad: v.stockAlmacen ?? v.cantidad,
-            codigoBarrasVariante: v.codigoIdentificacion
-          };
-          try {
-            await ProductoVarianteService.crearVariante(data, idUbicacionAreaParaStock);
-          } catch (varianteErr: any) {
-            const detalle = extractApiErrorMessage(
-              varianteErr,
-              getErrorMessage(varianteErr, 'Error al crear la variante')
-            );
-            throw new Error(
-              `El producto se guardó, pero falló la combinación ${v.nombreTalla} / ${v.nombreColor}: ${detalle}`
-            );
-          }
-        }
-      }
-
-      if (productoGuardadoObj.idProducto) {
-        const variantesActualizadas = await ProductoVarianteService.obtenerVariantesPorProducto(
-          productoGuardadoObj.idProducto,
-          idUbicacionAreaParaStock
-        );
-        const cantidadTotalActualizada = variantesActualizadas.reduce((total, v) => total + (v.stockAlmacen ?? v.cantidad), 0);
-        productoGuardadoObj = {
-          ...productoGuardadoObj,
-          cantidad: cantidadTotalActualizada
-        };
-      }
-
+      const productoGuardadoObj = await guardarProducto();
       onProductoGuardado(productoGuardadoObj);
-      
-      if (crearSiguiente && !producto) {
-        // Continuous input: keep form open, reset only specific fields
-        setFormData(prev => ({
-          ...prev,
-          nombre: '',
-          codigoIdentificacion: '',
-          codigoBarras: ''
-        }));
-        setVariantes([]);
-        setTabActiva('informacion');
-        setPasosConError({
-          informacion: false,
-          variantes: false,
-          precios: false,
-        });
-        setAlertModal({
-          open: true,
-          message: 'Producto guardado con éxito. Puede continuar registrando el siguiente producto.',
-          variant: 'success'
-        });
-        setCrearSiguiente(false);
-      } else {
-        handleClose();
-      }
+      handleClose();
     } catch (err: any) {
       console.error('Error al guardar producto:', err);
       const msg = extractApiErrorMessage(err, getErrorMessage(err, 'Error al guardar el producto'));
       setError(msg);
       const msgLower = msg.toLowerCase();
-      if (
-        msgLower.includes('área de almacén') ||
-        msgLower.includes('area de almacen') ||
-        msgLower.includes('sector')
-      ) {
-        setPasosConError({ informacion: false, variantes: true, precios: false });
-        setTabActiva('variantes');
+      if (msgLower.includes('área de almacén') || msgLower.includes('area de almacen') || msgLower.includes('sector')) {
+        setPasosConError({ informacion: true, variantes: false, precios: false });
+        setTabActiva('informacion');
       }
     } finally {
       setLoading(false);
@@ -937,6 +904,9 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                   setSubcategoria2Seleccionada={setSubcategoria2Seleccionada}
                   proveedorSeleccionado={proveedorSeleccionado}
                   setProveedorSeleccionado={setProveedorSeleccionado}
+                  accesoAreaAlmacen={accesoAreaAlmacen}
+                  idAreaEntradaSupervisor={idAreaEntradaSupervisor}
+                  setIdAreaEntradaSupervisor={setIdAreaEntradaSupervisor}
                 />
               )}
 
@@ -945,11 +915,8 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                   formData={formData}
                   variantes={variantes}
                   setVariantes={setVariantes}
-                  accesoAreaAlmacen={accesoAreaAlmacen}
                   errorContextoInventario={errorContextoInventario}
                   etiquetaStockActiva={etiquetaStockActiva}
-                  idAreaEntradaSupervisor={idAreaEntradaSupervisor}
-                  setIdAreaEntradaSupervisor={setIdAreaEntradaSupervisor}
                   sugerenciasTallas={sugerenciasTallas}
                   setSugerenciasTallas={setSugerenciasTallas}
                   sugerenciasColores={sugerenciasColores}
@@ -1013,61 +980,50 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
                         Anterior
                       </button>
                     )}
-                    
-                    {tabActiva === 'informacion' && (
-                      <button
-                        type="button"
-                        onClick={() => setTabActiva('variantes')}
-                        className="px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-hover-overlay font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
-                      >
-                        Siguiente
-                      </button>
-                    )}
-                    
-                    {tabActiva === 'variantes' && (
-                      <button
-                        type="button"
-                        onClick={() => setTabActiva('precios')}
-                        className="px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-hover-overlay font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
-                      >
-                        Siguiente
-                      </button>
-                    )}
-                    
-                    {tabActiva === 'precios' && (
-                      <button
-                        type="button"
-                        onClick={() => setTabActiva('codigosBarras')}
-                        className="px-5 py-3.5 rounded-2xl border border-app-border bg-app-surface text-app-text hover:bg-app-hover-overlay font-bold text-xs uppercase tracking-widest transition-all duration-300 ease-out"
-                      >
-                        Siguiente
-                      </button>
-                    )}
                   </div>
                 </div>
 
                 <div className="flex gap-3.5 w-full sm:w-auto">
-                  {/* "Guardar y Siguiente" button: Only shown when creating a new product */}
-                  {!producto && (
+                  {/* Navegación "Guardar y Continuar": solo avanza de fase (nuevo producto, fases 01-03) */}
+                  {!producto && tabActiva === 'informacion' && (
                     <button
-                      type="submit"
-                      onClick={() => setCrearSiguiente(true)}
-                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-app-text border border-app-border bg-app-surface hover:bg-app-hover-overlay rounded-2xl transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-                      disabled={loading}
+                      type="button"
+                      onClick={() => setTabActiva('variantes')}
+                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-app-text border border-app-border bg-app-surface hover:bg-app-hover-overlay rounded-2xl transition-all duration-300 ease-out uppercase tracking-widest"
                     >
-                      Guardar y Siguiente
+                      Guardar y Continuar
+                    </button>
+                  )}
+                  {!producto && tabActiva === 'variantes' && (
+                    <button
+                      type="button"
+                      onClick={() => setTabActiva('precios')}
+                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-app-text border border-app-border bg-app-surface hover:bg-app-hover-overlay rounded-2xl transition-all duration-300 ease-out uppercase tracking-widest"
+                    >
+                      Guardar y Continuar
+                    </button>
+                  )}
+                  {!producto && tabActiva === 'precios' && (
+                    <button
+                      type="button"
+                      onClick={() => setTabActiva('codigosBarras')}
+                      className="flex-1 sm:flex-initial px-6 py-3.5 text-xs font-bold text-app-text border border-app-border bg-app-surface hover:bg-app-hover-overlay rounded-2xl transition-all duration-300 ease-out uppercase tracking-widest"
+                    >
+                      Guardar y Continuar
                     </button>
                   )}
 
-                  <button
-                    type="submit"
-                    onClick={() => setCrearSiguiente(false)}
-                    className="flex-1 sm:flex-initial px-8 py-3.5 text-xs font-bold text-app-accent-fg bg-app-accent hover:opacity-90 rounded-2xl shadow-lg active:scale-[0.98] transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-                    disabled={loading}
-                  >
-                    <MaterialIcon icon="save" className="w-4 h-4 text-amber-500" />
-                    {loading ? 'Guardando...' : (producto ? 'Guardar Cambios' : 'Crear Producto')}
-                  </button>
+                  {/* "Crear Producto" aparece solo en Fase 04 (producto nuevo); "Guardar Cambios" siempre visible (edición) */}
+                  {(producto || tabActiva === 'codigosBarras') && (
+                    <button
+                      type="submit"
+                      className="flex-1 sm:flex-initial px-8 py-3.5 text-xs font-bold text-app-accent-fg bg-app-accent hover:opacity-90 rounded-2xl shadow-lg active:scale-[0.98] transition-all duration-300 ease-out uppercase tracking-widest disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                      disabled={loading}
+                    >
+                      <MaterialIcon icon="save" className="w-4 h-4 text-amber-500" />
+                      {loading ? 'Guardando...' : (producto ? 'Guardar Cambios' : 'Crear Producto')}
+                    </button>
+                  )}
                 </div>
               </div>
             </form>

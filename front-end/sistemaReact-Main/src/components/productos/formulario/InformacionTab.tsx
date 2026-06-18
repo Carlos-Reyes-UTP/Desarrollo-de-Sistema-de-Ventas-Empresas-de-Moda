@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { AppSelect, MaterialIcon } from '@/shared/ui';
 import type { Categoria } from '../../../types/Categoria';
 import type { Proveedor } from '../../../types/Proveedor';
+import type { AccesoAreaAlmacen } from '../../../types/AccesoAreaAlmacen';
+import { SECTORES_ALMACEN_TEXTO } from '../../../shared/constants/sectoresAlmacen';
 
 interface InformacionTabProps {
   formData: {
@@ -52,6 +54,11 @@ interface InformacionTabProps {
   setSubcategoria2Seleccionada: React.Dispatch<React.SetStateAction<string>>;
   proveedorSeleccionado: string;
   setProveedorSeleccionado: React.Dispatch<React.SetStateAction<string>>;
+
+  // Área de Ingreso de Mercadería (Supervisor)
+  accesoAreaAlmacen: AccesoAreaAlmacen | null;
+  idAreaEntradaSupervisor: number | '';
+  setIdAreaEntradaSupervisor: React.Dispatch<React.SetStateAction<number | ''>>;
 }
 
 export const InformacionTab: React.FC<InformacionTabProps> = ({
@@ -72,7 +79,11 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
   subcategoria2Seleccionada,
   setSubcategoria2Seleccionada,
   proveedorSeleccionado,
-  setProveedorSeleccionado
+  setProveedorSeleccionado,
+
+  accesoAreaAlmacen,
+  idAreaEntradaSupervisor,
+  setIdAreaEntradaSupervisor
 }) => {
   // Estados locales para la búsqueda y filtrado interactivo en los dropdowns
   const [searchCategoria, setSearchCategoria] = useState('');
@@ -254,7 +265,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                   handleCategoriaChange({ target: { value: categoria.idCategoria?.toString() || '' } });
                 }
               }}
-              className={`w-full ${!categoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+              className={`w-full ${!categoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm`}
               disabled={!!categoriaSeleccionada}
               required
             />
@@ -344,7 +355,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     handleSubcategoriaChange({ target: { value: subcategoria.idCategoria?.toString() || '' } });
                   }
                 }}
-                className={`w-full ${!subcategoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+                className={`w-full ${!subcategoriaSeleccionada ? 'pl-10' : 'px-4'} py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm`}
                 disabled={!!subcategoriaSeleccionada}
                 required
               />
@@ -435,7 +446,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     setSearchSubcategoria2('');
                   }
                 }}
-                className={`w-full ${!subcategoria2Seleccionada ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+                className={`w-full ${!subcategoria2Seleccionada ? 'pl-10' : 'px-4'} py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm`}
                 disabled={!!subcategoria2Seleccionada}
                 required
               />
@@ -534,7 +545,7 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                   setSearchProveedor('');
                 }
               }}
-              className={`w-full ${!proveedorSeleccionado ? 'pl-10' : 'px-4'} py-3 bg-[#f8f8f8] border border-transparent rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-transparent transition-all`}
+              className={`w-full ${!proveedorSeleccionado ? 'pl-10' : 'px-4'} py-3 bg-app-surface border border-gray-100 rounded-xl text-sm font-medium focus:bg-app-surface focus:ring-2 focus:ring-gray-200 focus:border-gray-200 transition-all shadow-sm`}
               disabled={!!proveedorSeleccionado}
               required
             />
@@ -593,6 +604,45 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
             )}
           </div>
         </div>
+
+        {/* Área de Ingreso de Mercadería (Supervisor) */}
+        {accesoAreaAlmacen?.puedeElegirAreaEntrada && (
+          <div className="md:col-span-2">
+            <div className="p-6 bg-slate-50/70 border border-slate-100 rounded-2xl shadow-sm">
+              <div className="flex items-center gap-3 mb-4">
+                <MaterialIcon icon="corporate_fare" className="w-5 h-5 text-app-text" />
+                <h4 className="text-xs font-bold text-app-text uppercase tracking-wider">
+                  Área de Ingreso de Mercadería
+                </h4>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold tracking-[0.15em] text-slate-400 uppercase mb-2">
+                    Seleccione el área de stock <span className="text-red-500">*</span>
+                  </label>
+                  <AppSelect
+                    value={idAreaEntradaSupervisor}
+                    onChange={(v) =>
+                      setIdAreaEntradaSupervisor(v === '' ? '' : Number(v))
+                    }
+                    placeholder="Seleccionar área destino"
+                    options={accesoAreaAlmacen.areasAlmacen.map((a) => ({
+                      value: a.idUbicacionArea,
+                      label:
+                        a.descripcion ?? (a.area ? `${a.nombre} · ${a.area}` : a.nombre),
+                    }))}
+                  />
+                </div>
+                <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-app-surface p-4 rounded-xl border border-slate-100">
+                  <MaterialIcon icon="info" className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                  <p className="leading-relaxed">
+                    Como Supervisor de Almacén, debe indicar en qué sector ({SECTORES_ALMACEN_TEXTO}) se registrarán estas unidades de stock.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
