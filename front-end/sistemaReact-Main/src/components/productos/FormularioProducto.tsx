@@ -16,7 +16,7 @@ import {
 import { validarJerarquiaPreciosProducto } from '../../utils/validarPreciosProducto';
 import { getErrorMessage, getStatusCode } from '@/utils/errorUtils';
 import { extractApiErrorMessage } from '@/utils/handleApiError';
-import { AlertModal, MaterialIcon, ModalPortal, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
+import { AlertModal, ConfirmModal, MaterialIcon, ModalPortal, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 import { useAccesoAreaAlmacen } from '@/hooks/useAccesoAreaAlmacen';
 
 // Subcomponentes especializados
@@ -50,7 +50,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   categorias,
   proveedores,
   onClose,
-  onProductoGuardado
+  onProductoGuardado,
 }) => {
   
   // Acceso al área de almacén
@@ -64,6 +64,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
   useModalBodyScrollLock(true);
 
   const [idAreaEntradaSupervisor, setIdAreaEntradaSupervisor] = useState<number | ''>('');
+  const [confirmEditOpen, setConfirmEditOpen] = useState(false);
   
   // Estado de campos principales del producto
   const [formData, setFormData] = useState({
@@ -341,6 +342,14 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       setSugerenciasColores((prev) =>
         nombresUnicosOrdenados([...prev, ...collectColorNamesFromVariantes(variantesUnicas)])
       );
+
+      // Detectar área de almacén desde las variantes cargadas
+      if (variantesExistentes.length > 0 && idAreaEntradaSupervisor === '') {
+        const areaId = variantesExistentes[0]?.idUbicacionArea;
+        if (areaId) {
+          setIdAreaEntradaSupervisor(areaId);
+        }
+      }
     } catch (err: any) {
       console.error('Error al cargar variantes existentes:', err);
       const status = getStatusCode(err);
@@ -730,6 +739,18 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       return;
     }
 
+    // Si es edición, mostrar confirmación antes de guardar
+    if (producto) {
+      setConfirmEditOpen(true);
+      setLoading(false);
+      return;
+    }
+
+    // Si es creación, guardar directamente
+    await ejecutarGuardado();
+  };
+
+  const ejecutarGuardado = async () => {
     try {
       const productoGuardadoObj = await guardarProducto();
       onProductoGuardado(productoGuardadoObj);
@@ -745,6 +766,7 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
       }
     } finally {
       setLoading(false);
+      setConfirmEditOpen(false);
     }
   };
 
@@ -1036,6 +1058,21 @@ const FormularioProducto: React.FC<FormularioProductoProps> = ({
         message={alertModal.message}
         variant={alertModal.variant}
         onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+      />
+
+      <ConfirmModal
+        open={confirmEditOpen}
+        title="Confirmar cambios"
+        message="¿Estás seguro de que deseas guardar los cambios realizados a este producto?"
+        onConfirm={async () => {
+          setConfirmEditOpen(false);
+          setLoading(true);
+          await ejecutarGuardado();
+        }}
+        onCancel={() => setConfirmEditOpen(false)}
+        confirmText="Guardar cambios"
+        cancelText="Cancelar"
+        variant="warning"
       />
     </div>
     </ModalPortal>
