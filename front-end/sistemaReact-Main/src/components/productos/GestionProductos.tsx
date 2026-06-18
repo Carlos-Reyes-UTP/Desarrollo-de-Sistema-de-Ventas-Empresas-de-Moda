@@ -6,7 +6,10 @@ import type { Proveedor } from '../../types/Proveedor';
 import { ProductoService } from '../../services/ProductoService';
 import { CategoriaService } from '../../services/CategoriaService';
 import { ProveedorService } from '../../services/ProveedorService';
-import { ConfirmModal, TableSkeleton, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, MaterialIcon } from '@/shared/ui';
+import { ConfirmModal, TableSkeleton, Skeleton, PageHeader, PageHeaderMetaChip, PageActionButton, PageActionGroup, MaterialIcon, AppModal } from '@/shared/ui';
+import * as XLSX from 'xlsx';
+import { ProductoVarianteService } from '@/services/ProductoVarianteService';
+
 import { SubViewTransition } from '@/shared/ui/SubViewTransition';
 import { getProductTabIndex } from '@/shared/layout/pageTransitionConfig';
 import FormularioProducto from './FormularioProducto'
@@ -73,6 +76,9 @@ const GestionProductos: React.FC = () => {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [areasExportar, setAreasExportar] = useState<string[]>([]);
+  const [exportando, setExportando] = useState(false);
   const [isCategoriaPrincipalFocused, setIsCategoriaPrincipalFocused] = useState(false);
   const [isSubCategoriaFocused, setIsSubCategoriaFocused] = useState(false);
   const [isProveedorFocused, setIsProveedorFocused] = useState(false);
@@ -391,6 +397,58 @@ const GestionProductos: React.FC = () => {
     setProductoAEliminar(null);
     setConfirmModalOpen(false);
   };
+
+  const exportarLista = async () => {
+    setExportando(true);
+    try {
+      const wb = XLSX.utils.book_new();
+      const colWidths = [
+        { wch: 15 }, { wch: 40 }, { wch: 10 }, { wch: 15 },
+        { wch: 25 }, { wch: 14 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 10 },
+      ];
+
+      for (const seleccion of areasExportar) {
+        const area = seleccion === "Almacén General" ? undefined : seleccion;
+        const variantes = await ProductoVarianteService.exportarListado(area);
+        if (variantes.length === 0) continue;
+
+        const rows = variantes.map(v => ({
+          'Código': v.codigoProducto,
+          'Nombre': v.nombreProducto,
+          'Talla': v.talla,
+          'Color': v.color,
+          'Proveedor': v.proveedor,
+          'Precio Unitario': v.precioUnitario,
+          'Precio 1/4': v.precioCuarto,
+          'Precio 1/2 Docena': v.precioMediaDocena,
+          'Precio Docena': v.precioDocena,
+          'Stock': v.stock,
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        ws['!cols'] = colWidths;
+        const nombreHoja = seleccion.length > 31 ? seleccion.slice(0, 31) : seleccion;
+        XLSX.utils.book_append_sheet(wb, ws, nombreHoja);
+      }
+
+      if (wb.SheetNames.length === 0) {
+        setError("No hay variantes para exportar en las áreas seleccionadas.");
+        setExportando(false);
+        return;
+      }
+
+      const sufijo = areasExportar.length === 1 ? `_${areasExportar[0].replace(/\s+/g, '_')}` : '';
+      XLSX.writeFile(wb, `lista_productos${sufijo}.xlsx`);
+      setExportModalOpen(false);
+      setAreasExportar([]);
+      setSuccessMsg("Lista exportada exitosamente.");
+    } catch (err) {
+      console.error("Error exportando lista:", err);
+      setError("No se pudo exportar la lista. Intente nuevamente.");
+    } finally {
+      setExportando(false);
+    }
+  };
+
   const handleProductoGuardado = () => {
     const msg = productoEditar
       ? 'Producto editado exitosamente'
@@ -479,7 +537,7 @@ const GestionProductos: React.FC = () => {
         actions={
           tabActual === "catalogo" ? (
             <PageActionGroup>
-              <PageActionButton grouped variant="secondary" onClick={() => {}}>
+              <PageActionButton grouped variant="secondary" onClick={() => setExportModalOpen(true)}>
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
@@ -1167,6 +1225,158 @@ const GestionProductos: React.FC = () => {
         onConfirm={confirmarEliminarProducto}
         onCancel={cancelarEliminarProducto}
       />
+
+      <AppModal
+        open={exportModalOpen}
+        onClose={() => { if (!exportando) { setExportModalOpen(false); setAreasExportar([]); } }}
+        title="Exportar Lista de Productos"
+        subtitle="Selecciona una o más áreas de almacén. Cada área se exportará en una hoja independiente."
+        icon={<MaterialIcon icon="download" />}
+        maxWidth="2xl"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => { setExportModalOpen(false); setAreasExportar([]); }}
+              disabled={exportando}
+              className="px-4 py-2.5 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] text-[var(--app-text)] font-bold text-xs uppercase tracking-wider transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={exportarLista}
+              disabled={exportando || areasExportar.length === 0}
+              className="px-5 py-2.5 rounded-xl bg-[var(--app-accent)] hover:opacity-90 text-white font-black text-xs uppercase tracking-widest transition-all shadow-md disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            >
+              {exportando && <MaterialIcon icon="progress_activity" className="h-4 w-4 animate-spin" />}
+              {exportando ? "Generando…" : "Descargar Excel"}
+            </button>
+          </div>
+        }
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Selector de Áreas */}
+          <div>
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--app-text-muted)] mb-3">
+              Áreas de Almacén
+            </h4>
+            <div className="space-y-2">
+              <label
+                onClick={() => {
+                  setAreasExportar(prev =>
+                    prev.includes("Almacén General")
+                      ? prev.filter(a => a !== "Almacén General")
+                      : [...prev, "Almacén General"]
+                  );
+                }}
+                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
+                  areasExportar.includes("Almacén General")
+                    ? "border-[var(--app-accent)] bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)]"
+                    : "border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]"
+                }`}
+              >
+                <div className={`w-4 h-4 rounded border-2 mt-0.5 shrink-0 flex items-center justify-center ${
+                  areasExportar.includes("Almacén General")
+                    ? "border-[var(--app-accent)] bg-[var(--app-accent)]"
+                    : "border-[var(--app-text-muted)]"
+                }`}>
+                  {areasExportar.includes("Almacén General") && (
+                    <MaterialIcon icon="check" className="w-3 h-3 text-white" />
+                  )}
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-[var(--app-text)] block text-left">Almacén General</span>
+                  <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
+                    Todas las áreas de almacén disponibles.
+                  </span>
+                </div>
+              </label>
+
+              {areasUnicas.map(area => (
+                <label
+                  key={area}
+                  onClick={() => {
+                    setAreasExportar(prev =>
+                      prev.includes(area)
+                        ? prev.filter(a => a !== area)
+                        : [...prev, area]
+                    );
+                  }}
+                  className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
+                    areasExportar.includes(area)
+                      ? "border-[var(--app-accent)] bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)]"
+                      : "border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]"
+                  }`}
+                >
+                  <div className={`w-4 h-4 rounded border-2 mt-0.5 shrink-0 flex items-center justify-center ${
+                    areasExportar.includes(area)
+                      ? "border-[var(--app-accent)] bg-[var(--app-accent)]"
+                      : "border-[var(--app-text-muted)]"
+                  }`}>
+                    {areasExportar.includes(area) && (
+                      <MaterialIcon icon="check" className="w-3 h-3 text-white" />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-sm font-bold text-[var(--app-text)] block text-left">{area}</span>
+                    <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
+                      Genera una hoja con productos del área {area}.
+                    </span>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Vista Previa de Estructura */}
+          <div className="flex flex-col justify-between p-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)]">
+            <div>
+              <h4 className="text-xs font-black uppercase tracking-wider text-[var(--app-accent)] mb-3 flex items-center gap-1.5">
+                <MaterialIcon icon="visibility" className="w-4.5 h-4.5" />
+                Estructura del Archivo Generado
+              </h4>
+              <p className="text-xs text-[var(--app-text-muted)] mb-4 leading-relaxed text-left">
+                {areasExportar.length === 0
+                  ? "Selecciona una o más áreas para ver la estructura del archivo."
+                  : `El archivo contendrá ${areasExportar.length} hoja${areasExportar.length > 1 ? 's' : ''} con el listado detallado de variantes y su información comercial.`
+                }
+              </p>
+
+              {areasExportar.length > 0 && (
+                <div className="space-y-2.5">
+                  {areasExportar.map(area => (
+                    <div key={area} className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
+                      <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
+                        <MaterialIcon icon="table_chart" className="w-4 h-4 text-blue-500" />
+                        {area.length > 31 ? area.slice(0, 31) + '…' : area}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="mt-4 space-y-1.5">
+                <p className="text-[10px] font-semibold text-[var(--app-text-muted)]">Columnas incluidas:</p>
+                <div className="flex flex-wrap gap-1">
+                  {["Código", "Nombre", "Talla", "Color", "Proveedor", "Precio Unitario", "Precio ¼", "Precio ½ Docena", "Precio Docena", "Stock"].map(col => (
+                    <span key={col} className="px-2 py-0.5 rounded-md bg-[var(--app-surface)] border border-[var(--app-border)] text-[10px] font-mono font-bold text-[var(--app-text-muted)]">
+                      {col}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-[var(--app-border)] text-[10px] text-[var(--app-text-muted)] leading-relaxed flex items-start gap-1.5 text-left">
+              <MaterialIcon icon="info" className="w-3.5 h-3.5 shrink-0 text-[var(--app-accent)]" />
+              <span>
+                Formato `xlsx` compatible con Microsoft Excel, Google Sheets y Numbers.
+              </span>
+            </div>
+          </div>
+        </div>
+      </AppModal>
     </div>
   );
 };

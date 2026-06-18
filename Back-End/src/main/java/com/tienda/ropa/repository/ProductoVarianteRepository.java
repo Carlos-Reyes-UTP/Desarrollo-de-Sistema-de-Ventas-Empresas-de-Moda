@@ -138,4 +138,34 @@ public interface ProductoVarianteRepository extends JpaRepository<ProductoVarian
 
     @Query(nativeQuery = true, value = VARIANTE_CAJERO_SELECT + " ORDER BY pv.id_producto_variante DESC")
     List<Object[]> findAllVariantesConInformacionCompleta();
+
+    String VARIANTE_EXPORTAR_SELECT = """
+            SELECT
+              pv.id_producto_variante,
+              p.codigo_identificacion,
+              p.nombre,
+              pv.talla,
+              pv.color,
+              COALESCE(pr.nombre, ''),
+              p.precio_unitario,
+              COALESCE(p.precio_cuarto, 0),
+              COALESCE(p.precio_media_docena, 0),
+              COALESCE(p.precio_docena, 0)
+            FROM producto_variante pv
+            INNER JOIN producto p ON p.id_producto = pv.id_producto
+            LEFT JOIN proveedores pr ON pr.id_proveedor = p.id_proveedor
+            """;
+
+    @Query(nativeQuery = true, value = VARIANTE_EXPORTAR_SELECT + " ORDER BY pv.id_producto_variante")
+    List<Object[]> findExportarTodo();
+
+    @Query(nativeQuery = true, value = VARIANTE_EXPORTAR_SELECT
+            + """
+            INNER JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
+            INNER JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
+            INNER JOIN area a ON a.id_area = ua.id_area
+            WHERE LOWER(TRIM(a.nombre)) = LOWER(TRIM(:area))
+            ORDER BY pv.id_producto_variante
+            """)
+    List<Object[]> findExportarPorArea(@Param("area") String area);
 }

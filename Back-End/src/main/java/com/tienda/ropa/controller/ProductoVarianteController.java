@@ -1,6 +1,7 @@
 package com.tienda.ropa.controller;
 
 import com.tienda.ropa.dto.MigrarVariantesRequest;
+import com.tienda.ropa.dto.VarianteExportarDTO;
 import com.tienda.ropa.dto.VarianteSugerenciasDTO;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.UbicacionArea;
@@ -46,6 +47,16 @@ public class ProductoVarianteController {
                 .header("Deprecation", "true")
                 .header("Link", "</api/almacenero/variantes/sugerencias>; rel=\"successor-version\"")
                 .body(productoVarianteService.obtenerTodasLasVariantes());
+    }
+
+    /**
+     * Exportación de variantes con datos completos de producto y proveedor.
+     * Soporta filtro opcional por área de almacén (nombre del área).
+     */
+    @GetMapping("/exportar")
+    public ResponseEntity<List<VarianteExportarDTO>> exportarListado(
+            @RequestParam(required = false) String area) {
+        return ResponseEntity.ok(productoVarianteService.exportarListado(area));
     }
 
     @PostMapping

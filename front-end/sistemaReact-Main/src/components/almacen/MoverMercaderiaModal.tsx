@@ -552,25 +552,18 @@ const MoverMercaderiaModal = ({
             if (listaAbierta) setListaAbierta(false);
           }}
         >
-          {/* Origen y Destino */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold app-heading mb-2">
-                Origen
-              </label>
-              <div className="w-full flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-input)] px-4 py-3 text-sm font-medium app-text-muted">
-                <span className="truncate">
-                  {tituloOrigenArea}
-                </span>
-                <MaterialIcon icon="arrow_drop_down" className="h-4 w-4 app-text-faint" />
+          {/* Ruta: Origen → Destino */}
+          <div>
+            <label className="block text-xs font-bold app-heading mb-3">
+              Ruta de traslado
+            </label>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-2 rounded-lg bg-[var(--app-bg-muted)] px-3 py-2 text-sm font-medium app-text-muted min-w-0">
+                <MaterialIcon icon="location_on" className="h-4 w-4 shrink-0" />
+                <span className="truncate">{tituloOrigenArea}</span>
               </div>
-            </div>
-
-            <div className="relative">
-              <label className="block text-xs font-bold app-heading mb-2">
-                Destino
-              </label>
-              <>
+              <MaterialIcon icon="arrow_forward" className="hidden sm:block h-4 w-4 shrink-0 app-text-faint" />
+              <div className="relative flex-1 min-w-0">
                 <button
                   ref={botonDestinoRef}
                   type="button"
@@ -602,7 +595,7 @@ const MoverMercaderiaModal = ({
                       ))}
                   </ul>
                 )}
-              </>
+              </div>
             </div>
           </div>
 
@@ -708,132 +701,175 @@ const MoverMercaderiaModal = ({
           </div>
 
           {/* Cantidad + botón Agregar */}
-          <label className="block text-xs font-bold app-heading mb-2">
-            Cantidad a Transferir
-          </label>
-          <div className="flex gap-3 items-stretch">
-            <div className="relative flex-1">
-              <input
-                type="number"
-                min={1}
-                max={stockMaximo > 0 ? stockMaximo : undefined}
-                value={cantidad}
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "") setCantidad("");
-                  else setCantidad(Math.max(0, Number(val)));
-                  setErrorAgregar(null);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAgregarItem();
-                  }
-                }}
-                disabled={!filaSeleccionada}
-                className="w-full h-full rounded-xl border border-[var(--app-border)] bg-[var(--app-input)] px-4 py-3 text-sm font-semibold app-heading text-center focus:border-[var(--app-border-strong)] focus:ring-0 transition-all duration-200 disabled:opacity-50 disabled:bg-[var(--app-bg-muted)] pr-12"
-              />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold app-text-muted">
-                Uds.
-              </span>
+          <div>
+            <label className="block text-xs font-bold app-heading mb-2">
+              Cantidad a Transferir
+            </label>
+            <div className="flex gap-3 items-stretch">
+              <div className="relative flex-1 flex items-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = Number(cantidad) || 0;
+                    setCantidad(Math.max(1, val - 1));
+                    setErrorAgregar(null);
+                  }}
+                  disabled={!filaSeleccionada || (Number(cantidad) || 0) <= 1}
+                  className="absolute left-0 top-0 bottom-0 flex items-center justify-center w-10 rounded-l-xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] text-app-text-muted hover:app-heading disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <MaterialIcon icon="remove" className="h-4 w-4" />
+                </button>
+                <input
+                  type="number"
+                  min={1}
+                  max={stockMaximo > 0 ? stockMaximo : undefined}
+                  value={cantidad}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "") setCantidad("");
+                    else setCantidad(Math.max(0, Number(val)));
+                    setErrorAgregar(null);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAgregarItem();
+                    }
+                  }}
+                  disabled={!filaSeleccionada}
+                  className="w-full h-full rounded-xl border border-[var(--app-border)] bg-[var(--app-input)] px-11 py-3 text-sm font-bold app-heading text-center focus:border-[var(--app-border-strong)] focus:ring-0 transition-all duration-200 disabled:opacity-50 disabled:bg-[var(--app-bg-muted)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = Number(cantidad) || 0;
+                    setCantidad(Math.min(stockMaximo, val + 1));
+                    setErrorAgregar(null);
+                  }}
+                  disabled={!filaSeleccionada || (Number(cantidad) || 0) >= stockMaximo}
+                  className="absolute right-0 top-0 bottom-0 flex items-center justify-center w-10 rounded-r-xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] text-app-text-muted hover:app-heading disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                >
+                  <MaterialIcon icon="add" className="h-4 w-4" />
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleAgregarItem}
+                disabled={!puedeAgregar}
+                className="inline-flex shrink-0 items-center justify-center gap-1.5 px-5 text-sm font-bold text-[var(--app-accent-fg)] bg-[var(--app-accent)] rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
+                title="Agregar producto a la lista de traslado"
+              >
+                <MaterialIcon icon="add" className="h-4 w-4" />
+                Agregar
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={handleAgregarItem}
-              disabled={!puedeAgregar}
-              className="inline-flex shrink-0 items-center justify-center gap-1.5 px-5 text-sm font-bold text-[var(--app-accent-fg)] bg-[var(--app-accent)] rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98]"
-              title="Agregar producto a la lista de traslado"
-            >
-              <MaterialIcon icon="add" className="h-4 w-4" />
-              Agregar
-            </button>
-          </div>
-          <div className="h-5">
-            {filaSeleccionada && (
-              <p className="text-xs app-text-muted font-medium leading-5">
-                Stock disponible: <span className="font-mono font-bold app-heading">{stockMaximo}</span>
-              </p>
-            )}
-            {filaSeleccionada && numCantidad > stockMaximo && (
-              <p className="text-xs text-rose-600 font-semibold leading-5">
-                Stock insuficiente. Máximo disponible: {stockMaximo} uds.
-              </p>
-            )}
-          </div>
-          {errorAgregar && (
-            <p className="text-xs text-rose-600 font-semibold mt-1">{errorAgregar}</p>
-          )}
+            <div className="mt-2 min-h-[1.25rem]">
+              {filaSeleccionada && (
+                <p className="text-xs app-text-muted font-medium leading-5">
+                  Stock disponible: <span className="font-mono font-bold app-heading">{stockMaximo}</span>
+                </p>
+              )}
+              {filaSeleccionada && numCantidad > stockMaximo && (
+                <p className="text-xs text-rose-600 font-semibold leading-5">
+                  Stock insuficiente. Máximo disponible: {stockMaximo} uds.
+                </p>
+              )}
+              {errorAgregar && (
+                <p className="text-xs text-rose-600 font-semibold leading-5">{errorAgregar}</p>
+              )}
+            </div>
 
-          {filaSeleccionada && stockMaximo <= 0 && (
-            <div className="bg-rose-50 border border-rose-100 text-rose-600 text-sm font-semibold rounded-xl px-4 py-3">
-              Este producto no tiene existencias disponibles para trasladar.
-            </div>
-          )}
+            {filaSeleccionada && stockMaximo <= 0 && (
+              <div className="mt-2 bg-rose-50 border border-rose-100 text-rose-600 text-sm font-semibold rounded-xl px-4 py-3">
+                Este producto no tiene existencias disponibles para trasladar.
+              </div>
+            )}
+          </div>
 
           {/* Carrito: Lista de productos a trasladar */}
           {itemsTraslado.length > 0 && (
-            <div className="border border-[var(--app-border)] rounded-xl p-4 space-y-3">
+            <div className="border border-[var(--app-border)] rounded-xl p-4 sm:p-5 space-y-3">
               <h4 className="text-xs font-bold uppercase tracking-wider app-text-muted flex items-center justify-between">
                 <span>Productos a trasladar ({itemsTraslado.length})</span>
-                <span className="text-[10px] font-mono app-text-faint">
-                  {itemsTraslado.reduce((s, i) => s + i.cantidad, 0)} uds. totales
+                <span className="text-[11px] font-mono font-bold app-heading">
+                  {itemsTraslado.reduce((s, i) => s + i.cantidad, 0)} uds.
                 </span>
               </h4>
-              <div className="divide-y divide-[var(--app-border)] max-h-52 overflow-y-auto">
+              <div className="divide-y divide-[var(--app-border)] max-h-64 overflow-y-auto">
                 {itemsTraslado.map((item, idx) => (
                   <div
                     key={`${item.variante.idVariante}-${idx}`}
-                    className={`flex items-center gap-3 py-2.5 ${
+                    className={`py-3.5 space-y-2 ${
                       item.error ? 'bg-rose-50/50 -mx-2 px-2 rounded-lg' : ''
                     }`}
                   >
-                    <span className="text-xs font-mono app-text-faint w-5 shrink-0 text-center">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold app-heading truncate">
-                        {etiquetaProducto(item.variante)}
-                      </p>
-                      <p className="text-xs app-text-muted">
-                        Stock: {item.variante.stockActual} uds.
-                      </p>
-                    </div>
-                    <div className="shrink-0">
-                      <input
-                        type="text"
-                        inputMode="numeric"
-                        value={item.cantidad}
-                        onChange={(e) => {
-                          const raw = e.target.value;
-                          if (raw === "" || /^\d+$/.test(raw)) {
-                            handleEditarCantidad(idx, raw === "" ? 0 : parseInt(raw, 10), true);
-                          }
-                        }}
-                        onBlur={() => {
-                          handleEditarCantidad(idx, Math.max(1, Math.min(item.cantidad, item.variante.stockActual)));
-                        }}
-                        className="w-16 text-center text-sm font-bold font-mono app-heading rounded-lg border border-[var(--app-border)] bg-[var(--app-input)] px-2 py-1"
-                      />
-                      <span className="text-xs app-text-faint ml-1">uds.</span>
-                    </div>
-                    {item.error === 'sin_stock' && (
-                      <span className="text-xs text-rose-600 font-semibold whitespace-nowrap">
-                        ⛔ Sin stock
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono app-text-faint w-5 shrink-0 text-center">
+                        {idx + 1}
                       </span>
-                    )}
-                    {item.error === 'stock_insuficiente' && (
-                      <span className="text-xs text-rose-600 font-semibold whitespace-nowrap">
-                        ⚠️ Stock insuf.
-                      </span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleQuitarItem(idx)}
-                      className="p-1.5 rounded-full hover:bg-rose-100 text-rose-400 hover:text-rose-600 transition-colors shrink-0"
-                      aria-label="Quitar producto"
-                    >
-                      <MaterialIcon icon="close" className="h-4 w-4" />
-                    </button>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold app-heading truncate">
+                          {etiquetaProducto(item.variante)}
+                        </p>
+                        <p className="text-xs app-text-muted">
+                          Stock disp.: {item.variante.stockActual} uds.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleEditarCantidad(idx, Math.max(1, item.cantidad - 1))}
+                          disabled={item.cantidad <= 1}
+                          className="flex items-center justify-center w-7 h-7 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg-muted)] text-app-text-muted hover:app-heading disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <MaterialIcon icon="remove" className="h-3.5 w-3.5" />
+                        </button>
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            value={item.cantidad}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              if (raw === "" || /^\d+$/.test(raw)) {
+                                handleEditarCantidad(idx, raw === "" ? 0 : parseInt(raw, 10), true);
+                              }
+                            }}
+                            onBlur={() => {
+                              handleEditarCantidad(idx, Math.max(1, Math.min(item.cantidad, item.variante.stockActual)));
+                            }}
+                            className="w-14 text-center text-sm font-bold font-mono app-heading rounded-lg border border-[var(--app-border)] bg-[var(--app-input)] px-2 py-1.5"
+                          />
+                          <span className="text-xs app-text-faint">uds.</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleEditarCantidad(idx, Math.min(item.variante.stockActual, item.cantidad + 1))}
+                          disabled={item.cantidad >= item.variante.stockActual}
+                          className="flex items-center justify-center w-7 h-7 rounded-lg border border-[var(--app-border)] bg-[var(--app-bg-muted)] text-app-text-muted hover:app-heading disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <MaterialIcon icon="add" className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      {item.error === 'sin_stock' && (
+                        <span className="text-xs text-rose-600 font-semibold whitespace-nowrap shrink-0">
+                          ⛔ Sin stock
+                        </span>
+                      )}
+                      {item.error === 'stock_insuficiente' && (
+                        <span className="text-xs text-rose-600 font-semibold whitespace-nowrap shrink-0">
+                          ⚠️ Stock insuf.
+                        </span>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleQuitarItem(idx)}
+                        className="p-1.5 rounded-full hover:bg-rose-100 text-rose-400 hover:text-rose-600 transition-colors shrink-0"
+                        aria-label="Quitar producto"
+                      >
+                        <MaterialIcon icon="close" className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -847,51 +883,63 @@ const MoverMercaderiaModal = ({
           )}
         </div>
 
-        <footer className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-8 flex flex-col-reverse sm:flex-row justify-stretch sm:justify-end items-stretch sm:items-center gap-2 sm:gap-4 bg-[var(--app-surface)] shrink-0">
-          {confirmando ? (
-            <>
-              <p className="flex-1 text-xs sm:text-sm app-text-muted text-center sm:text-left min-w-0">
-                ¿Está seguro de realizar esta operación?
-              </p>
-              <button
-                type="button"
-                onClick={() => setConfirmando(false)}
-                disabled={enviando}
-                className="min-h-11 w-full sm:w-auto px-6 py-2.5 text-sm font-bold app-text-muted hover:app-heading transition-colors touch-manipulation"
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                onClick={ejecutar}
-                disabled={enviando}
-                className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 px-8 py-2.5 text-sm font-bold text-white bg-red-600 rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] touch-manipulation"
-              >
-                {enviando && <MaterialIcon icon="progress_activity" className="h-4 w-4 animate-spin" />}
-                Sí, realizar traslado
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={onCerrar}
-                disabled={enviando}
-                className="min-h-11 w-full sm:w-auto px-6 py-2.5 text-sm font-bold app-text-muted hover:app-heading transition-colors touch-manipulation"
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                onClick={confirmar}
-                disabled={!puedeEnviarMasivo}
-                className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 px-8 py-2.5 text-sm font-bold text-[var(--app-accent-fg)] bg-[var(--app-accent)] rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] touch-manipulation"
-              >
-                {enviando && <MaterialIcon icon="progress_activity" className="h-4 w-4 animate-spin" />}
-                Confirmar Traslado
-              </button>
-            </>
+        <footer className="px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-8 sm:pb-8 bg-[var(--app-surface)] shrink-0">
+          {itemsTraslado.length > 0 && !confirmando && (
+            <div className="flex items-center gap-2 text-xs app-text-muted font-medium mb-3 pb-3 border-b border-[var(--app-border)]">
+              <span className="font-semibold app-heading">{itemsTraslado.length} producto{itemsTraslado.length !== 1 ? 's' : ''}</span>
+              <span>·</span>
+              <span className="font-mono font-bold app-heading">{itemsTraslado.reduce((s, i) => s + i.cantidad, 0)} uds.</span>
+              <span>·</span>
+              <MaterialIcon icon="arrow_forward" className="h-3 w-3" />
+              <span className="truncate">{destinoDisplay}</span>
+            </div>
           )}
+          <div className="flex flex-col-reverse sm:flex-row justify-stretch sm:justify-end items-stretch sm:items-center gap-2 sm:gap-4">
+            {confirmando ? (
+              <>
+                <p className="flex-1 text-xs sm:text-sm app-text-muted text-center sm:text-left min-w-0">
+                  ¿Está seguro de realizar esta operación?
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setConfirmando(false)}
+                  disabled={enviando}
+                  className="min-h-11 w-full sm:w-auto px-6 py-2.5 text-sm font-bold app-text-muted hover:app-heading transition-colors touch-manipulation"
+                >
+                  Volver
+                </button>
+                <button
+                  type="button"
+                  onClick={ejecutar}
+                  disabled={enviando}
+                  className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 px-8 py-2.5 text-sm font-bold text-white bg-red-600 rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] touch-manipulation"
+                >
+                  {enviando && <MaterialIcon icon="progress_activity" className="h-4 w-4 animate-spin" />}
+                  Sí, realizar traslado
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={onCerrar}
+                  disabled={enviando}
+                  className="min-h-11 w-full sm:w-auto px-6 py-2.5 text-sm font-bold app-text-muted hover:app-heading transition-colors touch-manipulation"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={confirmar}
+                  disabled={!puedeEnviarMasivo}
+                  className="inline-flex min-h-11 w-full sm:w-auto items-center justify-center gap-2 px-8 py-2.5 text-sm font-bold text-[var(--app-accent-fg)] bg-[var(--app-accent)] rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.98] touch-manipulation"
+                >
+                  {enviando && <MaterialIcon icon="progress_activity" className="h-4 w-4 animate-spin" />}
+                  Confirmar Traslado
+                </button>
+              </>
+            )}
+          </div>
         </footer>
       </div>
     </div>

@@ -1,5 +1,6 @@
 package com.tienda.ropa.service;
 
+import com.tienda.ropa.dto.VarianteExportarDTO;
 import com.tienda.ropa.dto.VarianteSugerenciasDTO;
 import com.tienda.ropa.entity.ProductoVariante;
 import com.tienda.ropa.entity.UbicacionArea;
@@ -37,6 +38,8 @@ public interface ProductoVarianteService {
     void eliminarVariante(Long idVariante);
 
     Integer obtenerCantidadTotalProducto(Long idProducto);
+
+    List<VarianteExportarDTO> exportarListado(@org.springframework.lang.Nullable String area);
 
     List<ProductoVariante> migrarProductoAVariantes(
             Long idProducto,

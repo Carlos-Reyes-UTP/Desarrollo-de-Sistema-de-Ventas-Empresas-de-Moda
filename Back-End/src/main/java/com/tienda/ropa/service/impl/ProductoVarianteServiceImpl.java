@@ -2,6 +2,7 @@ package com.tienda.ropa.service.impl;
 
 
 
+import com.tienda.ropa.dto.VarianteExportarDTO;
 import com.tienda.ropa.dto.VarianteSugerenciasDTO;
 
 import com.tienda.ropa.entity.Producto;
@@ -500,6 +501,43 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     }
 
 
+
+    @Override
+
+    @Transactional(readOnly = true)
+
+    public List<VarianteExportarDTO> exportarListado(String area) {
+        List<Object[]> resultados;
+
+        if (area != null && !area.isBlank()) {
+            resultados = productoVarianteRepository.findExportarPorArea(area.trim());
+        } else {
+            resultados = productoVarianteRepository.findExportarTodo();
+        }
+
+        List<Long> ids = resultados.stream()
+                .map(r -> ((Number) r[0]).longValue())
+                .toList();
+
+        Map<Long, Integer> stockPorVariante = stockTotalBulk(ids);
+
+        return resultados.stream().map(r -> {
+            Long idVariante = ((Number) r[0]).longValue();
+            int stock = stockPorVariante.getOrDefault(idVariante, 0);
+            return new VarianteExportarDTO(
+                    (String) r[1],    // codigoProducto
+                    (String) r[2],    // nombreProducto
+                    (String) r[3],    // talla
+                    (String) r[4],    // color
+                    (String) r[5],    // proveedor
+                    (java.math.BigDecimal) r[6],  // precioUnitario
+                    (java.math.BigDecimal) r[7],  // precioCuarto
+                    (java.math.BigDecimal) r[8],  // precioMediaDocena
+                    (java.math.BigDecimal) r[9],  // precioDocena
+                    stock
+            );
+        }).toList();
+    }
 
     @Override
 

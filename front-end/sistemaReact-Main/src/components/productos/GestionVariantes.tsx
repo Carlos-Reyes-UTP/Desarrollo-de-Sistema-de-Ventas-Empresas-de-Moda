@@ -518,12 +518,14 @@ const VarianteRow: React.FC<{
           (() => {
             const stockAlmacen = variante.stockAlmacen ?? variante.cantidad;
             let cantidadClass;
-            if (stockAlmacen === 0) {
-              cantidadClass = 'bg-red-100 text-red-700';
-            } else if (stockAlmacen < 10) {
-              cantidadClass = 'bg-orange-100 text-orange-700';
+            if (stockAlmacen > 180) {
+              cantidadClass = 'bg-[#3b82f6] text-white';
+            } else if (stockAlmacen >= 30) {
+              cantidadClass = 'bg-[#10b981] text-white';
+            } else if (stockAlmacen >= 1) {
+              cantidadClass = 'bg-[#f59e0b] text-white';
             } else {
-              cantidadClass = 'bg-green-100 text-green-700';
+              cantidadClass = 'bg-gray-400 text-white';
             }
             return (
               <button

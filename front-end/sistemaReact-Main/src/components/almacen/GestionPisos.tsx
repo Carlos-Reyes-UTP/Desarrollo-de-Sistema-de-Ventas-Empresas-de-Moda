@@ -165,6 +165,9 @@ const GestionPisos = ({
   const [areaDetalle, setAreaDetalle] = useState<UbicacionArea | null>(null);
   const [stockDetalle, setStockDetalle] = useState<StockUbicacion[]>([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [busquedaDetalle, setBusquedaDetalle] = useState("");
+  const [paginaDetalle, setPaginaDetalle] = useState(0);
+  const PAGE_SIZE_DETALLE = 10;
   const [productoModal, setProductoModal] = useState<{ nombre: string; variantes: StockUbicacion[] } | null>(null);
 
   /** Fila "Mover mercadería": el listado de productos es solo el stock de esta ubicación. */
@@ -251,6 +254,8 @@ const GestionPisos = ({
   const cargarDetalleArea = async (ubicacion: UbicacionArea) => {
     setAreaDetalle(ubicacion);
     setCargandoDetalle(true);
+    setBusquedaDetalle("");
+    setPaginaDetalle(0);
     try {
       const data = await AlmacenService.stockPorUbicacionArea(ubicacion.idUbicacionArea);
       setStockDetalle(Array.isArray(data) ? data : []);
@@ -295,6 +300,24 @@ const GestionPisos = ({
     return Array.from(map.values());
   }, [stockDetalle]);
 
+  const productosFiltrados = useMemo(() => {
+    const q = busquedaDetalle.toLowerCase().trim();
+    if (!q) return productosEnDetalle;
+    return productosEnDetalle.filter(
+      p => p.nombre.toLowerCase().includes(q) || p.codigo.toLowerCase().includes(q)
+    );
+  }, [productosEnDetalle, busquedaDetalle]);
+
+  const totalPaginasDetalle = useMemo(
+    () => Math.max(1, Math.ceil(productosFiltrados.length / PAGE_SIZE_DETALLE)),
+    [productosFiltrados]
+  );
+
+  const productosPagina = useMemo(
+    () => productosFiltrados.slice(paginaDetalle * PAGE_SIZE_DETALLE, (paginaDetalle + 1) * PAGE_SIZE_DETALLE),
+    [productosFiltrados, paginaDetalle]
+  );
+
   return (
     <div className={embedded ? "w-full min-w-0" : "p-3 sm:p-4 md:p-6 lg:p-8 w-full max-w-7xl mx-auto"}>
       {!embedded && (
@@ -305,7 +328,7 @@ const GestionPisos = ({
           icon="corporate_fare"
           title="Distribución por pisos"
           actions={
-            <PageActionGroup>
+            <PageActionGroup className="xl:w-[305px] w-full">
               {puedeTrasladar && (
                 <PageActionButton
                   grouped
@@ -313,6 +336,7 @@ const GestionPisos = ({
                     setOrigenAreaModal(null);
                     setTrasladoGlobalAbierto(true);
                   }}
+                  className="w-full"
                 >
                   Mover Mercadería
                 </PageActionButton>
@@ -431,65 +455,48 @@ const GestionPisos = ({
                   </div>
                 ) : (
                   <>
-                    <div className="md:hidden flex flex-col gap-3">
-                      {productosEnDetalle.map((prod, idx) => (
-                        <div
-                          key={`prod-${idx}`}
-                          className="animate-stagger-item rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm hover:shadow-md transition-all duration-200"
-                          style={{ animationDelay: `${idx * 40}ms` }}
+                    <div className="relative mb-4 sm:mb-5">
+                      <MaterialIcon icon="search" className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 app-text-faint" />
+                      <input
+                        type="text"
+                        value={busquedaDetalle}
+                        onChange={(e) => {
+                          setBusquedaDetalle(e.target.value);
+                          setPaginaDetalle(0);
+                        }}
+                        placeholder="Buscar por nombre o código…"
+                        className="w-full rounded-xl border border-[var(--app-border)] bg-[var(--app-input)] pl-11 pr-4 py-3 text-sm font-medium app-heading placeholder:text-[var(--app-text-faint)] focus:border-[var(--app-border-strong)] focus:ring-0 transition-all duration-200"
+                      />
+                      {busquedaDetalle && (
+                        <button
+                          type="button"
+                          onClick={() => { setBusquedaDetalle(""); setPaginaDetalle(0); }}
+                          className="absolute right-4 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-[var(--app-hover-overlay)] transition-colors"
                         >
-                          <p className="font-semibold app-heading text-sm leading-snug">{prod.nombre}</p>
-                          {prod.codigo && (
-                            <p className="text-[11px] app-text-faint font-mono font-bold mt-1">{prod.codigo}</p>
-                          )}
-                          <div className="mt-3 flex items-center justify-between">
-                            <span className="text-sm font-bold app-heading">{prod.stockTotal} uds.</span>
-                            <button
-                              type="button"
-                              onClick={() => setProductoModal({ nombre: prod.nombre, variantes: prod.variantes })}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-[var(--app-accent)] text-[var(--app-accent-fg)] hover:opacity-90 transition-all"
-                            >
-                              Ver variantes
-                              <MaterialIcon icon="visibility" className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                          <MaterialIcon icon="close" className="h-4 w-4 app-text-faint" />
+                        </button>
+                      )}
                     </div>
-                    <div className="hidden md:block overflow-x-auto rounded-2xl border border-[var(--app-border)]">
-                      <table className="min-w-full divide-y divide-[var(--app-border)] table-zebra">
-                        <thead className="bg-[var(--app-bg-muted)]">
-                          <tr>
-                            <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest app-text-faint uppercase">
-                              Producto
-                            </th>
-                            <th className="px-5 py-4 text-right text-[11px] font-bold tracking-widest app-text-faint uppercase">
-                              Stock Total
-                            </th>
-                            <th className="px-5 py-4 text-right text-[11px] font-bold tracking-widest app-text-faint uppercase">
-                              Acción
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-[var(--app-surface)] divide-y divide-[var(--app-border)]">
-                          {productosEnDetalle.map((prod, idx) => (
-                            <tr
+
+                    {productosFiltrados.length === 0 ? (
+                      <div className="py-12 text-center text-sm app-text-faint font-medium px-4">
+                        No se encontraron productos que coincidan con la búsqueda.
+                      </div>
+                    ) : (
+                      <>
+                        <div className="md:hidden flex flex-col gap-3">
+                          {productosPagina.map((prod, idx) => (
+                            <div
                               key={`prod-${idx}`}
-                              className="animate-stagger-item hover:bg-[var(--app-hover-overlay)] transition-colors duration-150"
-                              style={{ animationDelay: `${idx * 30}ms` }}
+                              className="animate-stagger-item rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm hover:shadow-md transition-all duration-200"
+                              style={{ animationDelay: `${idx * 40}ms` }}
                             >
-                              <td className="px-5 py-4">
-                                <span className="font-semibold app-heading text-sm">{prod.nombre}</span>
-                                <span className="ml-2 text-[11px] app-text-faint font-mono font-bold">
-                                  ({prod.codigo})
-                                </span>
-                              </td>
-                              <td className="px-5 py-4 text-right">
-                                <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-[var(--app-input)] app-heading">
-                                  {prod.stockTotal}
-                                </span>
-                              </td>
-                              <td className="px-5 py-4 text-right">
+                              <p className="font-semibold app-heading text-sm leading-snug">{prod.nombre}</p>
+                              {prod.codigo && (
+                                <p className="text-[11px] app-text-faint font-mono font-bold mt-1">{prod.codigo}</p>
+                              )}
+                              <div className="mt-3 flex items-center justify-between">
+                                <span className="text-sm font-bold app-heading">{prod.stockTotal} uds.</span>
                                 <button
                                   type="button"
                                   onClick={() => setProductoModal({ nombre: prod.nombre, variantes: prod.variantes })}
@@ -498,12 +505,88 @@ const GestionPisos = ({
                                   Ver variantes
                                   <MaterialIcon icon="visibility" className="h-3.5 w-3.5" />
                                 </button>
-                              </td>
-                            </tr>
+                              </div>
+                            </div>
                           ))}
-                        </tbody>
-                      </table>
-                    </div>
+                        </div>
+                        <div className="hidden md:block overflow-x-auto rounded-2xl border border-[var(--app-border)]">
+                          <table className="min-w-full divide-y divide-[var(--app-border)] table-zebra">
+                            <thead className="bg-[var(--app-bg-muted)]">
+                              <tr>
+                                <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest app-text-faint uppercase">
+                                  Producto
+                                </th>
+                                <th className="px-5 py-4 text-right text-[11px] font-bold tracking-widest app-text-faint uppercase">
+                                  Stock Total
+                                </th>
+                                <th className="px-5 py-4 text-right text-[11px] font-bold tracking-widest app-text-faint uppercase">
+                                  Acción
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-[var(--app-surface)] divide-y divide-[var(--app-border)]">
+                              {productosPagina.map((prod, idx) => (
+                                <tr
+                                  key={`prod-${idx}`}
+                                  className="animate-stagger-item hover:bg-[var(--app-hover-overlay)] transition-colors duration-150"
+                                  style={{ animationDelay: `${idx * 30}ms` }}
+                                >
+                                  <td className="px-5 py-4">
+                                    <span className="font-semibold app-heading text-sm">{prod.nombre}</span>
+                                    <span className="ml-2 text-[11px] app-text-faint font-mono font-bold">
+                                      ({prod.codigo})
+                                    </span>
+                                  </td>
+                                  <td className="px-5 py-4 text-right">
+                                    <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-[var(--app-input)] app-heading">
+                                      {prod.stockTotal}
+                                    </span>
+                                  </td>
+                                  <td className="px-5 py-4 text-right">
+                                    <button
+                                      type="button"
+                                      onClick={() => setProductoModal({ nombre: prod.nombre, variantes: prod.variantes })}
+                                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-[var(--app-accent)] text-[var(--app-accent-fg)] hover:opacity-90 transition-all"
+                                    >
+                                      Ver variantes
+                                      <MaterialIcon icon="visibility" className="h-3.5 w-3.5" />
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {totalPaginasDetalle > 1 && (
+                          <div className="flex items-center justify-between pt-4 sm:pt-5 gap-4">
+                            <p className="text-xs app-text-faint font-medium">
+                              {productosFiltrados.length} producto{productosFiltrados.length !== 1 ? 's' : ''} · Página {paginaDetalle + 1} de {totalPaginasDetalle}
+                            </p>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setPaginaDetalle(p => Math.max(0, p - 1))}
+                                disabled={paginaDetalle === 0}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold app-text-muted hover:app-heading border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                <MaterialIcon icon="arrow_back" className="h-3.5 w-3.5" />
+                                Anterior
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setPaginaDetalle(p => Math.min(totalPaginasDetalle - 1, p + 1))}
+                                disabled={paginaDetalle >= totalPaginasDetalle - 1}
+                                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold app-text-muted hover:app-heading border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                Siguiente
+                                <MaterialIcon icon="arrow_forward" className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
                   </>
                 )}
               </div>
@@ -516,7 +599,7 @@ const GestionPisos = ({
                   className={embedded ? undefined : "mb-4 sm:mb-5"}
                   actions={
                     embedded ? (
-                      <PageActionGroup>
+                      <PageActionGroup className="xl:w-[305px] w-full">
                         {puedeTrasladar && (
                           <PageActionButton
                             grouped
@@ -524,6 +607,7 @@ const GestionPisos = ({
                               setOrigenAreaModal(null);
                               setTrasladoGlobalAbierto(true);
                             }}
+                            className="w-full"
                           >
                             Mover Mercadería
                           </PageActionButton>
@@ -535,13 +619,13 @@ const GestionPisos = ({
 
                 <div className="grid grid-cols-1 xl:grid-cols-[1fr_minmax(0,305px)] gap-4 sm:gap-6 lg:gap-8 items-start min-w-0">
                   {/* Resumen compacto primero en móvil */}
-                  <div className="order-1 xl:order-2 app-metric-card rounded-2xl sm:rounded-[20px] border p-5 sm:p-8 shadow-xl flex flex-row xl:flex-col items-center xl:items-stretch justify-between gap-4 xl:gap-0 xl:min-h-[360px] min-w-0 animate-fadeIn">
+                  <div className="order-1 xl:order-2 app-metric-card rounded-2xl sm:rounded-[20px] border p-4 sm:p-6 shadow-xl flex flex-row xl:flex-col items-center xl:items-stretch justify-between gap-4 xl:gap-0 min-w-0 animate-fadeIn">
                     <div className="min-w-0 xl:mb-0">
                       <h3 className="text-base sm:text-xl font-bold app-metric-value mb-0.5 sm:mb-1">Total Productos</h3>
                       <p className="text-xs sm:text-sm app-metric-label truncate">Stock global · {pisoSeleccionado}</p>
                     </div>
-                    <div className="flex flex-col items-end xl:items-stretch xl:flex-1 xl:justify-center xl:py-6 shrink-0">
-                      <div className="text-4xl sm:text-6xl xl:text-7xl font-black tracking-tight leading-none app-metric-value animate-countUp">
+                    <div className="flex flex-col items-end xl:items-stretch xl:flex-1 xl:justify-center shrink-0">
+                      <div className="text-4xl sm:text-5xl xl:text-6xl font-black tracking-tight leading-none app-metric-value animate-countUp">
                         {totalStockPiso}
                       </div>
                       <div className="text-xs sm:text-sm app-metric-label font-medium mt-0.5 sm:mt-2 text-right xl:text-left">
@@ -700,7 +784,7 @@ const GestionPisos = ({
                         <td className="px-4 py-3 text-sm text-gray-700 font-medium">{v.color ?? '—'}</td>
                         <td className="px-4 py-3 text-sm text-gray-900 font-bold font-mono">{v.talla ?? '—'}</td>
                         <td className="px-4 py-3 text-right">
-                          <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-blue-50 text-blue-700">
+                          <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-[var(--app-input)] app-heading">
                             {v.stockActual}
                           </span>
                         </td>

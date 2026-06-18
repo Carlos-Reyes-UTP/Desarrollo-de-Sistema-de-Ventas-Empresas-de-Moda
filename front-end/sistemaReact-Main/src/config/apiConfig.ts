@@ -143,6 +143,7 @@ export const RUTAS_VARIANTES = {
     `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/cantidad-total`,
   MIGRAR_PRODUCTO: (idProducto: number) => 
     `${API_BASE_URL}/api/almacenero/variantes/producto/${idProducto}/migrar`,
+  EXPORTAR: `${API_BASE_URL}/api/almacenero/variantes/exportar`,
 };
 
 // Rutas de Códigos de Barras

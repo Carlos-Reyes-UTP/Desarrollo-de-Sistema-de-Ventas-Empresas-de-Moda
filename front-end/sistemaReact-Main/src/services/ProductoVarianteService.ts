@@ -87,6 +87,19 @@ function prepararPayloadParaBackend(variante: Partial<ProductoVariante>): Record
   return payload;
 }
 
+export interface VarianteExportarDTO {
+  codigoProducto: string;
+  nombreProducto: string;
+  talla: string;
+  color: string;
+  proveedor: string;
+  precioUnitario: number;
+  precioCuarto: number;
+  precioMediaDocena: number;
+  precioDocena: number;
+  stock: number;
+}
+
 export const ProductoVarianteService = {    // Crear nueva variante
   crearVariante: async (
     variante: Omit<ProductoVariante, 'idVariante'>,
@@ -417,5 +430,14 @@ export const ProductoVarianteService = {    // Crear nueva variante
       logger.error('Error al obtener variantes paginadas:', error);
       throw error;
     }
+  },
+
+  exportarListado: async (area?: string): Promise<VarianteExportarDTO[]> => {
+    const params: Record<string, string> = {};
+    if (area?.trim()) {
+      params.area = area.trim();
+    }
+    const response = await apiClient.get<VarianteExportarDTO[]>(RUTAS_VARIANTES.EXPORTAR, { params });
+    return response.data;
   },
 };
