@@ -238,7 +238,7 @@ export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
                       <button
                         type="button"
                         onClick={descargarCodigoBarrasVariante}
-                        className="bg-app-accent hover:bg-gray-800 text-app-accent-fg px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md flex items-center gap-2"
+                        className="bg-app-surface border border-app-border text-app-text hover:bg-app-accent hover:text-app-accent-fg hover:border-transparent px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md flex items-center gap-2"
                       >
                         <MaterialIcon icon="download" className="w-4 h-4" />
                         Descargar PNG

@@ -15,6 +15,7 @@ import com.tienda.ropa.repository.ProductoVarianteRepository;
 import com.tienda.ropa.service.CodigoBarrasService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -27,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 
 @Service
+@Transactional
 public class CodigoBarrasServiceImpl implements CodigoBarrasService {
 
     @Autowired
