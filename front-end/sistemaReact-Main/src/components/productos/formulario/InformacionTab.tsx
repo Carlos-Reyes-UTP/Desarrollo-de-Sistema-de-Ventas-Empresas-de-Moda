@@ -628,15 +628,14 @@ export const InformacionTab: React.FC<InformacionTabProps> = ({
                     placeholder="Seleccionar área destino"
                     options={accesoAreaAlmacen.areasAlmacen.map((a) => ({
                       value: a.idUbicacionArea,
-                      label:
-                        a.descripcion ?? (a.area ? `${a.nombre} · ${a.area}` : a.nombre),
+                      label: a.area ?? a.nombre,
                     }))}
                   />
                 </div>
                 <div className="flex items-start gap-2.5 text-xs text-slate-600 bg-app-surface p-4 rounded-xl border border-slate-100">
                   <MaterialIcon icon="info" className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
                   <p className="leading-relaxed">
-                    Como Supervisor de Almacén, debe indicar en qué sector ({SECTORES_ALMACEN_TEXTO}) se registrarán estas unidades de stock.
+                    Como Supervisor de Almacen, debe indicar en que area se registrara este producto
                   </p>
                 </div>
               </div>

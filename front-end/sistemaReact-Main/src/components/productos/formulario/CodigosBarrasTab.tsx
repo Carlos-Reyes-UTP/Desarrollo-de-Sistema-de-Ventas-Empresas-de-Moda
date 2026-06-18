@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import JsBarcode from 'jsbarcode';
 import { MaterialIcon } from '@/shared/ui';
 
 interface VarianteFormData {
@@ -129,6 +130,20 @@ const EtiquetaPreviewCard: React.FC<EtiquetaPreviewCardProps> = ({
   </div>
 );
 
+function generarBarcodeLocal(codigo: string): string {
+  const canvas = document.createElement('canvas');
+  JsBarcode(canvas, codigo, {
+    format: 'CODE128',
+    width: 2,
+    height: 60,
+    displayValue: true,
+    fontSize: 12,
+    margin: 10,
+    background: '#ffffff',
+  });
+  return canvas.toDataURL('image/png');
+}
+
 export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
   formData,
   variantes,
@@ -142,6 +157,18 @@ export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
   setShowFormularioVariante,
   loading,
 }) => {
+  const esPreviewLocal = varianteSeleccionada !== null && varianteSeleccionada < 0;
+
+  const descargarLocal = useCallback(() => {
+    if (!codigoBarrasPreview) return;
+    const link = document.createElement('a');
+    link.href = codigoBarrasPreview;
+    link.download = `codigo_barras_preview.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [codigoBarrasPreview]);
+
   const primeraVariante = variantes[0];
   const previewTalla = primeraVariante?.nombreTalla || '—';
   const previewColor = primeraVariante?.nombreColor || '—';
@@ -184,14 +211,18 @@ export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
         <div className="min-h-[280px] flex flex-col">
           {varianteSeleccionada && codigoBarrasPreview ? (
             <div className="space-y-6 flex-1">
-              {variantes.map((v) => {
-                if (v.id !== varianteSeleccionada) return null;
+              {variantes.map((v, idx) => {
+                if (esPreviewLocal) {
+                  if (-(idx + 1) !== varianteSeleccionada) return null;
+                } else {
+                  if (v.id !== varianteSeleccionada) return null;
+                }
 
                 return (
-                  <div key={v.id} className="space-y-5 animate-fadeIn">
+                  <div key={v.id ?? `local-${idx}`} className="space-y-5 animate-fadeIn">
                     <div className="flex justify-between items-center">
                       <span className="text-[10px] font-bold tracking-[0.2em] text-gray-500 uppercase">
-                        Etiqueta generada
+                        {esPreviewLocal ? 'Vista previo local' : 'Etiqueta generada'}
                       </span>
                       <button
                         type="button"
@@ -237,7 +268,7 @@ export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
                     <div className="flex gap-3 justify-center flex-wrap">
                       <button
                         type="button"
-                        onClick={descargarCodigoBarrasVariante}
+                        onClick={esPreviewLocal ? descargarLocal : descargarCodigoBarrasVariante}
                         className="bg-app-surface border border-app-border text-app-text hover:bg-app-accent hover:text-app-accent-fg hover:border-transparent px-6 py-3 rounded-xl text-xs font-bold uppercase tracking-widest transition-all duration-200 ease-in-out shadow-md flex items-center gap-2"
                       >
                         <MaterialIcon icon="download" className="w-4 h-4" />
@@ -254,6 +285,7 @@ export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
                         Cerrar
                       </button>
                     </div>
+
                   </div>
                 );
               })}
@@ -273,7 +305,11 @@ export const CodigosBarrasTab: React.FC<CodigosBarrasTabProps> = ({
                     <button
                       key={variante.id || index}
                       type="button"
-                      onClick={sinId ? undefined : () => generarCodigoBarrasVariante(variante.id)}
+                      onClick={sinId ? () => {
+                        const url = generarBarcodeLocal(variante.codigoIdentificacion || `${variante.nombreTalla}-${variante.nombreColor}`);
+                        setCodigoBarrasPreview(url);
+                        setVarianteSeleccionada(-(index + 1));
+                      } : () => generarCodigoBarrasVariante(variante.id)}
                       className="flex items-center justify-between w-full p-4 rounded-xl border border-gray-100 bg-app-surface hover:border-black hover:shadow-sm transition-all text-left group"
                       disabled={loading}
                     >

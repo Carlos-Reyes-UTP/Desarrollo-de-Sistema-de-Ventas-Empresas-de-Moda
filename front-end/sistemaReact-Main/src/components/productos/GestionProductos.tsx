@@ -70,6 +70,7 @@ const GestionProductos: React.FC = () => {
   const [productoEditar, setProductoEditar] = useState<Producto | null>(null);
   const [productoVariantes, setProductoVariantes] = useState<Producto | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [productoAEliminar, setProductoAEliminar] = useState<number | null>(null);
   const [isCategoriaPrincipalFocused, setIsCategoriaPrincipalFocused] = useState(false);
@@ -91,7 +92,12 @@ const GestionProductos: React.FC = () => {
   const omitirDebounceBusquedaRef = useRef(true);
   const tabAnteriorRef = useRef<'catalogo' | 'pisos'>('catalogo');
 
-
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
 
   const cargarSubcategorias = useCallback(async (nombreCategoriaPrincipal: string) => {
     try {
@@ -386,6 +392,10 @@ const GestionProductos: React.FC = () => {
     setConfirmModalOpen(false);
   };
   const handleProductoGuardado = () => {
+    const msg = productoEditar
+      ? 'Producto editado exitosamente'
+      : 'Producto creado correctamente';
+    setSuccessMsg(msg);
     setShowFormulario(false);
     setProductoEditar(null);
     cargarDatos();
@@ -504,6 +514,14 @@ const GestionProductos: React.FC = () => {
         <HistorialMovimientos />
       ) : (
         <>
+          {/* Mensaje de éxito */}
+          {successMsg && (
+            <div className="mb-4 sm:mb-6 bg-green-50 border border-green-100 rounded-xl sm:rounded-2xl text-green-700 text-sm font-semibold px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3">
+              <MaterialIcon icon="check_circle" className="w-5 h-5 shrink-0" />
+              <span className="min-w-0">{successMsg}</span>
+            </div>
+          )}
+
           {/* Filters and Search Bar */}
           <div className="bg-app-surface rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-app-border">
 
