@@ -3,7 +3,7 @@ import { AlmacenService } from "@/services/AlmacenService";
 import type { UbicacionArea, StockUbicacion } from "@/types/Almacen";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
 import MoverMercaderiaModal from "./MoverMercaderiaModal";
-import { ListItemSkeleton, TableSkeleton, PageHeader, PageActionButton, PageActionGroup, SectionHeader, MaterialIcon } from "@/shared/ui";
+import { ListItemSkeleton, TableSkeleton, PageHeader, PageActionButton, PageActionGroup, SectionHeader, MaterialIcon, ModalPortal } from "@/shared/ui";
 
 interface AreaConStock {
   ubicacion: UbicacionArea;
@@ -122,34 +122,11 @@ const AreaOperativaCard = ({
           ? "bg-[var(--app-accent)] text-[var(--app-accent-fg)]"
           : "bg-[var(--app-bg-muted)] app-text-muted"
       }`}>
-        {puedeTrasladar ? "Ver y trasladar" : "Ver stock"}
+        Ver detalles
         <MaterialIcon icon="arrow_forward" className="h-3.5 w-3.5" />
       </span>
     </div>
   </button>
-);
-
-const StockVarianteCard = ({ item, index = 0 }: { item: StockUbicacion; index?: number }) => (
-  <div
-    className="animate-stagger-item rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm hover:shadow-md transition-all duration-200"
-    style={{ animationDelay: `${index * 40}ms` }}
-  >
-    <p className="font-semibold app-heading text-sm leading-snug">{item.nombreProducto}</p>
-    {item.codigoIdentificacion && (
-      <p className="text-[11px] app-text-faint font-mono font-bold mt-1">{item.codigoIdentificacion}</p>
-    )}
-    <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
-      <span className="rounded-lg bg-[var(--app-bg-muted)] px-2.5 py-1 font-medium app-text-muted">
-        Color: <span className="app-heading">{item.color ?? "—"}</span>
-      </span>
-      <span className="rounded-lg bg-[var(--app-bg-muted)] px-2.5 py-1 font-bold font-mono app-heading">
-        Talla: {item.talla ?? "—"}
-      </span>
-      <span className="ml-auto inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-[var(--app-input)] app-heading">
-        {item.stockActual} uds.
-      </span>
-    </div>
-  </div>
 );
 
 const GestionPisos = ({
@@ -188,6 +165,7 @@ const GestionPisos = ({
   const [areaDetalle, setAreaDetalle] = useState<UbicacionArea | null>(null);
   const [stockDetalle, setStockDetalle] = useState<StockUbicacion[]>([]);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
+  const [productoModal, setProductoModal] = useState<{ nombre: string; variantes: StockUbicacion[] } | null>(null);
 
   /** Fila "Mover mercadería": el listado de productos es solo el stock de esta ubicación. */
   const [origenAreaModal, setOrigenAreaModal] = useState<UbicacionArea | null>(null);
@@ -296,7 +274,26 @@ const GestionPisos = ({
   };
 
   const totalStockPiso = useMemo(() => areas.reduce((acc, a) => acc + a.totalUnidades, 0), [areas]);
-  const totalVariantesPiso = useMemo(() => areas.reduce((acc, a) => acc + a.totalVariantes, 0), [areas]);
+
+  const productosEnDetalle = useMemo(() => {
+    const map = new Map<number, { nombre: string; codigo: string; stockTotal: number; variantes: StockUbicacion[] }>();
+    stockDetalle.forEach(item => {
+      if (item.idProducto == null) return;
+      const existing = map.get(item.idProducto);
+      if (existing) {
+        existing.stockTotal += item.stockActual;
+        existing.variantes.push(item);
+      } else {
+        map.set(item.idProducto, {
+          nombre: item.nombreProducto ?? 'Producto',
+          codigo: item.codigoIdentificacion ?? '',
+          stockTotal: item.stockActual,
+          variantes: [item],
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [stockDetalle]);
 
   return (
     <div className={embedded ? "w-full min-w-0" : "p-3 sm:p-4 md:p-6 lg:p-8 w-full max-w-7xl mx-auto"}>
@@ -309,10 +306,6 @@ const GestionPisos = ({
           title="Distribución por pisos"
           actions={
             <PageActionGroup>
-              <PageActionButton grouped variant="secondary" onClick={refrescar} disabled={cargandoAreas}>
-                <MaterialIcon icon="sync" className={`h-4 w-4 ${cargandoAreas ? "animate-spin" : ""}`} />
-                Refrescar
-              </PageActionButton>
               {puedeTrasladar && (
                 <PageActionButton
                   grouped
@@ -429,18 +422,38 @@ const GestionPisos = ({
                       <ListItemSkeleton count={4} showAvatar={false} />
                     </div>
                     <div className="hidden md:block">
-                      <TableSkeleton rows={5} columns={4} />
+                      <TableSkeleton rows={5} columns={3} />
                     </div>
                   </>
-                ) : stockDetalle.length === 0 ? (
+                ) : productosEnDetalle.length === 0 ? (
                   <div className="py-12 sm:py-16 text-center text-sm app-text-faint font-medium px-4">
                     No hay stock registrado en esta ubicación.
                   </div>
                 ) : (
                   <>
                     <div className="md:hidden flex flex-col gap-3">
-                      {stockDetalle.map((item, idx) => (
-                        <StockVarianteCard key={`${item.idVariante}-${item.idUbicacionArea}`} item={item} index={idx} />
+                      {productosEnDetalle.map((prod, idx) => (
+                        <div
+                          key={`prod-${idx}`}
+                          className="animate-stagger-item rounded-2xl border bg-[var(--app-surface)] border-[var(--app-border)] p-4 shadow-sm hover:shadow-md transition-all duration-200"
+                          style={{ animationDelay: `${idx * 40}ms` }}
+                        >
+                          <p className="font-semibold app-heading text-sm leading-snug">{prod.nombre}</p>
+                          {prod.codigo && (
+                            <p className="text-[11px] app-text-faint font-mono font-bold mt-1">{prod.codigo}</p>
+                          )}
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-sm font-bold app-heading">{prod.stockTotal} uds.</span>
+                            <button
+                              type="button"
+                              onClick={() => setProductoModal({ nombre: prod.nombre, variantes: prod.variantes })}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-[var(--app-accent)] text-[var(--app-accent-fg)] hover:opacity-90 transition-all"
+                            >
+                              Ver variantes
+                              <MaterialIcon icon="visibility" className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       ))}
                     </div>
                     <div className="hidden md:block overflow-x-auto rounded-2xl border border-[var(--app-border)]">
@@ -450,36 +463,41 @@ const GestionPisos = ({
                             <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest app-text-faint uppercase">
                               Producto
                             </th>
-                            <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest app-text-faint uppercase">
-                              Color
-                            </th>
-                            <th className="px-5 py-4 text-left text-[11px] font-bold tracking-widest app-text-faint uppercase">
-                              Talla
+                            <th className="px-5 py-4 text-right text-[11px] font-bold tracking-widest app-text-faint uppercase">
+                              Stock Total
                             </th>
                             <th className="px-5 py-4 text-right text-[11px] font-bold tracking-widest app-text-faint uppercase">
-                              Stock Físico
+                              Acción
                             </th>
                           </tr>
                         </thead>
                         <tbody className="bg-[var(--app-surface)] divide-y divide-[var(--app-border)]">
-                          {stockDetalle.map((item, idx) => (
+                          {productosEnDetalle.map((prod, idx) => (
                             <tr
-                              key={`${item.idVariante}-${item.idUbicacionArea}`}
+                              key={`prod-${idx}`}
                               className="animate-stagger-item hover:bg-[var(--app-hover-overlay)] transition-colors duration-150"
                               style={{ animationDelay: `${idx * 30}ms` }}
                             >
                               <td className="px-5 py-4">
-                                <span className="font-semibold app-heading text-sm">{item.nombreProducto}</span>
+                                <span className="font-semibold app-heading text-sm">{prod.nombre}</span>
                                 <span className="ml-2 text-[11px] app-text-faint font-mono font-bold">
-                                  ({item.codigoIdentificacion})
+                                  ({prod.codigo})
                                 </span>
                               </td>
-                              <td className="px-5 py-4 text-sm app-text-muted font-medium">{item.color}</td>
-                              <td className="px-5 py-4 text-sm app-heading font-bold font-mono">{item.talla}</td>
                               <td className="px-5 py-4 text-right">
                                 <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-[var(--app-input)] app-heading">
-                                  {item.stockActual}
+                                  {prod.stockTotal}
                                 </span>
+                              </td>
+                              <td className="px-5 py-4 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() => setProductoModal({ nombre: prod.nombre, variantes: prod.variantes })}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-[var(--app-accent)] text-[var(--app-accent-fg)] hover:opacity-90 transition-all"
+                                >
+                                  Ver variantes
+                                  <MaterialIcon icon="visibility" className="h-3.5 w-3.5" />
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -499,10 +517,6 @@ const GestionPisos = ({
                   actions={
                     embedded ? (
                       <PageActionGroup>
-                        <PageActionButton grouped variant="secondary" onClick={refrescar} disabled={cargandoAreas}>
-                          <MaterialIcon icon="sync" className={`h-4 w-4 ${cargandoAreas ? "animate-spin" : ""}`} />
-                          Refrescar
-                        </PageActionButton>
                         {puedeTrasladar && (
                           <PageActionButton
                             grouped
@@ -533,15 +547,6 @@ const GestionPisos = ({
                       <div className="text-xs sm:text-sm app-metric-label font-medium mt-0.5 sm:mt-2 text-right xl:text-left">
                         Unidades físicas
                       </div>
-                      <div className="hidden xl:flex gap-1 h-1.5 mt-8 w-full opacity-80">
-                        <div className="w-[74%] bg-indigo-500 rounded-full" />
-                        <div className="w-[26%] rounded-full" style={{ backgroundColor: 'var(--app-border-strong)' }} />
-                      </div>
-                    </div>
-                    <div className="hidden sm:flex xl:flex bg-white/10 rounded-xl xl:rounded-2xl px-3 py-2 xl:p-4 backdrop-blur-md items-center justify-center shrink-0">
-                      <span className="text-xs sm:text-sm font-semibold app-metric-label whitespace-nowrap">
-                        {totalVariantesPiso} variantes
-                      </span>
                     </div>
                   </div>
 
@@ -639,9 +644,9 @@ const GestionPisos = ({
                                           cargarDetalleArea(ubicacion);
                                         }}
                                         className="inline-flex min-h-10 items-center justify-center gap-2 px-4 py-2 rounded-full bg-[var(--app-accent)] text-[var(--app-accent-fg)] text-[10px] font-bold uppercase tracking-wider shadow hover:opacity-90 active:scale-[0.98] transition-all touch-manipulation"
-                                        title={puedeTrasladar ? "Ver stock y trasladar mercadería" : "Ver stock del área"}
+                                        title="Ver detalles del área"
                                       >
-                                        {puedeTrasladar ? "Ver y Trasladar" : "Ver stock"}
+                                        Ver detalles
                                         <MaterialIcon icon="arrow_forward" className="h-3.5 w-3.5" />
                                       </button>
                                     </td>
@@ -665,6 +670,52 @@ const GestionPisos = ({
           )}
         </div>
       </section>
+
+      {productoModal && (
+        <ModalPortal>
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-200">
+              <div className="flex justify-between items-center mb-5">
+                <h3 className="text-lg font-bold text-gray-900 break-words pr-4">{productoModal.nombre}</h3>
+                <button
+                  type="button"
+                  onClick={() => setProductoModal(null)}
+                  className="shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                >
+                  <MaterialIcon icon="close" className="h-5 w-5 text-gray-500" />
+                </button>
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold tracking-widest text-gray-500 uppercase">Color</th>
+                      <th className="px-4 py-3 text-left text-[11px] font-bold tracking-widest text-gray-500 uppercase">Talla</th>
+                      <th className="px-4 py-3 text-right text-[11px] font-bold tracking-widest text-gray-500 uppercase">Cantidad</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {productoModal.variantes.map((v) => (
+                      <tr key={v.idVariante} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3 text-sm text-gray-700 font-medium">{v.color ?? '—'}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900 font-bold font-mono">{v.talla ?? '—'}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-blue-50 text-blue-700">
+                            {v.stockActual}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {productoModal.variantes.length === 0 && (
+                <p className="text-center text-sm text-gray-500 py-8">No hay variantes registradas.</p>
+              )}
+            </div>
+          </div>
+        </ModalPortal>
+      )}
 
       {puedeTrasladar && (
         <MoverMercaderiaModal
