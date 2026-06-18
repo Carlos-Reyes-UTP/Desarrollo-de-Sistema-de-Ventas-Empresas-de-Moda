@@ -58,6 +58,8 @@ const GestionProductos: React.FC = () => {
   const [selectedCategoriaPrincipal, setSelectedCategoriaPrincipal] = useState<string>('');
   const [selectedSubCategoria, setSelectedSubCategoria] = useState<string>('');
   const [selectedStock, setSelectedStock] = useState<string>('');
+  const [searchAreaAlmacen, setSearchAreaAlmacen] = useState<string>('');
+  const [selectedAreaAlmacen, setSelectedAreaAlmacen] = useState<string>('');
   const [searchCategoriaPrincipal, setSearchCategoriaPrincipal] = useState<string>('');
   const [searchSubCategoria, setSearchSubCategoria] = useState<string>('');
   const [searchProveedor, setSearchProveedor] = useState<string>('');
@@ -73,11 +75,28 @@ const GestionProductos: React.FC = () => {
   const [isCategoriaPrincipalFocused, setIsCategoriaPrincipalFocused] = useState(false);
   const [isSubCategoriaFocused, setIsSubCategoriaFocused] = useState(false);
   const [isProveedorFocused, setIsProveedorFocused] = useState(false);
+  const [isAreaAlmacenFocused, setIsAreaAlmacenFocused] = useState(false);
+  const [isStockFocused, setIsStockFocused] = useState(false);
+
+  const defaultIdUbicacionArea = useMemo(() => {
+    if (accesoAreaAlmacen?.idUbicacionAreaAsignada != null) {
+      return accesoAreaAlmacen.idUbicacionAreaAsignada;
+    }
+    if (selectedAreaAlmacen && accesoAreaAlmacen?.areasAlmacen) {
+      const match = accesoAreaAlmacen.areasAlmacen.find(ua => ua.area === selectedAreaAlmacen);
+      return match?.idUbicacionArea;
+    }
+    return undefined;
+  }, [accesoAreaAlmacen, selectedAreaAlmacen]);
 
   // Referencias para los componentes de búsqueda
   const categoriaPrincipalRef = useRef<HTMLDivElement>(null);
   const subcategoriaRef = useRef<HTMLDivElement>(null);
   const proveedorRef = useRef<HTMLDivElement>(null);
+  const areaAlmacenRef = useRef<HTMLDivElement>(null);
+  const stockRef = useRef<HTMLDivElement>(null);
+  const selectedAreaAlmacenRef = useRef(selectedAreaAlmacen);
+  selectedAreaAlmacenRef.current = selectedAreaAlmacen;
   const datosInicialesCargadosRef = useRef(false);
   const busquedaDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const omitirDebounceBusquedaRef = useRef(true);
@@ -125,6 +144,20 @@ const GestionProductos: React.FC = () => {
     p.nombre.toLowerCase().includes(searchProveedor.toLowerCase())
   );
 
+  const areasUnicas = useMemo(() => {
+    if (!accesoAreaAlmacen?.areasAlmacen) return [];
+    const map = new Map<string, string>();
+    accesoAreaAlmacen.areasAlmacen.forEach(ua => {
+      if (ua.area) map.set(ua.area, ua.area);
+    });
+    return Array.from(map.values()).sort();
+  }, [accesoAreaAlmacen?.areasAlmacen]);
+
+  const areasAlmacenFiltradas = areasUnicas.filter(area =>
+    searchAreaAlmacen === '' || 
+    area.toLowerCase().includes(searchAreaAlmacen.toLowerCase())
+  );
+
   const productosFiltrados = productos.filter((producto) => {
     const categoriaPrincipalNombre =
       producto.categoriaPadre?.nombre ??
@@ -144,8 +177,9 @@ const GestionProductos: React.FC = () => {
     const coincideStock =
       !selectedStock ||
       (selectedStock === 'sin-stock' && cantidad === 0) ||
-      (selectedStock === 'critico' && cantidad >= 1 && cantidad <= 5) ||
-      (selectedStock === 'normal' && cantidad > 5);
+      (selectedStock === 'bajo-stock' && cantidad >= 1 && cantidad < 30) ||
+      (selectedStock === 'normal' && cantidad >= 30 && cantidad <= 180) ||
+      (selectedStock === 'sobre-stock' && cantidad > 180);
 
     return (
       coincideCategoriaPrincipal &&
@@ -176,7 +210,7 @@ const GestionProductos: React.FC = () => {
         20,
         busqueda,
         rolParaApiProductos,
-        sectorParaApi
+        selectedAreaAlmacenRef.current || sectorParaApi
       );
       
       setProductos(paginaProductos.content || []);
@@ -199,7 +233,7 @@ const GestionProductos: React.FC = () => {
     if (!datosInicialesCargadosRef.current) return;
     setPage(0);
     void cargarFiltrosYDatos(0, searchTerm);
-  }, [sectorParaApi]);
+  }, [sectorParaApi, selectedAreaAlmacen]);
 
   // Búsqueda en tiempo real (al escribir o borrar, sin Enter ni blur).
   useEffect(() => {
@@ -289,6 +323,12 @@ const GestionProductos: React.FC = () => {
       if (proveedorRef.current && !proveedorRef.current.contains(event.target as Node)) {
         setIsProveedorFocused(false);
       }
+      if (areaAlmacenRef.current && !areaAlmacenRef.current.contains(event.target as Node)) {
+        setIsAreaAlmacenFocused(false);
+      }
+      if (stockRef.current && !stockRef.current.contains(event.target as Node)) {
+        setIsStockFocused(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -302,6 +342,8 @@ const GestionProductos: React.FC = () => {
     setSelectedCategoriaPrincipal("");
     setSelectedSubCategoria("");
     setSelectedProveedor("");
+    setSelectedAreaAlmacen("");
+    setSearchAreaAlmacen("");
     setSelectedStock("");
     setSearchCategoriaPrincipal("");
     setSearchSubCategoria("");
@@ -365,7 +407,7 @@ const GestionProductos: React.FC = () => {
       <PageHeader
         surface="elevated"
         eyebrow="Módulo · Inventario"
-        title="Inventario"
+        title="Gestión de Productos"
         belowTitle={
           <>
             {accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && etiquetaStock && (
@@ -475,10 +517,12 @@ const GestionProductos: React.FC = () => {
         <>
           {/* Filters and Search Bar */}
           <div className="bg-app-surface rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-app-border">
-        <div className="grid grid-cols-1 lg:grid-cols-6 gap-8 items-end">
+
+        {/* Row 1: Search + Area + Stock */}
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 items-end mb-8">
           
-          {/* Search Input - Taking more space */}
-          <div className="lg:col-span-1">
+          {/* Search Input */}
+          <div className="lg:col-span-3">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
               Buscar Producto
             </label>
@@ -502,8 +546,133 @@ const GestionProductos: React.FC = () => {
             </div>
           </div>
 
+          {/* Área de Almacén (solo para supervisores/admin, no almaceneros) */}
+          {!accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo && (
+            <div className="lg:col-span-2 relative" ref={areaAlmacenRef}>
+              <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                Área de Almacén
+              </label>
+              <div 
+                onClick={() => { if (!selectedAreaAlmacen) setIsAreaAlmacenFocused(prev => !prev); }}
+                className={`relative cursor-pointer ${selectedAreaAlmacen ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
+              >
+                <span className="text-sm font-bold truncate">
+                  {selectedAreaAlmacen || "Todas las áreas"}
+                </span>
+
+                {selectedAreaAlmacen ? (
+                  <MaterialIcon 
+                    icon="close"
+                    className="w-4 h-4 cursor-pointer hover:text-gray-300" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedAreaAlmacen('');
+                      setSearchAreaAlmacen('');
+                    }}
+                  />
+                ) : (
+                  <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                )}
+              </div>
+
+              {isAreaAlmacenFocused && !selectedAreaAlmacen && (
+                <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Filtrar..."
+                    value={searchAreaAlmacen}
+                    onChange={(e) => setSearchAreaAlmacen(e.target.value)}
+                    className="w-full px-3 py-2 text-xs bg-app-bg-muted rounded-lg mb-2 focus:outline-none text-app-text"
+                  />
+
+                  {areasAlmacenFiltradas.map(area => (
+                    <button
+                      key={area}
+                      onClick={() => {
+                        setSelectedAreaAlmacen(area);
+                        setSearchAreaAlmacen('');
+                        setIsAreaAlmacenFocused(false);
+                      }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay text-app-text rounded-lg transition-colors font-medium"
+                    >
+                      {area}
+                    </button>
+                  ))}
+
+                  {areasAlmacenFiltradas.length === 0 && (
+                    <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                      No se encontraron áreas
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Nivel de Stock */}
+          <div className={`relative ${!accesoAreaAlmacen?.restriccionTrasladoMismaAreaCatalogo ? 'lg:col-span-2' : 'lg:col-span-4'}`} ref={stockRef}>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+              Nivel de Stock
+            </label>
+            <div 
+              onClick={() => { if (!selectedStock) setIsStockFocused(prev => !prev); }}
+              className={`relative cursor-pointer ${selectedStock ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
+            >
+              <span className="text-sm font-bold truncate">
+                {selectedStock
+                  ? ({ 'sin-stock': 'Sin stock', 'bajo-stock': 'Bajo Stock', 'normal': 'Normal', 'sobre-stock': 'Sobre Stock' }[selectedStock] || selectedStock)
+                  : "Cualquier nivel"}
+              </span>
+
+              {selectedStock ? (
+                <MaterialIcon 
+                  icon="close"
+                  className="w-4 h-4 cursor-pointer hover:text-gray-300" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedStock('');
+                  }}
+                />
+              ) : (
+                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              )}
+            </div>
+
+            {isStockFocused && !selectedStock && (
+              <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-2 animate-fadeIn">
+                {[
+                  { value: 'sin-stock', label: 'Sin stock' },
+                  { value: 'bajo-stock', label: 'Bajo Stock (1-29)' },
+                  { value: 'normal', label: 'Normal (30-180)' },
+                  { value: 'sobre-stock', label: 'Sobre Stock (>180)' },
+                ].map(option => (
+                  <button
+                    key={option.value}
+                    onClick={() => {
+                      setSelectedStock(option.value);
+                      setIsStockFocused(false);
+                    }}
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay text-app-text rounded-lg transition-colors font-medium"
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+        </div>
+
+        {/* Row 2: Category + Subcategory + Provider + Button */}
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-8 items-end">
+          
           {/* Primary Category */}
-          <div className="lg:col-span-1 relative" ref={categoriaPrincipalRef}>
+          <div className="lg:col-span-2 relative" ref={categoriaPrincipalRef}>
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
               Categoría Principal
             </label>
@@ -532,7 +701,6 @@ const GestionProductos: React.FC = () => {
               )}
             </div>
 
-            {/* Dropdown logic for Categoria Principal */}
             {isCategoriaPrincipalFocused && !selectedCategoriaPrincipal && (
               <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
                 <input
@@ -551,7 +719,6 @@ const GestionProductos: React.FC = () => {
                       setSelectedCategoriaPrincipal(categoria.nombre);
                       setSearchCategoriaPrincipal('');
                       setIsCategoriaPrincipalFocused(false);
-                      // handleBuscar(); // Idealmente recargar con filtro server-side
                     }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay text-app-text rounded-lg transition-colors font-medium"
                   >
@@ -563,7 +730,7 @@ const GestionProductos: React.FC = () => {
           </div>
 
           {/* Subcategory */}
-          <div className="lg:col-span-1 relative" ref={subcategoriaRef}>
+          <div className="lg:col-span-2 relative" ref={subcategoriaRef}>
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
               Subcategoría
             </label>
@@ -620,8 +787,8 @@ const GestionProductos: React.FC = () => {
             )}
           </div>
 
-          {/* Provider / Public Combined (Simplified for UI) */}
-          <div className="lg:col-span-1 relative" ref={proveedorRef}>
+          {/* Provider */}
+          <div className="lg:col-span-2 relative" ref={proveedorRef}>
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
               Proveedor
             </label>
@@ -650,7 +817,6 @@ const GestionProductos: React.FC = () => {
               )}
             </div>
 
-            {/* Dropdown logic for Proveedor */}
             {isProveedorFocused && !selectedProveedor && (
               <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
                 <input
@@ -686,18 +852,18 @@ const GestionProductos: React.FC = () => {
             )}
           </div>
 
-
-          {/* Botón Buscar explícito */}
-          <div className="lg:col-span-2 flex flex-col justify-end h-full">
+          {/* Botón Buscar */}
+          <div className="lg:col-span-1 flex flex-col justify-end h-full">
              <button
               onClick={handleBuscar}
               className="w-full py-3 bg-app-accent text-app-accent-fg rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-md hover:opacity-90"
             >
-              Aplicar Búsqueda
+              Buscar
             </button>
           </div>
 
         </div>
+
       </div>
 
       {/* Product Table Section */}
@@ -774,12 +940,12 @@ const GestionProductos: React.FC = () => {
                 const cantidad = producto.stockAlmacen ?? 0;
                 let stockStatus = { color: 'bg-gray-400', label: 'SIN STOCK', text: 'text-gray-400' };
                 
-                if (cantidad > 10) {
-                  stockStatus = { color: 'bg-[#10b981]', label: 'ÓPTIMO', text: 'text-[#10b981]' };
-                } else if (cantidad >= 6) {
-                  stockStatus = { color: 'bg-[#f59e0b]', label: 'MEDIO', text: 'text-[#f59e0b]' };
+                if (cantidad > 180) {
+                  stockStatus = { color: 'bg-[#3b82f6]', label: 'SOBRE STOCK', text: 'text-[#3b82f6]' };
+                } else if (cantidad >= 30) {
+                  stockStatus = { color: 'bg-[#10b981]', label: 'NORMAL', text: 'text-[#10b981]' };
                 } else if (cantidad >= 1) {
-                  stockStatus = { color: 'bg-[#ef4444]', label: 'CRÍTICO', text: 'text-[#ef4444]' };
+                  stockStatus = { color: 'bg-[#f59e0b]', label: 'BAJO STOCK', text: 'text-[#f59e0b]' };
                 }
 
                 return (
@@ -980,6 +1146,7 @@ const GestionProductos: React.FC = () => {
       {showVariantes && productoVariantes && (
         <GestionVariantes
           producto={productoVariantes}
+          idUbicacionArea={defaultIdUbicacionArea}
           onClose={() => {
             setShowVariantes(false);
             setProductoVariantes(null);

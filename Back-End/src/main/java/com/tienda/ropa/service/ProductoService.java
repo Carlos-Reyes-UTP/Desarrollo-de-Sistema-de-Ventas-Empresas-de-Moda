@@ -216,6 +216,18 @@ public class ProductoService {
             return page;
         }
 
+        // Aplicar filtro por sector (área de almacén) si se proporcionó
+        if (sector != null && !sector.trim().isEmpty()) {
+            Long idAreaCatalogo = inventarioContextService.resolverIdAreaCatalogoFiltro(usuario, sector);
+            if (idAreaCatalogo != null) {
+                page = sinBusqueda
+                        ? productoRepository.findProductosConStockEnSectorAlmacen(idAreaCatalogo, pageable)
+                        : productoRepository.findProductosConStockEnSectorAlmacenConBusqueda(idAreaCatalogo, termino, pageable);
+                enriquecerStock(page, ids -> productoRepository.findStockAlmacenByProductoIdsAndAreaCatalogo(ids, idAreaCatalogo));
+                return page;
+            }
+        }
+
         page = sinBusqueda
                 ? productoRepository.findProductosPaginadosSinBusqueda(pageable)
                 : productoRepository.findProductosPaginadosConBusqueda(termino, pageable);
