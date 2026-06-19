@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import { ReporteService } from '../../services/ReporteService';
 import type { ReporteCategoriaData } from '../../types/ReporteVentas';
 import { AlertModal, ChartSkeleton, Skeleton, PageActionButton, SectionHeader } from '@/shared/ui';
-import { useReportPeriodContext } from '@/components/reportes/context/ReportPeriodContext';
+import { DatePickerPopover } from '@/components/reportes/shared/DatePickerPopover';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
 import { ReportViewPills } from '@/components/reportes/layout/ReportViewPills';
@@ -32,7 +32,11 @@ interface Breadcrumb {
 }
 
 const ReportePorCategoria: React.FC = () => {
-  const { filtrosFecha } = useReportPeriodContext();
+  const INICIO_MES = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-01`;
+  const HOY = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`;
+  
+  const [fechaInicio, setFechaInicio] = useState<string>(INICIO_MES);
+  const [fechaFin, setFechaFin] = useState<string>(HOY);
   const { setActions } = useReportPageActions();
   const [reportes, setReportes] = useState<ReporteCategoriaData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +54,38 @@ const ReportePorCategoria: React.FC = () => {
 
   useEffect(() => {
     cargarReportes();
-  }, [filtrosFecha, nivelActual]);
+  }, [fechaInicio, fechaFin, nivelActual]);
+
+  const aplicarFiltroRapido = (tipo: 'hoy' | 'semana' | 'mes') => {
+    const hoy = new Date();
+    const fechaFinStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+    
+    let fechaInicioStr = '';
+    
+    switch (tipo) {
+      case 'hoy':
+        fechaInicioStr = fechaFinStr;
+        break;
+      case 'semana':
+        const hace7Dias = new Date(hoy);
+        hace7Dias.setDate(hoy.getDate() - 7);
+        fechaInicioStr = `${hace7Dias.getFullYear()}-${String(hace7Dias.getMonth() + 1).padStart(2, '0')}-${String(hace7Dias.getDate()).padStart(2, '0')}`;
+        break;
+      case 'mes':
+        const hace30Dias = new Date(hoy);
+        hace30Dias.setDate(hoy.getDate() - 30);
+        fechaInicioStr = `${hace30Dias.getFullYear()}-${String(hace30Dias.getMonth() + 1).padStart(2, '0')}-${String(hace30Dias.getDate()).padStart(2, '0')}`;
+        break;
+    }
+    
+    setFechaInicio(fechaInicioStr);
+    setFechaFin(fechaFinStr);
+  };
+
+  const limpiarFiltros = () => {
+    setFechaInicio(INICIO_MES);
+    setFechaFin(HOY);
+  };
 
   const parentNombre = breadcrumbs.length > 1 ? breadcrumbs[breadcrumbs.length - 1]?.nombre : undefined;
   const insightCategoria = useMemo(
@@ -67,16 +102,21 @@ const ReportePorCategoria: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      const filtrosLocal = {
+        fechaInicio: fechaInicio ? new Date(fechaInicio + 'T00:00:00').toISOString() : undefined,
+        fechaFin: fechaFin ? new Date(fechaFin + 'T23:59:59').toISOString() : undefined,
+      };
+      
       let data: any[];
       
       switch (nivelActual) {
         case 'padre':
           console.log('🔍 Cargando categorías principales...');
           console.log('📡 Endpoint:', 'http://localhost:8080/api/admin/reportes/por-categoria');
-          console.log('📊 Filtros enviados:', filtrosFecha);
+          console.log('📊 Filtros enviados:', filtrosLocal);
           
           // Llamada al servicio
-          data = await ReporteService.getReportePorCategoria(filtrosFecha);
+          data = await ReporteService.getReportePorCategoria(filtrosLocal);
           console.log('📈 Respuesta del backend:', data);
           
           if (data.length === 0) {
@@ -87,7 +127,7 @@ const ReportePorCategoria: React.FC = () => {
         case 'subcategoria':
           if (categoriaSeleccionadaRef.current) {
             console.log(`🔍 Cargando subcategorías para la categoría ${categoriaSeleccionadaRef.current}...`);
-            data = await ReporteService.getReportePorSubcategoria(categoriaSeleccionadaRef.current, filtrosFecha);
+            data = await ReporteService.getReportePorSubcategoria(categoriaSeleccionadaRef.current, filtrosLocal);
           } else {
             console.warn('⚠️ No hay categoría seleccionada para mostrar subcategorías');
             data = [];
@@ -96,7 +136,7 @@ const ReportePorCategoria: React.FC = () => {
         case 'segunda-subcategoria':
           if (categoriaSeleccionadaRef.current) {
             console.log(`🔍 Cargando segunda subcategoría para la subcategoría ${categoriaSeleccionadaRef.current}...`);
-            data = await ReporteService.getReportePorSegundaSubcategoria(categoriaSeleccionadaRef.current, filtrosFecha);
+            data = await ReporteService.getReportePorSegundaSubcategoria(categoriaSeleccionadaRef.current, filtrosLocal);
           } else {
             console.warn('⚠️ No hay subcategoría seleccionada para mostrar segunda subcategoría');
             data = [];
@@ -290,6 +330,64 @@ const ReportePorCategoria: React.FC = () => {
       {insightCategoria ? (
         <ReportInsightBanner message={insightCategoria} headline="Mix por categoría" icon="category" />
       ) : null}
+
+      <DashboardPanel className="!p-5 sm:!p-6 relative z-20">
+        <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
+          {/* Fecha inicio */}
+          <DatePickerPopover
+            label="Fecha inicio"
+            value={fechaInicio}
+            onChange={setFechaInicio}
+          />
+
+          {/* Fecha fin */}
+          <DatePickerPopover
+            label="Fecha fin"
+            value={fechaFin}
+            onChange={setFechaFin}
+            min={fechaInicio}
+          />
+
+          {/* Limpiar */}
+          <div>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 invisible">
+              _
+            </label>
+            <button
+              onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }}
+              className="w-full inline-flex min-h-12 lg:h-12 items-center justify-center gap-2 px-6 lg:px-8 text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-200 app-btn-primary shadow-sm"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mt-4">
+          <span className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mr-2">
+            Filtros rápidos
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('hoy'); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+          >
+            Hoy
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('semana'); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+          >
+            Últimos 7 días
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('mes'); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+          >
+            Últimos 30 días
+          </button>
+        </div>
+      </DashboardPanel>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <DashboardMetricCard

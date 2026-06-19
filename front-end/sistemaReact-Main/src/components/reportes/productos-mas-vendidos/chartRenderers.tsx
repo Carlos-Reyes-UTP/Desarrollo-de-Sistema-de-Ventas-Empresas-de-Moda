@@ -45,11 +45,11 @@ export const CustomTooltipVariantes = ({ active, payload }: TooltipProps<Variant
     <ReportChartTooltip
       title={data.nombreColor}
       rows={[
-        { label: 'Unidades', value: data.cantidadVendida.toLocaleString('es-PE') },
-        { label: 'Stock', value: data.cantidadStock.toLocaleString('es-PE') },
+        { label: 'Unidades', value: data.cantidadVendida?.toLocaleString('es-PE') || '0' },
+        ...(data.cantidadStock !== undefined ? [{ label: 'Stock', value: data.cantidadStock.toLocaleString('es-PE') }] : []),
         {
           label: 'Ingresos',
-          value: `S/ ${Number(data.ingresosTotales).toLocaleString('es-PE')}`,
+          value: `S/ ${Number(data.ingresosTotales || 0).toLocaleString('es-PE')}`,
           emphasize: true,
         },
       ]}
