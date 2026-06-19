@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AlmacenService } from "@/services/AlmacenService";
 import type { UbicacionArea, StockUbicacion } from "@/types/Almacen";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
@@ -176,6 +177,31 @@ const GestionPisos = ({
   const modalAbiertoRef = useRef(false);
   modalAbiertoRef.current = trasladoGlobalAbierto || origenAreaModal !== null;
 
+  const [searchParams] = useSearchParams();
+
+  const autoNavRef = useRef<{
+    areaId: number;
+    varianteId: number;
+    productoId: number;
+    pisoNombre: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const areaIdStr = searchParams.get('areaId');
+    const varianteIdStr = searchParams.get('varianteId');
+    const productoIdStr = searchParams.get('productoId');
+    const pisoNombre = searchParams.get('pisoNombre');
+
+    if (areaIdStr && varianteIdStr && productoIdStr && pisoNombre) {
+      autoNavRef.current = {
+        areaId: parseInt(areaIdStr),
+        varianteId: parseInt(varianteIdStr),
+        productoId: parseInt(productoIdStr),
+        pisoNombre: pisoNombre,
+      };
+    }
+  }, []);
+
   const filtrarAreasPorSector = useCallback(
     (items: AreaConStock[]) => {
       if (!esAlmaceneroRestringido || !nombreAreaAsignada) {
@@ -299,6 +325,34 @@ const GestionPisos = ({
     });
     return Array.from(map.values());
   }, [stockDetalle]);
+
+  useEffect(() => {
+    const nav = autoNavRef.current;
+    if (!nav) return;
+
+    if (pisos.length > 0 && pisoSeleccionado !== nav.pisoNombre && pisos.includes(nav.pisoNombre)) {
+      setPisoSeleccionado(nav.pisoNombre);
+      return;
+    }
+
+    if (pisoSeleccionado === nav.pisoNombre && !cargandoAreas && !areaDetalle) {
+      const area = areas.find(a => a.ubicacion.idUbicacionArea === nav.areaId);
+      if (area) {
+        cargarDetalleArea(area.ubicacion);
+        return;
+      }
+    }
+
+    if (areaDetalle?.idUbicacionArea === nav.areaId && !cargandoDetalle && stockDetalle.length > 0) {
+      const prod = productosEnDetalle.find(p =>
+        p.variantes.some(v => v.idVariante === nav.varianteId)
+      );
+      if (prod) {
+        autoNavRef.current = null;
+        setProductoModal({ nombre: prod.nombre, variantes: prod.variantes });
+      }
+    }
+  }, [pisos, pisoSeleccionado, areas, cargandoAreas, areaDetalle, cargandoDetalle, stockDetalle, productosEnDetalle]);
 
   const productosFiltrados = useMemo(() => {
     const q = busquedaDetalle.toLowerCase().trim();

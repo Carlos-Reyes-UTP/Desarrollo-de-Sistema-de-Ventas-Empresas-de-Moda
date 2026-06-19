@@ -29,6 +29,8 @@ const GestionProductos: React.FC = () => {
     tabParam === 'pisos' && puedeVerPisos ? 'pisos'
     : tabParam === 'historial' && puedeVerHistorial ? 'historial'
     : 'catalogo';
+  const initialOpenModal = useRef(searchParams.get('openModal') === 'true');
+  const initialExportModal = useRef(searchParams.get('exportModal') === 'true');
   const { acceso: accesoAreaAlmacen, etiquetaStock } = useAccesoAreaAlmacen(true);
 
   const sectorParaApi = useMemo(() => {
@@ -280,16 +282,31 @@ const GestionProductos: React.FC = () => {
     tabAnteriorRef.current = tabActual;
   }, [tabActual, cargarDatos]);
 
-  // Verificar si se debe abrir el modal automáticamente
+  // Abrir modal de nuevo producto si se navegó con ?openModal=true (una vez al montar)
   useEffect(() => {
-    const openModal = searchParams.get('openModal');
-    if (openModal === 'true') {
+    if (initialOpenModal.current) {
       setShowFormulario(true);
-      const params = new URLSearchParams(searchParams);
-      params.delete('openModal');
-      setSearchParams(params);
+      const timer = setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('openModal');
+        window.history.replaceState({}, '', url.toString());
+      }, 800);
+      return () => clearTimeout(timer);
     }
-  }, [searchParams, setSearchParams]);
+  }, []);
+
+  // Abrir modal de exportación si se navegó con ?exportModal=true (una vez al montar)
+  useEffect(() => {
+    if (initialExportModal.current) {
+      setExportModalOpen(true);
+      const timer = setTimeout(() => {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('exportModal');
+        window.history.replaceState({}, '', url.toString());
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   // Aplicar filtro de stock desde URL
   useEffect(() => {

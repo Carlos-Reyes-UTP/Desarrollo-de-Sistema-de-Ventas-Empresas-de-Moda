@@ -573,9 +573,9 @@ const DashboardAlmaceneroPage = () => {
             </DashboardPanel>
           </div>
 
-          <div className="lg:col-span-4 space-y-8 h-full flex flex-col">
+          <div className="lg:col-span-4 grid grid-cols-1 gap-8" style={{ gridTemplateRows: '1fr auto' }}>
             {/* Alertas - Estilo Compacto de Notificaciones con Reposición */}
-            <DashboardPanel className="text-left flex flex-col flex-1">
+            <DashboardPanel className="text-left flex flex-col">
               <SectionHeader
                 title="Alertas"
                 action={
@@ -597,7 +597,7 @@ const DashboardAlmaceneroPage = () => {
               {/* Sección Críticas (existente) */}
               {alertasCriticasPiso.length > 0 && (
                 <>
-                  <p className="text-[9px] font-black app-text-faint uppercase tracking-widest mb-2">Críticas en piso</p>
+                  <p className="text-[9px] font-black app-text-faint uppercase tracking-widest mb-2">Stock Bajo en Pisos</p>
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {alertasCriticasPiso.map(alerta => (
                       <div
@@ -617,7 +617,7 @@ const DashboardAlmaceneroPage = () => {
                         </div>
                         <button
                           type="button"
-                          onClick={() => navigate(`${APP_PATHS.productos}?id=${alerta.idProducto}`)}
+                          onClick={() => navigate(`${APP_PATHS.productos}?tab=pisos&areaId=${alerta.idUbicacionArea}&varianteId=${alerta.idVariante}&productoId=${alerta.idProducto}&pisoNombre=${encodeURIComponent(alerta.ubicacionPiso)}`)}
                           className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100"
                         >
                           Ver
@@ -708,32 +708,47 @@ const DashboardAlmaceneroPage = () => {
             </DashboardPanel>
 
             <DashboardCtaPanel title="Acciones Rápidas" subtitle="Centro de Control Operativo">
-                {puedeVerPisos && (
-                  <button
-                    type="button"
-                    onClick={() => navigate(`${APP_PATHS.productos}?tab=pisos`)}
-                    className="w-full h-14 app-cta-btn-primary rounded-2xl text-[10px] font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
-                  >
-                    Nuevo Traslado
-                    <MaterialIcon icon="arrow_right_alt" className="w-4 h-4" />
-                  </button>
+                {tieneRol('ROLE_SUPERVISOR_ALMACEN') ? (
+                  <div className="space-y-3">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`${APP_PATHS.productos}?tab=historial`)}
+                      className="w-full h-14 app-cta-btn-primary rounded-2xl text-xs font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
+                    >
+                      <MaterialIcon icon="history" className="w-5 h-5" />
+                      Ver Historial de Traslados
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`${APP_PATHS.productos}?exportModal=true`)}
+                      className="w-full h-14 app-cta-btn-primary rounded-2xl text-xs font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
+                    >
+                      <MaterialIcon icon="download" className="w-5 h-5" />
+                      Reporte Stock
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {puedeVerPisos && (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`${APP_PATHS.productos}?tab=pisos`)}
+                        className="w-full h-14 app-cta-btn-primary rounded-2xl text-xs font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
+                      >
+                        <MaterialIcon icon="arrow_right_alt" className="w-5 h-5" />
+                        Nuevo Traslado
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => navigate(APP_PATHS.almacenTablero)}
+                      className="w-full h-14 app-cta-btn-primary rounded-2xl text-xs font-black uppercase tracking-[0.15em] transition-all flex items-center justify-center gap-3"
+                    >
+                      <MaterialIcon icon="dashboard" className="w-5 h-5" />
+                      Tablero de Solicitudes
+                    </button>
+                  </div>
                 )}
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => navigate(`${APP_PATHS.productos}?openModal=true`)}
-                    className="h-12 app-cta-btn-secondary rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all"
-                  >
-                    Nuevo Producto
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { }}
-                    className="h-12 app-cta-btn-secondary rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all"
-                  >
-                    Reporte Stock
-                  </button>
-                </div>
             </DashboardCtaPanel>
           </div>
         </div>
