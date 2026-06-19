@@ -148,6 +148,7 @@ const ProductosMasVendidos: React.FC = () => {
   const [tallaSeleccionada, setTallaSeleccionada] = useState<string | null>(null);
   const [variantesPorColor, setVariantesPorColor] = useState<VariantesPorColor[]>([]);
   const [mostrarAnalisisDetallado, setMostrarAnalisisDetallado] = useState(false);
+  const [isClosingDetallado, setIsClosingDetallado] = useState(false);
   const [loadingTallas, setLoadingTallas] = useState(false);
   const [loadingVariantes, setLoadingVariantes] = useState(false);
   const [tipoGraficoVariantes, setTipoGraficoVariantes] = useState<'barras' | 'torta'>('barras');
@@ -314,12 +315,22 @@ const ProductosMasVendidos: React.FC = () => {
   };
 
   const cerrarAnalisisDetallado = () => {
-    setMostrarAnalisisDetallado(false);
-    setProductoSeleccionado(null);
-    setTallasProducto([]);
-    setTallaSeleccionada(null);
-    setVariantesPorColor([]);
+    setIsClosingDetallado(true);
+    setTimeout(() => {
+      setMostrarAnalisisDetallado(false);
+      setProductoSeleccionado(null);
+      setTallasProducto([]);
+      setTallaSeleccionada(null);
+      setVariantesPorColor([]);
+      setIsClosingDetallado(false);
+    }, 300);
   };
+
+  useEffect(() => {
+    if (mostrarAnalisisDetallado) {
+      cerrarAnalisisDetallado();
+    }
+  }, [tipoAnalisis, vistaGrafico]);
 
   // Función para aplicar filtros rápidos - simplificada para evitar dobles cargas
   const aplicarFiltroRapido = (tipo: 'hoy' | 'semana' | 'mes') => {
@@ -1016,7 +1027,11 @@ const ProductosMasVendidos: React.FC = () => {
             </div>
           )}
           <div className="overflow-x-auto p-6">
-            <SectionHeader title={tipoAnalisis === 'individual' ? 'Resultados de búsqueda' : 'Ranking completo'} />
+            <div className="mb-4">
+              <h4 className="text-[10px] font-black uppercase tracking-wider app-text-faint">
+                {tipoAnalisis === 'individual' ? 'Resultados de Búsqueda' : 'Ranking Completo'}
+              </h4>
+            </div>
             <table className="min-w-full divide-y divide-[var(--app-border)]">
               <thead className="bg-[var(--app-bg-muted)]">
                 <tr>
@@ -1045,41 +1060,42 @@ const ProductosMasVendidos: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-[var(--app-border)]">
                 {productosFiltrados.map((producto, index) => (
-                  <tr key={producto.idProducto} className="hover:bg-gray-50">
+                  <tr key={producto.idProducto} className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-blue-600 font-medium text-sm">{index + 1}</span>
+                        <div className="flex-shrink-0 h-8 w-8 bg-[var(--app-bg-muted)] border border-[var(--app-border)] rounded-full flex items-center justify-center">
+                          <span className="text-[var(--app-accent)] font-black text-xs">{index + 1}</span>
                         </div>
                         <div className="ml-3">
-                          <div className="text-sm font-medium text-gray-900">{producto.nombreProducto}</div>
+                          <div className="text-sm font-bold text-[var(--app-text)]">{producto.nombreProducto}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
+                      <span className="inline-flex px-2.5 py-1 text-[10px] font-black uppercase tracking-wider bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] rounded-lg">
                         {formatearCategoriaCompleta(producto)}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      {producto.cantidadVendida}
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className="text-sm font-bold text-[var(--app-text)]">{producto.cantidadVendida}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      S/.{producto.ingresosTotales.toLocaleString()}
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className="text-sm font-bold text-[var(--app-text-muted)]">S/. {producto.ingresosTotales.toLocaleString()}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                      S/.{producto.precioPromedio}
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className="text-sm font-bold text-[var(--app-text-muted)]">S/. {producto.precioPromedio}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-900">
-                      {producto.codigoIdentificacion}
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <span className="text-sm font-bold text-[var(--app-text-muted)]">{producto.codigoIdentificacion}</span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <button
                         onClick={() => seleccionarProducto(producto)}
-                        className="inline-flex items-center px-3 py-1 border border-transparent text-xs leading-4 font-medium rounded-md app-btn-primary transition-colors"
+                        className="inline-flex items-center justify-center gap-2 px-4 py-2 app-btn-primary rounded-xl text-[10px] font-black uppercase tracking-wider transition-all shadow-sm shrink-0"
                         title="Análisis detallado por tallas y colores"
                       >
-                        📊 Analizar
+                        Analizar
+                        <MagnifyingGlassIcon className="w-3.5 h-3.5" />
                       </button>
                     </td>
                   </tr>
@@ -1092,227 +1108,226 @@ const ProductosMasVendidos: React.FC = () => {
 
       {/* Panel de análisis detallado */}
       {mostrarAnalisisDetallado && productoSeleccionado && (
-        <div className="app-panel rounded-xl p-6 transform transition-all duration-500 ease-out">
-          <div className="flex justify-between items-center mb-6">
-            <div className="transform transition-all duration-300 ease-out">
-              <h3 className="text-xl font-bold text-gray-900">📊 Análisis Detallado</h3>
-              <p className="text-lg text-gray-600 mt-1">
-                Producto: <span className="font-semibold text-blue-600">{productoSeleccionado.nombreProducto}</span>
-              </p>
+        <div className={`mt-8 ${isClosingDetallado ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-in fade-in slide-in-from-bottom-4'} transform transition-all duration-300 ease-out`}>
+          <DashboardPanel className="p-6">
+            <div className="flex justify-between items-center mb-8 border-b border-[var(--app-border)] pb-4">
+              <div className="transform transition-all duration-300 ease-out">
+                <h3 className="text-base font-black app-heading uppercase tracking-wider">
+                  ANÁLISIS DETALLADO DEL PRODUCTO <span className="text-[var(--app-accent)]">{productoSeleccionado.nombreProducto}</span>
+                </h3>
+              </div>
+              <button
+                onClick={cerrarAnalisisDetallado}
+                className="app-text-muted hover:text-[var(--app-text)] transition-all duration-300 ease-out p-2 rounded-full hover:bg-[var(--app-bg-hover)] hover:scale-110 transform"
+                aria-label="Cerrar análisis detallado"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <button
-              onClick={cerrarAnalisisDetallado}
-              className="text-gray-400 hover:text-gray-600 transition-all duration-300 ease-out p-2 rounded-full hover:bg-gray-100 hover:scale-110 transform"
-              aria-label="Cerrar análisis detallado"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
 
-          {/* Sección de tallas */}
-          <div className="mb-8">
-            <h4 className="text-lg font-semibold text-gray-900 mb-4">👕 Selecciona una talla para ver variantes por color:</h4>
-            {loadingTallas ? (
-              <div className="flex items-center justify-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <span className="ml-2 text-gray-600">Cargando tallas...</span>
-              </div>
-            ) : tallasProducto.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-                {tallasProducto.map((talla, index) => (
-                  <button
-                    key={`${talla.nombreTalla}-${index}`}
-                    onClick={() => seleccionarTalla(talla.nombreTalla)}
-                    className={`p-3 rounded-lg border-2 font-medium transition-all duration-300 ease-out transform hover:scale-105 hover:shadow-md ${
-                      tallaSeleccionada === talla.nombreTalla
-                        ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-md scale-105'
-                        : 'border-[var(--app-border)] bg-[var(--app-panel)] app-text-muted hover:border-[color-mix(in_srgb,var(--app-accent)_40%,var(--app-border))]'
-                    }`}
-                    style={{
-                      animationDelay: `${index * 50}ms`,
-                      animation: 'fadeInUp 0.4s ease-out forwards'
-                    }}
-                  >
-                    <div className="text-sm font-bold">{talla.nombreTalla}</div>
-                    <div className="text-xs text-gray-500">{talla.cantidadVariantes} variantes</div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                <CubeIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                <p>No se encontraron tallas para este producto</p>
+            {/* Sección de tallas */}
+            <div className="mb-8">
+              <h4 className="text-[10px] font-black uppercase tracking-wider app-text-faint mb-4">Selecciona una talla para ver variantes por color:</h4>
+              {loadingTallas ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--app-accent)]"></div>
+                  <span className="ml-2 app-text-muted text-sm font-bold">Cargando tallas...</span>
+                </div>
+              ) : tallasProducto.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {tallasProducto.map((talla, index) => (
+                    <button
+                      key={`${talla.nombreTalla}-${index}`}
+                      onClick={() => seleccionarTalla(talla.nombreTalla)}
+                      className={`p-3 rounded-xl border font-bold transition-all duration-300 ease-out transform hover:-translate-y-1 hover:shadow-sm ${
+                        tallaSeleccionada === talla.nombreTalla
+                          ? 'border-[var(--app-accent)] bg-[var(--app-accent)]/10 text-[var(--app-accent)] shadow-sm'
+                          : 'border-[var(--app-border)] bg-[var(--app-bg-muted)] app-text-muted hover:border-[var(--app-accent)] hover:text-[var(--app-text)]'
+                      }`}
+                      style={{
+                        animationDelay: `${index * 50}ms`,
+                        animation: 'fadeInUp 0.4s ease-out forwards'
+                      }}
+                    >
+                      <div className="text-sm">{talla.nombreTalla}</div>
+                      <div className="text-[10px] uppercase tracking-wider opacity-70 mt-1">{talla.cantidadVariantes} variantes</div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 app-text-faint">
+                  <CubeIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                  <p className="font-bold text-sm">No se encontraron tallas para este producto</p>
+                </div>
+              )}
+            </div>
+
+            {/* Sección de variantes por color */}
+            {tallaSeleccionada && (
+              <div className="transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-right-4">
+                <div className="flex justify-between items-center mb-6">
+                  <h4 className="text-sm font-black uppercase tracking-wider app-heading">
+                    Variantes por color - Talla: <span className="text-[var(--app-accent)]">{tallasProducto.find(t => t.nombreTalla === tallaSeleccionada)?.nombreTalla}</span>
+                  </h4>
+                  {/* Selector de tipo de gráfico */}
+                  <div className="flex bg-[var(--app-bg-muted)] border border-[var(--app-border)] rounded-xl p-1">
+                    <button
+                      onClick={() => setTipoGraficoVariantes('barras')}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ease-out ${
+                        tipoGraficoVariantes === 'barras'
+                          ? 'bg-[var(--app-bg)] text-[var(--app-text)] shadow-sm'
+                          : 'app-text-muted hover:text-[var(--app-text)]'
+                      }`}
+                    >
+                      Barras
+                    </button>
+                    <button
+                      onClick={() => setTipoGraficoVariantes('torta')}
+                      className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all duration-200 ease-out ${
+                        tipoGraficoVariantes === 'torta'
+                          ? 'bg-[var(--app-bg)] text-[var(--app-text)] shadow-sm'
+                          : 'app-text-muted hover:text-[var(--app-text)]'
+                      }`}
+                    >
+                      Torta
+                    </button>
+                  </div>
+                </div>
+                {/* Contenedor con altura fija para evitar saltos visuales */}
+                <div className="min-h-[400px] relative">
+                  {loadingVariantes && (
+                    <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--app-bg)_85%,transparent)] backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--app-accent)]"></div>
+                        <span className="app-text-muted font-bold text-sm">Cargando variantes...</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {variantesPorColor.length > 0 ? (
+                  <div className="space-y-6">
+                    {/* Gráfico dinámico para variantes por color */}
+                    <div className="bg-[var(--app-bg-muted)] rounded-2xl border border-[var(--app-border)] p-6">
+                      <h5 className="text-[10px] font-black uppercase tracking-wider app-text-faint mb-4">Distribución por colores</h5>
+                      <div className="h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                          {tipoGraficoVariantes === 'barras' ? (
+                            <BarChart data={variantesPorColor.filter(v => v.cantidadVendida > 0)} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                              <defs>
+                                <linearGradient id="colorVariantes" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="0%" stopColor="#6366F1" stopOpacity={0.95}/>
+                                  <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.4}/>
+                                </linearGradient>
+                              </defs>
+                              <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
+                              <XAxis 
+                                dataKey="nombreColor" 
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fill: '#64748b', fontSize: 11 }}
+                              />
+                              <YAxis 
+                                tickLine={false}
+                                axisLine={false}
+                                tick={{ fill: '#64748b', fontSize: 11 }}
+                              />
+                              <Tooltip content={<CustomTooltipVariantes />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
+                              <Bar 
+                                dataKey="cantidadVendida" 
+                                fill="url(#colorVariantes)" 
+                                name="Cantidad Vendida"
+                                radius={[6, 6, 0, 0]}
+                                maxBarSize={40}
+                              />
+                            </BarChart>
+                          ) : (
+                            <PieChart>
+                              <Pie
+                                data={variantesPorColor.filter(v => v.cantidadVendida > 0)}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                label={CustomPieLabel}
+                                innerRadius={50}
+                                outerRadius={75}
+                                paddingAngle={4}
+                                cornerRadius={5}
+                                dataKey="cantidadVendida"
+                                stroke="#ffffff"
+                                strokeWidth={1.5}
+                              >
+                                {variantesPorColor.filter(v => v.cantidadVendida > 0).map((entry, index) => (
+                                  <Cell 
+                                    key={`color-${entry.nombreColor}-${index}`} 
+                                    fill={entry.hexColor || `hsl(${index * 45}, 70%, 60%)`}
+                                  />
+                                ))}
+                              </Pie>
+                              <Tooltip content={<CustomTooltipVariantes />} />
+                            </PieChart>
+                          )}
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Tabla detallada */}
+                    <div className="overflow-x-auto rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg)]">
+                      <table className="min-w-full divide-y divide-[var(--app-border)]">
+                        <thead className="bg-[var(--app-bg-muted)]">
+                          <tr>
+                            <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
+                              Color
+                            </th>
+                            <th className="px-6 py-4 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">
+                              Stock Actual
+                            </th>
+                            <th className="px-6 py-4 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">
+                              Cantidad Vendida
+                            </th>
+                            <th className="px-6 py-4 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">
+                              Ingresos Totales
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--app-border)]">
+                          {variantesPorColor.map((variante, vi) => (
+                            <tr key={`${variante.nombreColor}-${vi}`} className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors">
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="font-bold text-sm text-[var(--app-text)]">{variante.nombreColor}</span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <span className="text-sm font-bold text-[var(--app-text)]">
+                                  {variante.cantidadStock}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <span className="text-sm font-bold text-[var(--app-text)]">
+                                  {variante.cantidadVendida}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                                <span className="text-sm font-bold text-[var(--app-text-muted)]">
+                                  S/. {parseFloat(variante.ingresosTotales.toString()).toLocaleString()}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  ) : (
+                    <div className="text-center py-8 app-text-faint">
+                      <CubeIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                      <p className="font-bold text-sm">No se encontraron variantes para esta talla</p>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
-          </div>
-
-          {/* Sección de variantes por color */}
-          {tallaSeleccionada && (
-            <div className="transform transition-all duration-500 ease-out animate-in fade-in slide-in-from-right-4">
-              <div className="flex justify-between items-center mb-4">
-                <h4 className="text-lg font-semibold text-gray-900">
-                  🎨 Variantes por color - Talla: {tallasProducto.find(t => t.nombreTalla === tallaSeleccionada)?.nombreTalla}
-                </h4>
-                {/* Selector de tipo de gráfico */}
-                <div className="flex bg-gray-100 rounded-lg p-1">
-                  <button
-                    onClick={() => setTipoGraficoVariantes('barras')}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
-                      tipoGraficoVariantes === 'barras'
-                        ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm transform scale-105'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Barras
-                  </button>
-                  <button
-                    onClick={() => setTipoGraficoVariantes('torta')}
-                    className={`px-3 py-1 rounded-md text-sm font-medium transition-all duration-200 ease-out ${
-                      tipoGraficoVariantes === 'torta'
-                        ? 'bg-[var(--app-panel)] text-[var(--app-accent)] shadow-sm transform scale-105'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    Torta
-                  </button>
-                </div>
-              </div>
-              {/* Contenedor con altura fija para evitar saltos visuales */}
-              <div className="min-h-[400px] relative">
-                {loadingVariantes && (
-                  <div className="absolute inset-0 bg-[color-mix(in_srgb,var(--app-panel)_85%,transparent)] backdrop-blur-sm flex items-center justify-center z-10 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                      <span className="text-gray-700 font-medium">Cargando variantes...</span>
-                    </div>
-                  </div>
-                )}
-                
-                {variantesPorColor.length > 0 ? (
-                <div className="space-y-4">
-                  {/* Gráfico dinámico para variantes por color */}
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <h5 className="text-md font-medium text-gray-800 mb-3">Distribución por colores</h5>
-                    <div className="h-64">
-                      <ResponsiveContainer width="100%" height="100%">
-                        {tipoGraficoVariantes === 'barras' ? (
-                          <BarChart data={variantesPorColor.filter(v => v.cantidadVendida > 0)} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                            <defs>
-                              <linearGradient id="colorVariantes" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#6366F1" stopOpacity={0.95}/>
-                                <stop offset="100%" stopColor="#4F46E5" stopOpacity={0.4}/>
-                              </linearGradient>
-                            </defs>
-                            <CartesianGrid stroke="#f1f5f9" strokeDasharray="3 3" vertical={false} />
-                            <XAxis 
-                              dataKey="nombreColor" 
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: '#64748b', fontSize: 11 }}
-                            />
-                            <YAxis 
-                              tickLine={false}
-                              axisLine={false}
-                              tick={{ fill: '#64748b', fontSize: 11 }}
-                            />
-                            <Tooltip content={<CustomTooltipVariantes />} cursor={{ fill: 'rgba(241, 245, 249, 0.4)' }} />
-                            <Bar 
-                              dataKey="cantidadVendida" 
-                              fill="url(#colorVariantes)" 
-                              name="Cantidad Vendida"
-                              radius={[6, 6, 0, 0]}
-                              maxBarSize={40}
-                            />
-                          </BarChart>
-                        ) : (
-                          <PieChart>
-                            <Pie
-                              data={variantesPorColor.filter(v => v.cantidadVendida > 0)}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={false}
-                              label={CustomPieLabel}
-                              innerRadius={50}
-                              outerRadius={75}
-                              paddingAngle={4}
-                              cornerRadius={5}
-                              dataKey="cantidadVendida"
-                              stroke="#ffffff"
-                              strokeWidth={1.5}
-                            >
-                              {variantesPorColor.filter(v => v.cantidadVendida > 0).map((entry, index) => (
-                                <Cell 
-                                  key={`color-${entry.nombreColor}-${index}`} 
-                                  fill={entry.hexColor || `hsl(${index * 45}, 70%, 60%)`}
-                                />
-                              ))}
-                            </Pie>
-                            <Tooltip content={<CustomTooltipVariantes />} />
-                          </PieChart>
-                        )}
-                      </ResponsiveContainer>
-                    </div>
-                  </div>
-
-                  {/* Tabla detallada */}
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Color
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Stock Actual
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Cantidad Vendida
-                          </th>
-                          <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Ingresos Totales
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[var(--app-border)]">
-                        {variantesPorColor.map((variante, vi) => (
-                          <tr key={`${variante.nombreColor}-${vi}`} className="hover:bg-gray-50">
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <div className="flex items-center">
-                                <div 
-                                  className="flex-shrink-0 h-4 w-4 rounded-full mr-3 border border-gray-300"
-                                  style={{ 
-                                    backgroundColor: variante.hexColor || '#gray-300'
-                                  }}
-                                ></div>
-                                <span className="text-sm font-medium text-gray-900">{variante.nombreColor}</span>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                              {variante.cantidadStock}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                              {variante.cantidadVendida}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                              S/ {parseFloat(variante.ingresosTotales.toString()).toLocaleString()}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <CubeIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
-                    <p>No se encontraron variantes para esta talla</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          </DashboardPanel>
         </div>
       )}
 
