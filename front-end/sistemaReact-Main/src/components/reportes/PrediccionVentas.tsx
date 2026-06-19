@@ -44,6 +44,10 @@ const PrediccionVentas: React.FC = () => {
   const [reentrenando, setReentrenando] = useState<boolean>(false);
   const [errorMetricas, setErrorMetricas] = useState<string | null>(null);
 
+  // Estados para desglose de variantes en modal
+  const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
+  const [modalVariantesOpen, setModalVariantesOpen] = useState<boolean>(false);
+
   // Configuración de Exportación a Excel
   const [modalExportarAbierto, setModalExportarAbierto] = useState<boolean>(false);
   const [exportConfig, setExportConfig] = useState({
@@ -481,15 +485,13 @@ const PrediccionVentas: React.FC = () => {
             </div>
           ) : (
             <>
-              <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--app-border)]">
-                <table className="min-w-full divide-y divide-[var(--app-border)] bg-[var(--app-bg)]">
+              <div className="mt-5 overflow-x-auto rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg)]">
+                <table className="min-w-full divide-y divide-[var(--app-border)]">
                   <thead className="bg-[var(--app-bg-muted)]">
                     <tr>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider w-20">ID</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Nombre Producto</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Código</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Categoría</th>
-                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Stock</th>
+                      <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Producto</th>
+                      <th className="px-6 py-4 text-center text-[10px] font-black app-text-faint uppercase tracking-wider w-40">Stock Total</th>
+                      <th className="px-6 py-4 text-right text-[10px] font-black app-text-faint uppercase tracking-wider w-40">Acción</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--app-border)]">
@@ -515,23 +517,16 @@ const PrediccionVentas: React.FC = () => {
                           key={prod.idProducto || index}
                           className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors"
                         >
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono app-text-muted">
-                            #{prod.idProducto}
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="font-bold app-heading text-sm">{prod.nombre}</div>
-                            <div className="text-[11px] app-text-muted">{prod.tipoPublico}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono app-text-muted">
-                            {prod.codigoIdentificacion}
+                          <td className="px-6 py-4 whitespace-nowrap text-left">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-sm text-[var(--app-text)]">{prod.nombre}</span>
+                              <span className="text-xs text-[var(--app-text-muted)] font-bold uppercase tracking-wider">
+                                ({prod.codigoIdentificacion})
+                              </span>
+                            </div>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[var(--app-bg-muted)] app-text-muted border border-[var(--app-border)]">
-                              {prod.categoriaPadre?.nombre || prod.subCategoria2?.nombre || 'General'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center gap-3">
                               <span className={`font-black text-sm tabular-nums w-12 text-right ${stockBadgeClass}`}>
                                 {prod.cantidad}
                               </span>
@@ -542,6 +537,19 @@ const PrediccionVentas: React.FC = () => {
                                 />
                               </div>
                             </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedProduct(prod);
+                                setModalVariantesOpen(true);
+                              }}
+                              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black hover:bg-gray-900 dark:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-transparent shadow-sm shrink-0"
+                            >
+                              Ver Variantes
+                              <MaterialIcon icon="visibility" className="w-3.5 h-3.5" />
+                            </button>
                           </td>
                         </tr>
                       );
@@ -1119,6 +1127,61 @@ const PrediccionVentas: React.FC = () => {
             </div>
           </div>
 
+        </div>
+      </AppModal>
+
+      {/* Modal de Detalle de Variantes de un Producto */}
+      <AppModal
+        open={modalVariantesOpen}
+        onClose={() => setModalVariantesOpen(false)}
+        title="VARIANTES DEL PRODUCTO"
+        subtitle={selectedProduct?.nombre || ''}
+        icon={<MaterialIcon icon="visibility" />}
+        maxWidth="2xl"
+        belowHeader={
+          <div className="px-6 pb-2 pt-1 flex items-center justify-between border-b border-[var(--app-border)]">
+            <span className="text-xs text-[var(--app-text-muted)] font-medium">Desglose de stock por color y talla</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[var(--app-bg-muted)] text-[var(--app-text)] font-black text-[10px] uppercase tracking-wider border border-[var(--app-border)]">
+              <MaterialIcon icon="local_mall" className="w-3.5 h-3.5 text-[var(--app-accent)]" />
+              STOCK: {selectedProduct?.cantidad || 0}
+            </span>
+          </div>
+        }
+      >
+        <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg)]">
+          <table className="min-w-full divide-y divide-[var(--app-border)]">
+            <thead className="bg-[var(--app-bg-muted)]">
+              <tr>
+                <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Color</th>
+                <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Talla</th>
+                <th className="px-6 py-3 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">Cantidad</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--app-border)]">
+              {(selectedProduct
+                ? todasLasVariantes.filter((v) => v.producto?.idProducto === selectedProduct.idProducto)
+                : []
+              ).map((v, idx) => {
+                const isEven = idx % 2 === 0;
+                const badgeSolidClass = isEven
+                  ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20'
+                  : 'bg-blue-500 text-white shadow-sm shadow-blue-500/20';
+
+                return (
+                  <tr key={v.idProductoVariante ?? idx} className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[var(--app-text)]">{v.color?.nombre || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[var(--app-text-muted)]">{v.talla?.nombreTalla || 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${badgeSolidClass}`}>
+                        <MaterialIcon icon="local_mall" className="w-3.5 h-3.5" />
+                        {v.cantidad}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </AppModal>
     </div>
