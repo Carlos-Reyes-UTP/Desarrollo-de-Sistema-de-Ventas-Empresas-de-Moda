@@ -4,7 +4,7 @@ import { AlmacenService } from "@/services/AlmacenService";
 import type { UbicacionArea, StockUbicacion } from "@/types/Almacen";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
 import MoverMercaderiaModal from "./MoverMercaderiaModal";
-import { ListItemSkeleton, TableSkeleton, PageHeader, PageActionButton, PageActionGroup, SectionHeader, MaterialIcon, ModalPortal } from "@/shared/ui";
+import { ListItemSkeleton, TableSkeleton, PageHeader, PageActionButton, PageActionGroup, SectionHeader, MaterialIcon, ModalPortal, useModalMotion } from "@/shared/ui";
 
 interface AreaConStock {
   ubicacion: UbicacionArea;
@@ -130,6 +130,8 @@ const AreaOperativaCard = ({
   </button>
 );
 
+let autoNavConsumedKey: string | null = null;
+
 const GestionPisos = ({
   embedded = false,
   puedeTrasladar = true,
@@ -170,6 +172,9 @@ const GestionPisos = ({
   const [paginaDetalle, setPaginaDetalle] = useState(0);
   const PAGE_SIZE_DETALLE = 10;
   const [productoModal, setProductoModal] = useState<{ nombre: string; variantes: StockUbicacion[] } | null>(null);
+  const { overlayClass, panelClass, shouldRender, requestClose } = useModalMotion({
+    open: productoModal !== null,
+  });
 
   /** Fila "Mover mercadería": el listado de productos es solo el stock de esta ubicación. */
   const [origenAreaModal, setOrigenAreaModal] = useState<UbicacionArea | null>(null);
@@ -177,7 +182,7 @@ const GestionPisos = ({
   const modalAbiertoRef = useRef(false);
   modalAbiertoRef.current = trasladoGlobalAbierto || origenAreaModal !== null;
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const autoNavRef = useRef<{
     areaId: number;
@@ -193,12 +198,17 @@ const GestionPisos = ({
     const pisoNombre = searchParams.get('pisoNombre');
 
     if (areaIdStr && varianteIdStr && productoIdStr && pisoNombre) {
-      autoNavRef.current = {
-        areaId: parseInt(areaIdStr),
-        varianteId: parseInt(varianteIdStr),
-        productoId: parseInt(productoIdStr),
-        pisoNombre: pisoNombre,
-      };
+      const key = `${areaIdStr}_${varianteIdStr}`;
+      if (autoNavConsumedKey !== key) {
+        autoNavRef.current = {
+          areaId: parseInt(areaIdStr),
+          varianteId: parseInt(varianteIdStr),
+          productoId: parseInt(productoIdStr),
+          pisoNombre: pisoNombre,
+        };
+      }
+    } else {
+      autoNavConsumedKey = null;
     }
   }, []);
 
@@ -350,6 +360,12 @@ const GestionPisos = ({
       if (prod) {
         autoNavRef.current = null;
         setProductoModal({ nombre: prod.nombre, variantes: prod.variantes });
+        const url = new URL(window.location.href);
+        url.searchParams.delete('areaId');
+        url.searchParams.delete('varianteId');
+        url.searchParams.delete('productoId');
+        url.searchParams.delete('pisoNombre');
+        window.history.replaceState({}, '', url.toString());
       }
     }
   }, [pisos, pisoSeleccionado, areas, cargandoAreas, areaDetalle, cargandoDetalle, stockDetalle, productosEnDetalle]);
@@ -809,47 +825,105 @@ const GestionPisos = ({
         </div>
       </section>
 
-      {productoModal && (
+      {shouldRender && (
         <ModalPortal>
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto shadow-2xl border border-gray-200">
-              <div className="flex justify-between items-center mb-5">
-                <h3 className="text-lg font-bold text-gray-900 break-words pr-4">{productoModal.nombre}</h3>
-                <button
-                  type="button"
-                  onClick={() => setProductoModal(null)}
-                  className="shrink-0 p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <MaterialIcon icon="close" className="h-5 w-5 text-gray-500" />
-                </button>
+          <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 ${overlayClass}`}>
+            <div className={`bg-app-surface rounded-[2rem] shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden relative ${panelClass}`}>
+
+              <div className="p-10 pb-6 border-b border-app-border">
+                <div className="mb-6 w-12 h-1 bg-app-accent"></div>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold tracking-tight text-app-text mb-2 uppercase flex items-center gap-3">
+                      <div className="p-3 bg-app-accent rounded-2xl border border-app-border shadow-sm flex items-center justify-center">
+                        <MaterialIcon icon="visibility" className="w-6 h-6 text-app-accent-fg" />
+                      </div>
+                      VARIANTES DEL PRODUCTO
+                    </h2>
+                    <p className="text-app-text-muted text-sm font-medium">
+                      {productoModal.nombre}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center gap-2 text-xs bg-gray-100 text-gray-700 px-4 py-2 rounded-xl font-bold uppercase tracking-wider">
+                      <MaterialIcon icon="shopping_bag" className="w-4 h-4" />
+                      Stock: {productoModal.variantes.reduce((s, v) => s + v.stockActual, 0)}
+                    </span>
+                    <button
+                      onClick={() => requestClose(() => {
+                        setProductoModal(null);
+                        autoNavConsumedKey = null;
+                        setSearchParams(prev => {
+                          const next = new URLSearchParams(prev);
+                          next.delete('areaId');
+                          next.delete('varianteId');
+                          next.delete('productoId');
+                          next.delete('pisoNombre');
+                          return next;
+                        }, { replace: true });
+                      })}
+                      className="p-2 text-gray-400 hover:text-black hover:bg-gray-100 rounded-xl transition-all duration-200"
+                    >
+                      <MaterialIcon icon="close" className="w-6 h-6" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="overflow-x-auto rounded-xl border border-gray-200">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-[11px] font-bold tracking-widest text-gray-500 uppercase">Color</th>
-                      <th className="px-4 py-3 text-left text-[11px] font-bold tracking-widest text-gray-500 uppercase">Talla</th>
-                      <th className="px-4 py-3 text-right text-[11px] font-bold tracking-widest text-gray-500 uppercase">Cantidad</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {productoModal.variantes.map((v) => (
-                      <tr key={v.idVariante} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-sm text-gray-700 font-medium">{v.color ?? '—'}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900 font-bold font-mono">{v.talla ?? '—'}</td>
-                        <td className="px-4 py-3 text-right">
-                          <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold font-mono bg-[var(--app-input)] app-heading">
-                            {v.stockActual}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+
+              <div className="flex-1 overflow-y-auto px-10 pt-6 pb-10">
+                <div className="bg-app-surface rounded-[2rem] border border-app-border shadow-sm overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-100">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-8 py-5 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Color</th>
+                          <th className="px-8 py-5 text-left text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Talla</th>
+                          <th className="px-8 py-5 text-center text-[10px] font-bold tracking-[0.2em] text-gray-400 uppercase">Cantidad</th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-app-surface divide-y divide-app-border">
+                        {productoModal.variantes.map((v) => (
+                          <tr key={v.idVariante} className="hover:bg-gray-50/70 transition-colors duration-200 group">
+                            <td className="px-8 py-5">
+                              <span className="font-bold text-sm text-app-text">{v.color ?? '—'}</span>
+                            </td>
+                            <td className="px-8 py-5">
+                              <span className="font-bold text-sm text-app-text">{v.talla ?? '—'}</span>
+                            </td>
+                            <td className="px-8 py-5 text-center">
+                              {(() => {
+                                const badgeClass = v.stockActual > 15
+                                  ? 'bg-[#3b82f6] text-white'
+                                  : v.stockActual >= 4
+                                    ? 'bg-[#10b981] text-white'
+                                    : v.stockActual >= 1
+                                      ? 'bg-[#ef4444] text-white'
+                                      : 'bg-gray-400 text-white';
+                                return (
+                                  <span className={`inline-flex items-center justify-center gap-2 min-w-[80px] px-3 py-1.5 rounded-full font-bold transition-transform duration-200 group-hover:scale-105 border-0 ${badgeClass}`}>
+                                    <MaterialIcon icon="shopping_bag" className="w-4 h-4" />
+                                    {v.stockActual}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {productoModal.variantes.length === 0 && (
+                    <div className="text-center p-20">
+                      <div className="w-16 h-16 rounded-full bg-gray-100 mx-auto mb-4 flex items-center justify-center">
+                        <MaterialIcon icon="visibility" className="w-8 h-8 text-gray-400" />
+                      </div>
+                      <h3 className="text-lg font-bold text-black mb-2">Sin variantes registradas</h3>
+                      <p className="text-gray-500 text-sm max-w-sm mx-auto">Este producto no tiene variantes registradas.</p>
+                    </div>
+                  )}
+                </div>
               </div>
-              {productoModal.variantes.length === 0 && (
-                <p className="text-center text-sm text-gray-500 py-8">No hay variantes registradas.</p>
-              )}
+
             </div>
           </div>
         </ModalPortal>

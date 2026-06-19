@@ -91,7 +91,6 @@ const DashboardAlmaceneroPage = () => {
   });
   const [inventarioReciente, setInventarioReciente] = useState<ProductoInventario[]>([]);
   const [alertasReposicion, setAlertasReposicion] = useState<AlertaReposicion[]>([]);
-  const [reponiendoId, setReponiendoId] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [errorSync, setErrorSync] = useState<string | null>(null);
 
@@ -240,35 +239,6 @@ const DashboardAlmaceneroPage = () => {
     accesoAreaAlmacen?.etiquetaAreaAsignada?.trim() || 'tu línea asignada';
 
   // Tras eventos WS globales, el GET de alertas aplica el filtro del almacén asignado en el servidor.
-  const handleReponer = useCallback(async (alerta: AlertaReposicion) => {
-    const key = `${alerta.idVariante}-${alerta.idUbicacionArea}`;
-    setReponiendoId(key);
-    setErrorSync(null);
-    try {
-      await DashboardService.reponerAlerta(alerta.idVariante, alerta.idUbicacionArea);
-      const data = await DashboardService.obtenerAlertasReposicion();
-      setAlertasReposicion(data);
-      cargarCola();
-    } catch (err) {
-      console.error('Error al reponer:', err);
-      let mensaje = 'No se pudo crear la solicitud de reposición.';
-      if (axios.isAxiosError(err)) {
-        const data = err.response?.data;
-        if (typeof data === 'string' && data.trim()) {
-          mensaje = data;
-        } else if (data && typeof data === 'object' && 'message' in data) {
-          const msg = (data as { message?: string }).message;
-          if (msg) mensaje = msg;
-        }
-      } else if (err instanceof Error && err.message) {
-        mensaje = err.message;
-      }
-      setErrorSync(mensaje);
-    } finally {
-      setReponiendoId(null);
-    }
-  }, [cargarCola]);
-
   useAutoSync(cargarDatosDashboard, ['NUEVA_VENTA', 'SOLICITUD_CREADA', 'SOLICITUD_ATENDIDA', 'SOLICITUD_RECHAZADA', 'REPOSICION_AUTOMATICA'], 2000);
 
   const getEstadoBadge = (estado: string) => {
@@ -529,15 +499,6 @@ const DashboardAlmaceneroPage = () => {
               <SectionHeader
                 title="Inventario Reciente"
                 subtitle="Stock en tu almacén (no incluye pisos de venta)"
-                action={
-                  <button
-                    type="button"
-                    onClick={() => navigate(APP_PATHS.productos)}
-                    className="text-[10px] font-black uppercase tracking-widest text-indigo-600 hover:text-indigo-800 transition-colors"
-                  >
-                    Exportar todo
-                  </button>
-                }
               />
               <div className="space-y-3">
                 {inventarioReciente.slice(-4).reverse().map((item) => (
@@ -648,7 +609,6 @@ const DashboardAlmaceneroPage = () => {
                   <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                     {alertasReposicion.map(alerta => {
                       const key = `${alerta.idVariante}-${alerta.idUbicacionArea}`;
-                      const reponiendo = reponiendoId === key;
                       return (
                         <div key={key} className="p-3 rounded-2xl bg-[var(--app-bg-muted)] border border-transparent hover:border-amber-200 hover:bg-amber-50/20 transition-all flex items-center justify-between group">
                           <div className="flex items-center gap-3 min-w-0">
@@ -666,28 +626,13 @@ const DashboardAlmaceneroPage = () => {
                             </div>
                           </div>
                           <div className="shrink-0">
-                            {tieneRol('ROLE_SUPERVISOR_ALMACEN') ? (
-                              <button
-                                onClick={() => navigate(APP_PATHS.almacenTablero)}
-                                className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100"
-                              >
-                                <MaterialIcon icon="visibility" className="w-3.5 h-3.5 mr-1 -ml-0.5 inline-block align-middle" />
-                                Ver
-                              </button>
-                            ) : alerta.tieneSolicitudPendiente ? (
-                              <span className="inline-flex items-center gap-1 h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600">
-                                <MaterialIcon icon="check" className="w-3 h-3" />
-                                Pendiente
-                              </span>
-                            ) : (
-                              <button
-                                onClick={() => handleReponer(alerta)}
-                                disabled={reponiendo}
-                                className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100 disabled:opacity-50"
-                              >
-                                {reponiendo ? '...' : 'Reponer'}
-                              </button>
-                            )}
+                            <button
+                              onClick={() => navigate(`${APP_PATHS.almacenTablero}?varianteId=${alerta.idVariante}&ubicacionAreaId=${alerta.idUbicacionArea}`)}
+                              className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                            >
+                              <MaterialIcon icon="visibility" className="w-3.5 h-3.5 mr-1 -ml-0.5 inline-block align-middle" />
+                              REVISAR
+                            </button>
                           </div>
                         </div>
                       );

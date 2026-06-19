@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAutoSync } from "@/hooks/useAutoSync";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
 import { MaterialIcon } from "@/shared/ui";
@@ -64,6 +65,8 @@ export default function AlmacenTableroPedidosPage() {
     nuevosVentas: [],
     nuevosRepos: [],
   });
+  const targetSelectionRef = useRef<number | null>(null);
+  const [searchParams] = useSearchParams();
 
   const puedeAutoPriorizarVentas = () => Date.now() >= seleccionManualUntilRef.current;
 
@@ -161,6 +164,18 @@ export default function AlmacenTableroPedidosPage() {
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [showSettings]);
 
+  useEffect(() => {
+    const vi = searchParams.get('varianteId');
+    const ua = searchParams.get('ubicacionAreaId');
+    if (vi && ua) {
+      targetSelectionRef.current = -(parseInt(vi) * 100_000 + parseInt(ua));
+      const url = new URL(window.location.href);
+      url.searchParams.delete('varianteId');
+      url.searchParams.delete('ubicacionAreaId');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
+
   const ventas = useMemo(() => cards.filter(esVenta), [cards]);
   const repos = useMemo(
     () => combinarReposConAlertas(cards, alertasReposicion),
@@ -199,6 +214,14 @@ export default function AlmacenTableroPedidosPage() {
       if (objetivo) {
         setSeleccionId(idPrincipalDeCard(cards, objetivo));
       }
+      return;
+    }
+
+    const targetId = targetSelectionRef.current;
+    if (targetId != null) {
+      targetSelectionRef.current = null;
+      setActiveTab("repos");
+      setSeleccionId(targetId);
       return;
     }
 
