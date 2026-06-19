@@ -16,7 +16,7 @@ export const ReportCommandDeck = ({ tabs, tabActiva, onTabChange }: ReportComman
   const tabMeta = tabs.find((t) => t.id === tabActiva);
 
   return (
-    <header className="reports-analytics__command-deck sticky top-2 z-20">
+    <header className="reports-analytics__command-deck sticky top-2 z-40">
       <div className="report-command-deck__top">
         <div className="min-w-0">
           <p className="report-command-deck__eyebrow">Análisis comercial</p>
