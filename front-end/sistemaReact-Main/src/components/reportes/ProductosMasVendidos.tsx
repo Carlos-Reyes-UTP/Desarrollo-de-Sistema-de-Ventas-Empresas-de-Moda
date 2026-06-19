@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   CubeIcon,
-  FunnelIcon,
   ArrowDownTrayIcon,
   MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
@@ -32,7 +31,6 @@ import {
 } from './productos-mas-vendidos/chartRenderers';
 import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton, SectionHeader, PageActionButton } from '@/shared/ui';
 import { RoseChart } from './shared/RoseChart';
-import { useReportPeriodContext } from '@/components/reportes/context/ReportPeriodContext';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
 import { ReportViewPills } from '@/components/reportes/layout/ReportViewPills';
@@ -123,9 +121,15 @@ type FiltrosReporte = {
   fechaInicio?: string;
   fechaFin?: string;
 };
+const dateToStr = (d: Date) =>
+  `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+const hoy = new Date();
+const INICIO_MES = dateToStr(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+const HOY = dateToStr(hoy);
+
 const ProductosMasVendidos: React.FC = () => {
   const { setActions } = useReportPageActions();
-  const { filtrosFecha, etiqueta } = useReportPeriodContext();
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -133,14 +137,8 @@ const ProductosMasVendidos: React.FC = () => {
   const [busqueda, setBusqueda] = useState('');
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriaPadre, setCategoriaPadre] = useState<string>('');
-  const [fechaInicio, setFechaInicio] = useState<string>('');
-  const [fechaFin, setFechaFin] = useState<string>('');
-  const [mostrarFiltros, setMostrarFiltros] = useState(false);
-  const [filtrosAplicados, setFiltrosAplicados] = useState<{
-    fechaInicio?: string;
-    fechaFin?: string;
-    categoriaPadre?: string;
-  }>({});
+  const [fechaInicio, setFechaInicio] = useState<string>(INICIO_MES);
+  const [fechaFin, setFechaFin] = useState<string>(HOY);
   const [searchCategoria, setSearchCategoria] = useState<string>('');
   const [isCategoriaFocused, setIsCategoriaFocused] = useState(false);
   const [alertModal, setAlertModal] = useState<{ open: boolean; message: string; variant: 'error' | 'info' | 'success' }>({ open: false, message: '', variant: 'info' });
@@ -161,18 +159,6 @@ const ProductosMasVendidos: React.FC = () => {
   useEffect(() => {
     CategoriaService.obtenerCategoriasPrincipales().then(setCategorias);
   }, []);
-
-  useEffect(() => {
-    if (filtrosFecha.fechaInicio && filtrosFecha.fechaFin) {
-      setFechaInicio(filtrosFecha.fechaInicio);
-      setFechaFin(filtrosFecha.fechaFin);
-      setFiltrosAplicados((prev) => ({
-        ...prev,
-        fechaInicio: filtrosFecha.fechaInicio,
-        fechaFin: filtrosFecha.fechaFin,
-      }));
-    }
-  }, [filtrosFecha.fechaInicio, filtrosFecha.fechaFin]);
 
   const insightProductos = useMemo(
     () =>
@@ -197,28 +183,6 @@ const ProductosMasVendidos: React.FC = () => {
     };
   }, [isCategoriaFocused, searchCategoria]);
 
-  // Efecto optimizado para aplicar filtros - con mejor control de dependencias
-  useEffect(() => {
-    // Solo actualizar filtros aplicados si realmente cambió algo significativo
-    const fechasCompletas = fechaInicio && fechaFin;
-    const nuevosFiltos = {
-      fechaInicio: fechasCompletas ? fechaInicio : '',
-      fechaFin: fechasCompletas ? fechaFin : '',
-      categoriaPadre: categoriaPadre || ''
-    };
-    
-    // Prevenir actualizaciones innecesarias comparando valores actuales
-    const hayDiferencias = 
-      nuevosFiltos.fechaInicio !== (filtrosAplicados.fechaInicio || '') ||
-      nuevosFiltos.fechaFin !== (filtrosAplicados.fechaFin || '') ||
-      nuevosFiltos.categoriaPadre !== (filtrosAplicados.categoriaPadre || '');
-
-    if (hayDiferencias) {
-      setFiltrosAplicados(nuevosFiltos);
-    }
-    // Eliminamos filtrosAplicados de las dependencias para evitar bucles infinitos
-  }, [fechaInicio, fechaFin, categoriaPadre]);
-
   useEffect(() => {
     const cargarProductos = async () => {
       try {
@@ -226,19 +190,17 @@ const ProductosMasVendidos: React.FC = () => {
         setError(null);
         const filtrosReporte: FiltrosReporte = {};
         
-        if (filtrosAplicados.categoriaPadre) {
-          filtrosReporte.idCategoriaPadre = filtrosAplicados.categoriaPadre;
+        if (categoriaPadre) {
+          filtrosReporte.idCategoriaPadre = categoriaPadre;
         }
         
-        if (filtrosAplicados.fechaInicio && filtrosAplicados.fechaFin) {
-          // Convertir fechas a formato ISO con hora
-          const fechaInicioISO = new Date(filtrosAplicados.fechaInicio + 'T00:00:00').toISOString();
-          const fechaFinISO = new Date(filtrosAplicados.fechaFin + 'T23:59:59').toISOString();
+        if (fechaInicio && fechaFin) {
+          const fechaInicioISO = new Date(fechaInicio + 'T00:00:00').toISOString();
+          const fechaFinISO = new Date(fechaFin + 'T23:59:59').toISOString();
           filtrosReporte.fechaInicio = fechaInicioISO;
           filtrosReporte.fechaFin = fechaFinISO;
         }
         
-        console.log('Filtros enviados al backend:', filtrosReporte);
         const data = await ReporteService.getProductosMasVendidos(filtrosReporte);
         setProductos(data);
       } catch (err: any) {
@@ -250,10 +212,9 @@ const ProductosMasVendidos: React.FC = () => {
       }
     };
     
-    // Solo cargar si hay cambios en los filtros o es la primera carga
     cargarProductos();
     
-  }, [JSON.stringify(filtrosAplicados)]); // Usar JSON.stringify para comparación profunda
+  }, [fechaInicio, fechaFin, categoriaPadre]);
 
   // Función para filtrar categorías según el término de búsqueda - optimizada con useMemo
   const categoriasFiltradas = useMemo(() => 
@@ -286,12 +247,10 @@ const ProductosMasVendidos: React.FC = () => {
   // Función para limpiar todos los filtros
   const limpiarFiltros = () => {
     setCategoriaPadre('');
-    setFechaInicio('');
-    setFechaFin('');
+    setFechaInicio(INICIO_MES);
+    setFechaFin(HOY);
     setBusqueda('');
     setSearchCategoria('');
-    setFiltrosAplicados({});
-    // No cerramos el panel de filtros automáticamente
   };
 
   // Funciones para el análisis detallado
@@ -575,12 +534,12 @@ const ProductosMasVendidos: React.FC = () => {
       let nombreArchivo = 'productos_mas_vendidos';
       const fechaActual = new Date().toISOString().split('T')[0];
       
-      if (filtrosAplicados.fechaInicio && filtrosAplicados.fechaFin) {
-        nombreArchivo += `_${filtrosAplicados.fechaInicio}_${filtrosAplicados.fechaFin}`;
+      if (fechaInicio && fechaFin) {
+        nombreArchivo += `_${fechaInicio}_${fechaFin}`;
       }
       
-      if (filtrosAplicados.categoriaPadre) {
-        const categoria = categorias.find(c => c.idCategoria?.toString() === filtrosAplicados.categoriaPadre);
+      if (categoriaPadre) {
+        const categoria = categorias.find(c => c.idCategoria?.toString() === categoriaPadre);
         if (categoria) {
           nombreArchivo += `_${categoria.nombre.replace(/[^a-zA-Z0-9]/g, '_')}`;
         }
@@ -614,7 +573,7 @@ const ProductosMasVendidos: React.FC = () => {
       console.error('Error al exportar datos:', error);
       setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
-  }, [productosFiltrados, categorias, filtrosAplicados]);
+  }, [productosFiltrados, categorias, fechaInicio, fechaFin, categoriaPadre]);
 
   useEffect(() => {
     setActions(
@@ -623,7 +582,6 @@ const ProductosMasVendidos: React.FC = () => {
         Exportar Excel
       </PageActionButton>
     );
-    return () => setActions(null);
   }, [setActions, exportarDatos, loading, productosFiltrados.length]);
 
   if (loading) {
@@ -653,21 +611,161 @@ const ProductosMasVendidos: React.FC = () => {
         <ReportInsightBanner message={insightProductos} headline="Mix de productos" icon="inventory_2" />
       ) : null}
 
+      <DashboardPanel className="!p-5 sm:!p-6 relative z-10">
+        <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
+
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
+          {/* Categoría Principal */}
+          <div className="relative" ref={categoriaRef}>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+              Categoría Principal
+            </label>
+            <div className="relative">
+              <input
+                id="searchCategoria"
+                type="text"
+                placeholder={categoriaPadre ? "Categoría seleccionada" : "Buscar categoría principal..."}
+                value={searchCategoria}
+                onChange={(e) => setSearchCategoria(e.target.value)}
+                onFocus={() => setIsCategoriaFocused(true)}
+                onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 200)}
+                className={`w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)] ${
+                  (isCategoriaFocused || searchCategoria) && !categoriaPadre 
+                    ? 'border-blue-300 shadow-md bg-blue-50/30' 
+                    : ''
+                }`}
+                disabled={!!categoriaPadre}
+              />
+              {searchCategoria && !categoriaPadre && (
+                <div className="absolute right-3 top-3 text-xs text-[var(--app-accent)] bg-[var(--app-panel)] px-2 py-1 rounded-full shadow-sm border border-[var(--app-border)]">
+                  {categoriasFiltradas.length} resultado{categoriasFiltradas.length !== 1 ? 's' : ''}
+                </div>
+              )}
+              {categoriaPadre && !searchCategoria && (
+                <div className="absolute inset-0 px-4 py-3 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-300 rounded-xl flex items-center justify-between shadow-md">
+                  <span className="text-blue-800 font-bold text-sm truncate">
+                    {categorias.find(c => c.idCategoria?.toString() === categoriaPadre)?.nombre}
+                  </span>
+                  <button
+                    onClick={limpiarSeleccionCategoria}
+                    className="text-blue-600 hover:text-blue-800 ml-2 p-1 hover:bg-blue-200 rounded-full transition-all duration-200 shrink-0"
+                    title="Limpiar selección"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
+            {(isCategoriaFocused || searchCategoria) && !categoriaPadre && (
+              <div className="absolute z-50 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-2 animate-fadeIn max-h-48">
+                {categoriasFiltradas.length > 0 ? (
+                  categoriasFiltradas.map((categoria) => (
+                    <button
+                      key={categoria.idCategoria}
+                      onClick={() => {
+                        setCategoriaPadre(categoria.idCategoria?.toString() || '');
+                        setSearchCategoria('');
+                        setIsCategoriaFocused(false);
+                      }}
+                      onMouseDown={(e) => e.preventDefault()}
+                      className="w-full text-left px-3 py-2 text-sm rounded-lg transition-colors font-medium hover:bg-app-hover-overlay text-app-text"
+                    >
+                      {categoria.nombre}
+                    </button>
+                  ))
+                ) : (
+                  <div className="p-4 text-center">
+                    <p className="text-sm font-medium text-gray-700 mb-1">No se encontraron categorías</p>
+                    <p className="text-xs text-gray-500">Intenta con otro término de búsqueda</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Fecha inicio */}
+          <div>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+              Fecha inicio
+            </label>
+            <input
+              type="date"
+              value={fechaInicio}
+              onChange={(e) => setFechaInicio(e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)]"
+            />
+          </div>
+
+          {/* Fecha fin */}
+          <div>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+              Fecha fin
+            </label>
+            <input
+              type="date"
+              value={fechaFin}
+              onChange={(e) => setFechaFin(e.target.value)}
+              onMouseDown={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              min={fechaInicio || undefined}
+              className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)]"
+            />
+          </div>
+
+          {/* Limpiar */}
+          <div>
+            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 invisible">
+              _
+            </label>
+            <button
+              onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }}
+              className="w-full inline-flex min-h-12 lg:h-12 items-center justify-center gap-2 px-6 lg:px-8 text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-200 app-btn-primary shadow-sm"
+            >
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 mt-4">
+          <span className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mr-2">
+            Filtros rápidos
+          </span>
+          <button
+            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('hoy'); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+          >
+            Hoy
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('semana'); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+          >
+            7 días
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('mes'); }}
+            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+          >
+            30 días
+          </button>
+        </div>
+      </DashboardPanel>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <DashboardMetricCard label="En ranking" value={productosFiltrados.length} icon="inventory_2" iconIndex={1} sub={etiqueta} />
+        <DashboardMetricCard label="En ranking" value={productosFiltrados.length} icon="inventory_2" iconIndex={1} />
         <DashboardMetricCard
           label="Unidades"
           value={productosFiltrados.reduce((sum, p) => sum + p.cantidadVendida, 0)}
           icon="shopping_bag"
           iconIndex={2}
-          sub={etiqueta}
         />
         <DashboardMetricCard
           label="Ingresos"
           value={`S/ ${productosFiltrados.reduce((sum, p) => sum + p.ingresosTotales, 0).toLocaleString('es-PE')}`}
           icon="payments"
           iconIndex={3}
-          sub={etiqueta}
         />
         <DashboardMetricCard
           label="Precio prom."
@@ -678,266 +776,7 @@ const ProductosMasVendidos: React.FC = () => {
           }`}
           icon="sell"
           iconIndex={4}
-          sub={etiqueta}
         />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setMostrarFiltros(!mostrarFiltros)}
-          className={`relative inline-flex items-center gap-2 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
-            mostrarFiltros ? 'app-btn-primary shadow-sm' : 'app-panel border border-[var(--app-border)] app-text-muted hover:app-heading'
-          }`}
-        >
-          <FunnelIcon className="h-4 w-4" />
-          {mostrarFiltros ? 'Ocultar filtros' : 'Filtros avanzados'}
-        </button>
-      </div>
-
-      {/* Panel de filtros expandible con animación */}
-      <div className={`transition-all duration-500 ease-out ${
-        mostrarFiltros 
-          ? 'max-h-screen opacity-100 transform translate-y-0' 
-          : 'max-h-0 opacity-0 transform -translate-y-2 overflow-hidden'
-      }`}>
-        <div className="app-panel rounded-xl p-6 transform transition-all duration-300 ease-out relative">
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-black app-heading">Filtros de búsqueda</h3>
-            <button
-              type="button"
-              onClick={() => setMostrarFiltros(false)}
-              className="app-text-faint hover:app-heading transition-colors p-1 rounded-full hover:bg-[var(--app-bg-muted)]"
-              aria-label="Cerrar filtros"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4 relative transition-all duration-300 ease-out"
-               style={{ zIndex: 1 }}>
-            {/* Campo de búsqueda de categorías - DISEÑO NUEVO SIN PROBLEMAS */}
-            <div className="relative" ref={categoriaRef}>
-              <label htmlFor="searchCategoria" className="block text-sm font-medium text-gray-700 mb-2">
-                🗂️ Categoría Principal
-              </label>
-              
-              {/* Input de búsqueda */}
-              <div className="relative">
-                <input
-                  id="searchCategoria"
-                  type="text"
-                  placeholder={categoriaPadre ? "Categoría seleccionada" : "Buscar categoría principal..."}
-                  value={searchCategoria}
-                  onChange={(e) => setSearchCategoria(e.target.value)}
-                  onFocus={() => setIsCategoriaFocused(true)}
-                  onBlur={() => setTimeout(() => setIsCategoriaFocused(false), 200)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 ${
-                    (isCategoriaFocused || searchCategoria) && !categoriaPadre 
-                      ? 'border-blue-300 shadow-md bg-blue-50/30' 
-                      : 'border-[var(--app-border)] bg-[var(--app-bg)]'
-                  }`}
-                  disabled={!!categoriaPadre}
-                />
-                
-                {/* Indicador de resultados */}
-                {searchCategoria && !categoriaPadre && (
-                  <div className="absolute right-3 top-2.5 text-xs text-[var(--app-accent)] bg-[var(--app-panel)] px-2 py-1 rounded-full shadow-sm border border-[var(--app-border)]">
-                    {categoriasFiltradas.length} resultado{categoriasFiltradas.length !== 1 ? 's' : ''}
-                  </div>
-                )}
-                
-                {/* Mostrar categoría seleccionada */}
-                {categoriaPadre && !searchCategoria && (
-                  <div className="absolute inset-0 px-3 py-2 bg-gradient-to-r from-blue-50 to-blue-100 border border-blue-300 rounded-lg flex items-center justify-between shadow-md">
-                    <span className="text-blue-800 font-medium text-sm">
-                      {categorias.find(c => c.idCategoria?.toString() === categoriaPadre)?.nombre}
-                    </span>
-                    <button
-                      onClick={limpiarSeleccionCategoria}
-                      className="text-blue-600 hover:text-blue-800 ml-2 p-1 hover:bg-blue-200 rounded-full transition-all duration-200"
-                      title="Limpiar selección"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              {/* Lista de resultados - NUEVO DISEÑO INTEGRADO */}
-              {(isCategoriaFocused || searchCategoria) && !categoriaPadre && (
-                <div className="mt-2 app-panel border rounded-lg shadow-lg max-h-48 overflow-hidden">
-                  {categoriasFiltradas.length > 0 ? (
-                    <>
-                      {/* Header */}
-                      <div className="bg-gray-50 px-3 py-2 border-b border-gray-200">
-                        <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                          Categorías Disponibles ({categoriasFiltradas.length})
-                        </span>
-                      </div>
-                      
-                      {/* Lista con scroll interno */}
-                      <div className="max-h-36 overflow-y-auto">
-                        {categoriasFiltradas.map((categoria) => (
-                          <button
-                            key={categoria.idCategoria}
-                            onClick={() => {
-                              setCategoriaPadre(categoria.idCategoria?.toString() || '');
-                              setSearchCategoria('');
-                              setIsCategoriaFocused(false);
-                            }}
-                            onMouseDown={(e) => e.preventDefault()}
-                            className="w-full px-3 py-2 text-left hover:bg-blue-50 text-sm border-b border-gray-100 last:border-b-0 transition-colors duration-150 group"
-                          >
-                            <div className="flex items-center space-x-2">
-                              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                              <span className="text-gray-900 group-hover:text-blue-700 font-medium">
-                                {categoria.nombre}
-                              </span>
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </>
-                  ) : (
-                    /* Mensaje de no encontrado */
-                    <div className="p-4 text-center">
-                      <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                        <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">No se encontraron categorías</p>
-                      <p className="text-xs text-gray-500">Intenta con otro término de búsqueda</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {/* Filtros de fecha */}
-            <div>
-              <label htmlFor="fechaInicio" className="block text-sm font-medium text-gray-700 mb-2">
-                📅 Fecha de inicio
-              </label>
-              <input
-                id="fechaInicio"
-                type="date"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                title="Selecciona la fecha de inicio para filtrar los datos"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              />
-            </div>
-            
-            <div>
-              <label htmlFor="fechaFin" className="block text-sm font-medium text-gray-700 mb-2">
-                📅 Fecha de fin
-              </label>
-              <input
-                id="fechaFin"
-                type="date"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                onMouseDown={(e) => e.stopPropagation()}
-                onKeyDown={(e) => e.stopPropagation()}
-                title="Selecciona la fecha de fin para filtrar los datos"
-                min={fechaInicio || undefined}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-              />
-            </div>
-          </div>
-
-          {/* Botón para aplicar filtros de fechas manualmente */}
-          {(fechaInicio || fechaFin) && (fechaInicio !== filtrosAplicados.fechaInicio || fechaFin !== filtrosAplicados.fechaFin) && (
-            <div className="mb-4">
-              <button
-                onClick={() => {
-                  setFiltrosAplicados(prev => ({
-                    ...prev,
-                    fechaInicio,
-                    fechaFin
-                  }));
-                }}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-              >
-                🔄 Aplicar filtros de fecha
-              </button>
-            </div>
-          )}
-
-          {/* Filtros rápidos */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            <span className="text-sm font-medium text-gray-700 self-center">Filtros rápidos:</span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                aplicarFiltroRapido('hoy');
-              }}
-              className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
-            >
-              Hoy
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                aplicarFiltroRapido('semana');
-              }}
-              className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
-            >
-              Última semana
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                aplicarFiltroRapido('mes');
-              }}
-              className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full hover:bg-blue-200 transition-colors"
-            >
-              Último mes
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                limpiarFiltros();
-              }}
-              className="px-3 py-1 text-xs bg-gray-100 text-gray-800 rounded-full hover:bg-gray-200 transition-colors"
-            >
-              Limpiar filtros
-            </button>
-          </div>
-
-          {/* Indicador de filtros activos */}
-          {(filtrosAplicados.fechaInicio || filtrosAplicados.fechaFin || filtrosAplicados.categoriaPadre) && (
-            <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg p-3 border border-green-200">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-semibold text-gray-800">Filtros aplicados:</span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {filtrosAplicados.fechaInicio && (
-                  <span className="px-3 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium shadow-sm">
-                    📅 Desde: {filtrosAplicados.fechaInicio}
-                  </span>
-                )}
-                {filtrosAplicados.fechaFin && (
-                  <span className="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-full font-medium shadow-sm">
-                    📅 Hasta: {filtrosAplicados.fechaFin}
-                  </span>
-                )}
-                {filtrosAplicados.categoriaPadre && (
-                  <span className="px-3 py-1 text-xs bg-purple-100 text-purple-800 rounded-full font-medium shadow-sm">
-                    🏷️ {categorias.find(c => c.idCategoria?.toString() === filtrosAplicados.categoriaPadre)?.nombre}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center relative z-[1]">

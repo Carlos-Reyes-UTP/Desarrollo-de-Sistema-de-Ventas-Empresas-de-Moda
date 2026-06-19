@@ -29,6 +29,7 @@ import {
   etiquetaPeriodo,
   filtrarVentasPorPeriodo,
   guardarPeriodo,
+  inicioPeriodo,
   leerPeriodoGuardado,
   procesarDatosGraficoPorPeriodo,
   subtituloGraficoPeriodo,
@@ -155,8 +156,12 @@ const DashboardGerentePage = () => {
     setCargando(true);
     setErrorSync(null);
     try {
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const fechaInicio = inicioPeriodo('30d');
+
       const [todasVentas, usuariosResp] = await Promise.all([
-        VentaService.obtenerTodasVentas(),
+        VentaService.obtenerTodasVentas(fmt(fechaInicio), fmt(new Date())),
         UsuarioService.obtenerUsuariosConRoles(RUTAS_GERENTE_USUARIOS).catch(() => {
           setErrorUsuarios('No se pudo cargar el personal.');
           return [];

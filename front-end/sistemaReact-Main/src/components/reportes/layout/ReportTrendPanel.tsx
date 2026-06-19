@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import {
   Area,
   AreaChart,
@@ -44,6 +44,7 @@ interface ReportTrendPanelProps {
   subtitulo?: string;
   serieLabel?: string;
   gradientId?: string;
+  weekSelector?: ReactNode;
 }
 
 const AreaTooltipContent = ({
@@ -89,6 +90,7 @@ export const ReportTrendPanel = ({
   subtitulo,
   serieLabel,
   gradientId = 'reportTrendAreaGrad',
+  weekSelector,
 }: ReportTrendPanelProps) => {
   const { bestDay, worstDay, bestDayIdx } = useMemo(() => {
     const max = Math.max(...dayData.map((d) => d.ventas), 0);
@@ -156,9 +158,12 @@ export const ReportTrendPanel = ({
 
         <div className="lg:col-span-4 flex flex-col gap-4">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] app-text-faint mb-3">
-              Distribución semanal
-            </p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] app-text-faint">
+                Distribución semanal
+              </p>
+              {weekSelector}
+            </div>
             <div className="h-[180px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={dayData} margin={{ top: 8, right: 4, left: 4, bottom: 4 }}>

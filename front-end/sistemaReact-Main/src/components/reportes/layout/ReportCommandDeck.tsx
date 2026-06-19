@@ -26,12 +26,13 @@ export const ReportCommandDeck = ({ tabs, tabActiva, onTabChange }: ReportComman
             </span>
             <div className="min-w-0">
               <h1 className="report-command-deck__title">Reportes</h1>
-              <p className="report-command-deck__period-hint">{etiqueta}</p>
+              {tabActiva === 'resumen' && <p className="report-command-deck__period-hint">{etiqueta}</p>}
             </div>
           </div>
         </div>
 
         <div className="report-command-deck__controls">
+          {tabActiva === 'resumen' && (
           <div className="report-period-switch" role="group" aria-label="Período de análisis">
             {PERIODOS_REPORTE.map((p) => (
               <button
@@ -46,6 +47,7 @@ export const ReportCommandDeck = ({ tabs, tabActiva, onTabChange }: ReportComman
               </button>
             ))}
           </div>
+          )}
           {actions ? <div className="report-command-deck__actions">{actions}</div> : null}
         </div>
       </div>

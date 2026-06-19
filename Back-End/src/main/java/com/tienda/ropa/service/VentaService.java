@@ -47,6 +47,14 @@ public class VentaService {
         return VentaListadoMapper.toListadoDTOs(ventas);
     }
 
+    @Transactional(readOnly = true)
+    public List<VentaListadoDTO> obtenerVentas(LocalDateTime inicio, LocalDateTime fin) {
+        LocalDateTime desde = inicio != null ? inicio : LocalDateTime.of(2000, 1, 1, 0, 0);
+        LocalDateTime hasta = fin != null ? fin : LocalDateTime.of(2099, 12, 31, 23, 59);
+        List<Venta> ventas = ventaRepository.findAllWithDetallesByRango(desde, hasta);
+        return VentaListadoMapper.toListadoDTOs(ventas);
+    }
+
     public Optional<Venta> obtenerVentaPorId(Long id) {
         return ventaRepository.findById(id);
     }

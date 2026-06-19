@@ -29,6 +29,7 @@ import {
   etiquetaPeriodo,
   filtrarVentasPorPeriodo,
   guardarPeriodo,
+  inicioPeriodo,
   leerPeriodoGuardado,
   procesarDatosGraficoPorPeriodo,
   subtituloGraficoPeriodo,
@@ -249,8 +250,12 @@ const DashboardAdminPage = () => {
     setCargando(true);
     setErrorSync(null);
     try {
+      const fmt = (d: Date) =>
+        `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const fechaInicio = inicioPeriodo('30d');
+
       const [todasVentas, colaAlmacen] = await Promise.all([
-        VentaService.obtenerTodasVentas(),
+        VentaService.obtenerTodasVentas(fmt(fechaInicio), fmt(new Date())),
         AlmacenSolicitudesApi.cola().catch(() => []),
       ]);
 

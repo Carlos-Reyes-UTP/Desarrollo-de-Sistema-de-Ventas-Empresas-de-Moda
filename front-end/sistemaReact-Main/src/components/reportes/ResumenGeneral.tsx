@@ -16,6 +16,7 @@ import {
   calcularMetricasComparacionPeriodo,
   filtrarVentasPorPeriodo,
   procesarDatosGraficoPorPeriodo,
+  rangoPeriodoAnterior,
   tituloGraficoPeriodo,
 } from '@/utils/dashboardPeriodo';
 import { generarInsightsResumen } from '@/utils/reportInsights';
@@ -66,7 +67,9 @@ const ResumenGeneral: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const todasLasVentas = await VentaService.obtenerTodasVentas();
+      const { inicio: inicioAnterior } = rangoPeriodoAnterior(periodo);
+      const fechaInicioExt = inicioAnterior.toISOString().split('T')[0];
+      const todasLasVentas = await VentaService.obtenerTodasVentas(fechaInicioExt, filtrosFecha.fechaFin);
       if (!Array.isArray(todasLasVentas)) throw new Error('No se pudieron obtener datos de ventas');
 
       setAllVentas(todasLasVentas as Venta[]);
@@ -101,7 +104,7 @@ const ResumenGeneral: React.FC = () => {
       setChartPoints(procesarDatosGraficoPorPeriodo(ventasPeriodo, periodo));
 
       try {
-        await ReporteService.getResumenGeneral();
+        await ReporteService.getResumenGeneral(filtrosFecha);
       } catch {
         /* fallback cliente */
       }
@@ -143,7 +146,7 @@ const ResumenGeneral: React.FC = () => {
         const [categorias, productos, ventas] = await Promise.all([
           ReporteService.getReportePorCategoria(filtrosFecha),
           ReporteService.getProductosMasVendidos({ ...filtrosFecha, limite: 10 }),
-          VentaService.obtenerTodasVentas(),
+          VentaService.obtenerTodasVentas(filtrosFecha.fechaInicio, filtrosFecha.fechaFin),
         ]);
         if (cancelled) return;
 
@@ -263,7 +266,6 @@ const ResumenGeneral: React.FC = () => {
         Exportar Excel
       </PageActionButton>
     );
-    return () => setActions(null);
   }, [setActions, exportarAExcel, loading, resumen]);
 
   if (loading) {

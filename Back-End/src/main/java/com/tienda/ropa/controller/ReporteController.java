@@ -89,9 +89,16 @@ public class ReporteController {
 
     // Endpoints para reportes por categoría
     @GetMapping("/por-categoria")
-    public ResponseEntity<List<ReportePorCategoriaDTO>> obtenerReportePorCategoria() {
+    public ResponseEntity<List<ReportePorCategoriaDTO>> obtenerReportePorCategoria(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
         try {
-            List<ReportePorCategoriaDTO> reporte = reporteService.obtenerReportePorCategoria();
+            List<ReportePorCategoriaDTO> reporte;
+            if (fechaInicio != null && fechaFin != null) {
+                reporte = reporteService.obtenerReportePorCategoriaEntreFechas(fechaInicio, fechaFin);
+            } else {
+                reporte = reporteService.obtenerReportePorCategoria();
+            }
             return ResponseEntity.ok(reporte);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();

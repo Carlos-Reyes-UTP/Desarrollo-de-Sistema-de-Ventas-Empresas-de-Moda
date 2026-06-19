@@ -32,7 +32,7 @@ interface Breadcrumb {
 }
 
 const ReportePorCategoria: React.FC = () => {
-  const { filtrosFecha, etiqueta } = useReportPeriodContext();
+  const { filtrosFecha } = useReportPeriodContext();
   const { setActions } = useReportPageActions();
   const [reportes, setReportes] = useState<ReporteCategoriaData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -248,7 +248,6 @@ const ReportePorCategoria: React.FC = () => {
         Exportar Excel
       </PageActionButton>
     );
-    return () => setActions(null);
   }, [setActions, exportarDatos, loading, reportes.length]);
 
   const totalIngresos = useMemo(
@@ -345,8 +344,6 @@ const ReportePorCategoria: React.FC = () => {
           {nivelActual === 'padre' && 'Categorías principales'}
           {nivelActual === 'subcategoria' && 'Subcategorías — clic en una barra del gráfico para profundizar'}
           {nivelActual === 'segunda-subcategoria' && 'Segunda subcategoría'}
-          {' · '}
-          {etiqueta}
         </p>
       </DashboardPanel>
 

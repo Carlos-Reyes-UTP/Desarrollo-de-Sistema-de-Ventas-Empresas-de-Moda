@@ -5,8 +5,13 @@ import type { VentaInput } from '../types/Venta';
 import axios from 'axios';
 
 export const VentaService = {
-  obtenerTodasVentas: async (): Promise<Venta[]> => {
-    const response = await apiClient.get<Venta[]>(RUTAS_VENTAS.BASE);
+  obtenerTodasVentas: async (
+    fechaInicio?: string,
+    fechaFin?: string
+  ): Promise<Venta[]> => {
+    const response = await apiClient.get<Venta[]>(RUTAS_VENTAS.BASE, {
+      params: { fechaInicio, fechaFin },
+    });
     return response.data;
   },
 

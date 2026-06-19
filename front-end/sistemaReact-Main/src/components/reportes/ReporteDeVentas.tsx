@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+
 import { MaterialIcon, AlertModal, ChartSkeleton, PageActionButton, SectionHeader } from '@/shared/ui';
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaService';
@@ -6,12 +7,10 @@ import type { Venta } from '../../types/Venta';
 import type { DetalleVenta } from '../../types/DetalleVenta';
 import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
-import { useReportPeriodContext } from '@/components/reportes/context/ReportPeriodContext';
 import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
 import { ReportTrendPanel } from '@/components/reportes/layout/ReportTrendPanel';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 import { generarInsightPicoGrafico } from '@/utils/reportInsights';
-import type { PeriodoDashboard } from '@/utils/dashboardPeriodo';
 
 interface ReporteData {
   fecha: string;
@@ -33,6 +32,14 @@ interface DetalleExportacion {
 
 type TipoPeriodo = 'diario' | 'semanal' | 'mensual';
 
+const OPCIONES_PERIODO: Array<{ value: TipoPeriodo; label: string }> = [
+  { value: 'diario', label: 'Diario' },
+  { value: 'semanal', label: 'Semanal' },
+  { value: 'mensual', label: 'Mensual' },
+];
+
+const SEMANAS = [1, 2, 3, 4, 5];
+
 const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -50,16 +57,14 @@ const buildDayDataFromVentas = (ventasList: Venta[], parsear: (s: string) => Dat
   return DIAS_SEMANA.map((dia, i) => ({ dia, ventas: totalesDia[i] }));
 };
 
-const PERIODO_GLOBAL_A_VENTAS: Record<PeriodoDashboard, TipoPeriodo> = {
-  hoy: 'diario',
-  '7d': 'semanal',
-  '30d': 'mensual',
-};
-
 const ReporteDeVentas: React.FC = () => {
-  const { periodo: periodoGlobal, etiqueta: etiquetaGlobal } = useReportPeriodContext();
   const { setActions } = useReportPageActions();
-  const [periodo, setPeriodo] = useState<TipoPeriodo>('semanal');
+  const [periodo, setPeriodo] = useState<TipoPeriodo>('mensual');
+  const [isPeriodoOpen, setIsPeriodoOpen] = useState(false);
+  const periodoRef = useRef<HTMLDivElement>(null);
+  const [semanaSeleccionada, setSemanaSeleccionada] = useState(1);
+  const [isSemanaOpen, setIsSemanaOpen] = useState(false);
+  const semanaRef = useRef<HTMLDivElement>(null);
   const [fechaReferencia, setFechaReferencia] = useState(new Date().toISOString().split('T')[0]);
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [datosGrafico, setDatosGrafico] = useState<ReporteData[]>([]);
@@ -104,18 +109,41 @@ const ReporteDeVentas: React.FC = () => {
     }
   };
 
+  // Reset week on new data load
   useEffect(() => {
-    setPeriodo(PERIODO_GLOBAL_A_VENTAS[periodoGlobal]);
-  }, [periodoGlobal]);
+    setSemanaSeleccionada(1);
+  }, [ventas]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (periodoRef.current && !periodoRef.current.contains(e.target as Node)) {
+        setIsPeriodoOpen(false);
+      }
+      if (semanaRef.current && !semanaRef.current.contains(e.target as Node)) {
+        setIsSemanaOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const chartForInsight = useMemo(
     () => datosGrafico.map((d) => ({ label: d.fecha, ventas: d.ventas })),
     [datosGrafico]
   );
   const picoInsight = useMemo(() => generarInsightPicoGrafico(chartForInsight), [chartForInsight]);
+  const ventasParaDayData = useMemo(() => {
+    if (periodo !== 'mensual') return ventas;
+    return ventas.filter(v => {
+      const d = parsearFechaVenta(v.fechaVenta);
+      return Math.ceil(d.getDate() / 7) === semanaSeleccionada;
+    });
+  }, [ventas, periodo, semanaSeleccionada]);
+
   const dayData = useMemo(
-    () => buildDayDataFromVentas(ventas, parsearFechaVenta),
-    [ventas]
+    () => buildDayDataFromVentas(ventasParaDayData, parsearFechaVenta),
+    [ventasParaDayData]
   );
 
   // Cargar datos al cambiar filtros
@@ -167,36 +195,17 @@ const ReporteDeVentas: React.FC = () => {
         fechaFin: fechaFin.toLocaleString('es-PE')
       });
 
-      // Obtener todas las ventas y filtrar por rango
-      const todasLasVentas = await VentaService.obtenerTodasVentas();
-      console.log('📊 Total de ventas obtenidas:', todasLasVentas?.length || 0);
-      
-      const ventasFiltradas = Array.isArray(todasLasVentas) 
-        ? todasLasVentas.filter(venta => {
-            const fechaVenta = parsearFechaVenta(venta.fechaVenta);
-            
-            // Verificar si la fecha es válida
-            if (isNaN(fechaVenta.getTime())) {
-              console.warn('⚠️ Fecha inválida encontrada:', venta.fechaVenta);
-              return false;
-            }
-            
-            const estaEnRango = fechaVenta >= fechaInicio && fechaVenta <= fechaFin;
-            if (periodo === 'diario') {
-              console.log('🔍 Verificando fecha:', {
-                fechaOriginal: venta.fechaVenta,
-                fechaParseada: fechaVenta.toLocaleString('es-PE'),
-                fechaInicio: fechaInicio.toLocaleString('es-PE'),
-                fechaFin: fechaFin.toLocaleString('es-PE'),
-                estaEnRango
-              });
-            }
-            
-            return estaEnRango;
-          })
-        : [];
+      // Obtener ventas filtradas por rango desde el backend
+      const fmtDate = (d: Date) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return `${y}-${m}-${day}`;
+      };
+      const ventasFiltradas = await VentaService.obtenerTodasVentas(fmtDate(fechaInicio), fmtDate(fechaFin));
+      if (!Array.isArray(ventasFiltradas)) throw new Error('Respuesta inválida del servidor');
 
-      console.log('✅ Ventas filtradas para el período:', ventasFiltradas.length);
+      console.log('✅ Ventas obtenidas para el período:', ventasFiltradas.length);
 
       setVentas(ventasFiltradas);
       procesarDatosGrafico(ventasFiltradas, periodo, fechaInicio, fechaFin);
@@ -431,7 +440,6 @@ const ReporteDeVentas: React.FC = () => {
         Exportar Excel
       </PageActionButton>
     );
-    return () => setActions(null);
   }, [setActions, exportarAExcel, cargando, ventas.length]);
 
   const formatearMoneda = (valor: number) => {
@@ -443,28 +451,46 @@ const ReporteDeVentas: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <DashboardPanel className="!p-5 sm:!p-6">
-        <p className="text-[10px] font-black uppercase tracking-[0.15em] app-text-faint mb-3">
-          Filtros locales · período global: {etiquetaGlobal}
-        </p>
+      <DashboardPanel className="!p-5 sm:!p-6 relative z-10">
+        <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
         <div className="flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[160px]">
-            <label htmlFor="periodo-select" className="block text-[10px] font-black uppercase tracking-widest app-text-faint mb-2">
-              Granularidad
+             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+              Periodo
             </label>
-            <select
-              id="periodo-select"
-              value={periodo}
-              onChange={(e) => setPeriodo(e.target.value as TipoPeriodo)}
-              className="w-full px-3 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] app-heading text-sm"
-            >
-              <option value="diario">Diario</option>
-              <option value="semanal">Semanal</option>
-              <option value="mensual">Mensual</option>
-            </select>
+            <div className="relative" ref={periodoRef}>
+              <div
+                onClick={() => setIsPeriodoOpen(!isPeriodoOpen)}
+                className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)] flex items-center justify-between cursor-pointer"
+              >
+                <span className="truncate">
+                  {OPCIONES_PERIODO.find(p => p.value === periodo)?.label}
+                </span>
+                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              {isPeriodoOpen && (
+                <div className="absolute z-50 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-2 animate-fadeIn">
+                  {OPCIONES_PERIODO.map(op => (
+                    <button
+                      key={op.value}
+                      onClick={() => { setPeriodo(op.value); setIsPeriodoOpen(false); }}
+                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
+                        periodo === op.value
+                          ? 'bg-app-accent text-app-accent-fg'
+                          : 'hover:bg-app-hover-overlay text-app-text'
+                      }`}
+                    >
+                      {op.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           <div className="flex-1 min-w-[160px]">
-            <label htmlFor="fecha-referencia" className="block text-[10px] font-black uppercase tracking-widest app-text-faint mb-2">
+            <label htmlFor="fecha-referencia" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
               Fecha de referencia
             </label>
             <input
@@ -472,7 +498,7 @@ const ReporteDeVentas: React.FC = () => {
               type="date"
               value={fechaReferencia}
               onChange={(e) => setFechaReferencia(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] app-heading text-sm"
+              className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)]"
             />
           </div>
         </div>
@@ -483,10 +509,10 @@ const ReporteDeVentas: React.FC = () => {
       ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <DashboardMetricCard label="Total ventas" value={formatearMoneda(resumenVentas.totalVentas)} icon="payments" iconIndex={1} sub={etiquetaGlobal} />
-        <DashboardMetricCard label="Transacciones" value={resumenVentas.cantidadTransacciones} icon="receipt_long" iconIndex={2} sub={etiquetaGlobal} />
-        <DashboardMetricCard label="Ticket promedio" value={formatearMoneda(resumenVentas.ticketPromedio)} icon="trending_up" iconIndex={3} sub={etiquetaGlobal} />
-        <DashboardMetricCard label="Unidades" value={resumenVentas.productosVendidos} icon="checkroom" iconIndex={4} sub={etiquetaGlobal} />
+        <DashboardMetricCard label="Total ventas" value={formatearMoneda(resumenVentas.totalVentas)} icon="payments" iconIndex={1} />
+        <DashboardMetricCard label="Transacciones" value={resumenVentas.cantidadTransacciones} icon="receipt_long" iconIndex={2} />
+        <DashboardMetricCard label="Ticket promedio" value={formatearMoneda(resumenVentas.ticketPromedio)} icon="trending_up" iconIndex={3} />
+        <DashboardMetricCard label="Unidades" value={resumenVentas.productosVendidos} icon="checkroom" iconIndex={4} />
       </div>
 
       {cargando ? (
@@ -499,6 +525,36 @@ const ReporteDeVentas: React.FC = () => {
           subtitulo={`${tituloGrafico} · referencia ${fechaReferencia}`}
           serieLabel={tituloGrafico}
           gradientId="areaGradVentas"
+          weekSelector={periodo === 'mensual' ? (
+            <div className="relative" ref={semanaRef}>
+              <div
+                onClick={() => setIsSemanaOpen(!isSemanaOpen)}
+                className="bg-app-input text-app-text rounded-xl py-1.5 px-3 text-[11px] font-bold border border-[var(--app-border)] flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>Semana {semanaSeleccionada}</span>
+                <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
+              {isSemanaOpen && (
+                <div className="absolute z-50 right-0 mt-1.5 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-1.5 animate-fadeIn min-w-[120px]">
+                  {SEMANAS.map(s => (
+                    <button
+                      key={s}
+                      onClick={() => { setSemanaSeleccionada(s); setIsSemanaOpen(false); }}
+                      className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors font-medium ${
+                        semanaSeleccionada === s
+                          ? 'bg-app-accent text-app-accent-fg'
+                          : 'hover:bg-app-hover-overlay text-app-text'
+                      }`}
+                    >
+                      Semana {s}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : undefined}
         />
       )}
 

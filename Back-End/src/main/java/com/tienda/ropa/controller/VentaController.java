@@ -1,8 +1,11 @@
 package com.tienda.ropa.controller;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+
+import org.springframework.format.annotation.DateTimeFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -14,6 +17,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.tienda.ropa.dto.VentaListadoDTO;
@@ -156,8 +160,15 @@ public class VentaController {
     }
 
     @GetMapping
-    public List<VentaListadoDTO> obtenerVentas() {
-        return ventaService.obtenerVentas();
+    public List<VentaListadoDTO> obtenerVentas(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate fechaFin) {
+        if (fechaInicio == null && fechaFin == null) {
+            return ventaService.obtenerVentas();
+        }
+        LocalDateTime inicio = fechaInicio != null ? fechaInicio.atStartOfDay() : null;
+        LocalDateTime fin = fechaFin != null ? fechaFin.atTime(23, 59, 59) : null;
+        return ventaService.obtenerVentas(inicio, fin);
     }
 
     @GetMapping("/{id}")

@@ -18,7 +18,7 @@ import { useAuth } from '@/context/AuthContext';
 
 import { ReportPeriodProvider } from '@/components/reportes/context/ReportPeriodContext';
 
-import { ReportPageActionsProvider } from '@/components/reportes/context/ReportPageActionsContext';
+import { ReportPageActionsProvider, useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 
 import { ReportPageShell, type ReportTabConfig } from '@/components/reportes/layout/ReportPageShell';
 
@@ -101,6 +101,14 @@ const ReportesPageContent: React.FC = () => {
   const [tabActiva, setTabActiva] = useState<TabReporte>('resumen');
 
 
+
+  const { setActions } = useReportPageActions();
+
+  useEffect(() => {
+
+    setActions(null);
+
+  }, [tabActiva, setActions]);
 
   useEffect(() => {
 
