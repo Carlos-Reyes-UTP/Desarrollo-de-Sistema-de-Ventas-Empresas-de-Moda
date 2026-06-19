@@ -7,6 +7,7 @@ import type { Venta } from '../../types/Venta';
 import type { DetalleVenta } from '../../types/DetalleVenta';
 import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
+import { DatePickerPopover } from '@/components/reportes/shared/DatePickerPopover';
 import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
 import { ReportTrendPanel } from '@/components/reportes/layout/ReportTrendPanel';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
@@ -489,16 +490,11 @@ const ReporteDeVentas: React.FC = () => {
               )}
             </div>
           </div>
-          <div className="flex-1 min-w-[160px]">
-            <label htmlFor="fecha-referencia" className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Fecha de referencia
-            </label>
-            <input
-              id="fecha-referencia"
-              type="date"
+          <div className="flex-1 min-w-[200px]">
+            <DatePickerPopover
+              label="Fecha de referencia"
               value={fechaReferencia}
-              onChange={(e) => setFechaReferencia(e.target.value)}
-              className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)]"
+              onChange={setFechaReferencia}
             />
           </div>
         </div>

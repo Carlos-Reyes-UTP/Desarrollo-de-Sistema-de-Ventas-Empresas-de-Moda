@@ -36,6 +36,7 @@ import { ReportViewPills } from '@/components/reportes/layout/ReportViewPills';
 import { reportChartAxisTick } from '@/components/reportes/layout/reportChartTheme';
 import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
+import { DatePickerPopover } from '@/components/reportes/shared/DatePickerPopover';
 import { generarInsightProductos } from '@/utils/reportInsights';
 
 // Estilos CSS para animaciones
@@ -631,7 +632,7 @@ const ProductosMasVendidos: React.FC = () => {
         <ReportInsightBanner message={insightProductos} headline="Mix de productos" icon="inventory_2" />
       ) : null}
 
-      <DashboardPanel className="!p-5 sm:!p-6 relative z-10">
+      <DashboardPanel className="!p-5 sm:!p-6 relative z-20">
         <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 items-end">
@@ -704,35 +705,19 @@ const ProductosMasVendidos: React.FC = () => {
           </div>
 
           {/* Fecha inicio */}
-          <div>
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Fecha inicio
-            </label>
-            <input
-              type="date"
-              value={fechaInicio}
-              onChange={(e) => setFechaInicio(e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-              className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)]"
-            />
-          </div>
+          <DatePickerPopover
+            label="Fecha inicio"
+            value={fechaInicio}
+            onChange={setFechaInicio}
+          />
 
           {/* Fecha fin */}
-          <div>
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Fecha fin
-            </label>
-            <input
-              type="date"
-              value={fechaFin}
-              onChange={(e) => setFechaFin(e.target.value)}
-              onMouseDown={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
-              min={fechaInicio || undefined}
-              className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)]"
-            />
-          </div>
+          <DatePickerPopover
+            label="Fecha fin"
+            value={fechaFin}
+            onChange={setFechaFin}
+            min={fechaInicio}
+          />
 
           {/* Limpiar */}
           <div>
