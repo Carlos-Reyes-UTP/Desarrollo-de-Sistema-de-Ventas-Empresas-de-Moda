@@ -3,10 +3,20 @@ import { AlmacenService } from '../../services/AlmacenService';
 import { AccesoAreaAlmacenService } from '../../services/AccesoAreaAlmacenService';
 import { MaterialIcon, ModalPortal, ModalMotionOverlay, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
 import type { MovimientoHistorialItem, MovimientoDetalle, UbicacionArea } from '../../types/Almacen';
+import { DatePickerPopover } from '../reportes/shared/DatePickerPopover';
 
 const PAGE_SIZE = 20;
 
 const HistorialMovimientos: React.FC = () => {
+  const hoy = new Date();
+  const diaStr = String(hoy.getDate()).padStart(2, '0');
+  const mes = hoy.getMonth() + 1;
+  const anio = hoy.getFullYear();
+  const mesStr = String(mes).padStart(2, '0');
+  const hoyStr = `${anio}-${mesStr}-${diaStr}`;
+  const primerDiaMes = `${anio}-${mesStr}-01`;
+  const ultimoDiaMes = new Date(anio, mes, 0).toISOString().split('T')[0];
+
   const [items, setItems] = useState<MovimientoHistorialItem[]>([]);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -17,17 +27,10 @@ const HistorialMovimientos: React.FC = () => {
   const [areas, setAreas] = useState<UbicacionArea[]>([]);
 
   const [idArea, setIdArea] = useState<number | undefined>(undefined);
-  const [fechaDesde, setFechaDesde] = useState('');
-  const [fechaHasta, setFechaHasta] = useState('');
+  const [fechaDesde, setFechaDesde] = useState(primerDiaMes);
+  const [fechaHasta, setFechaHasta] = useState(hoyStr);
   const [isAreaFocused, setIsAreaFocused] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
-
-  const hoy = new Date();
-  const mes = hoy.getMonth() + 1;
-  const anio = hoy.getFullYear();
-  const mesStr = String(mes).padStart(2, '0');
-  const primerDiaMes = `${anio}-${mesStr}-01`;
-  const ultimoDiaMes = new Date(anio, mes, 0).toISOString().split('T')[0];
 
   useEffect(() => {
     AccesoAreaAlmacenService.listarAreasAlmacen().then(setAreas).catch(() => {});
@@ -71,8 +74,8 @@ const HistorialMovimientos: React.FC = () => {
 
   const limpiarFiltros = () => {
     setIdArea(undefined);
-    setFechaDesde('');
-    setFechaHasta('');
+    setFechaDesde(primerDiaMes);
+    setFechaHasta(hoyStr);
   };
 
   const handlePaginaAnterior = () => {
@@ -99,9 +102,9 @@ const HistorialMovimientos: React.FC = () => {
   return (
     <div>
       {/* Filter card (same design as product filters) */}
-      <div className="bg-app-surface rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-app-border">
+      <div className="bg-app-surface rounded-[1.5rem] shadow-[0_4px_20px_rgba(0,0,0,0.03)] p-8 mb-10 border border-app-border relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-6 gap-8 items-end">
-          <div className="lg:col-span-2 relative" ref={areaRef}>
+          <div className="lg:col-span-2 relative z-30" ref={areaRef}>
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
               Área de almacén
             </label>
@@ -149,31 +152,22 @@ const HistorialMovimientos: React.FC = () => {
             )}
           </div>
 
-          <div className="lg:col-span-1">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Desde
-            </label>
-            <input
-              type="date"
+          <div className="lg:col-span-1 relative z-20">
+            <DatePickerPopover
+              label="Desde"
               value={fechaDesde}
-              onChange={e => setFechaDesde(e.target.value)}
-              min={primerDiaMes}
-              max={fechaHasta || ultimoDiaMes}
-              className="w-full py-3 px-4 bg-app-input border-transparent rounded-xl text-sm focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all font-bold"
+              onChange={setFechaDesde}
+              max={hoyStr}
             />
           </div>
 
-          <div className="lg:col-span-1">
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Hasta
-            </label>
-            <input
-              type="date"
+          <div className="lg:col-span-1 relative z-20">
+            <DatePickerPopover
+              label="Hasta"
               value={fechaHasta}
-              onChange={e => setFechaHasta(e.target.value)}
-              min={fechaDesde || primerDiaMes}
-              max={ultimoDiaMes}
-              className="w-full py-3 px-4 bg-app-input border-transparent rounded-xl text-sm focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all font-bold"
+              onChange={setFechaHasta}
+              min={fechaDesde}
+              max={hoyStr}
             />
           </div>
 

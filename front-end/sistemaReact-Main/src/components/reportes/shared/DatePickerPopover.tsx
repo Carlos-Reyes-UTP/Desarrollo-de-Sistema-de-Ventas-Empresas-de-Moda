@@ -38,9 +38,10 @@ interface DatePickerPopoverProps {
   value: string;
   onChange: (value: string) => void;
   min?: string;
+  max?: string;
 }
 
-export const DatePickerPopover = ({ label, value, onChange, min }: DatePickerPopoverProps) => {
+export const DatePickerPopover = ({ label, value, onChange, min, max }: DatePickerPopoverProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showMonthPicker, setShowMonthPicker] = useState(false);
   const [slideDirection, setSlideDirection] = useState<'left' | 'right' | null>(null);
@@ -115,11 +116,13 @@ export const DatePickerPopover = ({ label, value, onChange, min }: DatePickerPop
   };
 
   const isDayDisabled = (day: number) => {
-    if (!min) return false;
+    if (!min && !max) return false;
     const monthStr = String(viewMonth + 1).padStart(2, '0');
     const dayStr = String(day).padStart(2, '0');
     const dateStr = `${viewYear}-${monthStr}-${dayStr}`;
-    return isBefore(dateStr, min);
+    if (min && isBefore(dateStr, min)) return true;
+    if (max && isBefore(max, dateStr)) return true;
+    return false;
   };
 
   const days: (number | null)[] = [];
