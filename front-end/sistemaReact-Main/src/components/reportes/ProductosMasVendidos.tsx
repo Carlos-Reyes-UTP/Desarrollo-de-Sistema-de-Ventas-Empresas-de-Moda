@@ -30,7 +30,6 @@ import {
   CustomTooltipVariantes,
 } from './productos-mas-vendidos/chartRenderers';
 import { AlertModal, ChartSkeleton, TableSkeleton, Skeleton, SectionHeader, PageActionButton } from '@/shared/ui';
-import { RoseChart } from './shared/RoseChart';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
 import { ReportViewPills } from '@/components/reportes/layout/ReportViewPills';
@@ -38,13 +37,6 @@ import { reportChartAxisTick } from '@/components/reportes/layout/reportChartThe
 import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
 import { generarInsightProductos } from '@/utils/reportInsights';
-
-const VISTAS_PRODUCTOS = [
-  { id: 'barras' as const, label: 'Barras' },
-  { id: 'linea' as const, label: 'Línea' },
-  { id: 'rose' as const, label: 'Rose' },
-  { id: 'tabla' as const, label: 'Tabla' },
-];
 
 // Estilos CSS para animaciones
 const animationStyles = `
@@ -115,7 +107,13 @@ if (typeof document !== 'undefined') {
   document.head.appendChild(styleSheet);
 }
 
-type VistaGraficoReporte = 'barras' | 'linea' | 'rose' | 'tabla';
+type VistaGraficoReporte = 'barras' | 'linea' | 'tabla';
+type TipoAnalisis = 'ranking' | 'individual';
+
+const VISTAS_PRODUCTOS_RANKING = [
+  { id: 'barras' as const, label: 'Barras' },
+  { id: 'linea' as const, label: 'Línea' },
+];
 type FiltrosReporte = {
   idCategoriaPadre?: string;
   fechaInicio?: string;
@@ -152,9 +150,21 @@ const ProductosMasVendidos: React.FC = () => {
   const [loadingTallas, setLoadingTallas] = useState(false);
   const [loadingVariantes, setLoadingVariantes] = useState(false);
   const [tipoGraficoVariantes, setTipoGraficoVariantes] = useState<'barras' | 'torta'>('barras');
+  const [tipoAnalisis, setTipoAnalisis] = useState<TipoAnalisis>('ranking');
+  const [isTipoAnalisisOpen, setIsTipoAnalisisOpen] = useState(false);
   
-  // Referencias para el campo de búsqueda
+  // Referencias para los campos de búsqueda
   const categoriaRef = useRef<HTMLDivElement>(null);
+  const tipoAnalisisRef = useRef<HTMLDivElement>(null);
+  
+  // Forzar vista correcta al cambiar modo
+  useEffect(() => {
+    if (tipoAnalisis === 'individual') {
+      setVistaGrafico('tabla');
+    } else if (vistaGrafico === 'tabla') {
+      setVistaGrafico('barras');
+    }
+  }, [tipoAnalisis]);
   
   useEffect(() => {
     CategoriaService.obtenerCategoriasPrincipales().then(setCategorias);
@@ -182,6 +192,16 @@ const ProductosMasVendidos: React.FC = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isCategoriaFocused, searchCategoria]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tipoAnalisisRef.current && !tipoAnalisisRef.current.contains(event.target as Node)) {
+        setIsTipoAnalisisOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTipoAnalisisOpen]);
 
   useEffect(() => {
     const cargarProductos = async () => {
@@ -779,21 +799,47 @@ const ProductosMasVendidos: React.FC = () => {
         />
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-stretch sm:items-center relative z-[1]">
-        <div className="relative flex-1">
-          <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 app-text-faint pointer-events-none" />
-          <input
-            type="search"
-            placeholder="Buscar productos..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] app-heading text-sm"
-          />
+      {/* Tipo de Análisis */}
+      <DashboardPanel className="relative z-10">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase">TIPO DE ANÁLISIS</h3>
         </div>
-        <ReportViewPills options={VISTAS_PRODUCTOS} value={vistaGrafico} onChange={setVistaGrafico} />
-      </div>
+        <div className="mt-3 relative" ref={tipoAnalisisRef}>
+          <div
+            className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)] flex items-center justify-between cursor-pointer select-none"
+            onClick={() => setIsTipoAnalisisOpen(!isTipoAnalisisOpen)}
+          >
+            <span>{tipoAnalisis === 'ranking' ? 'Ranking de más y menos vendidos' : 'Análisis individual'}</span>
+            <svg className={`w-4 h-4 transition-transform duration-200 ${isTipoAnalisisOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </div>
+          {isTipoAnalisisOpen && (
+            <div className="absolute left-0 right-0 mt-1 bg-app-surface border border-app-border rounded-xl shadow-lg z-50 overflow-hidden">
+              <button
+                className={`w-full px-4 py-3 text-left text-sm font-bold transition-colors ${tipoAnalisis === 'ranking' ? 'bg-app-accent text-app-accent-fg' : 'text-app-text hover:bg-app-hover-overlay'}`}
+                onClick={() => { setTipoAnalisis('ranking'); setIsTipoAnalisisOpen(false); }}
+              >
+                Ranking de más y menos vendidos
+              </button>
+              <button
+                className={`w-full px-4 py-3 text-left text-sm font-bold transition-colors ${tipoAnalisis === 'individual' ? 'bg-app-accent text-app-accent-fg' : 'text-app-text hover:bg-app-hover-overlay'}`}
+                onClick={() => { setTipoAnalisis('individual'); setIsTipoAnalisisOpen(false); }}
+              >
+                Análisis individual
+              </button>
+            </div>
+          )}
+        </div>
+      </DashboardPanel>
 
-      {vistaGrafico === 'barras' && (
+      {tipoAnalisis === 'ranking' && (
+        <div className="flex justify-end">
+          <ReportViewPills options={VISTAS_PRODUCTOS_RANKING} value={vistaGrafico} onChange={setVistaGrafico} />
+        </div>
+      )}
+
+      {tipoAnalisis === 'ranking' && vistaGrafico === 'barras' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Top 5 Más Vendidos */}
           <DashboardPanel>
@@ -929,7 +975,7 @@ const ProductosMasVendidos: React.FC = () => {
         </div>
       )}
 
-      {vistaGrafico === 'linea' && (
+      {tipoAnalisis === 'ranking' && vistaGrafico === 'linea' && (
         <DashboardPanel>
           <SectionHeader title="Ingresos por producto (top 10)" />
           <div className="h-96">
@@ -967,29 +1013,25 @@ const ProductosMasVendidos: React.FC = () => {
         </DashboardPanel>
       )}
 
-      {vistaGrafico === 'rose' && (
-        <DashboardPanel>
-          <SectionHeader
-            title="Distribución radial (top 10)"
-            subtitle="Clic en un sector para análisis por talla/color"
-          />
-          <div className="min-h-[420px] flex items-center justify-center">
-            <RoseChart
-              data={productosFiltrados.slice(0, 10) as any}
-              labelKey="nombreProducto"
-              valueKey="cantidadVendida"
-              valueFormatter={(value) => `${value.toLocaleString()} uds`}
-              onSectorClick={(item: any) => seleccionarProducto(item)}
-              height={400}
-            />
-          </div>
-        </DashboardPanel>
-      )}
-
       {vistaGrafico === 'tabla' && (
         <DashboardPanel className="overflow-hidden p-0">
+          {tipoAnalisis === 'individual' && (
+            <div className="px-6 pt-6 pb-2 space-y-4">
+              <h3 className="text-base font-black app-heading">ANÁLISIS INDIVIDUAL DE PRODUCTO</h3>
+              <div className="relative">
+                <MagnifyingGlassIcon className="h-5 w-5 absolute left-3 top-1/2 -translate-y-1/2 app-text-faint pointer-events-none" />
+                <input
+                  type="search"
+                  placeholder="Buscar producto por nombre o código..."
+                  value={busqueda}
+                  onChange={(e) => setBusqueda(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-bg)] app-heading text-sm"
+                />
+              </div>
+            </div>
+          )}
           <div className="overflow-x-auto p-6">
-            <SectionHeader title="Ranking completo" />
+            <SectionHeader title={tipoAnalisis === 'individual' ? 'Resultados de búsqueda' : 'Ranking completo'} />
             <table className="min-w-full divide-y divide-[var(--app-border)]">
               <thead className="bg-[var(--app-bg-muted)]">
                 <tr>
