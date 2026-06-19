@@ -507,13 +507,7 @@ public class ProductoVarianteServiceImpl implements ProductoVarianteService {
     @Transactional(readOnly = true)
 
     public List<VarianteExportarDTO> exportarListado(String area) {
-        List<Object[]> resultados;
-
-        if (area != null && !area.isBlank()) {
-            resultados = productoVarianteRepository.findExportarPorArea(area.trim());
-        } else {
-            resultados = productoVarianteRepository.findExportarTodo();
-        }
+        List<Object[]> resultados = productoVarianteRepository.findExportarPorArea(area.trim());
 
         List<Long> ids = resultados.stream()
                 .map(r -> ((Number) r[0]).longValue())

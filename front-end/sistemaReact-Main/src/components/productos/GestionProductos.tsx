@@ -425,7 +425,7 @@ const GestionProductos: React.FC = () => {
       ];
 
       for (const seleccion of areasExportar) {
-        const area = seleccion === "Almacén General" ? undefined : seleccion;
+        const area = seleccion;
         const variantes = await ProductoVarianteService.exportarListado(area);
         if (variantes.length === 0) continue;
 
@@ -554,12 +554,14 @@ const GestionProductos: React.FC = () => {
         actions={
           tabActual === "catalogo" ? (
             <PageActionGroup>
-              <PageActionButton grouped variant="secondary" onClick={() => setExportModalOpen(true)}>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Exportar Lista
-              </PageActionButton>
+              {tieneRol('ROLE_SUPERVISOR_ALMACEN') && (
+                <PageActionButton grouped variant="secondary" onClick={() => setExportModalOpen(true)}>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Exportar Lista
+                </PageActionButton>
+              )}
               <PageActionButton grouped onClick={() => setShowFormulario(true)}>
                 <MaterialIcon icon="add" className="w-4 h-4" />
                 Nuevo Producto
@@ -1279,37 +1281,6 @@ const GestionProductos: React.FC = () => {
               Áreas de Almacén
             </h4>
             <div className="space-y-2">
-              <label
-                onClick={() => {
-                  setAreasExportar(prev =>
-                    prev.includes("Almacén General")
-                      ? prev.filter(a => a !== "Almacén General")
-                      : [...prev, "Almacén General"]
-                  );
-                }}
-                className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all select-none ${
-                  areasExportar.includes("Almacén General")
-                    ? "border-[var(--app-accent)] bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)]"
-                    : "border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]"
-                }`}
-              >
-                <div className={`w-4 h-4 rounded border-2 mt-0.5 shrink-0 flex items-center justify-center ${
-                  areasExportar.includes("Almacén General")
-                    ? "border-[var(--app-accent)] bg-[var(--app-accent)]"
-                    : "border-[var(--app-text-muted)]"
-                }`}>
-                  {areasExportar.includes("Almacén General") && (
-                    <MaterialIcon icon="check" className="w-3 h-3 text-white" />
-                  )}
-                </div>
-                <div>
-                  <span className="text-sm font-bold text-[var(--app-text)] block text-left">Almacén General</span>
-                  <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
-                    Todas las áreas de almacén disponibles.
-                  </span>
-                </div>
-              </label>
-
               {areasUnicas.map(area => (
                 <label
                   key={area}

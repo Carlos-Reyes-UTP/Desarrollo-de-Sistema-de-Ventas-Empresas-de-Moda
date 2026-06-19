@@ -19,10 +19,6 @@ const HistorialMovimientos: React.FC = () => {
   const [idArea, setIdArea] = useState<number | undefined>(undefined);
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
-
-  const [pendingIdArea, setPendingIdArea] = useState<number | undefined>(undefined);
-  const [pendingFechaDesde, setPendingFechaDesde] = useState('');
-  const [pendingFechaHasta, setPendingFechaHasta] = useState('');
   const [isAreaFocused, setIsAreaFocused] = useState(false);
   const areaRef = useRef<HTMLDivElement>(null);
 
@@ -74,18 +70,9 @@ const HistorialMovimientos: React.FC = () => {
   }, []);
 
   const limpiarFiltros = () => {
-    setPendingIdArea(undefined);
-    setPendingFechaDesde('');
-    setPendingFechaHasta('');
     setIdArea(undefined);
     setFechaDesde('');
     setFechaHasta('');
-  };
-
-  const aplicarBusqueda = () => {
-    setIdArea(pendingIdArea);
-    setFechaDesde(pendingFechaDesde);
-    setFechaHasta(pendingFechaHasta);
   };
 
   const handlePaginaAnterior = () => {
@@ -120,19 +107,19 @@ const HistorialMovimientos: React.FC = () => {
             </label>
             <div
               onClick={() => setIsAreaFocused(prev => !prev)}
-              className={`relative cursor-pointer ${pendingIdArea ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
+              className={`relative cursor-pointer ${idArea ? 'bg-app-accent text-app-accent-fg' : 'bg-app-input text-app-text'} rounded-xl py-3 px-4 flex items-center justify-between transition-all`}
             >
               <span className="text-sm font-bold truncate">
-                {areas.find(a => a.idUbicacionArea === pendingIdArea)?.descripcion
-                  ?? (pendingIdArea ? '' : 'Todas las áreas')}
+                {areas.find(a => a.idUbicacionArea === idArea)?.area
+                  ?? (idArea ? '' : 'Todas las áreas')}
               </span>
-              {pendingIdArea ? (
+              {idArea ? (
                 <MaterialIcon
                   icon="close"
                   className="w-4 h-4 cursor-pointer hover:text-gray-300"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setPendingIdArea(undefined);
+                    setIdArea(undefined);
                   }}
                 />
               ) : (
@@ -144,7 +131,7 @@ const HistorialMovimientos: React.FC = () => {
             {isAreaFocused && (
               <div className="absolute z-20 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl max-h-60 overflow-y-auto p-2 animate-fadeIn">
                 <button
-                  onClick={() => { setPendingIdArea(undefined); setIsAreaFocused(false); }}
+                  onClick={() => { setIdArea(undefined); setIsAreaFocused(false); }}
                   className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay text-app-text rounded-lg transition-colors font-medium"
                 >
                   Todas las áreas
@@ -152,10 +139,10 @@ const HistorialMovimientos: React.FC = () => {
                 {areas.map(a => (
                   <button
                     key={a.idUbicacionArea}
-                    onClick={() => { setPendingIdArea(a.idUbicacionArea); setIsAreaFocused(false); }}
+                    onClick={() => { setIdArea(a.idUbicacionArea); setIsAreaFocused(false); }}
                     className="w-full text-left px-3 py-2 text-sm hover:bg-app-hover-overlay text-app-text rounded-lg transition-colors font-medium"
                   >
-                    {a.descripcion ?? `${a.nombre} · ${a.area}`}
+                    {a.area ?? a.nombre}
                   </button>
                 ))}
               </div>
@@ -168,10 +155,10 @@ const HistorialMovimientos: React.FC = () => {
             </label>
             <input
               type="date"
-              value={pendingFechaDesde}
-              onChange={e => setPendingFechaDesde(e.target.value)}
+              value={fechaDesde}
+              onChange={e => setFechaDesde(e.target.value)}
               min={primerDiaMes}
-              max={pendingFechaHasta || ultimoDiaMes}
+              max={fechaHasta || ultimoDiaMes}
               className="w-full py-3 px-4 bg-app-input border-transparent rounded-xl text-sm focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all font-bold"
             />
           </div>
@@ -182,21 +169,15 @@ const HistorialMovimientos: React.FC = () => {
             </label>
             <input
               type="date"
-              value={pendingFechaHasta}
-              onChange={e => setPendingFechaHasta(e.target.value)}
-              min={pendingFechaDesde || primerDiaMes}
+              value={fechaHasta}
+              onChange={e => setFechaHasta(e.target.value)}
+              min={fechaDesde || primerDiaMes}
               max={ultimoDiaMes}
               className="w-full py-3 px-4 bg-app-input border-transparent rounded-xl text-sm focus:bg-app-surface focus:ring-2 focus:ring-app-ring transition-all font-bold"
             />
           </div>
 
           <div className="lg:col-span-2 flex flex-col justify-end h-full">
-            <button
-              onClick={aplicarBusqueda}
-              className="w-full py-3 bg-app-accent text-app-accent-fg rounded-xl text-xs font-bold uppercase tracking-widest transition-all shadow-md hover:opacity-90"
-            >
-              Aplicar Búsqueda
-            </button>
           </div>
         </div>
       </div>
