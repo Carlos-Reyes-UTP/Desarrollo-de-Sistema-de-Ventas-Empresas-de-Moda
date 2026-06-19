@@ -326,12 +326,11 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "ORDER BY pv.talla")
        List<TallaProductoDTO> findTallasByProductoId(@Param("idProducto") Long idProducto);
 
-       // Variantes agrupadas por color (texto) para un producto y talla (texto)
+       // Variantes agrupadas por color (texto) para un producto y talla (texto) sin fechas
        @Query("SELECT new com.tienda.ropa.dto.VariantesPorColorDTO(" +
                      "0L, " +
                      "pv.color, " +
                      "'', " +
-                     "COALESCE(SUM(pv.cantidad), 0), " +
                      "COALESCE(SUM(dv.cantidad), 0), " +
                      "COALESCE(SUM(dv.precioUnitario * dv.cantidad), 0)) " +
                      "FROM ProductoVariante pv " +
@@ -342,4 +341,24 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
        List<VariantesPorColorDTO> findVariantesPorColorByProductoAndTalla(
                      @Param("idProducto") Long idProducto,
                      @Param("nombreTalla") String nombreTalla);
+
+       // Variantes agrupadas por color (texto) para un producto y talla (texto) con fechas
+       @Query("SELECT new com.tienda.ropa.dto.VariantesPorColorDTO(" +
+                     "0L, " +
+                     "pv.color, " +
+                     "'', " +
+                     "COALESCE(SUM(dv.cantidad), 0), " +
+                     "COALESCE(SUM(dv.precioUnitario * dv.cantidad), 0)) " +
+                     "FROM ProductoVariante pv " +
+                     "LEFT JOIN DetalleVenta dv ON dv.productoVariante.idProductoVariante = pv.idProductoVariante " +
+                     "LEFT JOIN dv.venta v " +
+                     "WHERE pv.producto.idProducto = :idProducto AND LOWER(pv.talla) = LOWER(:nombreTalla) " +
+                     "AND (v IS NULL OR v.fechaVenta BETWEEN :fechaInicio AND :fechaFin) " +
+                     "GROUP BY pv.color " +
+                     "ORDER BY pv.color")
+       List<VariantesPorColorDTO> findVariantesPorColorByProductoAndTallaEntreFechas(
+                     @Param("idProducto") Long idProducto,
+                     @Param("nombreTalla") String nombreTalla,
+                     @Param("fechaInicio") LocalDateTime fechaInicio,
+                     @Param("fechaFin") LocalDateTime fechaFin);
 }

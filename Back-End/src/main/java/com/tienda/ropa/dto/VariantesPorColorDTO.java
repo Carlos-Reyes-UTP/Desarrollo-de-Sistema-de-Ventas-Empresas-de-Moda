@@ -6,7 +6,6 @@ public class VariantesPorColorDTO {
     private Long idColor;
     private String nombreColor;
     private String hexColor;
-    private Integer cantidadStock;
     private Long cantidadVendida;
     private BigDecimal ingresosTotales;
 
@@ -15,11 +14,10 @@ public class VariantesPorColorDTO {
 
     // Constructor principal para la consulta JPQL optimizada
     public VariantesPorColorDTO(Long idColor, String nombreColor, String hexColor, 
-                               Long cantidadStock, Long cantidadVendida, BigDecimal ingresosTotales) {
+                               Long cantidadVendida, BigDecimal ingresosTotales) {
         this.idColor = idColor;
         this.nombreColor = nombreColor;
         this.hexColor = hexColor;
-        this.cantidadStock = cantidadStock != null ? cantidadStock.intValue() : 0;
         this.cantidadVendida = cantidadVendida != null ? cantidadVendida : 0L;
         this.ingresosTotales = ingresosTotales != null ? ingresosTotales : BigDecimal.ZERO;
     }
@@ -47,14 +45,6 @@ public class VariantesPorColorDTO {
 
     public void setHexColor(String hexColor) {
         this.hexColor = hexColor;
-    }
-
-    public Integer getCantidadStock() {
-        return cantidadStock;
-    }
-
-    public void setCantidadStock(Integer cantidadStock) {
-        this.cantidadStock = cantidadStock;
     }
 
     public Long getCantidadVendida() {

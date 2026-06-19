@@ -321,10 +321,16 @@ export const ReporteService = {
   /**
    * Obtiene las variantes agrupadas por color para un producto y talla específicos
    */
-  getVariantesPorColor: async (idProducto: number, nombreTalla: string): Promise<VariantesPorColor[]> => {
+  getVariantesPorColor: async (idProducto: number, nombreTalla: string, fechaInicio?: string, fechaFin?: string): Promise<VariantesPorColor[]> => {
     try {
+      const params = new URLSearchParams();
+      params.append('idProducto', idProducto.toString());
+      params.append('nombreTalla', nombreTalla);
+      if (fechaInicio) params.append('fechaInicio', formatFechaInicio(fechaInicio));
+      if (fechaFin) params.append('fechaFin', formatFechaFin(fechaFin));
+
       const response = await apiClient.get<VariantesPorColor[]>(
-        RUTAS_REPORTES.VARIANTES_POR_COLOR(idProducto, nombreTalla)
+        `${RUTAS_REPORTES.BASE}/producto/variantes-por-color?${params.toString()}`
       );
       return response.data;
     } catch (error: any) {

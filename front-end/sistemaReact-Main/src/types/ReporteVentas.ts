@@ -38,7 +38,6 @@ export interface VariantesPorColor {
   idColor: number;
   nombreColor: string;
   hexColor?: string; // Color en formato hexadecimal para mostrar en la UI
-  cantidadStock: number;
   cantidadVendida: number;
   ingresosTotales: number;
 }

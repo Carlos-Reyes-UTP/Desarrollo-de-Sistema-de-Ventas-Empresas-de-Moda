@@ -127,6 +127,18 @@ const hoy = new Date();
 const INICIO_MES = dateToStr(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
 const HOY = dateToStr(hoy);
 
+// Función auxiliar para determinar si un color es oscuro
+const isColorDark = (color: string): boolean => {
+  if (!color) return false;
+  let c = color.substring(1);      // strip #
+  let rgb = parseInt(c, 16);
+  let r = (rgb >> 16) & 0xff;
+  let g = (rgb >>  8) & 0xff;
+  let b = (rgb >>  0) & 0xff;
+  let luma = 0.2126 * r + 0.7152 * g + 0.0722 * b; // ITU-R BT.709
+  return luma < 128;
+};
+
 const ProductosMasVendidos: React.FC = () => {
   const { setActions } = useReportPageActions();
   const [productos, setProductos] = useState<ProductoMasVendido[]>([]);
@@ -158,6 +170,7 @@ const ProductosMasVendidos: React.FC = () => {
   // Referencias para los campos de búsqueda
   const categoriaRef = useRef<HTMLDivElement>(null);
   const tipoAnalisisRef = useRef<HTMLDivElement>(null);
+  const analisisDetalladoRef = useRef<HTMLDivElement>(null);
   
   // Forzar vista correcta al cambiar modo
   useEffect(() => {
@@ -304,7 +317,7 @@ const ProductosMasVendidos: React.FC = () => {
     try {
       setLoadingVariantes(true);
       // Mantener las variantes anteriores mientras carga para evitar parpadeo
-      const variantes = await ReporteService.getVariantesPorColor(productoSeleccionado.idProducto, nombreTalla);
+      const variantes = await ReporteService.getVariantesPorColor(productoSeleccionado.idProducto, nombreTalla, fechaInicio, fechaFin);
       setVariantesPorColor(variantes);
     } catch (error) {
       console.error('Error al cargar variantes por color:', error);
@@ -331,6 +344,14 @@ const ProductosMasVendidos: React.FC = () => {
       cerrarAnalisisDetallado();
     }
   }, [tipoAnalisis, vistaGrafico]);
+
+  useEffect(() => {
+    if (mostrarAnalisisDetallado && analisisDetalladoRef.current && !isClosingDetallado) {
+      setTimeout(() => {
+        analisisDetalladoRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [mostrarAnalisisDetallado, isClosingDetallado]);
 
   // Función para aplicar filtros rápidos - simplificada para evitar dobles cargas
   const aplicarFiltroRapido = (tipo: 'hoy' | 'semana' | 'mes') => {
@@ -407,13 +428,10 @@ const ProductosMasVendidos: React.FC = () => {
           'Nombre del Producto': producto.nombreProducto,
           'Categoría': formatearCategoriaCompleta(producto),
           'Código de Barras': producto.codigoIdentificacion,
-          'Stock Actual': '' as string | number, // Se calculará el total después
           'Cantidad Total Vendida': producto.cantidadVendida,
           'Ingresos Totales (S/)': producto.ingresosTotales
         };
         datosDetallados.push(filaProducto);
-
-        let stockTotalProducto = 0; // Para calcular el stock total del producto
 
         try {
           // Obtener tallas del producto
@@ -422,10 +440,9 @@ const ProductosMasVendidos: React.FC = () => {
           for (const talla of tallas) {
             try {
               // Obtener variantes por color para cada talla
-              const variantes = await ReporteService.getVariantesPorColor(producto.idProducto, talla.nombreTalla);
+              const variantes = await ReporteService.getVariantesPorColor(producto.idProducto, talla.nombreTalla, fechaInicio, fechaFin);
               
               for (const variante of variantes) {
-                stockTotalProducto += variante.cantidadStock; // Sumar al stock total
                 
                 // Obtener información completa de la variante para el código de barras
                 let codigoBarras = 'Sin código';
@@ -446,7 +463,6 @@ const ProductosMasVendidos: React.FC = () => {
                   'Nombre del Producto': `${producto.nombreProducto} - ${talla.nombreTalla} - ${variante.nombreColor}`,
                   'Categoría': '',
                   'Código de Barras': codigoBarras,
-                  'Stock Actual': variante.cantidadStock,
                   'Cantidad Total Vendida': variante.cantidadVendida,
                   'Ingresos Totales (S/)': parseFloat(variante.ingresosTotales.toString())
                 });
@@ -455,9 +471,6 @@ const ProductosMasVendidos: React.FC = () => {
               console.warn(`Error al cargar variantes para talla ${talla.nombreTalla}:`, error);
             }
           }
-
-          // Actualizar el stock total en la fila del producto principal
-          filaProducto['Stock Actual'] = stockTotalProducto;
 
         } catch (error) {
           console.warn(`Error al cargar tallas para producto ${producto.nombreProducto}:`, error);
@@ -469,7 +482,6 @@ const ProductosMasVendidos: React.FC = () => {
           'Nombre del Producto': '',
           'Categoría': '',
           'Código de Barras': '',
-          'Stock Actual': '',
           'Cantidad Total Vendida': '',
           'Ingresos Totales (S/)': ''
         });
@@ -556,7 +568,6 @@ const ProductosMasVendidos: React.FC = () => {
         { wch: 40 }, // Nombre del Producto (más ancho para: producto - talla - color)
         { wch: 25 }, // Categoría
         { wch: 20 }, // Código de Barras
-        { wch: 15 }, // Stock Actual
         { wch: 20 }, // Cantidad Total Vendida
         { wch: 20 }  // Ingresos Totales
       ];
@@ -1108,7 +1119,7 @@ const ProductosMasVendidos: React.FC = () => {
 
       {/* Panel de análisis detallado */}
       {mostrarAnalisisDetallado && productoSeleccionado && (
-        <div className={`mt-8 ${isClosingDetallado ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-in fade-in slide-in-from-bottom-4'} transform transition-all duration-300 ease-out`}>
+        <div ref={analisisDetalladoRef} className={`mt-8 ${isClosingDetallado ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-in fade-in slide-in-from-bottom-4'} transform transition-all duration-300 ease-out`}>
           <DashboardPanel className="p-6">
             <div className="flex justify-between items-center mb-8 border-b border-[var(--app-border)] pb-4">
               <div className="transform transition-all duration-300 ease-out">
@@ -1277,37 +1288,40 @@ const ProductosMasVendidos: React.FC = () => {
                       <table className="min-w-full divide-y divide-[var(--app-border)]">
                         <thead className="bg-[var(--app-bg-muted)]">
                           <tr>
-                            <th className="px-6 py-4 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
+                            <th scope="col" className="w-1/3 px-6 py-4 text-left text-xs font-black text-[var(--app-text-secondary)] uppercase tracking-wider">
                               Color
                             </th>
-                            <th className="px-6 py-4 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">
-                              Stock Actual
+                            <th scope="col" className="w-1/3 px-6 py-4 text-center text-xs font-black text-[var(--app-text-secondary)] uppercase tracking-wider">
+                              Cant. Vendida
                             </th>
-                            <th className="px-6 py-4 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">
-                              Cantidad Vendida
-                            </th>
-                            <th className="px-6 py-4 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">
-                              Ingresos Totales
+                            <th scope="col" className="w-1/3 px-6 py-4 text-right text-xs font-black text-[var(--app-text-secondary)] uppercase tracking-wider rounded-tr-lg">
+                              Ingresos
                             </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--app-border)]">
-                          {variantesPorColor.map((variante, vi) => (
-                            <tr key={`${variante.nombreColor}-${vi}`} className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors">
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <span className="font-bold text-sm text-[var(--app-text)]">{variante.nombreColor}</span>
+                          {variantesPorColor.map((variante, idx) => (
+                            <tr 
+                              key={`${variante.nombreColor}-${idx}`}
+                              className={`
+                                group transition-all duration-200
+                                ${idx % 2 === 0 ? 'bg-[var(--app-bg-secondary)]' : 'bg-transparent'}
+                                hover:bg-[var(--app-bg-hover)]
+                              `}
+                            >
+                              <td className="w-1/3 px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center gap-3">
+                                  <span className="font-medium text-[var(--app-text-primary)]">
+                                    {variante.nombreColor}
+                                  </span>
+                                </div>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
-                                <span className="text-sm font-bold text-[var(--app-text)]">
-                                  {variante.cantidadStock}
-                                </span>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
-                                <span className="text-sm font-bold text-[var(--app-text)]">
+                              <td className="w-1/3 px-6 py-4 whitespace-nowrap text-center">
+                                <span className="inline-flex items-center justify-center px-3 py-1 text-sm font-semibold text-[var(--app-accent)] bg-[var(--app-accent)]/10 rounded-full">
                                   {variante.cantidadVendida}
                                 </span>
                               </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-right">
+                              <td className="w-1/3 px-6 py-4 whitespace-nowrap text-right">
                                 <span className="text-sm font-bold text-[var(--app-text-muted)]">
                                   S/. {parseFloat(variante.ingresosTotales.toString()).toLocaleString()}
                                 </span>

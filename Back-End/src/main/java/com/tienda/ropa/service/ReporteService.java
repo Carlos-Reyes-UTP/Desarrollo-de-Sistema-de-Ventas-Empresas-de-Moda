@@ -96,7 +96,10 @@ public class ReporteService {
     }
 
     // Obtener variantes agrupadas por color para un producto y talla específicos
-    public List<VariantesPorColorDTO> obtenerVariantesPorColor(Long idProducto, String nombreTalla) {
+    public List<VariantesPorColorDTO> obtenerVariantesPorColor(Long idProducto, String nombreTalla, LocalDateTime fechaInicio, LocalDateTime fechaFin) {
+        if (fechaInicio != null && fechaFin != null) {
+            return reporteRepository.findVariantesPorColorByProductoAndTallaEntreFechas(idProducto, nombreTalla, fechaInicio, fechaFin);
+        }
         return reporteRepository.findVariantesPorColorByProductoAndTalla(idProducto, nombreTalla);
     }
 

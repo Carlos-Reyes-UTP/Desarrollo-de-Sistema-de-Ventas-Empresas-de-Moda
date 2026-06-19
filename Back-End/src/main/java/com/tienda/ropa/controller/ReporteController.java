@@ -1,6 +1,8 @@
 package com.tienda.ropa.controller;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -193,9 +195,11 @@ public class ReporteController {
     @GetMapping("/producto/variantes-por-color")
     public ResponseEntity<List<VariantesPorColorDTO>> obtenerVariantesPorColor(
             @RequestParam Long idProducto,
-            @RequestParam String nombreTalla) {
+            @RequestParam String nombreTalla,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
         try {
-            List<VariantesPorColorDTO> variantes = reporteService.obtenerVariantesPorColor(idProducto, nombreTalla);
+            List<VariantesPorColorDTO> variantes = reporteService.obtenerVariantesPorColor(idProducto, nombreTalla, fechaInicio, fechaFin);
             return ResponseEntity.ok(variantes);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
