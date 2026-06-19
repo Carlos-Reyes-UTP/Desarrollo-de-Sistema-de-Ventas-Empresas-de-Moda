@@ -6,11 +6,10 @@ print("Iniciando procesamiento de datos para Dakani...")
 # 1. Cargar los datos crudos
 df_crudo = pd.read_csv('ventas_crudas.csv', sep=';')
 print(df_crudo.columns)
-# 2. Procesar Fecha y extraer semana y año
+# 2. Procesar Fecha y extraer mes y año
 df_crudo['Fecha'] = pd.to_datetime(df_crudo['Fecha'], format='%d/%m/%Y')
-# Usamos isocalendar() para asegurar que la semana y el año cuadren perfectamente
-df_crudo['ano'] = df_crudo['Fecha'].dt.isocalendar().year
-df_crudo['semana_ano'] = df_crudo['Fecha'].dt.isocalendar().week
+df_crudo['ano'] = df_crudo['Fecha'].dt.year
+df_crudo['mes'] = df_crudo['Fecha'].dt.month
 
 
 # 3. Función para detectar las campañas exactas
@@ -32,22 +31,22 @@ def detectar_campana(fecha):
 # Aplicar la función a cada fila
 df_crudo['es_campana'] = df_crudo['Fecha'].apply(detectar_campana)
 
-# 4. Agrupar por Variante y Semana
+# 4. Agrupar por Variante y Mes
 # Aquí SUMAMOS la columna 'Cantidad' y tomamos el valor MÁXIMO de la campaña
-# (Si al menos un día de esa semana fue campaña, la semana entera cuenta como campaña)
-df_agrupado = df_crudo.groupby(['ID de Producto', 'Color', 'Talla', 'ano', 'semana_ano']).agg(
+# (Si al menos un día de ese mes fue campaña, el mes entero cuenta como campaña)
+df_agrupado = df_crudo.groupby(['ID de Producto', 'Color', 'Talla', 'ano', 'mes']).agg(
     cantidad_vendida=('Cantidad', 'sum'),
     es_campana=('es_campana', 'max')
 ).reset_index()
 
-# 5. Calcular la variable de rezago (Ventas de la semana pasada)
+# 5. Calcular la variable de rezago (Ventas del mes pasado)
 # Ordenamos estrictamente por producto, color, talla y tiempo
-df_agrupado = df_agrupado.sort_values(by=['ID de Producto', 'Color', 'Talla', 'ano', 'semana_ano'])
+df_agrupado = df_agrupado.sort_values(by=['ID de Producto', 'Color', 'Talla', 'ano', 'mes'])
 
 # El comando shift(1) mueve las ventas un espacio hacia abajo
-df_agrupado['ventas_semana_pasada'] = df_agrupado.groupby(['ID de Producto', 'Color', 'Talla'])[
+df_agrupado['ventas_mes_pasado'] = df_agrupado.groupby(['ID de Producto', 'Color', 'Talla'])[
     'cantidad_vendida'].shift(1)
-df_agrupado['ventas_semana_pasada'] = df_agrupado['ventas_semana_pasada'].fillna(0)
+df_agrupado['ventas_mes_pasado'] = df_agrupado['ventas_mes_pasado'].fillna(0)
 
 # 6. Transformar textos a números (Encoding)
 import joblib
@@ -65,8 +64,8 @@ joblib.dump(encoder_talla, 'encoder_talla.pkl')
 # 7. Seleccionar columnas finales para XGBoost
 columnas_finales = [
     'ID de Producto', 'color_num', 'talla_num',
-    'semana_ano', 'es_campana',
-    'ventas_semana_pasada', 'cantidad_vendida'
+    'mes', 'es_campana',
+    'ventas_mes_pasado', 'cantidad_vendida'
 ]
 df_final = df_agrupado[columnas_finales]
 

@@ -47,9 +47,9 @@ class ConsultaStock(BaseModel):
     id_producto: int
     color: str
     talla: str
-    semana_ano: int
+    mes: int
     es_campana: int
-    ventas_semana_pasada: int
+    ventas_mes_pasado: int
 
 
 # --- ENDPOINT 1: Predicción Masiva (Para tu nueva tabla React) ---
@@ -62,9 +62,9 @@ def predecir_stock_lote(consultas: List[ConsultaStock]):
                 'ID de Producto': c.id_producto,
                 'color_num': encode_color(c.color),
                 'talla_num': encode_talla(c.talla),
-                'semana_ano': c.semana_ano,
+                'mes': c.mes,
                 'es_campana': c.es_campana,
-                'ventas_semana_pasada': c.ventas_semana_pasada
+                'ventas_mes_pasado': c.ventas_mes_pasado
             })
 
         df_entrada = pd.DataFrame(datos_lista)
@@ -95,9 +95,9 @@ def predecir_stock(consulta: ConsultaStock):
             'ID de Producto': consulta.id_producto,
             'color_num': color_num,
             'talla_num': talla_num,
-            'semana_ano': consulta.semana_ano,
+            'mes': consulta.mes,
             'es_campana': consulta.es_campana,
-            'ventas_semana_pasada': consulta.ventas_semana_pasada
+            'ventas_mes_pasado': consulta.ventas_mes_pasado
         }])
 
         prediccion = modelo.predict(datos_entrada)

@@ -168,14 +168,16 @@ const PrediccionVentas: React.FC = () => {
       setStatusIA('Procesando...');
       setPredicciones({});
 
+      const mesActual = new Date().getMonth() + 1; // 1 a 12
+
       // Construir la lista de solicitudes a enviar a la IA
       const requests: PrediccionIARequest[] = variantes.map((v, i) => ({
         id_producto: v.producto?.idProducto || 1,
         color: v.color?.nombre || 'BLANCO',
         talla: v.talla?.nombreTalla || 'M',
-        semana_ano: 11, // semana de año según el caso de uso
-        es_campana: 1,  // valor campana según el caso de uso
-        ventas_semana_pasada: Math.max(5, v.cantidad + 12 - i), // valor dinámico simulado sobre su stock
+        mes: mesActual,
+        es_campana: [2, 3, 7, 12].includes(mesActual) ? 1 : 0,  // Campañas conocidas en Feb, Mar, Jul, Dic
+        ventas_mes_pasado: Math.max(15, v.cantidad * 2 + 10 - i), // Simulado dinámicamente para escala mensual
       }));
 
       const response = await ReporteService.predecirLote(requests);

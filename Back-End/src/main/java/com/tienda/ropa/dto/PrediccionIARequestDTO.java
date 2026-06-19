@@ -19,8 +19,8 @@ public class PrediccionIARequestDTO {
 
     @NotNull
     @Min(1)
-    @JsonProperty("semana_ano")
-    private Integer semanaAno;
+    @JsonProperty("mes")
+    private Integer mes;
 
     @NotNull
     @Min(0)
@@ -29,8 +29,8 @@ public class PrediccionIARequestDTO {
 
     @NotNull
     @Min(0)
-    @JsonProperty("ventas_semana_pasada")
-    private Integer ventasSemanaPasada;
+    @JsonProperty("ventas_mes_pasado")
+    private Integer ventasMesPasado;
 
     public Long getIdProducto() {
         return idProducto;
@@ -56,12 +56,12 @@ public class PrediccionIARequestDTO {
         this.talla = talla;
     }
 
-    public Integer getSemanaAno() {
-        return semanaAno;
+    public Integer getMes() {
+        return mes;
     }
 
-    public void setSemanaAno(Integer semanaAno) {
-        this.semanaAno = semanaAno;
+    public void setMes(Integer mes) {
+        this.mes = mes;
     }
 
     public Integer getEsCampana() {
@@ -72,11 +72,11 @@ public class PrediccionIARequestDTO {
         this.esCampana = esCampana;
     }
 
-    public Integer getVentasSemanaPasada() {
-        return ventasSemanaPasada;
+    public Integer getVentasMesPasado() {
+        return ventasMesPasado;
     }
 
-    public void setVentasSemanaPasada(Integer ventasSemanaPasada) {
-        this.ventasSemanaPasada = ventasSemanaPasada;
+    public void setVentasMesPasado(Integer ventasMesPasado) {
+        this.ventasMesPasado = ventasMesPasado;
     }
 }

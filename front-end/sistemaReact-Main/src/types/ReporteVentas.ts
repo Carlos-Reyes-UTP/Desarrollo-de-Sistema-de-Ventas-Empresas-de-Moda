@@ -101,9 +101,9 @@ export interface PrediccionIARequest {
   id_producto: number;
   color: string;
   talla: string;
-  semana_ano: number;
+  mes: number;
   es_campana: number;
-  ventas_semana_pasada: number;
+  ventas_mes_pasado: number;
 }
 
 export interface PrediccionIAResponse {
