@@ -184,11 +184,6 @@ const GestionCategorias: React.FC = () => {
       setLoading(true);
       const data = await CategoriaService.obtenerArbolCategorias();
       setCategorias(data);
-      const categoriasParaExpandir = new Set<number>();
-      data.forEach(cat => {
-        categoriasParaExpandir.add(cat.id);
-      });
-      setCategoriasExpandidas(categoriasParaExpandir);
     } catch (err) {
       setError('Error al cargar categorías');
       console.error(err);
