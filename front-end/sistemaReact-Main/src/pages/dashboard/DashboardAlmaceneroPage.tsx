@@ -627,7 +627,14 @@ const DashboardAlmaceneroPage = () => {
                           </div>
                           <div className="shrink-0">
                             <button
-                              onClick={() => navigate(`${APP_PATHS.almacenTablero}?varianteId=${alerta.idVariante}&ubicacionAreaId=${alerta.idUbicacionArea}`)}
+                              onClick={async () => {
+                                const creada = await DashboardService.reponerAlerta(alerta.idVariante, alerta.idUbicacionArea);
+                                if (creada) {
+                                  navigate(`${APP_PATHS.almacenTablero}?solicitudId=${creada.idSolicitud}`);
+                                } else {
+                                  navigate(`${APP_PATHS.almacenTablero}?varianteId=${alerta.idVariante}&ubicacionAreaId=${alerta.idUbicacionArea}`);
+                                }
+                              }}
                               className="h-8 px-3 app-btn-primary text-[9px] font-black uppercase rounded-xl transition-all opacity-0 group-hover:opacity-100"
                             >
                               <MaterialIcon icon="visibility" className="w-3.5 h-3.5 mr-1 -ml-0.5 inline-block align-middle" />

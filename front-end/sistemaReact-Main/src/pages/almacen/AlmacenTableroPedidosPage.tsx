@@ -17,9 +17,7 @@ import {
   type SoundTheme,
 } from "../../components/almacen-tablero/almacenTableroSound";
 import {
-  combinarReposConAlertas,
   esReposicion,
-  esTicketDesdeAlerta,
   esVenta,
   idPrimeraVenta,
   idPrincipalDeCard,
@@ -28,9 +26,7 @@ import {
   ventasOrdenadas,
 } from "../../components/almacen-tablero/almacenTableroUtils";
 import { AlmacenSolicitudesApi } from "../../services/almacenSolicitudesService";
-import { DashboardService } from "../../services/DashboardService";
 import type { AlmacenSolicitud, AlmacenTicketConsolidado, MotivoRechazoApi } from "../../types/AlmacenSolicitudes";
-import type { AlertaReposicion } from "../../types/DashboardStats";
 import { mensajeErrorApi } from "../../utils/apiErrors";
 import { destinosUnicosEnLote } from "../../utils/solicitudUbicacion";
 
@@ -42,7 +38,6 @@ export default function AlmacenTableroPedidosPage() {
   const { tieneRol } = useAuth();
   const esSupervisor = tieneRol('ROLE_SUPERVISOR_ALMACEN');
   const [cards, setCards] = useState<AlmacenSolicitud[]>([]);
-  const [alertasReposicion, setAlertasReposicion] = useState<AlertaReposicion[]>([]);
   const [seleccionId, setSeleccionId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pulsando, setPulsando] = useState<Set<number>>(new Set());
@@ -66,6 +61,7 @@ export default function AlmacenTableroPedidosPage() {
     nuevosRepos: [],
   });
   const targetSelectionRef = useRef<number | null>(null);
+  const navParamsRef = useRef<{ idVariante: number; idUbicacionArea: number } | null>(null);
   const [searchParams] = useSearchParams();
 
   const puedeAutoPriorizarVentas = () => Date.now() >= seleccionManualUntilRef.current;
@@ -100,7 +96,7 @@ export default function AlmacenTableroPedidosPage() {
     for (const c of lista) {
       if (esVenta(c)) {
         ventaIds.add(c.idSolicitud);
-      } else if (!esTicketDesdeAlerta(c)) {
+      } else {
         repoIds.add(c.idSolicitud);
       }
     }
@@ -128,14 +124,10 @@ export default function AlmacenTableroPedidosPage() {
 
   const cargar = useCallback(async () => {
     try {
-      const [data, alertas] = await Promise.all([
-        AlmacenSolicitudesApi.cola(sectorParaCola),
-        DashboardService.obtenerAlertasReposicion().catch(() => [] as AlertaReposicion[]),
-      ]);
+      const data = await AlmacenSolicitudesApi.cola(sectorParaCola);
       setError(null);
       detectarCambiosCola(data);
       setCards(data);
-      setAlertasReposicion(alertas);
     } catch (e: any) {
       setError(mensajeErrorApi(e));
     }
@@ -165,21 +157,34 @@ export default function AlmacenTableroPedidosPage() {
   }, [showSettings]);
 
   useEffect(() => {
+    const url = new URL(window.location.href);
+    let dirty = false;
+
+    const solicitudId = searchParams.get('solicitudId');
+    if (solicitudId) {
+      targetSelectionRef.current = parseInt(solicitudId);
+      url.searchParams.delete('solicitudId');
+      dirty = true;
+    }
+
     const vi = searchParams.get('varianteId');
     const ua = searchParams.get('ubicacionAreaId');
     if (vi && ua) {
-      targetSelectionRef.current = -(parseInt(vi) * 100_000 + parseInt(ua));
-      const url = new URL(window.location.href);
+      navParamsRef.current = { idVariante: parseInt(vi), idUbicacionArea: parseInt(ua) };
       url.searchParams.delete('varianteId');
       url.searchParams.delete('ubicacionAreaId');
+      dirty = true;
+    }
+
+    if (dirty) {
       window.history.replaceState({}, '', url.toString());
     }
   }, []);
 
   const ventas = useMemo(() => cards.filter(esVenta), [cards]);
   const repos = useMemo(
-    () => combinarReposConAlertas(cards, alertasReposicion),
-    [cards, alertasReposicion]
+    () => cards.filter(c => !esVenta(c)),
+    [cards]
   );
 
   const primerVentaId = useMemo(() => idPrimeraVenta(cards), [cards]);
@@ -223,6 +228,22 @@ export default function AlmacenTableroPedidosPage() {
       setActiveTab("repos");
       setSeleccionId(targetId);
       return;
+    }
+
+    // Si venimos desde dashboard con varianteId+ubicacionAreaId, buscar ticket real
+    const navTarget = navParamsRef.current;
+    if (navTarget != null && cards.length > 0) {
+      navParamsRef.current = null;
+      const match = cards.find(
+        c => !esVenta(c) &&
+          c.idUbicacionAreaDestino === navTarget.idUbicacionArea &&
+          c.lineas.some(l => l.idVariante === navTarget.idVariante)
+      );
+      if (match) {
+        setActiveTab("repos");
+        setSeleccionId(match.idSolicitud);
+        return;
+      }
     }
 
     const isMobile = window.innerWidth < 1024;
@@ -270,7 +291,6 @@ export default function AlmacenTableroPedidosPage() {
     cards,
     ventas.length,
     ticketsCola,
-    alertasReposicion,
     agregarPulso,
     limpiarSeleccionManual,
   ]);
@@ -328,38 +348,6 @@ export default function AlmacenTableroPedidosPage() {
 
   const onConfirmarTodo = async (cantidadEnvio?: number) => {
     if (!ticketConsolidado || despachoLockRef.current) return;
-
-    if (esTicketDesdeAlerta(ticketConsolidado)) {
-      const idVariante = ticketConsolidado.idVarianteAlerta;
-      const idUa = ticketConsolidado.idUbicacionAreaAlerta;
-      if (idVariante == null || idUa == null) return;
-      despachoLockRef.current = true;
-      setProcesandoId(seleccionId);
-      try {
-        await DashboardService.reponerAlerta(idVariante, idUa, cantidadEnvio);
-        const data = await AlmacenSolicitudesApi.cola(sectorParaCola);
-        setCards(data);
-        const creada = data.find(
-          (c) =>
-            !esVenta(c) &&
-            c.idUbicacionAreaDestino === idUa &&
-            c.lineas.some((l) => l.idVariante === idVariante)
-        );
-        if (creada) {
-          await AlmacenSolicitudesApi.atender(creada.idSolicitud);
-        }
-        setError(null);
-        await cargar();
-        limpiarSeleccionManual();
-        setSeleccionId(null);
-      } catch (e: unknown) {
-        setError(mensajeErrorApi(e));
-      } finally {
-        despachoLockRef.current = false;
-        setProcesandoId(null);
-      }
-      return;
-    }
 
     const ids = [
       ...new Set(
@@ -581,10 +569,10 @@ export default function AlmacenTableroPedidosPage() {
                 <AlmacenPickingList
                   ticket={ticketConsolidado}
                   procesando={procesandoId != null}
-                  esDesdeAlerta={esTicketDesdeAlerta(ticketConsolidado)}
+                  esDesdeAlerta={false}
                   onConfirmarTodo={(cantidad) => void onConfirmarTodo(cantidad)}
                   onRechazar={() =>
-                    seleccionada && !esTicketDesdeAlerta(seleccionada) && setRechazoCard(seleccionada)
+                    seleccionada && setRechazoCard(seleccionada)
                   }
                 />
               )}

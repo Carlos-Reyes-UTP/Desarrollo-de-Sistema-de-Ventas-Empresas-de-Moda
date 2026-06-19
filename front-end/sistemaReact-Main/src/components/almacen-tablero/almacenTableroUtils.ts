@@ -1,5 +1,4 @@
 import type { AlmacenSolicitud } from "../../types/AlmacenSolicitudes";
-import type { AlertaReposicion } from "../../types/DashboardStats";
 import type { UbicacionSolicitudResumen } from "./AlmacenSolicitudRuta";
 import {
   destinosUnicosEnLote,
@@ -105,17 +104,6 @@ export function idPrimeraVenta(cards: AlmacenSolicitud[]): number | null {
   return idPrincipalDeCard(cards, ordenadas[0]);
 }
 
-export function esReposicionPisoSistema(
-  nombreVendedor: string | null | undefined
-): boolean {
-  const n = (nombreVendedor ?? "").trim().toLowerCase();
-  return (
-    n.includes("reposición piso") ||
-    n.includes("reposicion piso") ||
-    n === "sistema"
-  );
-}
-
 export function primeraPrioridad(cards: AlmacenSolicitud[]): number | null {
   const idVenta = idPrimeraVenta(cards);
   if (idVenta != null) return idVenta;
@@ -143,66 +131,4 @@ export function idsSolicitudEnMismoGrupo(
 
 export function esVenta(c: AlmacenSolicitud): boolean {
   return c.tipoSolicitud === "VENTA";
-}
-
-export function esTicketDesdeAlerta(c: AlmacenSolicitud): boolean {
-  return Boolean(c.desdeAlerta) || c.idSolicitud < 0;
-}
-
-export function idSolicitudDesdeAlerta(idVariante: number, idUbicacionArea: number): number {
-  return -(idVariante * 100_000 + idUbicacionArea);
-}
-
-export function colaCubreAlerta(cards: AlmacenSolicitud[], alerta: AlertaReposicion): boolean {
-  return cards.some(
-    (c) =>
-      !esVenta(c) &&
-      !esTicketDesdeAlerta(c) &&
-      c.idUbicacionAreaDestino === alerta.idUbicacionArea &&
-      c.lineas.some((l) => l.idVariante === alerta.idVariante)
-  );
-}
-
-export function solicitudDesdeAlerta(alerta: AlertaReposicion): AlmacenSolicitud {
-  const desc = [alerta.nombreProducto, alerta.color, alerta.talla].filter(Boolean).join(" · ");
-  return {
-    idSolicitud: idSolicitudDesdeAlerta(alerta.idVariante, alerta.idUbicacionArea),
-    tipoSolicitud: "REPOSICION",
-    fechaCreacion: new Date().toISOString(),
-    idUsuario: null,
-    nombreVendedor: "Reposición piso",
-    codigoLote: null,
-    idUbicacionAreaOrigen: null,
-    pisoOrigen: "Almacén",
-    sectorOrigen: alerta.area,
-    etiquetaOrigen: alerta.area ? `Almacén · ${alerta.area}` : "Almacén",
-    idUbicacionAreaDestino: alerta.idUbicacionArea,
-    pisoDestino: alerta.ubicacionPiso,
-    sectorDestino: alerta.area,
-    etiquetaDestino: `${alerta.ubicacionPiso} · ${alerta.area}`,
-    lineas: [
-      {
-        idVariante: alerta.idVariante,
-        sku: alerta.sku,
-        descripcion: desc,
-        cantidad: alerta.cantidadSugerida,
-      },
-    ],
-    desdeAlerta: true,
-    idVarianteAlerta: alerta.idVariante,
-    idUbicacionAreaAlerta: alerta.idUbicacionArea,
-    stockPisoAlerta: alerta.stockActual,
-    stockObjetivoAlerta: alerta.stockObjetivo,
-  };
-}
-
-export function combinarReposConAlertas(
-  cards: AlmacenSolicitud[],
-  alertas: AlertaReposicion[]
-): AlmacenSolicitud[] {
-  const reposCola = cards.filter((c) => !esVenta(c) && !esTicketDesdeAlerta(c));
-  const pendientes = alertas
-    .filter((a) => !colaCubreAlerta(cards, a))
-    .map(solicitudDesdeAlerta);
-  return [...reposCola, ...pendientes];
 }

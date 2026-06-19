@@ -55,8 +55,7 @@ public class ReposicionAutomaticaService {
         }
 
         int actual = fila.getStock() != null ? fila.getStock() : 0;
-        int min = fila.getStockMinimo() != null ? fila.getStockMinimo() : 0;
-        if (actual > min) {
+        if (actual > AlertaReposicionService.UMBRAL_ALERTA) {
             return;
         }
 
@@ -114,8 +113,7 @@ public class ReposicionAutomaticaService {
             UbicacionArea destino = ubicacionAreaRepository.findByIdWithUbicacionYArea(ua.getIdUbicacionArea())
                     .orElse(ua);
             int stockPiso = fila.getStock() != null ? fila.getStock() : 0;
-            int min = fila.getStockMinimo() != null ? fila.getStockMinimo() : 0;
-            if (stockPiso > min) {
+            if (stockPiso > AlertaReposicionService.UMBRAL_ALERTA) {
                 continue;
             }
 

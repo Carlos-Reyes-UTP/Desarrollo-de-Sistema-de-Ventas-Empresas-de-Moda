@@ -21,14 +21,6 @@ export interface AlmacenSolicitud {
   sectorDestino: string | null;
   etiquetaDestino: string | null;
   lineas: ItemSolicitudAlmacen[];
-  /** Ticket generado desde alerta de reposición (aún sin solicitud en cola). */
-  desdeAlerta?: boolean;
-  idVarianteAlerta?: number;
-  idUbicacionAreaAlerta?: number;
-  /** Stock actual en piso (solo tickets desde alerta). */
-  stockPisoAlerta?: number;
-  /** Objetivo de stock en piso (solo tickets desde alerta). */
-  stockObjetivoAlerta?: number;
 }
 
 /** Ticket de picking: una solicitud o varias del mismo lote consolidadas. */

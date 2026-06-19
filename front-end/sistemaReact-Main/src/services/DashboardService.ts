@@ -15,7 +15,6 @@ import type { Venta } from '../types/Venta';
 /** Mismos umbrales que el backend (DashboardService / alertas de reposición en pisos). */
 export const UMBRAL_CRITICO_INVENTARIO = 5;
 export const UMBRAL_BAJO_INVENTARIO = 15;
-export const UMBRAL_ALERTA_REPOSICION_PISO = 4;
 /** Objetivo de stock en piso cuando el backend no define stock_maximo por fila. */
 export const STOCK_OBJETIVO_PISO = 15;
 
@@ -92,13 +91,21 @@ export const DashboardService = {
     idVariante: number,
     idUbicacionArea: number,
     cantidad?: number
-  ): Promise<void> => {
+  ): Promise<{ idSolicitud: number } | null> => {
     const body =
       cantidad != null && cantidad > 0 ? { cantidad } : undefined;
-    await apiClient.post(
-      RUTAS_DASHBOARD.REPONER_ALERTA(idVariante, idUbicacionArea),
-      body
-    );
+    try {
+      const response = await apiClient.post<{ idSolicitud: number }>(
+        RUTAS_DASHBOARD.REPONER_ALERTA(idVariante, idUbicacionArea),
+        body
+      );
+      return response.data;
+    } catch (error: any) {
+      if (error?.response?.status === 409) {
+        return null;
+      }
+      throw error;
+    }
   },
 
   // Obtener productos del inventario con estado (AHORA USANDO PAGINACIÓN)

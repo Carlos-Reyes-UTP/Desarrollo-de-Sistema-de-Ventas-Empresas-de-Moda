@@ -122,9 +122,6 @@ export function AlmacenPickingList({
   const esLote = Boolean(ticket.codigoLote && (ticket.idsEnLote?.length ?? 0) > 1);
   const esVentaTicket = ticket.tipoSolicitud === "VENTA";
 
-  const stockPiso = ticket.stockPisoAlerta;
-  const stockObjetivo = ticket.stockObjetivoAlerta ?? STOCK_OBJETIVO_PISO;
-
   const ajustarCantidad = (delta: number) => {
     setCantidadEnvio((prev) => clampCantidad(prev + delta));
   };
@@ -274,14 +271,6 @@ export function AlmacenPickingList({
             ? "Reposicion sugerida para el área - marca cada ítem"
             : "Lista de recolección — marca cada ítem"}
         </p>
-
-        {esDesdeAlerta && (
-          <p className="text-[9px] font-bold text-emerald-700 uppercase tracking-widest -mt-2 mb-2">
-            Objetivo: {stockObjetivo} uds
-            {stockPiso != null ? ` · Stock en piso: ${stockPiso}` : ""}
-            {` · Envío sugerido: ${cantidadEnvio}`}
-          </p>
-        )}
 
         {ticket.lineas.map((linea, idx) => {
           const key = lineaKeys[idx];
