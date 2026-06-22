@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon, ConfirmModal, ModalPortal, ModalMotionOverlay, useModalBodyScrollLock, useModalMotion } from '@/shared/ui';
+import { PageHeader, PageActionButton, PageActionGroup, Skeleton, MaterialIcon, ConfirmModal, ModalPortal, ModalMotionOverlay, useModalBodyScrollLock, useModalMotion, AppSelect } from '@/shared/ui';
 import { useAuth } from '@/context/AuthContext';
 import { UsuarioService, resolveRutasUsuarios } from '@/services/UsuarioService';
 import { AccesoAreaAlmacenService } from '@/services/AccesoAreaAlmacenService';
@@ -243,7 +243,7 @@ const GestionUsuariosPage = () => {
     setError(null);
     try {
       const data = await UsuarioService.obtenerUsuariosConRoles(rutasApi);
-      const usuariosNormalizados = data.map(normalizarUsuario);
+      const usuariosNormalizados = data.map(normalizarUsuario).filter(u => u.usuario !== 'SISTEMA');
       setUsuarios(usuariosNormalizados);
       setUsuariosFiltrados(usuariosNormalizados);
     } catch (err: any) {
@@ -650,7 +650,7 @@ const GestionUsuariosPage = () => {
       )}
 
       {/* Filters Bar */}
-      <div className="app-panel rounded-[2rem] p-8 mb-8 shadow-sm border">
+      <div className="app-panel rounded-[2rem] p-8 mb-8 shadow-sm border relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-8 items-end">
           <div className="lg:col-span-12 xl:col-span-5">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 dark:text-gray-550 uppercase mb-3 text-left transition-colors">Búsqueda de Operador</label>
@@ -661,23 +661,21 @@ const GestionUsuariosPage = () => {
                 placeholder="Nombre de usuario..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all font-medium border border-transparent dark:border-gray-800/80"
+                className="w-full pl-11 pr-4 py-3 bg-[var(--app-input)] rounded-xl text-sm text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all font-medium border border-[var(--app-border)]"
               />
             </div>
           </div>
           <div className="lg:col-span-4 xl:col-span-3">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 dark:text-gray-500 uppercase mb-3 text-left transition-colors">Filtrado por Rol</label>
-            <div className="relative">
-               <MaterialIcon icon="filter_list" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
-              <select
-                className="w-full pl-11 pr-10 py-3 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold appearance-none cursor-pointer border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-955 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all"
-                value={filtroRol}
-                onChange={(e) => setFiltroRol(e.target.value as RolNombre | 'TODOS')}
-              >
-                <option value="TODOS">Todos los roles</option>
-                {TODOS_LOS_ROLES.map((rol) => (
-                  <option key={rol} value={rol}>
-                    {rol === 'ROLE_ADMIN'
+            <AppSelect
+              value={filtroRol}
+              onChange={(value) => setFiltroRol(value as RolNombre | 'TODOS')}
+              options={[
+                { value: 'TODOS', label: 'Todos los roles' },
+                ...TODOS_LOS_ROLES.map((rol) => ({
+                  value: rol,
+                  label:
+                    rol === 'ROLE_ADMIN'
                       ? 'Administrador'
                       : rol === 'ROLE_GERENTE'
                         ? 'Gerente'
@@ -687,33 +685,29 @@ const GestionUsuariosPage = () => {
                             ? 'Almacenero'
                             : rol === 'ROLE_VENDEDOR'
                               ? 'Vendedor'
-                              : 'Supervisor almacén'}
-                  </option>
-                ))}
-              </select>
-               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+                              : 'Supervisor almacén',
+                })),
+              ]}
+              placeholder="Seleccionar rol"
+            />
           </div>
           <div className="lg:col-span-4 xl:col-span-2">
             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 dark:text-gray-500 uppercase mb-3 text-left transition-colors">Estado</label>
-            <div className="relative">
-               <MaterialIcon icon="how_to_reg" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute left-4 top-1/2 -translate-y-1/2" />
-              <select
-                className="w-full pl-11 pr-10 py-3 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold appearance-none cursor-pointer border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-955 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all"
-                value={filtroActivo === 'TODOS' ? 'TODOS' : filtroActivo ? 'true' : 'false'}
-                onChange={(e) => setFiltroActivo(e.target.value === 'TODOS' ? 'TODOS' : e.target.value === 'true')}
-              >
-                <option value="TODOS">Todos</option>
-                <option value="true">Activos</option>
-                <option value="false">Inactivos</option>
-              </select>
-               <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 dark:text-gray-500 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
+            <AppSelect
+              value={filtroActivo === 'TODOS' ? 'TODOS' : filtroActivo ? 'true' : 'false'}
+              onChange={(value) => setFiltroActivo(value === 'TODOS' ? 'TODOS' : value === 'true')}
+              options={[
+                { value: 'TODOS', label: 'Todos' },
+                { value: 'true', label: 'Activos' },
+                { value: 'false', label: 'Inactivos' },
+              ]}
+              placeholder="Seleccionar estado"
+            />
           </div>
           <div className="lg:col-span-4 xl:col-span-2">
             <button
               onClick={cargarUsuarios}
-              className="w-full h-[46px] bg-gray-100 dark:bg-gray-900 hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-500 hover:text-black dark:text-gray-400 dark:hover:text-white rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-transparent dark:border-gray-800/80"
+              className="w-full h-[46px] bg-[var(--app-accent)] hover:opacity-90 text-[var(--app-accent-fg)] rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all border border-[var(--app-border)] shadow-sm"
             >
               {cargando ? (
                 <MaterialIcon icon="sync" className="w-4 h-4 animate-spin" />
@@ -779,9 +773,6 @@ const GestionUsuariosPage = () => {
                           </span>
                         )}
                       </span>
-                      <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mt-0.5">
-                        ID {usuario.id} • {usuario.roles && usuario.roles.length > 0 ? usuario.roles.map(r => r.nombreRol.replace('ROLE_', '')).join(', ') : 'Sin rol'}
-                      </span>
                     </div>
                   </div>
                 </td>
@@ -808,7 +799,7 @@ const GestionUsuariosPage = () => {
                       onClick={() => abrirModalEdicion(usuario)}
                       disabled={esGerente && !esAdmin && esUsuarioAdministrador(usuario)}
                       title={esGerente && esUsuarioAdministrador(usuario) ? 'No puede editar administradores' : undefined}
-                      className="p-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-100/70 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-[var(--app-accent)] hover:text-[var(--app-accent-fg)] hover:border-transparent rounded-xl transition-all shadow-sm hover-scale-google active:scale-[0.95] disabled:opacity-20"
+                      className="p-2.5 bg-[var(--app-bg-muted)] border border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-[var(--app-accent)] hover:text-[var(--app-accent-fg)] hover:border-transparent hover:shadow-lg hover:scale-105 rounded-xl transition-all shadow-sm hover-scale-google active:scale-[0.95] disabled:opacity-20"
                     >
                       <MaterialIcon icon="edit" className="w-4 h-4" />
                     </button>
@@ -821,8 +812,8 @@ const GestionUsuariosPage = () => {
                       } 
                       className={`p-2.5 rounded-xl transition-all border shadow-sm disabled:opacity-20 hover-scale-google active:scale-[0.95] ${
                         usuario.activo 
-                          ? 'bg-gray-50 dark:bg-gray-900 border-gray-100/70 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-red-500 dark:hover:bg-red-650 hover:text-white hover:border-transparent' 
-                          : 'bg-gray-50 dark:bg-gray-900 border-gray-100/70 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-[#10b981] dark:hover:bg-emerald-650 hover:text-white hover:border-transparent'
+                          ? 'bg-[var(--app-bg-muted)] border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-red-500 hover:text-white hover:border-transparent' 
+                          : 'bg-[var(--app-bg-muted)] border-[var(--app-border)] text-[var(--app-text-muted)] hover:bg-[#10b981] hover:text-white hover:border-transparent'
                       }`}
                     >
                       {usuario.activo ? (
@@ -897,7 +888,7 @@ const GestionUsuariosPage = () => {
                       value={formUsuario.usuario}
                       onChange={manejarCambioForm}
                       onBlur={(e) => verificarDisponibilidadUsuario(e.target.value)}
-                      className="w-full pl-11 pr-4 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all border border-transparent dark:border-gray-800/80"
+                      className="w-full pl-11 pr-4 py-4 bg-[var(--app-input)] rounded-xl text-sm text-black dark:text-white font-bold placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all border border-[var(--app-border)]"
                       placeholder="Identificador del sistema..."
                       required
                     />
@@ -920,7 +911,7 @@ const GestionUsuariosPage = () => {
                             name="password"
                             value={formUsuario.password}
                             onChange={manejarCambioForm}
-                            className="w-full pl-11 pr-12 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all placeholder-gray-400 dark:placeholder-gray-600"
+                            className="w-full pl-11 pr-12 py-4 bg-[var(--app-input)] rounded-xl text-sm text-black dark:text-white font-bold border border-[var(--app-border)] focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all placeholder-gray-400 dark:placeholder-gray-600"
                             placeholder="••••••••"
                             required
                           />
@@ -948,12 +939,12 @@ const GestionUsuariosPage = () => {
                             name="confirmPassword"
                             value={formUsuario.confirmPassword}
                             onChange={manejarCambioForm}
-                            className={`w-full pl-11 pr-12 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold border border-transparent focus:bg-white dark:focus:bg-gray-950 focus:ring-2 transition-all ${
+                            className={`w-full pl-11 pr-12 py-4 bg-[var(--app-input)] rounded-xl text-sm text-black dark:text-white font-bold border border-[var(--app-border)] focus:bg-white dark:focus:bg-gray-950 focus:ring-2 transition-all ${
                               formUsuario.confirmPassword 
                                 ? formUsuario.password === formUsuario.confirmPassword 
                                   ? 'focus:ring-[#10b981]/20 dark:focus:ring-[#10b981]/20 border-[#10b981]/30 dark:border-[#10b981]/30' 
                                   : 'focus:ring-red-100 dark:focus:ring-red-950/20 border-red-200 dark:border-red-900/30'
-                                : 'focus:ring-black/5 dark:focus:ring-white/10 dark:border-gray-800/80'
+                                : 'focus:ring-black/5 dark:focus:ring-white/10'
                             }`}
                             placeholder="••••••••"
                             required
@@ -1068,26 +1059,16 @@ const GestionUsuariosPage = () => {
                     <label className="block text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest transition-colors">
                       Área de almacén asignada
                     </label>
-                    <div className="relative">
-                      <select
-                        name="idUbicacionAreaAsignada"
-                        value={formUsuario.idUbicacionAreaAsignada}
-                        onChange={manejarCambioForm}
-                        required
-                        disabled={cargandoAreasAlmacen}
-                        className="w-full py-4 pl-4 pr-10 bg-[#f8f8f8] dark:bg-gray-900/50 rounded-xl text-sm text-black dark:text-white font-bold appearance-none cursor-pointer border border-transparent dark:border-gray-800/80 focus:bg-white dark:focus:bg-gray-955 transition-colors"
-                      >
-                        <option value="">
-                          {cargandoAreasAlmacen ? 'Cargando áreas…' : `Seleccione sector (${SECTORES_ALMACEN_TEXTO})`}
-                        </option>
-                        {areasAlmacenDisponibles.map((ua) => (
-                          <option key={ua.idUbicacionArea} value={ua.idUbicacionArea}>
-                            {ua.descripcion ?? (ua.area ? `${ua.nombre} · ${ua.area}` : ua.nombre)}
-                          </option>
-                        ))}
-                      </select>
-                      <MaterialIcon icon="expand_more" className="w-4 h-4 text-gray-400 dark:text-gray-550 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
-                    </div>
+                    <AppSelect
+                      value={formUsuario.idUbicacionAreaAsignada}
+                      onChange={(value) => setFormUsuario({...formUsuario, idUbicacionAreaAsignada: String(value)})}
+                      options={areasAlmacenDisponibles.map((ua) => ({
+                        value: ua.idUbicacionArea,
+                        label: ua.descripcion ?? (ua.area ? `${ua.nombre} · ${ua.area}` : ua.nombre),
+                      }))}
+                      placeholder={cargandoAreasAlmacen ? 'Cargando áreas…' : `Seleccione sector (${SECTORES_ALMACEN_TEXTO})`}
+                      disabled={cargandoAreasAlmacen}
+                    />
                     <p className="text-[10px] text-gray-550 dark:text-gray-500 font-medium transition-colors">
                       La mercadería que registre este almacenero quedará en esta ubicación desde el alta.
                     </p>
@@ -1098,7 +1079,7 @@ const GestionUsuariosPage = () => {
                   <button 
                     type="button" 
                     onClick={cerrarModalConAnimacion} 
-                    className="flex-1 py-4 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-transparent dark:border-gray-800/60"
+                    className="flex-1 py-4 bg-gray-50 dark:bg-gray-900 text-gray-500 dark:text-gray-400 rounded-xl text-[10px] font-bold uppercase tracking-widest hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors border border-[var(--app-border)]"
                   >
                     Cerrar
                   </button>
@@ -1150,7 +1131,7 @@ const GestionUsuariosPage = () => {
                     type={mostrarPassword ? 'text' : 'password'}
                     value={passwordActual}
                     onChange={(e) => setPasswordActual(e.target.value)}
-                    className="w-full pl-12 pr-12 py-4 bg-[#f8f8f8] dark:bg-gray-900/50 border-none rounded-[1.5rem] text-sm font-bold text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all border border-transparent dark:border-gray-800/80 shadow-inner"
+                    className="w-full pl-12 pr-12 py-4 bg-[var(--app-input)] border border-[var(--app-border)] rounded-[1.5rem] text-sm font-bold text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all shadow-inner"
                     placeholder="Ingrese su contraseña..."
                   />
                   <button
