@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
+import com.tienda.ropa.dto.StockProductoDTO;
+import com.tienda.ropa.dto.StockVarianteDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.repository.ReporteRepository;
@@ -144,6 +146,41 @@ public class ReporteService {
         });
 
         return reporte;
+    }
+
+    // Stock general: total por producto con desglose almacén / pisos de venta
+    public List<StockProductoDTO> obtenerStockGeneral() {
+        List<Object[]> results = reporteRepository.findStockGeneral();
+        return results.stream().map(row -> {
+            int stockTotal = ((Number) row[4]).intValue();
+            int stockAlmacen = ((Number) row[5]).intValue();
+            return new StockProductoDTO(
+                ((Number) row[0]).longValue(),
+                (String) row[1],
+                (String) row[2],
+                (String) row[3],
+                stockTotal,
+                stockAlmacen,
+                stockTotal - stockAlmacen
+            );
+        }).toList();
+    }
+
+    // Stock por variante de un producto con desglose almacén / pisos de venta
+    public List<StockVarianteDTO> obtenerStockVariantesPorProducto(Long idProducto) {
+        List<Object[]> results = reporteRepository.findStockVariantesByProducto(idProducto);
+        return results.stream().map(row -> {
+            int stockTotal = ((Number) row[3]).intValue();
+            int stockAlmacen = ((Number) row[4]).intValue();
+            return new StockVarianteDTO(
+                ((Number) row[0]).longValue(),
+                (String) row[1],
+                (String) row[2],
+                stockTotal,
+                stockAlmacen,
+                stockTotal - stockAlmacen
+            );
+        }).toList();
     }
 
     // Reportes por segunda subcategoría (hijos de una subcategoría)

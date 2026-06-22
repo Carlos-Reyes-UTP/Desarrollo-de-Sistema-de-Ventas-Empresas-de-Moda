@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -22,6 +23,8 @@ import com.tienda.ropa.dto.PrediccionIAResponseDTO;
 import com.tienda.ropa.dto.PrediccionLoteResponseDTO;
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
+import com.tienda.ropa.dto.StockProductoDTO;
+import com.tienda.ropa.dto.StockVarianteDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.service.PrediccionIAService;
@@ -236,6 +239,27 @@ public class ReporteController {
             return ResponseEntity.ok(resultado);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    // Stock general: todos los productos con stock total, en almacén y en pisos de venta
+    @GetMapping("/stock-general")
+    public ResponseEntity<List<StockProductoDTO>> obtenerStockGeneral() {
+        try {
+            return ResponseEntity.ok(reporteService.obtenerStockGeneral());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // Stock por variante de un producto con desglose almacén / pisos de venta
+    @GetMapping("/stock-variantes/{idProducto}")
+    public ResponseEntity<List<StockVarianteDTO>> obtenerStockVariantesPorProducto(
+            @PathVariable Long idProducto) {
+        try {
+            return ResponseEntity.ok(reporteService.obtenerStockVariantesPorProducto(idProducto));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 

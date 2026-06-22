@@ -14,7 +14,9 @@ import type {
   PrediccionIAResponse,
   PrediccionLoteResponse,
   MetricasModeloResponse,
-  EntrenarModeloResponse
+  EntrenarModeloResponse,
+  StockProducto,
+  StockVariante
 } from '../types/ReporteVentas';
 
 const formatFechaInicio = (fechaStr?: string): string => {
@@ -498,6 +500,34 @@ export const ReporteService = {
     } catch (error: any) {
       console.error('Error al entrenar el modelo:', error);
       throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al iniciar el entrenamiento del modelo');
+    }
+  },
+
+  /**
+   * Obtiene el stock general de todos los productos con desglose almacén / pisos de venta
+   */
+  getStockGeneral: async (): Promise<StockProducto[]> => {
+    try {
+      const response = await apiClient.get<StockProducto[]>(RUTAS_REPORTES.STOCK_GENERAL);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener stock general:', error);
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar el stock general');
+    }
+  },
+
+  /**
+   * Obtiene el stock por variante de un producto con desglose almacén / pisos de venta
+   */
+  getStockVariantesPorProducto: async (idProducto: number): Promise<StockVariante[]> => {
+    try {
+      const response = await apiClient.get<StockVariante[]>(
+        RUTAS_REPORTES.STOCK_VARIANTES_POR_PRODUCTO(idProducto)
+      );
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al obtener variantes de stock:', error);
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar las variantes de stock');
     }
   }
 };

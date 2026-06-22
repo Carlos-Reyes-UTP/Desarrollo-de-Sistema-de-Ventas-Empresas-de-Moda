@@ -133,3 +133,24 @@ export interface EntrenarModeloResponse {
   mae: number;
   rmse: number;
 }
+
+// Stock general de productos (para reportes ADMIN/GERENTE)
+export interface StockProducto {
+  idProducto: number;
+  nombre: string;
+  codigoIdentificacion: string;
+  categoria: string;
+  stockTotal: number;
+  stockAlmacen: number;
+  stockPisos: number;
+}
+
+// Stock por variante con desglose almacén / pisos de venta
+export interface StockVariante {
+  idVariante: number;
+  color: string;
+  talla: string;
+  stockTotal: number;
+  stockAlmacen: number;
+  stockPisos: number;
+}

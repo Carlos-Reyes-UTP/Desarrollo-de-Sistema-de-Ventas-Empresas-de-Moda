@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { MaterialIcon, SectionHeader, TableSkeleton } from '@/shared/ui';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
-import { ProductoService } from '@/services/ProductoService';
 import { ProductoVarianteService } from '@/services/ProductoVarianteService';
 import { ReporteService } from '@/services/ReporteService';
 import { useAuth } from '@/context/AuthContext';
-import type { Producto } from '@/types/Producto';
 import type { ProductoVariante } from '@/types/ProductoVariante';
-import type { PrediccionIARequest } from '@/types/ReporteVentas';
+import type { PrediccionIARequest, StockProducto, StockVariante } from '@/types/ReporteVentas';
 import * as XLSX from 'xlsx';
 import AppModal from '@/shared/ui/AppModal';
 
@@ -18,7 +16,7 @@ const PrediccionVentas: React.FC = () => {
   const [subTabActiva, setSubTabActiva] = useState<'stock' | 'demanda'>('stock');
 
   // Sección 1: Stock General
-  const [productos, setProductos] = useState<Producto[]>([]);
+  const [productos, setProductos] = useState<StockProducto[]>([]);
   const [cargandoStock, setCargandoStock] = useState(false);
   const [errorStock, setErrorStock] = useState<string | null>(null);
   const [filtroStock, setFiltroStock] = useState<'todos' | 'sobreestock' | 'normal' | 'bajo'>('todos');
@@ -45,8 +43,10 @@ const PrediccionVentas: React.FC = () => {
   const [errorMetricas, setErrorMetricas] = useState<string | null>(null);
 
   // Estados para desglose de variantes en modal
-  const [selectedProduct, setSelectedProduct] = useState<Producto | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<StockProducto | null>(null);
   const [modalVariantesOpen, setModalVariantesOpen] = useState<boolean>(false);
+  const [variantesDelProducto, setVariantesDelProducto] = useState<StockVariante[]>([]);
+  const [cargandoVariantesProducto, setCargandoVariantesProducto] = useState(false);
 
   // Configuración de Exportación a Excel
   const [modalExportarAbierto, setModalExportarAbierto] = useState<boolean>(false);
@@ -106,53 +106,32 @@ const PrediccionVentas: React.FC = () => {
     }
   };
 
-  // Cargar todos los datos de inventario y variantes una sola vez o cuando cambie el rol
+  // Cargar datos de stock general y variantes
   useEffect(() => {
-    const cargarTodoElInventario = async () => {
+    const cargarDatos = async () => {
       try {
         setCargandoStock(true);
         setCargandoVariantes(true);
         setErrorStock(null);
         setErrorVariantes(null);
 
-        // Fetch products and variants concurrently
-        const [productosData, variantesData] = await Promise.all([
-          ProductoService.getAllProductos(rolPrincipal),
-          ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, true),
+        // Cargar stock general desde el endpoint exclusivo de ADMIN/GERENTE
+        const [stockData, variantesData] = await Promise.all([
+          ReporteService.getStockGeneral(),
+          ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, false),
         ]);
 
-        // Guardar todas las variantes completas para la exportación a Excel
-        setTodasLasVariantes(variantesData);
+        // Guardar stock general (ordenado por nombre)
+        const sorted = [...stockData].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        setProductos(sorted);
 
-        // Mostrar máximo 7 variantes en la tabla de predicciones
+        // Guardar todas las variantes para exportación y predicción
+        setTodasLasVariantes(variantesData);
         setVariantes(variantesData.slice(0, 7));
 
-        // Map variants to their product to compute the sum of variant stocks
-        const stockMap = new Map<number, number>();
-        variantesData.forEach((v) => {
-          const pId = v.producto?.idProducto;
-          if (pId !== undefined) {
-            stockMap.set(pId, (stockMap.get(pId) || 0) + v.cantidad);
-          }
-        });
-
-        // Create products with mapped stock
-        const productsWithStock = productosData.map((p) => {
-          const calculatedStock = p.idProducto !== undefined && stockMap.has(p.idProducto)
-            ? (stockMap.get(p.idProducto) ?? 0)
-            : p.cantidad;
-          return {
-            ...p,
-            cantidad: calculatedStock // Sum of variant stocks, or base quantity if no variants
-          };
-        });
-
-        // Sort products by ID
-        const sorted = [...productsWithStock].sort((a, b) => (a.idProducto || 0) - (b.idProducto || 0));
-        setProductos(sorted);
         setPaginaActual(1);
       } catch (err: any) {
-        console.error('Error al obtener productos y variantes:', err);
+        console.error('Error al cargar datos de stock:', err);
         setErrorStock('No se pudieron cargar los datos de inventario.');
         setErrorVariantes('No se pudieron cargar las variantes de los productos.');
       } finally {
@@ -160,7 +139,7 @@ const PrediccionVentas: React.FC = () => {
         setCargandoVariantes(false);
       }
     };
-    cargarTodoElInventario();
+    cargarDatos();
   }, [rolPrincipal]);
 
 
@@ -233,45 +212,51 @@ const PrediccionVentas: React.FC = () => {
       sheetsAdded++;
     }
 
-    // 2. Alto Stock (sobrestock >180, productos base sin variantes)
+    // 2. Alto Stock (sobreestock >180)
     if (exportConfig.altoStock && productos.length > 0) {
-      const filtered = productos.filter((p) => p.cantidad > 180);
+      const filtered = productos.filter((p) => p.stockTotal > 180);
       const data = filtered.map((p) => ({
         'ID Producto': p.idProducto || 'N/A',
         Producto: p.nombre || 'Desconocido',
         'Código': p.codigoIdentificacion || 'N/A',
-        'Categoría': p.categoriaPadre?.nombre || p.subCategoria2?.nombre || 'General',
-        'Stock Consolidado': p.cantidad,
+        'Categoría': p.categoria || 'General',
+        'Stock Total': p.stockTotal,
+        'En Almacén': p.stockAlmacen,
+        'En Pisos': p.stockPisos,
       }));
       const ws = XLSX.utils.json_to_sheet(data);
       XLSX.utils.book_append_sheet(workbook, ws, 'Alto Stock (>180)');
       sheetsAdded++;
     }
 
-    // 3. Stock Normal (30 - 180, productos base sin variantes)
+    // 3. Stock Normal (30 - 180)
     if (exportConfig.stockNormal && productos.length > 0) {
-      const filtered = productos.filter((p) => p.cantidad >= 30 && p.cantidad <= 180);
+      const filtered = productos.filter((p) => p.stockTotal >= 30 && p.stockTotal <= 180);
       const data = filtered.map((p) => ({
         'ID Producto': p.idProducto || 'N/A',
         Producto: p.nombre || 'Desconocido',
         'Código': p.codigoIdentificacion || 'N/A',
-        'Categoría': p.categoriaPadre?.nombre || p.subCategoria2?.nombre || 'General',
-        'Stock Consolidado': p.cantidad,
+        'Categoría': p.categoria || 'General',
+        'Stock Total': p.stockTotal,
+        'En Almacén': p.stockAlmacen,
+        'En Pisos': p.stockPisos,
       }));
       const ws = XLSX.utils.json_to_sheet(data);
       XLSX.utils.book_append_sheet(workbook, ws, 'Stock Normal (30-180)');
       sheetsAdded++;
     }
 
-    // 4. Bajo Stock (<30, productos base sin variantes)
+    // 4. Bajo Stock (<30)
     if (exportConfig.bajoStock && productos.length > 0) {
-      const filtered = productos.filter((p) => p.cantidad < 30);
+      const filtered = productos.filter((p) => p.stockTotal < 30);
       const data = filtered.map((p) => ({
         'ID Producto': p.idProducto || 'N/A',
         Producto: p.nombre || 'Desconocido',
         'Código': p.codigoIdentificacion || 'N/A',
-        'Categoría': p.categoriaPadre?.nombre || p.subCategoria2?.nombre || 'General',
-        'Stock Consolidado': p.cantidad,
+        'Categoría': p.categoria || 'General',
+        'Stock Total': p.stockTotal,
+        'En Almacén': p.stockAlmacen,
+        'En Pisos': p.stockPisos,
       }));
       const ws = XLSX.utils.json_to_sheet(data);
       XLSX.utils.book_append_sheet(workbook, ws, 'Bajo Stock (<30)');
@@ -317,14 +302,14 @@ const PrediccionVentas: React.FC = () => {
 
   // Preparar datos filtrados y paginados
   const countTodos = productos.length;
-  const countSobreestock = productos.filter(p => p.cantidad > 180).length;
-  const countNormal = productos.filter(p => p.cantidad >= 30 && p.cantidad <= 180).length;
-  const countBajo = productos.filter(p => p.cantidad < 30).length;
+  const countSobreestock = productos.filter(p => p.stockTotal > 180).length;
+  const countNormal = productos.filter(p => p.stockTotal >= 30 && p.stockTotal <= 180).length;
+  const countBajo = productos.filter(p => p.stockTotal < 30).length;
 
   const productosFiltrados = productos.filter((p) => {
-    if (filtroStock === 'sobreestock') return p.cantidad > 180;
-    if (filtroStock === 'normal') return p.cantidad >= 30 && p.cantidad <= 180;
-    if (filtroStock === 'bajo') return p.cantidad < 30;
+    if (filtroStock === 'sobreestock') return p.stockTotal > 180;
+    if (filtroStock === 'normal') return p.stockTotal >= 30 && p.stockTotal <= 180;
+    if (filtroStock === 'bajo') return p.stockTotal < 30;
     return true;
   });
 
@@ -496,20 +481,13 @@ const PrediccionVentas: React.FC = () => {
                   </thead>
                   <tbody className="divide-y divide-[var(--app-border)]">
                     {productosPaginados.map((prod, index) => {
-                      const maxStockRef = Math.max(1, ...productosFiltrados.map(p => p.cantidad), 200);
-                      const percentage = Math.min(100, Math.max(0, (prod.cantidad / maxStockRef) * 100));
-
-                      let stockBadgeClass = "text-[var(--app-text)]";
-                      let barColorClass = "bg-blue-500";
-                      if (prod.cantidad > 180) {
-                        stockBadgeClass = "text-emerald-600 dark:text-emerald-400";
-                        barColorClass = "bg-emerald-500";
-                      } else if (prod.cantidad < 30) {
-                        stockBadgeClass = "text-red-600 dark:text-red-400";
-                        barColorClass = "bg-red-500";
-                      } else {
-                        stockBadgeClass = "text-blue-600 dark:text-blue-400";
-                        barColorClass = "bg-blue-500";
+                      let stockBadgeBgClass = "bg-emerald-500 text-white";
+                      if (prod.stockTotal === 0) {
+                        stockBadgeBgClass = "bg-gray-500 text-white";
+                      } else if (prod.stockTotal > 180) {
+                        stockBadgeBgClass = "bg-blue-500 text-white";
+                      } else if (prod.stockTotal < 30) {
+                        stockBadgeBgClass = "bg-red-500 text-white";
                       }
 
                       return (
@@ -525,27 +503,29 @@ const PrediccionVentas: React.FC = () => {
                               </span>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center justify-center gap-3">
-                              <span className={`font-black text-sm tabular-nums w-12 text-right ${stockBadgeClass}`}>
-                                {prod.cantidad}
-                              </span>
-                              <div className="w-24 bg-[var(--app-bg-muted)] h-2 rounded-full overflow-hidden border border-[var(--app-border)]">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-500 ${barColorClass}`}
-                                  style={{ width: `${percentage}%` }}
-                                />
-                              </div>
-                            </div>
+                          <td className="px-6 py-4 whitespace-nowrap text-center">
+                            <span className={`inline-flex items-center justify-center px-5 py-2.5 rounded-full text-sm font-bold ${stockBadgeBgClass}`}>
+                              {prod.stockTotal}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right">
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={async () => {
                                 setSelectedProduct(prod);
                                 setModalVariantesOpen(true);
+                                setCargandoVariantesProducto(true);
+                                try {
+                                  const data = await ReporteService.getStockVariantesPorProducto(prod.idProducto);
+                                  setVariantesDelProducto(data);
+                                } catch (err) {
+                                  console.error('Error al cargar variantes del producto:', err);
+                                  setVariantesDelProducto([]);
+                                } finally {
+                                  setCargandoVariantesProducto(false);
+                                }
                               }}
-                              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-black hover:bg-gray-900 dark:bg-gray-900 dark:hover:bg-gray-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-transparent shadow-sm shrink-0"
+                              className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_85%,black)] text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border border-transparent shadow-sm shrink-0"
                             >
                               Ver Variantes
                               <MaterialIcon icon="visibility" className="w-3.5 h-3.5" />
@@ -1066,7 +1046,7 @@ const PrediccionVentas: React.FC = () => {
                       Pestaña: Alto Stock
                     </span>
                     <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
-                      {productos.filter(p => p.cantidad > 180).length} productos
+                      {productos.filter(p => p.stockTotal > 180).length} productos
                     </span>
                   </div>
                 )}
@@ -1078,7 +1058,7 @@ const PrediccionVentas: React.FC = () => {
                       Pestaña: Stock Normal
                     </span>
                     <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
-                      {productos.filter(p => p.cantidad >= 30 && p.cantidad <= 180).length} productos
+                      {productos.filter(p => p.stockTotal >= 30 && p.stockTotal <= 180).length} productos
                     </span>
                   </div>
                 )}
@@ -1090,7 +1070,7 @@ const PrediccionVentas: React.FC = () => {
                       Pestaña: Bajo Stock
                     </span>
                     <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
-                      {productos.filter(p => p.cantidad < 30).length} productos
+                      {productos.filter(p => p.stockTotal < 30).length} productos
                     </span>
                   </div>
                 )}
@@ -1137,51 +1117,65 @@ const PrediccionVentas: React.FC = () => {
         title="VARIANTES DEL PRODUCTO"
         subtitle={selectedProduct?.nombre || ''}
         icon={<MaterialIcon icon="visibility" />}
-        maxWidth="2xl"
+        maxWidth="3xl"
         belowHeader={
-          <div className="px-6 pb-2 pt-1 flex items-center justify-between border-b border-[var(--app-border)]">
+          <div className="px-8 pb-3 pt-2 flex items-center justify-between border-b border-[var(--app-border)]">
             <span className="text-xs text-[var(--app-text-muted)] font-medium">Desglose de stock por color y talla</span>
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-[var(--app-bg-muted)] text-[var(--app-text)] font-black text-[10px] uppercase tracking-wider border border-[var(--app-border)]">
               <MaterialIcon icon="local_mall" className="w-3.5 h-3.5 text-[var(--app-accent)]" />
-              STOCK: {selectedProduct?.cantidad || 0}
+              STOCK TOTAL: {selectedProduct?.stockTotal || 0}
             </span>
           </div>
         }
       >
-        <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg)]">
+        <div className="p-4">
+          <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg)]">
           <table className="min-w-full divide-y divide-[var(--app-border)]">
             <thead className="bg-[var(--app-bg-muted)]">
               <tr>
-                <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Color</th>
-                <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Talla</th>
-                <th className="px-6 py-3 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">Cantidad</th>
+                <th className="px-10 py-5 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Color</th>
+                <th className="px-10 py-5 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Talla</th>
+                <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">Stock Total</th>
+                <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">En Almacén</th>
+                <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">En Pisos de Venta</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--app-border)]">
-              {(selectedProduct
-                ? todasLasVariantes.filter((v) => v.producto?.idProducto === selectedProduct.idProducto)
-                : []
-              ).map((v, idx) => {
-                const isEven = idx % 2 === 0;
-                const badgeSolidClass = isEven
-                  ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/20'
-                  : 'bg-blue-500 text-white shadow-sm shadow-blue-500/20';
-
-                return (
-                  <tr key={v.idProductoVariante ?? idx} className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-[var(--app-text)]">{v.color?.nombre || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-[var(--app-text-muted)]">{v.talla?.nombreTalla || 'N/A'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${badgeSolidClass}`}>
-                        <MaterialIcon icon="local_mall" className="w-3.5 h-3.5" />
-                        {v.cantidad}
-                      </span>
-                    </td>
-                  </tr>
-                );
-              })}
+              {cargandoVariantesProducto ? (
+                <tr>
+                  <td colSpan={5} className="px-10 py-8 text-center app-text-muted">
+                    <div className="flex items-center justify-center gap-2">
+                      <MaterialIcon icon="hourglass_top" className="w-4 h-4 animate-spin" />
+                      Cargando variantes...
+                    </div>
+                  </td>
+                </tr>
+              ) : variantesDelProducto.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-10 py-8 text-center app-text-muted">
+                    No se encontraron variantes para este producto.
+                  </td>
+                </tr>
+              ) : (
+                variantesDelProducto.map((v, idx) => (
+                    <tr key={v.idVariante ?? idx} className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors">
+                      <td className="px-10 py-5 whitespace-nowrap text-sm font-bold text-[var(--app-text)]">{v.color || 'N/A'}</td>
+                      <td className="px-10 py-5 whitespace-nowrap text-sm font-semibold text-[var(--app-text-muted)]">{v.talla || 'N/A'}</td>
+                      <td className="px-10 py-5 whitespace-nowrap text-right text-sm font-bold text-[var(--app-text)]">
+                        {v.stockTotal}
+                      </td>
+                      <td className="px-10 py-5 whitespace-nowrap text-right text-sm font-semibold text-[var(--app-text)]">
+                        {v.stockAlmacen}
+                      </td>
+                      <td className="px-10 py-5 whitespace-nowrap text-right text-sm font-semibold text-[var(--app-text)]">
+                        {v.stockPisos}
+                      </td>
+                    </tr>
+                  ))
+              )}
             </tbody>
           </table>
+        </div>
         </div>
       </AppModal>
     </div>

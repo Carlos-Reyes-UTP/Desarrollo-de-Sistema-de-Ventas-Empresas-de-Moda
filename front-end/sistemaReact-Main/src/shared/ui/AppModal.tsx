@@ -8,7 +8,7 @@ import ModalMotionOverlay from './ModalMotionOverlay';
 import { useModalBodyScrollLock } from './useModalBodyScrollLock';
 import { useModalMotion } from './useModalMotion';
 
-export type AppModalMaxWidth = 'sm' | 'md' | 'lg' | '2xl';
+export type AppModalMaxWidth = 'sm' | 'md' | 'lg' | '2xl' | '3xl';
 
 export interface AppModalProps {
   open: boolean;
@@ -28,6 +28,7 @@ const maxWidthClass: Record<AppModalMaxWidth, string> = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   '2xl': 'max-w-2xl',
+  '3xl': 'max-w-3xl',
 };
 
 const AppModal = ({
@@ -63,7 +64,7 @@ const AppModal = ({
         <div
           role="dialog"
           aria-modal="true"
-          className={`relative z-10 app-modal-panel rounded-[2.5rem] border border-[var(--app-border-strong)] shadow-2xl w-full ${maxWidthClass[maxWidth]} mx-4 max-h-[90vh] overflow-hidden flex flex-col ${panelClass}`}
+          className={`relative z-10 app-modal-panel rounded-[2.5rem] border border-[var(--app-border-strong)] shadow-2xl w-full ${maxWidthClass[maxWidth]} mx-4 max-h-[95vh] overflow-hidden flex flex-col ${panelClass}`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="bg-[var(--app-surface)] px-6 pt-6 pb-2 flex items-center gap-3 flex-shrink-0">

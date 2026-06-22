@@ -63,7 +63,7 @@ export const ReportCommandDeck = ({ tabs, tabActiva, onTabChange }: ReportComman
                 tabActiva === tab.id ? 'report-segmented-tab--active' : ''
               }`}
             >
-              <MaterialIcon icon={tab.icon} className="w-4 h-4" />
+              <MaterialIcon icon={tab.icon} className="w-5 h-5" />
               {tab.nombre}
             </button>
           ))}

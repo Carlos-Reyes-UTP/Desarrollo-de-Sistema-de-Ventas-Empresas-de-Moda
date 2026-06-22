@@ -18,6 +18,45 @@ import com.tienda.ropa.entity.DetalleVenta;
 @Repository
 public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
 
+       // Stock general: stock total por producto con desglose almacén / pisos de venta
+       @Query(value = """
+           SELECT
+             p.id_producto,
+             p.nombre,
+             p.codigo_identificacion,
+             COALESCE(cp.nombre, '') AS categoria,
+             COALESCE(SUM(i.stock), 0) AS stock_total,
+             COALESCE(SUM(CASE WHEN LOWER(TRIM(u.nombre)) IN ('almacén','almacen','bodega','depósito','deposito') THEN i.stock ELSE 0 END), 0) AS stock_almacen
+           FROM producto p
+           LEFT JOIN producto_variante pv ON p.id_producto = pv.id_producto
+           LEFT JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
+           LEFT JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
+           LEFT JOIN ubicacion u ON u.id_ubicacion = ua.id_ubicacion
+           LEFT JOIN categoria cp ON cp.id_categoria = p.id_categoria_padre
+           GROUP BY p.id_producto, p.nombre, p.codigo_identificacion, cp.nombre
+           ORDER BY p.nombre
+           """, nativeQuery = true)
+       List<Object[]> findStockGeneral();
+
+       // Stock por variante de un producto con desglose almacén / pisos de venta
+       @Query(value = """
+           SELECT
+             pv.id_producto_variante,
+             COALESCE(pv.color, '') AS color,
+             COALESCE(pv.talla, '') AS talla,
+             COALESCE(SUM(i.stock), 0) AS stock_total,
+             COALESCE(SUM(CASE WHEN LOWER(TRIM(u.nombre)) IN ('almacén','almacen','bodega','depósito','deposito') THEN i.stock ELSE 0 END), 0) AS stock_almacen
+           FROM producto_variante pv
+           LEFT JOIN inventario i ON i.id_producto_variante = pv.id_producto_variante
+           LEFT JOIN ubicacion_area ua ON ua.id_ubicacion_area = i.id_ubicacion_area
+           LEFT JOIN ubicacion u ON u.id_ubicacion = ua.id_ubicacion
+           WHERE pv.id_producto = :idProducto
+           GROUP BY pv.id_producto_variante, pv.color, pv.talla
+           ORDER BY pv.color, pv.talla
+           """, nativeQuery = true)
+       List<Object[]> findStockVariantesByProducto(@Param("idProducto") Long idProducto);
+
+
        // Consulta para productos más vendidos
        @Query("SELECT new com.tienda.ropa.dto.ProductoMasVendidoDTO(" +
                      "pv.producto.id, " +
