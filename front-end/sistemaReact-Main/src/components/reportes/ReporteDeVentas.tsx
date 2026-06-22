@@ -556,7 +556,7 @@ const ReporteDeVentas: React.FC = () => {
 
       <DashboardPanel>
         <SectionHeader
-          title={`Últimas ventas (${ventas.length})`}
+          title={`Registro de Ventas (${ventas.length})`}
         />
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-[var(--app-border)]">

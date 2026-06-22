@@ -109,6 +109,7 @@ const DashboardGerentePage = () => {
   const [periodo, setPeriodo] = useState<PeriodoDashboard>(() => leerPeriodoGuardado());
   const ventasDataRef = useRef<Venta[]>([]);
   const periodoRef = useRef<PeriodoDashboard>(periodo);
+  const [ultimasVentas, setUltimasVentas] = useState<Venta[]>([]);
 
   useEffect(() => {
     periodoRef.current = periodo;
@@ -138,6 +139,10 @@ const DashboardGerentePage = () => {
       const ventasFiltradas = filtrarVentasPorPeriodo(ventasData, p);
       calcularMetricas(ventasFiltradas);
       setDatosGraficoSemanal(procesarDatosGraficoPorPeriodo(ventasFiltradas, p));
+      const diezMasRecientes = [...ventasFiltradas]
+        .sort((a, b) => new Date(b.fechaVenta).getTime() - new Date(a.fechaVenta).getTime())
+        .slice(0, 10);
+      setUltimasVentas(diezMasRecientes);
     },
     [calcularMetricas]
   );
@@ -195,6 +200,32 @@ const DashboardGerentePage = () => {
   const graficoVacioHoy = periodo === 'hoy' && datosGraficoSemanal.length === 0;
   const barSizeGrafico =
     datosGraficoSemanal.length <= 3 ? 72 : datosGraficoSemanal.length <= 6 ? 48 : 40;
+
+  const parsearFechaVenta = (fechaStr: string): Date => {
+    if (!fechaStr) return new Date(0);
+    const re = /\/Date\((\d+)\)\//;
+    const m = fechaStr.match(re);
+    if (m) return new Date(Number(m[1]));
+    const iso = fechaStr.replace(' ', 'T');
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? new Date(0) : d;
+  };
+
+  const formatearFechaHora = (fechaStr: string) => {
+    const fecha = parsearFechaVenta(fechaStr);
+    if (fecha.getTime() === 0) return 'Fecha inválida';
+    return fecha.toLocaleString('es-PE', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+  };
+
+  const obtenerMetodoPago = (venta: Venta) => {
+    const mp = venta.metodoPago;
+    if (!mp) return 'No disponible';
+    if (typeof mp === 'string') return mp.charAt(0).toUpperCase() + mp.slice(1);
+    return mp.nombre || mp.tipo || 'Método personalizado';
+  };
 
   return (
     <div className="min-h-screen app-canvas p-4 md:p-8">
@@ -255,7 +286,7 @@ const DashboardGerentePage = () => {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          <div className="lg:col-span-8">
+          <div className="lg:col-span-8 space-y-8">
             {cargando ? (
               <ChartSkeleton />
             ) : (
@@ -288,6 +319,48 @@ const DashboardGerentePage = () => {
                       </BarChart>
                     </ResponsiveContainer>
                   )}
+                </div>
+              </DashboardPanel>
+            )}
+            {!cargando && ultimasVentas.length > 0 && (
+              <DashboardPanel>
+                <SectionHeader
+                  title={`Últimas Ventas (${ultimasVentas.length})`}
+                  action={
+                    <button
+                      type="button"
+                      onClick={() => navigate(`${APP_PATHS.reportes}?tab=ventas`)}
+                      className="app-btn-primary rounded-xl px-4 py-2 text-[9px] font-black uppercase tracking-widest transition-all"
+                    >
+                      VER HISTORIAL COMPLETO
+                    </button>
+                  }
+                />
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-[var(--app-border)]">
+                    <thead className="bg-[var(--app-bg-muted)]">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Fecha y Hora</th>
+                        <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Usuario</th>
+                        <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Cliente</th>
+                        <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Total</th>
+                        <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Método Pago</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--app-border)]">
+                      {ultimasVentas.map((venta) => (
+                        <tr key={venta.idVenta} className="hover:bg-[var(--app-bg-muted)]/50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm app-heading font-mono">{formatearFechaHora(venta.fechaVenta)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">{venta.usuario?.usuario || 'No disponible'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">{venta.cliente?.nombreCliente || 'Cliente general'}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium app-heading tabular-nums">{formatearMoneda(venta.totalVentas || 0)}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">
+                            <span className="px-2 py-1 text-xs font-bold rounded-full bg-[color-mix(in_srgb,var(--app-accent)_15%,transparent)] text-[var(--app-accent)]">{obtenerMetodoPago(venta)}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </DashboardPanel>
             )}
