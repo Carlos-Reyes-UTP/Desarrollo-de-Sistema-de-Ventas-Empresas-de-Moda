@@ -27,21 +27,21 @@ interface Props {
 
 export function SupervisorHistorialDetailView({ item }: Props) {
   const esAtendido = item.estado === "ATENDIDO";
-  const totalUnidades = item.lineas.reduce((acc, l) => acc + l.cantidad, 0);
 
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="flex flex-col gap-5 mb-6 shrink-0">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4 min-w-0">
-            <div className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center ${
-              esAtendido ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
-            }`}>
-              <MaterialIcon
-                icon={esAtendido ? "check_circle" : "cancel"}
-                className="w-6 h-6"
-              />
-            </div>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex items-stretch gap-5 min-w-0 flex-1 flex-wrap">
+            <div className="flex items-center gap-4 min-w-0 shrink-0">
+              <div className={`w-10 h-10 shrink-0 rounded-2xl flex items-center justify-center ${
+                esAtendido ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
+              }`}>
+                <MaterialIcon
+                  icon={esAtendido ? "check_circle" : "cancel"}
+                  className="w-6 h-6"
+                />
+              </div>
               <div className="min-w-0">
                 <h2 className="text-2xl font-black text-app-text leading-tight uppercase tracking-tight truncate">
                   {item.nombreVendedor}
@@ -49,19 +49,34 @@ export function SupervisorHistorialDetailView({ item }: Props) {
                 <p className="text-sm font-bold text-gray-500 mt-0.5">
                   {formatearFecha(item.fechaCreacion)}
                 </p>
-                {item.nombreUsuarioAtendio && (
-                  <p className="text-sm font-bold text-gray-500 mt-0.5">
-                    Atendido por: <strong>{item.nombreUsuarioAtendio}</strong>
-                  </p>
-                )}
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                  {item.tipoSolicitud}
-                </span>
-                <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                  · {totalUnidades} uds · {item.lineas.length} líneas
-                </span>
               </div>
+            </div>
+
+            <div className="w-px bg-app-border self-stretch shrink-0 hidden sm:block" />
+
+            <div className="flex items-center gap-3 min-w-0 shrink-0">
+              <div className="w-10 h-10 shrink-0 rounded-xl bg-app-text-muted/10 flex items-center justify-center">
+                <MaterialIcon icon="person" className="w-6 h-6 text-app-text-muted" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] leading-none">
+                  Atendido por
+                </p>
+                <p className="text-sm font-bold text-gray-700 truncate mt-1">
+                  {item.nombreUsuarioAtendio || "—"}
+                </p>
+              </div>
+            </div>
+
+            <div className="w-px bg-app-border self-stretch shrink-0 hidden sm:block" />
+
+            <div className="flex flex-col gap-1.5 justify-center shrink-0">
+              <p className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] leading-none">
+                Tipo de solicitud
+              </p>
+              <span className="px-2.5 py-0.5 rounded-lg text-[11px] font-bold uppercase tracking-wider bg-app-surface border border-app-border text-app-text-muted self-start">
+                {item.tipoSolicitud}
+              </span>
             </div>
           </div>
           <span className={`shrink-0 px-4 py-2 rounded-xl text-sm font-black uppercase tracking-wider border-2 ${
