@@ -661,7 +661,7 @@ const GestionUsuariosPage = () => {
                 placeholder="Nombre de usuario..."
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-[var(--app-input)] rounded-xl text-sm text-black dark:text-white placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all font-medium border border-[var(--app-border)]"
+                className="w-full pl-11 pr-4 py-3 bg-[var(--app-input)] rounded-xl text-sm text-black placeholder-gray-400 dark:placeholder-gray-600 focus:bg-white dark:focus:bg-gray-950 focus:ring-2 focus:ring-black/5 dark:focus:ring-white/10 transition-all font-medium border border-[var(--app-border)]"
               />
             </div>
           </div>
@@ -1064,14 +1064,11 @@ const GestionUsuariosPage = () => {
                       onChange={(value) => setFormUsuario({...formUsuario, idUbicacionAreaAsignada: String(value)})}
                       options={areasAlmacenDisponibles.map((ua) => ({
                         value: ua.idUbicacionArea,
-                        label: ua.descripcion ?? (ua.area ? `${ua.nombre} · ${ua.area}` : ua.nombre),
+                        label: ua.area ?? ua.nombre,
                       }))}
-                      placeholder={cargandoAreasAlmacen ? 'Cargando áreas…' : `Seleccione sector (${SECTORES_ALMACEN_TEXTO})`}
+                      placeholder={cargandoAreasAlmacen ? 'Cargando áreas…' : 'Seleccione sector'}
                       disabled={cargandoAreasAlmacen}
                     />
-                    <p className="text-[10px] text-gray-550 dark:text-gray-500 font-medium transition-colors">
-                      La mercadería que registre este almacenero quedará en esta ubicación desde el alta.
-                    </p>
                   </div>
                 )}
 
