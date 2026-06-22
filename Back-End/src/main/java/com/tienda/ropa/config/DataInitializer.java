@@ -66,5 +66,18 @@ public class DataInitializer implements CommandLineRunner {
             usuarioRepository.save(gerente);
             System.out.println("[DK-SYSTEM] Usuario 'gerente' creado exitosamente con rol GERENTE.");
         }
+
+        // 4. Usuario técnico SISTEMA para reposiciones automáticas
+        if (usuarioRepository.findByUsuario("SISTEMA").isEmpty()) {
+            Usuario sistema = Usuario.builder()
+                    .usuario("SISTEMA")
+                    .password(passwordEncoder.encode("Sistema123*"))
+                    .roles(new HashSet<>())
+                    .activo(false)
+                    .build();
+
+            usuarioRepository.save(sistema);
+            System.out.println("[DK-SYSTEM] Usuario técnico 'SISTEMA' creado exitosamente para REPOSICION automática.");
+        }
     }
 }

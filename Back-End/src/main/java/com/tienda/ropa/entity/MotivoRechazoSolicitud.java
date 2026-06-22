@@ -5,5 +5,6 @@ package com.tienda.ropa.entity;
  */
 public enum MotivoRechazoSolicitud {
     SIN_STOCK_FISICO,
-    PRENDA_DEFECTUOSA
+    PRENDA_DEFECTUOSA,
+    OTRO
 }

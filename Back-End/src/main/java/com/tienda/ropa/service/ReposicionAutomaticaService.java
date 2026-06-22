@@ -3,6 +3,8 @@ package com.tienda.ropa.service;
 import java.util.List;
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class ReposicionAutomaticaService {
 
     public static final String USUARIO_SISTEMA = "SISTEMA";
+    private static final Logger log = LoggerFactory.getLogger(ReposicionAutomaticaService.class);
     /** Objetivo de stock en piso cuando la fila no define {@code stock_maximo}. */
     public static final int STOCK_OBJETIVO_PISO_DEFECTO = 15;
 
@@ -71,6 +74,8 @@ public class ReposicionAutomaticaService {
         try {
             origen = inventarioService.resolverOrigenAlmacenConStock(idVariante, cantidad, destino);
         } catch (Exception e) {
+            log.warn("No se creó solicitud de REPOSICION para variante {} en destino {}: {}",
+                    idVariante, idDestino, e.getMessage());
             return;
         }
         if (origen.getIdUbicacionArea().equals(destino.getIdUbicacionArea())) {
@@ -79,6 +84,9 @@ public class ReposicionAutomaticaService {
 
         Usuario sistema = usuarioRepository.findByUsuario(USUARIO_SISTEMA).orElse(null);
         if (sistema == null) {
+            log.warn("No se creó solicitud de REPOSICION para variante {} en destino {}: "
+                    + "usuario '{}' no existe en BD",
+                    idVariante, idDestino, USUARIO_SISTEMA);
             return;
         }
 
@@ -128,6 +136,8 @@ public class ReposicionAutomaticaService {
             int stockDisponibleAlmacen = inventarioService.stockEnUbicacionArea(idVariante, idUbicacionAreaAlmacen);
             if (stockDisponibleAlmacen < cantidad) {
                 if (stockDisponibleAlmacen <= 0) {
+                    log.warn("No se creó solicitud de REPOSICION para variante {} desde almacén {}: stock en almacén = 0",
+                            idVariante, idUbicacionAreaAlmacen);
                     return;
                 }
                 cantidad = stockDisponibleAlmacen;
@@ -156,7 +166,8 @@ public class ReposicionAutomaticaService {
     @Scheduled(fixedRate = 600_000)
     @Transactional
     public void escanearStockBajo() {
-        List<Inventario> filas = inventarioRepository.findParaReposicionAutomatica(
+        List<Inventario> filas = inventarioRepository.findParaReposicion(
+                AlertaReposicionService.UMBRAL_ALERTA,
                 List.of("almacén", "almacen"));
         for (Inventario fila : filas) {
             evaluarTrasSalidaEnUbicacionArea(

@@ -70,6 +70,13 @@ public class Solicitud {
     @Column(name = "codigo_lote", length = 64)
     private String codigoLote;
 
+    @Column(name = "comentario_rechazo", length = 200)
+    private String comentarioRechazo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "id_usuario_atendio")
+    private Usuario usuarioAtendio;
+
     @OneToMany(mappedBy = "solicitud", fetch = FetchType.LAZY)
     private List<DetalleSolicitud> detalles = new ArrayList<>();
 }

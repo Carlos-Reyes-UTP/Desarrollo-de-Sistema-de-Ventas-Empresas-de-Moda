@@ -27,5 +27,5 @@ public interface SolicitudService {
     /** Atiende varias solicitudes en una transacción (ids sin duplicar). Devuelve cuáles se atendieron y cuáles se rechazaron por falta de stock. */
     AlmacenAtenderLoteResultDTO atenderSolicitudesLote(List<Long> idsSolicitud, Usuario usuario);
 
-    SolicitudAccionResponseDTO rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, Usuario usuario);
+    SolicitudAccionResponseDTO rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, String comentario, Usuario usuario);
 }

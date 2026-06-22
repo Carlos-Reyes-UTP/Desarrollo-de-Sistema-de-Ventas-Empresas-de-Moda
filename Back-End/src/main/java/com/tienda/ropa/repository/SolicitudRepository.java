@@ -75,4 +75,30 @@ public interface SolicitudRepository extends JpaRepository<Solicitud, Long> {
             @Param("idUsuario") Long idUsuario,
             @Param("desde") Instant desde,
             @Param("hasta") Instant hasta);
+
+    @Query("""
+            SELECT DISTINCT s FROM Solicitud s
+            LEFT JOIN FETCH s.usuario
+            JOIN FETCH s.ubicacionAreaOrigen orig
+            JOIN FETCH orig.ubicacion
+            JOIN FETCH orig.area
+            JOIN FETCH s.ubicacionAreaDestino dest
+            JOIN FETCH dest.ubicacion
+            JOIN FETCH dest.area
+            LEFT JOIN FETCH s.detalles det
+            LEFT JOIN FETCH det.variante v
+            LEFT JOIN FETCH v.producto p
+            WHERE s.estado IN :estados
+              AND s.fechaCreacion >= :desde
+              AND s.fechaCreacion < :hasta
+              AND (:idArea IS NULL OR orig.area.idArea = :idArea)
+              AND (:tipoSolicitud IS NULL OR s.tipoSolicitud = :tipoSolicitud)
+            ORDER BY s.fechaCreacion DESC
+            """)
+    List<Solicitud> findHistorialConFiltros(
+            @Param("estados") List<EstadoSolicitud> estados,
+            @Param("desde") Instant desde,
+            @Param("hasta") Instant hasta,
+            @Param("idArea") Long idArea,
+            @Param("tipoSolicitud") com.tienda.ropa.entity.TipoSolicitud tipoSolicitud);
 }

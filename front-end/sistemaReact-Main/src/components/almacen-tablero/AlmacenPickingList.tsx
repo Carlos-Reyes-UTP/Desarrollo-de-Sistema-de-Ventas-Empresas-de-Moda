@@ -241,7 +241,7 @@ export function AlmacenPickingList({
               type="button"
               onClick={onRechazar}
               disabled={procesando}
-              className="p-3 rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all shrink-0 disabled:opacity-40"
+              className="p-3 rounded-xl text-gray-300 hover:text-white hover:bg-red-500 transition-all shrink-0 disabled:opacity-40"
               title="Rechazar ticket"
             >
               <MaterialIcon icon="delete" className="w-5 h-5" />

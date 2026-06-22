@@ -142,6 +142,10 @@ public class SecurityConfiguration {
                                                 .requestMatchers("/api/almacenero/**")
                                                 .hasAnyRole("ALMACENERO", "SUPERVISOR_ALMACEN", "VENDEDOR", "ADMIN", "GERENTE")
 
+                                                // Supervisor: historial de solicitudes
+                                                .requestMatchers("/api/supervisor/**")
+                                                .hasRole("SUPERVISOR_ALMACEN")
+
                                                 // Catálogo y solicitudes a almacén (vendedor)
                                                 .requestMatchers("/api/vendedor/**")
                                                 .hasRole("VENDEDOR")

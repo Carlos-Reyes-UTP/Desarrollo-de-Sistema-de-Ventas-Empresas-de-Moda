@@ -87,6 +87,6 @@ public class SolicitudController {
             @Valid @RequestBody AlmacenRechazarSolicitudRequest body,
             @AuthenticationPrincipal Usuario usuario) {
         MotivoRechazoSolicitud motivo = MotivoRechazoSolicitud.valueOf(body.motivo().trim().toUpperCase());
-        return solicitudService.rechazarSolicitud(id, motivo, usuario);
+        return solicitudService.rechazarSolicitud(id, motivo, body.comentario(), usuario);
     }
 }

@@ -246,6 +246,12 @@ export const RUTAS_ALMACENERO_SOLICITUDES = {
   RECHAZAR: (id: number) => `${API_BASE_URL}/api/almacenero/solicitudes/${id}/rechazar`,
 };
 
+/** Supervisor: historial de solicitudes completadas/canceladas */
+export const RUTAS_SUPERVISOR_SOLICITUDES = {
+  HISTORIAL: `${API_BASE_URL}/api/supervisor/solicitudes/historial`,
+  AREAS: `${API_BASE_URL}/api/supervisor/solicitudes/areas`,
+};
+
 export const RUTAS_ALMACEN = {
   PISOS: `${API_BASE_URL}/api/almacenero/ubicaciones/pisos`,
   AREAS_POR_PISO: (nombrePiso: string) =>

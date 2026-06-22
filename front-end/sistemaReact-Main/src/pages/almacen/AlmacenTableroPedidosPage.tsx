@@ -2,11 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAutoSync } from "@/hooks/useAutoSync";
 import { useAccesoAreaAlmacen } from "@/hooks/useAccesoAreaAlmacen";
-import { MaterialIcon } from "@/shared/ui";
+import { MaterialIcon, PageHeader } from "@/shared/ui";
 import { AlmacenColaLateral } from "../../components/almacen-tablero/AlmacenColaLateral";
 import { AlmacenPickingList } from "../../components/almacen-tablero/AlmacenPickingList";
 import { SupervisorTicketView } from "../../components/almacen-tablero/SupervisorTicketView";
+import { SupervisorHistorialView } from "../../components/almacen-tablero/SupervisorHistorialView";
+import { SupervisorHistorialDetailView } from "../../components/almacen-tablero/SupervisorHistorialDetailView";
 import { RechazoPedidoModal } from "../../components/almacen-tablero/RechazoPedidoModal";
+import { DatePickerPopover } from "../../components/reportes/shared/DatePickerPopover";
 import { useAuth } from "@/context/AuthContext";
 import {
   playKioskChime,
@@ -25,10 +28,11 @@ import {
   primeraPrioridad,
   ventasOrdenadas,
 } from "../../components/almacen-tablero/almacenTableroUtils";
-import { AlmacenSolicitudesApi } from "../../services/almacenSolicitudesService";
-import type { AlmacenSolicitud, AlmacenTicketConsolidado, MotivoRechazoApi } from "../../types/AlmacenSolicitudes";
+import { AlmacenSolicitudesApi, SupervisorSolicitudesApi } from "../../services/almacenSolicitudesService";
+import type { AlmacenSolicitud, AlmacenTicketConsolidado, RechazoBody, SupervisorHistorialSolicitudItem } from "../../types/AlmacenSolicitudes";
 import { mensajeErrorApi } from "../../utils/apiErrors";
 import { destinosUnicosEnLote } from "../../utils/solicitudUbicacion";
+import type { AreaCatalogo } from "../../types/EstructuraAlmacen";
 
 const PULSE_MS = 8000;
 const MANUAL_OVERRIDE_MS = 30_000;
@@ -45,8 +49,30 @@ export default function AlmacenTableroPedidosPage() {
   const [rechazoCard, setRechazoCard] = useState<AlmacenSolicitud | null>(null);
   const [rechazoCargando, setRechazoCargando] = useState(false);
   const [activeTab, setActiveTab] = useState<"ventas" | "repos">("ventas");
+  const [mostrarHistorial, setMostrarHistorial] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [temaSonido, setTemaSonido] = useState<SoundTheme>(() => getSoundTheme("almacen"));
+
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (successMsg) {
+      const timer = setTimeout(() => setSuccessMsg(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMsg]);
+
+  const [historialItems, setHistorialItems] = useState<SupervisorHistorialSolicitudItem[]>([]);
+  const [historialCargando, setHistorialCargando] = useState(false);
+  const [historialSeleccionId, setHistorialSeleccionId] = useState<number | null>(null);
+  const [fechaHistorial, setFechaHistorial] = useState(() => new Date().toISOString().slice(0, 10));
+  const [areaHistorialId, setAreaHistorialId] = useState<number | undefined>(undefined);
+  const [tipoHistorial, setTipoHistorial] = useState("");
+  const [estadoHistorial, setEstadoHistorial] = useState("");
+  const [isTipoOpen, setIsTipoOpen] = useState(false);
+  const [isAreaOpen, setIsAreaOpen] = useState(false);
+  const [isEstadoOpen, setIsEstadoOpen] = useState(false);
+  const [areasDisponibles, setAreasDisponibles] = useState<AreaCatalogo[]>([]);
 
   const sectorParaCola = undefined;
 
@@ -54,6 +80,9 @@ export default function AlmacenTableroPedidosPage() {
   const prevRepoIdsRef = useRef<Set<number>>(new Set());
   const inicializadoRef = useRef(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const tipoRef = useRef<HTMLDivElement>(null);
+  const areaRef = useRef<HTMLDivElement>(null);
+  const estadoRef = useRef<HTMLDivElement>(null);
   const despachoLockRef = useRef(false);
   const seleccionManualUntilRef = useRef(0);
   const syncColaRef = useRef<{ nuevosVentas: number[]; nuevosRepos: number[] }>({
@@ -157,6 +186,26 @@ export default function AlmacenTableroPedidosPage() {
   }, [showSettings]);
 
   useEffect(() => {
+    SupervisorSolicitudesApi.listarAreas().then(setAreasDisponibles).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tipoRef.current && !tipoRef.current.contains(e.target as Node)) {
+        setIsTipoOpen(false);
+      }
+      if (areaRef.current && !areaRef.current.contains(e.target as Node)) {
+        setIsAreaOpen(false);
+      }
+      if (estadoRef.current && !estadoRef.current.contains(e.target as Node)) {
+        setIsEstadoOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  useEffect(() => {
     const url = new URL(window.location.href);
     let dirty = false;
 
@@ -230,7 +279,6 @@ export default function AlmacenTableroPedidosPage() {
       return;
     }
 
-    // Si venimos desde dashboard con varianteId+ubicacionAreaId, buscar ticket real
     const navTarget = navParamsRef.current;
     if (navTarget != null && cards.length > 0) {
       navParamsRef.current = null;
@@ -346,6 +394,50 @@ export default function AlmacenTableroPedidosPage() {
     };
   }, [cards, seleccionada]);
 
+  const cargarHistorial = useCallback(async () => {
+    setHistorialCargando(true);
+    try {
+      const data = await SupervisorSolicitudesApi.historial(fechaHistorial, areaHistorialId, tipoHistorial || undefined);
+      setHistorialItems(data);
+      if (data.length > 0 && !historialSeleccionId) {
+        setHistorialSeleccionId(data[0].idSolicitud);
+      } else if (data.length === 0) {
+        setHistorialSeleccionId(null);
+      }
+      setError(null);
+    } catch (e: any) {
+      setError(mensajeErrorApi(e));
+    } finally {
+      setHistorialCargando(false);
+    }
+  }, [fechaHistorial, areaHistorialId, tipoHistorial]);
+
+  useEffect(() => {
+    if (mostrarHistorial) {
+      void cargarHistorial();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mostrarHistorial]);
+
+  useEffect(() => {
+    if (!mostrarHistorial) return;
+    const timer = setTimeout(() => {
+      setHistorialSeleccionId(null);
+      void cargarHistorial();
+    }, 400);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fechaHistorial, areaHistorialId, tipoHistorial]);
+
+  const historialFiltrados = useMemo(() => {
+    if (!estadoHistorial) return historialItems;
+    return historialItems.filter(i => i.estado === estadoHistorial);
+  }, [historialItems, estadoHistorial]);
+
+  const historialSeleccionado = useMemo(() => {
+    return historialFiltrados.find(i => i.idSolicitud === historialSeleccionId) ?? null;
+  }, [historialFiltrados, historialSeleccionId]);
+
   const onConfirmarTodo = async (cantidadEnvio?: number) => {
     if (!ticketConsolidado || despachoLockRef.current) return;
 
@@ -368,6 +460,8 @@ export default function AlmacenTableroPedidosPage() {
         setError("Rechazado por falta de stock físico");
       } else {
         setError(null);
+        setSuccessMsg("Pedido completado exitosamente");
+        await new Promise((r) => setTimeout(r, 800));
       }
       await cargar();
       limpiarSeleccionManual();
@@ -380,16 +474,17 @@ export default function AlmacenTableroPedidosPage() {
     }
   };
 
-  const onRechazarConfirmar = async (motivo: MotivoRechazoApi) => {
+  const onRechazarConfirmar = async (body: RechazoBody) => {
     if (!rechazoCard) return;
     const ids = idsSolicitudEnMismoGrupo(cards, rechazoCard);
     setRechazoCargando(true);
     setProcesandoId(rechazoCard.idSolicitud);
     try {
       for (const id of ids) {
-        await AlmacenSolicitudesApi.rechazar(id, motivo);
+        await AlmacenSolicitudesApi.rechazar(id, body);
       }
       setError(null);
+      setSuccessMsg("Pedido rechazado");
       setRechazoCard(null);
       await cargar();
       limpiarSeleccionManual();
@@ -402,31 +497,49 @@ export default function AlmacenTableroPedidosPage() {
     }
   };
 
-  return (
-    <div className="bg-[var(--app-bg)] text-left flex flex-col h-full min-h-0 overflow-hidden">
-      <header className="flex justify-between items-center px-6 py-4 bg-[var(--app-surface)] border-b border-[var(--app-border)] shrink-0">
-        <div className="flex items-center gap-3">
-          {seleccionId && (
-            <button
-              type="button"
-              onClick={() => setSeleccionId(null)}
-              className="lg:hidden p-2 -ml-2 rounded-full hover:bg-[var(--app-hover-overlay)] app-heading active:scale-95 transition-all"
-              aria-label="Volver a la cola"
-            >
-              <MaterialIcon icon="chevron_left" className="w-6 h-6" />
-            </button>
-          )}
-          <div>
-            <h1 className="text-xl font-black tracking-tight app-heading leading-none">
-              {seleccionId ? "Gestion de Tickets" : "Tickets"}
-            </h1>
-            <p className="text-[9px] font-black app-text-faint uppercase tracking-widest leading-none mt-1">
-              Gestion de Solicitudes de Venta y Reposicion de Mercaderia
-            </p>
-          </div>
-        </div>
+  const toolbarPills = esSupervisor ? (
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={() => { setMostrarHistorial(false); setSeleccionId(null); }}
+        className={`shrink-0 snap-start min-h-10 px-4 py-2 text-xs sm:text-sm font-bold tracking-wide uppercase transition-all rounded-lg touch-manipulation whitespace-nowrap ${
+          !mostrarHistorial
+            ? 'app-btn-primary shadow-sm'
+            : 'app-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+        }`}
+      >
+        Solicitudes Pendientes
+      </button>
+      <button
+        type="button"
+        onClick={() => { setMostrarHistorial(true); setSeleccionId(null); setHistorialSeleccionId(null); }}
+        className={`shrink-0 snap-start min-h-10 px-4 py-2 text-xs sm:text-sm font-bold tracking-wide uppercase transition-all rounded-lg touch-manipulation whitespace-nowrap ${
+          mostrarHistorial
+            ? 'app-btn-primary shadow-sm'
+            : 'app-text-muted hover:text-[var(--app-text)] hover:bg-[var(--app-surface)]'
+        }`}
+      >
+        Historial
+      </button>
+    </div>
+  ) : null;
 
-        <div className="flex items-center gap-2">
+  const toolbarFiltrosHistorial = null;
+
+  return (
+    <div className="app-page p-2 sm:p-3 mx-auto h-full flex flex-col min-h-0 font-sans">
+      <PageHeader
+        className="relative z-30"
+        surface="elevated"
+        variant="almacen"
+        title={seleccionId || historialSeleccionId ? "Gestión de Tickets" : "Tickets"}
+        subtitle="Gestión de Solicitudes de Venta y Reposición de Mercadería"
+        toolbar={
+          <div className="flex flex-col gap-3 min-w-0">
+            {toolbarPills}
+          </div>
+        }
+        actions={
           <div ref={settingsRef} className="relative">
             <button
               type="button"
@@ -450,7 +563,7 @@ export default function AlmacenTableroPedidosPage() {
                     Configuración de Alertas
                   </span>
                 </div>
-                
+
                 <button
                   type="button"
                   onClick={() => {
@@ -467,7 +580,7 @@ export default function AlmacenTableroPedidosPage() {
                   <span className="text-[9px] font-black uppercase tracking-widest app-text-faint block px-1 mb-1">
                     Tema del Timbre
                   </span>
-                  
+
                   {([
                     { id: "boutique", label: "Boutique Chime", desc: "Acorde elegante y suave" },
                     { id: "crystal", label: "Crystal Ping", desc: "Tono cristalino agudo" },
@@ -505,11 +618,11 @@ export default function AlmacenTableroPedidosPage() {
               </div>
             )}
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {error && (
-        <div className="mx-6 mt-4 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start justify-between gap-3 shrink-0 animate-fadeIn">
+        <div className="mb-4 p-4 rounded-xl bg-red-50 border border-red-100 flex items-start justify-between gap-3 shrink-0 animate-fadeIn">
           <p className="text-red-700 text-[10px] font-black uppercase tracking-widest leading-relaxed flex-1">
             {error}
           </p>
@@ -523,73 +636,275 @@ export default function AlmacenTableroPedidosPage() {
         </div>
       )}
 
+      {successMsg && (
+        <div className="mb-4 bg-green-50 border border-green-100 rounded-xl sm:rounded-2xl text-green-700 text-sm font-semibold px-4 py-3 sm:px-6 sm:py-4 flex items-center gap-3 shrink-0">
+          <MaterialIcon icon="check_circle" className="w-5 h-5 shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {mostrarHistorial && (
+        <div className="bg-app-surface rounded-[1.5rem] border border-[var(--app-border)] p-5 sm:p-6 mb-4 shadow-[0_4px_20px_rgba(0,0,0,0.03)] shrink-0">
+          <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[160px]">
+              <DatePickerPopover
+                label="Fecha"
+                value={fechaHistorial}
+                onChange={setFechaHistorial}
+              />
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                Tipo
+              </label>
+              <div className="relative" ref={tipoRef}>
+                <div
+                  onClick={() => setIsTipoOpen(!isTipoOpen)}
+                  className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)] flex items-center justify-between cursor-pointer"
+                >
+                  <span className="truncate">
+                    {tipoHistorial === "VENTA" ? "Venta" : tipoHistorial === "REPOSICION" ? "Reposición" : "Todos"}
+                  </span>
+                  <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isTipoOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                {isTipoOpen && (
+                  <div className="absolute z-50 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-2 animate-fadeIn">
+                    {[
+                      { value: "", label: "Todos" },
+                      { value: "VENTA", label: "Venta" },
+                      { value: "REPOSICION", label: "Reposición" },
+                    ].map((op) => (
+                      <button
+                        key={op.value}
+                        type="button"
+                        onClick={() => { setTipoHistorial(op.value); setIsTipoOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
+                          tipoHistorial === op.value
+                            ? "bg-app-accent text-app-accent-fg"
+                            : "hover:bg-app-hover-overlay text-app-text"
+                        }`}
+                      >
+                        {op.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                Estado
+              </label>
+              <div className="relative" ref={estadoRef}>
+                <div
+                  onClick={() => setIsEstadoOpen(!isEstadoOpen)}
+                  className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)] flex items-center justify-between cursor-pointer"
+                >
+                  <span className="truncate">
+                    {estadoHistorial === "ATENDIDO" ? "Atendido" : estadoHistorial === "CANCELADO" ? "Cancelado" : "Todos"}
+                  </span>
+                  <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isEstadoOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                {isEstadoOpen && (
+                  <div className="absolute z-50 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-2 animate-fadeIn">
+                    {[
+                      { value: "", label: "Todos" },
+                      { value: "ATENDIDO", label: "Atendido" },
+                      { value: "CANCELADO", label: "Cancelado" },
+                    ].map((op) => (
+                      <button
+                        key={op.value}
+                        type="button"
+                        onClick={() => { setEstadoHistorial(op.value); setIsEstadoOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
+                          estadoHistorial === op.value
+                            ? "bg-app-accent text-app-accent-fg"
+                            : "hover:bg-app-hover-overlay text-app-text"
+                        }`}
+                      >
+                        {op.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex-1 min-w-[140px]">
+              <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
+                Área
+              </label>
+              <div className="relative" ref={areaRef}>
+                <div
+                  onClick={() => setIsAreaOpen(!isAreaOpen)}
+                  className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)] flex items-center justify-between cursor-pointer"
+                >
+                  <span className="truncate">
+                    {areaHistorialId != null
+                      ? areasDisponibles.find(a => a.idArea === areaHistorialId)?.nombre ?? "Todas"
+                      : "Todas"}
+                  </span>
+                  <svg className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isAreaOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                {isAreaOpen && (
+                  <div className="absolute z-50 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-2 animate-fadeIn">
+                    {[
+                      { value: undefined as number | undefined, label: "Todas" },
+                      ...areasDisponibles.map(a => ({ value: a.idArea, label: a.nombre })),
+                    ].map((op) => (
+                      <button
+                        key={String(op.value ?? "")}
+                        type="button"
+                        onClick={() => { setAreaHistorialId(op.value); setIsAreaOpen(false); }}
+                        className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
+                          areaHistorialId === op.value
+                            ? "bg-app-accent text-app-accent-fg"
+                            : "hover:bg-app-hover-overlay text-app-text"
+                        }`}
+                      >
+                        {op.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="shrink-0">
+              <button
+                type="button"
+                onClick={() => void cargarHistorial()}
+                className="min-h-[48px] px-6 py-3.5 rounded-xl bg-[var(--app-accent)] text-[var(--app-accent-fg)] text-sm font-black uppercase tracking-widest"
+              >
+                Buscar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 flex min-h-0 relative overflow-hidden">
-        <aside
-          className={`
-          absolute inset-0 z-10 bg-[var(--app-bg)] flex flex-col transition-transform duration-300
-          lg:relative lg:translate-x-0 lg:w-[22rem] xl:w-[26rem] lg:border-r lg:border-[var(--app-border)]
-          ${seleccionId ? "-translate-x-full lg:translate-x-0" : "translate-x-0"}
-        `}
-        >
-          <AlmacenColaLateral
-            ventas={ventas}
-            repos={repos}
-            seleccionId={seleccionId}
-            pulsando={pulsando}
-            activeTab={activeTab}
-            onTabChange={handleTabChange}
-            onSelect={handleSelect}
-            primerVentaId={primerVentaId}
-            onIrAVentas={handleIrAVentas}
-            esSupervisor={esSupervisor}
-            encabezadoExtra={
-              accesoAreaAlmacen?.etiquetaAreaAsignada ? (
-                <div className="px-4 py-3 border-b border-[var(--app-border)] shrink-0">
-                  <p className="text-[9px] font-black app-text-faint uppercase tracking-widest">
-                    Cola · {accesoAreaAlmacen.etiquetaAreaAsignada}
+        {mostrarHistorial ? (
+          <>
+            <aside
+              className={`
+              absolute inset-0 z-10 bg-[var(--app-surface)] border border-[var(--app-border)] rounded-2xl overflow-hidden flex flex-col transition-transform duration-300
+              lg:relative lg:translate-x-0 lg:w-[26rem] xl:w-[30rem] lg:border-r lg:border-[var(--app-border)]
+              ${historialSeleccionId ? "-translate-x-full lg:translate-x-0" : "translate-x-0"}
+            `}
+            >
+              <div className="px-4 py-3 border-b border-[var(--app-border)] shrink-0">
+                <p className="text-[9px] font-black app-text-faint uppercase tracking-widest">
+                  Historial · {fechaHistorial}
+                </p>
+              </div>
+              <SupervisorHistorialView
+                items={historialFiltrados}
+                seleccionId={historialSeleccionId}
+                cargando={historialCargando}
+                onSelect={setHistorialSeleccionId}
+                onRefresh={() => void cargarHistorial()}
+              />
+            </aside>
+
+            <main
+              className={`
+              absolute inset-0 bg-[var(--app-bg)] flex flex-col transition-transform duration-300
+              lg:relative lg:flex-1 lg:translate-x-0
+              ${historialSeleccionId ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
+            `}
+            >
+              {historialSeleccionado ? (
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-3 lg:p-5 min-h-0">
+                  <SupervisorHistorialDetailView item={historialSeleccionado} />
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                  <div className="h-20 w-20 rounded-[2rem] bg-[var(--app-surface)] border border-[var(--app-border)] shadow-sm flex items-center justify-center mb-6">
+                    <MaterialIcon icon="history" className="w-10 h-10 app-text-faint" />
+                  </div>
+                  <p className="text-[10px] font-black app-text-faint uppercase tracking-[0.2em] max-w-[200px]">
+                    Selecciona un registro para ver el detalle
                   </p>
                 </div>
-              ) : null
-            }
-          />
-        </aside>
-
-        <main
-          className={`
-          absolute inset-0 bg-[var(--app-bg)] flex flex-col transition-transform duration-300
-          lg:relative lg:flex-1 lg:translate-x-0
-          ${seleccionId ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
-        `}
-        >
-          {ticketConsolidado ? (
-            <div className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-10 min-h-0">
-              {esSupervisor ? (
-                <SupervisorTicketView ticket={ticketConsolidado} />
-              ) : (
-                <AlmacenPickingList
-                  ticket={ticketConsolidado}
-                  procesando={procesandoId != null}
-                  esDesdeAlerta={false}
-                  onConfirmarTodo={(cantidad) => void onConfirmarTodo(cantidad)}
-                  onRechazar={() =>
-                    seleccionada && setRechazoCard(seleccionada)
-                  }
-                />
               )}
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
-              <div className="h-20 w-20 rounded-[2rem] bg-[var(--app-surface)] border border-[var(--app-border)] shadow-sm flex items-center justify-center mb-6">
-                <MaterialIcon icon="inbox" className="w-10 h-10 app-text-faint" />
-              </div>
-              <p className="text-[10px] font-black app-text-faint uppercase tracking-[0.2em] max-w-[200px]">
-                {esSupervisor
-                  ? "Selecciona un ticket para ver el detalle"
-                  : "Selecciona un ticket para comenzar el picking"}
-              </p>
-            </div>
-          )}
-        </main>
+            </main>
+          </>
+        ) : (
+          <>
+            <aside
+              className={`
+              absolute inset-0 z-10 bg-[var(--app-bg)] flex flex-col transition-transform duration-300
+              lg:relative lg:translate-x-0 lg:w-[26rem] xl:w-[30rem] lg:border-r lg:border-[var(--app-border)]
+              ${seleccionId ? "-translate-x-full lg:translate-x-0" : "translate-x-0"}
+            `}
+            >
+              <AlmacenColaLateral
+                ventas={ventas}
+                repos={repos}
+                seleccionId={seleccionId}
+                pulsando={pulsando}
+                activeTab={activeTab}
+                onTabChange={handleTabChange}
+                onSelect={handleSelect}
+                primerVentaId={primerVentaId}
+                onIrAVentas={handleIrAVentas}
+                esSupervisor={esSupervisor}
+                encabezadoExtra={
+                  accesoAreaAlmacen?.etiquetaAreaAsignada ? (
+                    <div className="px-4 py-3 border-b border-[var(--app-border)] shrink-0">
+                      <p className="text-[9px] font-black app-text-faint uppercase tracking-widest">
+                        Cola · {accesoAreaAlmacen.etiquetaAreaAsignada}
+                      </p>
+                    </div>
+                  ) : null
+                }
+              />
+            </aside>
+
+            <main
+              className={`
+              absolute inset-0 bg-[var(--app-bg)] flex flex-col transition-transform duration-300
+              lg:relative lg:flex-1 lg:translate-x-0
+              ${seleccionId ? "translate-x-0" : "translate-x-full lg:translate-x-0"}
+            `}
+            >
+              {ticketConsolidado ? (
+                <div className="flex-1 overflow-y-auto custom-scrollbar p-3 lg:p-5 min-h-0">
+                  {esSupervisor ? (
+                    <SupervisorTicketView ticket={ticketConsolidado} />
+                  ) : (
+                    <AlmacenPickingList
+                      ticket={ticketConsolidado}
+                      procesando={procesandoId != null}
+                      esDesdeAlerta={false}
+                      onConfirmarTodo={(cantidad) => void onConfirmarTodo(cantidad)}
+                      onRechazar={() =>
+                        seleccionada && setRechazoCard(seleccionada)
+                      }
+                    />
+                  )}
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+                  <div className="h-20 w-20 rounded-[2rem] bg-[var(--app-surface)] border border-[var(--app-border)] shadow-sm flex items-center justify-center mb-6">
+                    <MaterialIcon icon="inbox" className="w-10 h-10 app-text-faint" />
+                  </div>
+                  <p className="text-[10px] font-black app-text-faint uppercase tracking-[0.2em] max-w-[200px]">
+                    {esSupervisor
+                      ? "Selecciona un ticket para ver el detalle"
+                      : "Selecciona un ticket para comenzar el picking"}
+                  </p>
+                </div>
+              )}
+            </main>
+          </>
+        )}
       </div>
 
       <RechazoPedidoModal

@@ -257,7 +257,7 @@ public class SolicitudServiceImpl implements SolicitudService {
                         v.getIdProductoVariante(), origen.getIdUbicacionArea());
                 if (stockOrigen < cant) {
                     return rechazarSolicitud(
-                            idSolicitud, MotivoRechazoSolicitud.SIN_STOCK_FISICO, usuario);
+                            idSolicitud, MotivoRechazoSolicitud.SIN_STOCK_FISICO, null, usuario);
                 }
             }
             for (DetalleSolicitud d : detalles) {
@@ -277,6 +277,7 @@ public class SolicitudServiceImpl implements SolicitudService {
 
         s.setEstado(EstadoSolicitud.ATENDIDO);
         s.setMotivoRechazo(null);
+        s.setUsuarioAtendio(usuario);
         Solicitud resultado = solicitudRepository.save(s);
         notificationService.sendNotificationObject(java.util.Map.of(
                 "type", "SOLICITUD_ATENDIDA",
@@ -306,7 +307,7 @@ public class SolicitudServiceImpl implements SolicitudService {
 
     @Override
     @Transactional
-    public SolicitudAccionResponseDTO rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, Usuario usuario) {
+    public SolicitudAccionResponseDTO rechazarSolicitud(Long idSolicitud, MotivoRechazoSolicitud motivo, String comentario, Usuario usuario) {
         Solicitud s = solicitudRepository.findByIdWithUbicaciones(idSolicitud)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
         if (s.getEstado() != EstadoSolicitud.PENDIENTE) {
@@ -315,6 +316,10 @@ public class SolicitudServiceImpl implements SolicitudService {
         validarAccesoSolicitud(usuario, s);
         s.setEstado(EstadoSolicitud.CANCELADO);
         s.setMotivoRechazo(motivo);
+        s.setUsuarioAtendio(usuario);
+        if (comentario != null && !comentario.isBlank()) {
+            s.setComentarioRechazo(comentario.trim());
+        }
         solicitudRepository.save(s);
         solicitudRepository.flush();
         notificationService.sendNotificationObject(java.util.Map.of(

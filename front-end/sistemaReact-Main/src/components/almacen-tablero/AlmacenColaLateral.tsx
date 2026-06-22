@@ -100,7 +100,7 @@ export function AlmacenColaLateral({
 
   return (
 
-    <div className="flex flex-col h-full bg-app-surface">
+    <div className="flex flex-col h-full bg-app-surface border border-[var(--app-border)] rounded-2xl overflow-hidden">
 
       {encabezadoExtra}
 

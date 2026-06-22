@@ -1,6 +1,7 @@
 import apiClient from "../config/apiClient";
-import { RUTAS_ALMACENERO_SOLICITUDES } from "../config/apiConfig";
-import type { AlmacenAtenderLoteResult, AlmacenSolicitud, ItemSolicitudAlmacen, MotivoRechazoApi } from "../types/AlmacenSolicitudes";
+import { RUTAS_ALMACENERO_SOLICITUDES, RUTAS_SUPERVISOR_SOLICITUDES } from "../config/apiConfig";
+import type { AlmacenAtenderLoteResult, AlmacenSolicitud, ItemSolicitudAlmacen, RechazoBody, SupervisorHistorialSolicitudItem } from "../types/AlmacenSolicitudes";
+import type { AreaCatalogo } from "../types/EstructuraAlmacen";
 import { num } from "../utils/num";
 
 function normalizarLinea(raw: unknown): ItemSolicitudAlmacen {
@@ -87,7 +88,30 @@ export const AlmacenSolicitudesApi = {
     return res.data ?? { atendidos: unicos, rechazados: [] };
   },
 
-  rechazar: async (idSolicitud: number, motivo: MotivoRechazoApi): Promise<void> => {
-    await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.RECHAZAR(idSolicitud), { motivo });
+  rechazar: async (idSolicitud: number, body: RechazoBody): Promise<void> => {
+    await apiClient.post(RUTAS_ALMACENERO_SOLICITUDES.RECHAZAR(idSolicitud), body);
+  },
+};
+
+export const SupervisorSolicitudesApi = {
+  listarAreas: async (): Promise<AreaCatalogo[]> => {
+    const res = await apiClient.get<unknown[]>(RUTAS_SUPERVISOR_SOLICITUDES.AREAS);
+    return Array.isArray(res.data) ? (res.data as AreaCatalogo[]) : [];
+  },
+
+  historial: async (fecha: string, areaId?: number, tipo?: string, signal?: AbortSignal): Promise<SupervisorHistorialSolicitudItem[]> => {
+    const params: Record<string, string> = { fecha };
+    if (areaId != null && areaId > 0) {
+      params.areaId = String(areaId);
+    }
+    if (tipo != null && tipo.trim().length > 0) {
+      params.tipo = tipo.trim();
+    }
+    const res = await apiClient.get<unknown[]>(RUTAS_SUPERVISOR_SOLICITUDES.HISTORIAL, {
+      params,
+      signal,
+    });
+    const arr = Array.isArray(res.data) ? res.data : [];
+    return arr as SupervisorHistorialSolicitudItem[];
   },
 };

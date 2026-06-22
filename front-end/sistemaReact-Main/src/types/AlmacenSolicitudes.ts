@@ -34,9 +34,36 @@ export interface AlmacenTicketConsolidado extends AlmacenSolicitud {
   }>;
 }
 
-export type MotivoRechazoApi = "SIN_STOCK_FISICO" | "PRENDA_DEFECTUOSA";
+export type MotivoRechazoApi = "SIN_STOCK_FISICO" | "PRENDA_DEFECTUOSA" | "OTRO";
 
 export interface AlmacenAtenderLoteResult {
   atendidos: number[];
   rechazados: number[];
 }
+
+export interface SupervisorHistorialSolicitudItem {
+  idSolicitud: number;
+  tipoSolicitud: string;
+  estado: string;
+  fechaCreacion: string;
+  idUsuario: number | null;
+  nombreVendedor: string;
+  idUbicacionAreaOrigen: number | null;
+  pisoOrigen: string | null;
+  sectorOrigen: string | null;
+  etiquetaOrigen: string | null;
+  idUbicacionAreaDestino: number | null;
+  pisoDestino: string | null;
+  sectorDestino: string | null;
+  etiquetaDestino: string | null;
+  codigoLote: string | null;
+  motivoRechazo: string | null;
+  comentarioRechazo: string | null;
+  nombreUsuarioAtendio: string | null;
+  lineas: ItemSolicitudAlmacen[];
+}
+
+export type RechazoBody = {
+  motivo: MotivoRechazoApi;
+  comentario?: string;
+};
