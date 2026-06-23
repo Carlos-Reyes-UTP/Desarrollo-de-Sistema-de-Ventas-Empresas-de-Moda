@@ -1446,7 +1446,7 @@ const PrediccionVentas: React.FC = () => {
         title="¿CONFIRMAR OPTIMIZACIÓN AVANZADA?"
         subtitle="Esta es una operación de alta carga para el servidor de IA"
         icon={<MaterialIcon icon="warning" className="text-amber-500 animate-bounce" />}
-        maxWidth="md"
+        maxWidth="2xl"
         footer={
           <div className="flex justify-end gap-3">
             <button
@@ -1469,7 +1469,7 @@ const PrediccionVentas: React.FC = () => {
           </div>
         }
       >
-        <div className="p-6 space-y-4 text-left">
+        <div className="space-y-4 text-left">
           <p className="text-sm text-[var(--app-text)] leading-relaxed">
             La búsqueda avanzada de hiperparámetros evalúa decenas de configuraciones del algoritmo XGBoost para encontrar la combinación que minimice el error de predicción.
           </p>
