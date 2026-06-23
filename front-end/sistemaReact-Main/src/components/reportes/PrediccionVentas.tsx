@@ -8,10 +8,17 @@ import type { ProductoVariante } from '@/types/ProductoVariante';
 import type { PrediccionIARequest, StockProducto, StockVariante } from '@/types/ReporteVentas';
 import * as XLSX from 'xlsx';
 import AppModal from '@/shared/ui/AppModal';
+import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 
 const PrediccionVentas: React.FC = () => {
   const { usuario } = useAuth();
   const rolPrincipal = usuario?.roles?.[0]?.nombreRol || '';
+  const { setActions } = useReportPageActions();
+
+  useEffect(() => {
+    setActions(null);
+    return () => setActions(null);
+  }, [setActions]);
 
   const [subTabActiva, setSubTabActiva] = useState<'stock' | 'demanda'>('stock');
 
@@ -31,6 +38,9 @@ const PrediccionVentas: React.FC = () => {
   const [predicciones, setPredicciones] = useState<Record<string, number>>({});
   const [statusIA, setStatusIA] = useState<string>('Esperando IA');
   const [procesandoIA, setProcesandoIA] = useState<boolean>(false);
+  const [paginaIA, setPaginaIA] = useState<number>(1);
+  const [ordenDemanda, setOrdenDemanda] = useState<'mayor_demanda' | 'menor_demanda' | 'producto' | 'stock'>('mayor_demanda');
+
 
   const { tieneRol } = useAuth();
   const esAdmin = tieneRol('ROLE_ADMIN');
@@ -63,6 +73,79 @@ const PrediccionVentas: React.FC = () => {
     prediccionDemanda: true,
     incluirStockSeguridad: true,
   });
+
+  // Generar sugerencias llamando al microservicio de IA por lote
+  const handleGenerarSugerencias = async () => {
+    try {
+      setProcesandoIA(true);
+      setStatusIA('Procesando...');
+      setPredicciones({});
+
+      const mesActual = new Date().getMonth() + 1; // 1 a 12
+
+      // Construir la lista de solicitudes a enviar a la IA (usando todas las variantes del catálogo)
+      const requests: PrediccionIARequest[] = todasLasVariantes.map((v, i) => ({
+        id_producto: v.producto?.idProducto || 1,
+        color: v.color?.nombre || 'BLANCO',
+        talla: v.talla?.nombreTalla || 'M',
+        mes: mesActual,
+        es_campana: [2, 3, 7, 12].includes(mesActual) ? 1 : 0,  // Campañas conocidas en Feb, Mar, Jul, Dic
+        ventas_mes_pasado: Math.max(15, v.cantidad * 2 + 10 - i), // Simulado dinámicamente para escala mensual
+      }));
+
+      const response = await ReporteService.predecirLote(requests);
+
+      if (response && response.resultados) {
+        const nuevasPredicciones: Record<string, number> = {};
+        response.resultados.forEach((res) => {
+          // Buscar la variante correspondiente en todasLasVariantes por idProducto e identificación de variante (color-talla)
+          const variant = todasLasVariantes.find(
+            (v) => {
+              const resVariante = (res.variante || '').trim().toLowerCase();
+              const colorNombre = (v.color?.nombre || '').trim().toLowerCase();
+              const tallaNombre = (v.talla?.nombreTalla || '').trim().toLowerCase();
+              return v.producto?.idProducto === res.id_producto &&
+                `${colorNombre}-${tallaNombre}` === resVariante;
+            }
+          );
+          if (variant) {
+            const key = variant.idProductoVariante ?? variant.idVariante ?? 0;
+            nuevasPredicciones[key] = res.prediccion_ventas;
+          }
+        });
+        setPredicciones(nuevasPredicciones);
+        setStatusIA('success');
+
+        // Ordenar todas las variantes por mayor predicción (demanda) descendente
+        const variantesOrdenadas = [...todasLasVariantes].sort((a, b) => {
+          const keyA = a.idProductoVariante ?? a.idVariante ?? 0;
+          const keyB = b.idProductoVariante ?? b.idVariante ?? 0;
+          const predA = nuevasPredicciones[keyA] ?? 0;
+          const predB = nuevasPredicciones[keyB] ?? 0;
+          return predB - predA;
+        });
+
+        // Limitar la tabla a mostrar los 20 registros con mayor predicción de demanda
+        setVariantes(variantesOrdenadas.slice(0, 20));
+        setPaginaIA(1);
+        setOrdenDemanda('mayor_demanda');
+      } else {
+        setStatusIA('Error en la predicción');
+      }
+    } catch (err: any) {
+      console.error('Error al consultar lote en la IA:', err);
+      setStatusIA('Error de Conexión');
+    } finally {
+      setProcesandoIA(false);
+    }
+  };
+
+  // Ejecutar predicción automática al entrar a la tab de demanda si hay variantes y no se ha predicho aún
+  useEffect(() => {
+    if (subTabActiva === 'demanda' && todasLasVariantes.length > 0 && Object.keys(predicciones).length === 0 && !procesandoIA) {
+      handleGenerarSugerencias();
+    }
+  }, [subTabActiva, todasLasVariantes, predicciones, procesandoIA]);
 
   // Cargar métricas del modelo al activar la subpestaña de demanda
   useEffect(() => {
@@ -139,6 +222,11 @@ const PrediccionVentas: React.FC = () => {
         // Completar el progreso
         setPasoEntrenamiento(4);
         setProgresoEntrenamiento(100);
+
+        // Disparar predicción automáticamente al terminar de entrenar
+        setTimeout(() => {
+          handleGenerarSugerencias();
+        }, 800);
       } else {
         setStatusIA('Error al reentrenar el modelo');
         setProgresoEntrenamiento(0);
@@ -173,6 +261,11 @@ const PrediccionVentas: React.FC = () => {
         // Completar el progreso
         setPasoEntrenamiento(4);
         setProgresoEntrenamiento(100);
+
+        // Disparar predicción automáticamente al terminar de optimizar
+        setTimeout(() => {
+          handleGenerarSugerencias();
+        }, 800);
       } else {
         setStatusIA('Error al optimizar el modelo');
         setProgresoEntrenamiento(0);
@@ -209,9 +302,10 @@ const PrediccionVentas: React.FC = () => {
 
         // Guardar todas las variantes para exportación y predicción
         setTodasLasVariantes(variantesData);
-        setVariantes(variantesData.slice(0, 7));
+        setVariantes(variantesData.slice(0, 20));
 
         setPaginaActual(1);
+        setPaginaIA(1);
       } catch (err: any) {
         console.error('Error al cargar datos de stock:', err);
         setErrorStock('No se pudieron cargar los datos de inventario.');
@@ -226,57 +320,7 @@ const PrediccionVentas: React.FC = () => {
 
 
 
-  // Generar sugerencias llamando al microservicio de IA por lote
-  const handleGenerarSugerencias = async () => {
-    try {
-      setProcesandoIA(true);
-      setStatusIA('Procesando...');
-      setPredicciones({});
 
-      const mesActual = new Date().getMonth() + 1; // 1 a 12
-
-      // Construir la lista de solicitudes a enviar a la IA
-      const requests: PrediccionIARequest[] = variantes.map((v, i) => ({
-        id_producto: v.producto?.idProducto || 1,
-        color: v.color?.nombre || 'BLANCO',
-        talla: v.talla?.nombreTalla || 'M',
-        mes: mesActual,
-        es_campana: [2, 3, 7, 12].includes(mesActual) ? 1 : 0,  // Campañas conocidas en Feb, Mar, Jul, Dic
-        ventas_mes_pasado: Math.max(15, v.cantidad * 2 + 10 - i), // Simulado dinámicamente para escala mensual
-      }));
-
-      const response = await ReporteService.predecirLote(requests);
-
-      if (response && response.resultados) {
-        const nuevasPredicciones: Record<string, number> = {};
-        response.resultados.forEach((res) => {
-          // Buscar la variante correspondiente por idProducto e identificación de variante (ignorando mayúsculas/minúsculas y espacios en blanco)
-          const variant = variantes.find(
-            (v) => {
-              const resVariante = (res.variante || '').trim().toLowerCase();
-              const colorNombre = (v.color?.nombre || '').trim().toLowerCase();
-              const tallaNombre = (v.talla?.nombreTalla || '').trim().toLowerCase();
-              return v.producto?.idProducto === res.id_producto &&
-                `${colorNombre}-${tallaNombre}` === resVariante;
-            }
-          );
-          if (variant) {
-            const key = variant.idProductoVariante ?? variant.idVariante ?? 0;
-            nuevasPredicciones[key] = res.prediccion_ventas;
-          }
-        });
-        setPredicciones(nuevasPredicciones);
-        setStatusIA('success');
-      } else {
-        setStatusIA('Error en la predicción');
-      }
-    } catch (err: any) {
-      console.error('Error al consultar lote en la IA:', err);
-      setStatusIA('Error de Conexión');
-    } finally {
-      setProcesandoIA(false);
-    }
-  };
 
   // Ejecutar exportación de Excel configurada
   const ejecutarExportarExcel = () => {
@@ -350,8 +394,17 @@ const PrediccionVentas: React.FC = () => {
     }
 
     // 5. Predicción y Demanda (Variantes)
-    if (exportConfig.prediccionDemanda && variantes.length > 0) {
-      const data = variantes.map((v, index) => {
+    if (exportConfig.prediccionDemanda && todasLasVariantes.length > 0) {
+      // Ordenar por predicción descendente para que el Excel muestre de mayor a menor demanda
+      const variantesOrdenadasExport = [...todasLasVariantes].sort((a, b) => {
+        const keyA = a.idProductoVariante ?? a.idVariante ?? 0;
+        const keyB = b.idProductoVariante ?? b.idVariante ?? 0;
+        const predA = predicciones[keyA] ?? 0;
+        const predB = predicciones[keyB] ?? 0;
+        return predB - predA;
+      });
+
+      const data = variantesOrdenadasExport.map((v, index) => {
         const key = v.idProductoVariante ?? v.idVariante ?? index;
         const pred = predicciones[key];
         const tienePrediccion = pred !== undefined;
@@ -360,6 +413,8 @@ const PrediccionVentas: React.FC = () => {
           Producto: v.producto?.nombre || 'Desconocido',
           Color: v.color?.nombre || 'N/A',
           Talla: v.talla?.nombreTalla || 'N/A',
+          'Stock Actual': v.cantidad,
+          'Predicción de Venta': tienePrediccion ? pred : '---',
         };
 
         if (tienePrediccion) {
@@ -403,6 +458,43 @@ const PrediccionVentas: React.FC = () => {
   const totalPaginas = Math.ceil(productosFiltrados.length / elementosPorPagina);
   const indexInicio = (paginaActual - 1) * elementosPorPagina;
   const productosPaginados = productosFiltrados.slice(indexInicio, indexInicio + elementosPorPagina);
+
+  // Preparar datos de variantes de la IA ordenados y paginados (máximo 20 registros totales)
+  const obtenerVariantesOrdenadasYFiltradas = () => {
+    const sorted = [...variantes];
+    if (ordenDemanda === 'mayor_demanda') {
+      sorted.sort((a, b) => {
+        const keyA = a.idProductoVariante ?? a.idVariante ?? 0;
+        const keyB = b.idProductoVariante ?? b.idVariante ?? 0;
+        const predA = predicciones[keyA] ?? 0;
+        const predB = predicciones[keyB] ?? 0;
+        return predB - predA;
+      });
+    } else if (ordenDemanda === 'menor_demanda') {
+      sorted.sort((a, b) => {
+        const keyA = a.idProductoVariante ?? a.idVariante ?? 0;
+        const keyB = b.idProductoVariante ?? b.idVariante ?? 0;
+        const predA = predicciones[keyA] ?? 0;
+        const predB = predicciones[keyB] ?? 0;
+        return predA - predB;
+      });
+    } else if (ordenDemanda === 'producto') {
+      sorted.sort((a, b) => {
+        const nameA = a.producto?.nombre || '';
+        const nameB = b.producto?.nombre || '';
+        return nameA.localeCompare(nameB);
+      });
+    } else if (ordenDemanda === 'stock') {
+      sorted.sort((a, b) => b.cantidad - a.cantidad);
+    }
+    return sorted;
+  };
+
+  const variantesOrdenadas = obtenerVariantesOrdenadasYFiltradas();
+  const elementosPorPaginaIA = 10;
+  const totalPaginasIA = Math.ceil(variantesOrdenadas.length / elementosPorPaginaIA);
+  const indexInicioIA = (paginaIA - 1) * elementosPorPaginaIA;
+  const variantesPaginadasIA = variantesOrdenadas.slice(indexInicioIA, indexInicioIA + elementosPorPaginaIA);
 
   return (
     <div className="space-y-6 w-full animate-in">
@@ -701,7 +793,7 @@ const PrediccionVentas: React.FC = () => {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8 mt-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8 mt-6">
             <div className="relative overflow-hidden p-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] hover:border-[var(--app-accent)] transition-all duration-300 group">
               <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-500/10 to-transparent rounded-bl-full pointer-events-none" />
               <div className="flex items-start gap-4">
@@ -721,30 +813,6 @@ const PrediccionVentas: React.FC = () => {
                   </h3>
                   <p className="text-[11px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed">
                     Indica que las predicciones del modelo se desvían, en promedio, {mae.toFixed(2)} unidades del valor real de ventas.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative overflow-hidden p-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg-muted)] hover:border-[var(--app-accent)] transition-all duration-300 group">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-full pointer-events-none" />
-              <div className="flex items-start gap-4">
-                <span className="h-12 w-12 rounded-xl bg-indigo-500/10 dark:bg-indigo-500/20 flex items-center justify-center shrink-0">
-                  <MaterialIcon icon="analytics" className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-                </span>
-                <div className="w-full">
-                  <p className="text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)]">Raíz Error Cuadrático Medio (RMSE)</p>
-                  <h3 className="text-3xl font-black mt-1.5 app-heading tracking-tight text-indigo-600 dark:text-indigo-400">
-                    {cargandoMetricas ? (
-                      <span className="inline-block animate-pulse w-16 h-8 bg-gray-300 dark:bg-gray-700 rounded" />
-                    ) : (
-                      <>
-                        {rmse.toFixed(2)} <span className="text-xs font-normal text-[var(--app-text-muted)]">unidades</span>
-                      </>
-                    )}
-                  </h3>
-                  <p className="text-[11px] text-[var(--app-text-muted)] mt-1.5 leading-relaxed">
-                    Penaliza los errores de mayor magnitud, permitiendo planificar con mayor seguridad frente a picos de demanda inusuales.
                   </p>
                 </div>
               </div>
@@ -894,6 +962,36 @@ const PrediccionVentas: React.FC = () => {
                 </div>
               </div>
 
+              {/* Filtro de Ordenamiento e Información de la Tabla */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 mt-2">
+                {/* Selector de ordenamiento */}
+                <div className="flex items-center gap-2">
+                  <label htmlFor="ordenDemanda" className="text-xs font-bold text-[var(--app-text-muted)] uppercase shrink-0">
+                    Ordenar por:
+                  </label>
+                  <select
+                    id="ordenDemanda"
+                    value={ordenDemanda}
+                    onChange={(e) => {
+                      setOrdenDemanda(e.target.value as any);
+                      setPaginaIA(1);
+                    }}
+                    className="bg-[var(--app-bg-muted)] border border-[var(--app-border)] text-xs text-[var(--app-text)] font-bold rounded-xl px-3 py-2.5 focus:outline-none focus:border-[var(--app-accent)] cursor-pointer hover:bg-[var(--app-bg-hover)] transition-all"
+                  >
+                    <option value="mayor_demanda">Mayor Demanda (IA)</option>
+                    <option value="menor_demanda">Menor Demanda (IA)</option>
+                    <option value="producto">Nombre del Producto</option>
+                    <option value="stock">Stock Actual</option>
+                  </select>
+                </div>
+
+                {/* Mensaje Informativo */}
+                <div className="flex items-center gap-2.5 px-4 py-2.5 bg-blue-50/50 dark:bg-blue-950/10 border border-blue-100/50 dark:border-blue-900/30 rounded-2xl text-[11px] text-blue-700 dark:text-blue-400 font-bold max-w-xl">
+                  <MaterialIcon icon="info" className="w-4 h-4 text-blue-500 shrink-0" />
+                  <span>Se muestran solo los 20 registros de mayor demanda. Si desea ver más, descargue el Excel.</span>
+                </div>
+              </div>
+
               <div className="overflow-x-auto rounded-2xl border border-[var(--app-border)]">
                 <table className="min-w-full divide-y divide-[var(--app-border)]">
                   <thead className="bg-[var(--app-bg-muted)]">
@@ -931,7 +1029,7 @@ const PrediccionVentas: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[var(--app-border)] bg-[var(--app-bg)]">
-                    {variantes.map((v, index) => {
+                    {variantesPaginadasIA.map((v, index) => {
                       const key = v.idProductoVariante ?? v.idVariante ?? index;
                       const pred = predicciones[key];
                       const aComprar = pred !== undefined ? Math.max(0, pred + stockSeguridad - v.cantidad) : null;
@@ -965,6 +1063,76 @@ const PrediccionVentas: React.FC = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* Paginación IA */}
+              {totalPaginasIA > 1 && (
+                <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-[var(--app-border)] pt-4">
+                  <p className="text-xs app-text-muted">
+                    Mostrando <span className="font-bold text-[var(--app-text)]">{indexInicioIA + 1}</span> a{' '}
+                    <span className="font-bold text-[var(--app-text)]">
+                      {Math.min(indexInicioIA + elementosPorPaginaIA, variantesOrdenadas.length)}
+                    </span>{' '}
+                    de <span className="font-bold text-[var(--app-text)]">{variantesOrdenadas.length}</span> variantes
+                  </p>
+
+                  <div className="flex items-center gap-1 bg-[var(--app-bg-muted)] p-1 rounded-xl border border-[var(--app-border)]">
+                    <button
+                      type="button"
+                      onClick={() => setPaginaIA(prev => Math.max(1, prev - 1))}
+                      disabled={paginaIA === 1}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    >
+                      <MaterialIcon icon="chevron_left" className="w-4 h-4" />
+                      Ant.
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPaginasIA }, (_, i) => i + 1).map((pag) => {
+                        const shouldShow =
+                          totalPaginasIA <= 7 ||
+                          pag === 1 ||
+                          pag === totalPaginasIA ||
+                          Math.abs(pag - paginaIA) <= 1;
+
+                        if (!shouldShow) {
+                          const showEllipsis =
+                            (pag === 2 && paginaIA > 3) ||
+                            (pag === totalPaginasIA - 1 && paginaIA < totalPaginasIA - 2);
+                          return showEllipsis ? (
+                            <span key={`el-${pag}`} className="px-2 text-xs font-mono text-[var(--app-text-muted)]">
+                              ...
+                            </span>
+                          ) : null;
+                        }
+
+                        return (
+                          <button
+                            key={pag}
+                            type="button"
+                            onClick={() => setPaginaIA(pag)}
+                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${paginaIA === pag
+                                ? 'bg-[var(--app-accent)] text-white'
+                                : 'text-[var(--app-text-muted)] hover:bg-[var(--app-bg-hover)]'
+                              }`}
+                          >
+                            {pag}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaginaIA(prev => Math.min(totalPaginasIA, prev + 1))}
+                      disabled={paginaIA === totalPaginasIA}
+                      className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-[var(--app-text-muted)] hover:text-[var(--app-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                    >
+                      Sig.
+                      <MaterialIcon icon="chevron_right" className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </DashboardPanel>
@@ -1174,7 +1342,7 @@ const PrediccionVentas: React.FC = () => {
                       Pestaña: Predicción de Demanda
                     </span>
                     <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
-                      {variantes.length} variantes
+                      {todasLasVariantes.length} variantes
                     </span>
                   </div>
                 )}
@@ -1451,7 +1619,7 @@ const PrediccionVentas: React.FC = () => {
           <div className="p-3 text-left bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 rounded-2xl flex gap-2.5 items-start">
             <MaterialIcon icon="info" className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
             <p className="text-[10px] text-blue-700 dark:text-blue-400 leading-normal">
-              <strong>Nota del Servidor:</strong> El reentrenamiento se ejecuta directamente en el backend. Puedes cerrar esta ventana o ir a otro módulo si lo deseas; el modelo se actualizará en segundo plano y los resultados estarán listos al volver o recargar la página.
+              <strong>Nota:</strong> El proceso se ejecuta en segundo plano. Puede cerrar esta ventana y seguir navegando por el sistema.
             </p>
           </div>
 
