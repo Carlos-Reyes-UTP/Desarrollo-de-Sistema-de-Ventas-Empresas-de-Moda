@@ -40,6 +40,9 @@ const PrediccionVentas: React.FC = () => {
   const [rmse, setRmse] = useState<number>(0.0);
   const [cargandoMetricas, setCargandoMetricas] = useState<boolean>(false);
   const [reentrenando, setReentrenando] = useState<boolean>(false);
+  const [modalReentrenarOpen, setModalReentrenarOpen] = useState<boolean>(false);
+  const [progresoEntrenamiento, setProgresoEntrenamiento] = useState<number>(0);
+  const [pasoEntrenamiento, setPasoEntrenamiento] = useState<number>(0);
   const [errorMetricas, setErrorMetricas] = useState<string | null>(null);
 
   // Estados para desglose de variantes en modal
@@ -85,22 +88,63 @@ const PrediccionVentas: React.FC = () => {
     }
   }, [subTabActiva]);
 
+  // Simular el progreso en pasos del reentrenamiento del modelo
+  useEffect(() => {
+    let interval: any;
+    if (reentrenando) {
+      interval = setInterval(() => {
+        setProgresoEntrenamiento((prev) => {
+          if (prev >= 95) {
+            return 95; // No pasar del 95% hasta que la API termine de responder
+          }
+          const nuevoProgreso = prev + (prev < 30 ? 4 : prev < 70 ? 2 : 1);
+          
+          // Actualizar pasos estimados en base al porcentaje de progreso
+          if (nuevoProgreso >= 80) {
+            setPasoEntrenamiento(4);
+          } else if (nuevoProgreso >= 45) {
+            setPasoEntrenamiento(3);
+          } else if (nuevoProgreso >= 15) {
+            setPasoEntrenamiento(2);
+          }
+          
+          return nuevoProgreso;
+        });
+      }, 500);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [reentrenando]);
+
   const handleReentrenarIA = async () => {
+    setModalReentrenarOpen(true);
     try {
       setReentrenando(true);
       setStatusIA('Ejecutando pipeline de reentrenamiento...');
+      setProgresoEntrenamiento(0);
+      setPasoEntrenamiento(1);
+      
       const response = await ReporteService.entrenarModelo();
       if (response && response.status === 'success') {
         setMae(response.mae);
         setRmse(response.rmse);
         setStockSeguridad(Math.round(response.mae));
         setStatusIA('Modelo reentrenado con éxito');
+        
+        // Completar el progreso
+        setPasoEntrenamiento(4);
+        setProgresoEntrenamiento(100);
       } else {
         setStatusIA('Error al reentrenar el modelo');
+        setProgresoEntrenamiento(0);
+        setPasoEntrenamiento(0);
       }
     } catch (err: any) {
       console.error('Error al reentrenar modelo de IA:', err);
       setStatusIA('Error de Conexión / Permisos');
+      setProgresoEntrenamiento(0);
+      setPasoEntrenamiento(0);
     } finally {
       setReentrenando(false);
     }
@@ -692,7 +736,7 @@ const PrediccionVentas: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="mt-4">
+              <div className="mt-4 space-y-2">
                 <button
                   type="button"
                   onClick={handleReentrenarIA}
@@ -702,6 +746,16 @@ const PrediccionVentas: React.FC = () => {
                   <MaterialIcon icon="sync" className={`w-4 h-4 ${reentrenando ? 'animate-spin' : ''}`} />
                   {reentrenando ? 'Entrenando Cerebro...' : 'Reentrenar IA'}
                 </button>
+                {reentrenando && !modalReentrenarOpen && (
+                  <button
+                    type="button"
+                    onClick={() => setModalReentrenarOpen(true)}
+                    className="w-full py-2 px-4 rounded-xl border border-[var(--app-accent)] text-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 animate-pulse"
+                  >
+                    <MaterialIcon icon="visibility" className="w-4 h-4" />
+                    Ver Progreso
+                  </button>
+                )}
                 {!esAdmin && (
                   <p className="text-[9px] text-red-500 dark:text-red-400 mt-1.5 text-center font-bold uppercase tracking-wider">
                     * Solo administradores pueden reentrenar
@@ -1180,6 +1234,150 @@ const PrediccionVentas: React.FC = () => {
             </tbody>
           </table>
         </div>
+        </div>
+      </AppModal>
+
+      {/* Modal de Progreso del Reentrenamiento */}
+      <AppModal
+        open={modalReentrenarOpen}
+        onClose={() => {
+          setModalReentrenarOpen(false);
+          if (!reentrenando) {
+            setProgresoEntrenamiento(0);
+            setPasoEntrenamiento(0);
+          }
+        }}
+        title="REENTRENAMIENTO DEL MODELO IA"
+        subtitle="Procesando el histórico de ventas y calibrando el cerebro predictivo"
+        icon={<MaterialIcon icon="psychology" className="animate-pulse text-[var(--app-accent)]" />}
+        maxWidth="md"
+      >
+        <div className="p-6 space-y-6 text-center">
+          {/* Círculo con porcentaje */}
+          <div className="flex flex-col items-center justify-center space-y-2">
+            <div className="relative flex items-center justify-center w-24 h-24 rounded-full border-4 border-[var(--app-border)] bg-[var(--app-bg-muted)] overflow-hidden">
+              <span className="text-2xl font-black text-[var(--app-text)] tabular-nums">
+                {progresoEntrenamiento}%
+              </span>
+              <div 
+                className="absolute bottom-0 left-0 right-0 bg-[var(--app-accent)] opacity-10 transition-all duration-500" 
+                style={{ height: `${progresoEntrenamiento}%` }}
+              />
+            </div>
+            <p className="text-xs font-bold uppercase tracking-wider text-[var(--app-accent)] animate-pulse">
+              {reentrenando ? 'Analizando datos...' : '¡Completado!'}
+            </p>
+          </div>
+
+          {/* Barra de progreso horizontal */}
+          <div className="w-full bg-[var(--app-border)] h-2 rounded-full overflow-hidden">
+            <div 
+              className="bg-[var(--app-accent)] h-full transition-all duration-500 rounded-full" 
+              style={{ width: `${progresoEntrenamiento}%` }}
+            />
+          </div>
+
+          {/* Stepper / Lista de pasos */}
+          <div className="text-left space-y-3.5 bg-[var(--app-bg-muted)] p-4 rounded-2xl border border-[var(--app-border)]">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--app-text-muted)] mb-1">
+              Pasos del Pipeline MLOps
+            </h4>
+
+            {/* Paso 1 */}
+            <div className="flex items-center gap-3 text-xs">
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
+                pasoEntrenamiento > 1 || progresoEntrenamiento === 100
+                  ? 'bg-emerald-500 text-white'
+                  : pasoEntrenamiento === 1
+                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {pasoEntrenamiento > 1 || progresoEntrenamiento === 100 ? (
+                  <MaterialIcon icon="check" className="w-4 h-4" />
+                ) : '1'}
+              </span>
+              <span className={pasoEntrenamiento >= 1 ? 'font-bold text-[var(--app-text)]' : 'text-[var(--app-text-muted)]'}>
+                Exportando histórico de ventas (Generando CSV)
+              </span>
+            </div>
+
+            {/* Paso 2 */}
+            <div className="flex items-center gap-3 text-xs">
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
+                pasoEntrenamiento > 2 || progresoEntrenamiento === 100
+                  ? 'bg-emerald-500 text-white'
+                  : pasoEntrenamiento === 2
+                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {pasoEntrenamiento > 2 || progresoEntrenamiento === 100 ? (
+                  <MaterialIcon icon="check" className="w-4 h-4" />
+                ) : '2'}
+              </span>
+              <span className={pasoEntrenamiento >= 2 ? 'font-bold text-[var(--app-text)]' : 'text-[var(--app-text-muted)]'}>
+                Preparación de datos e inyección de campañas comerciales
+              </span>
+            </div>
+
+            {/* Paso 3 */}
+            <div className="flex items-center gap-3 text-xs">
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
+                pasoEntrenamiento > 3 || progresoEntrenamiento === 100
+                  ? 'bg-emerald-500 text-white'
+                  : pasoEntrenamiento === 3
+                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {pasoEntrenamiento > 3 || progresoEntrenamiento === 100 ? (
+                  <MaterialIcon icon="check" className="w-4 h-4" />
+                ) : '3'}
+              </span>
+              <span className={pasoEntrenamiento >= 3 ? 'font-bold text-[var(--app-text)]' : 'text-[var(--app-text-muted)]'}>
+                Entrenamiento del modelo XGBoost (1500 estimadores)
+              </span>
+            </div>
+
+            {/* Paso 4 */}
+            <div className="flex items-center gap-3 text-xs">
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
+                progresoEntrenamiento === 100
+                  ? 'bg-emerald-500 text-white'
+                  : pasoEntrenamiento === 4
+                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+              }`}>
+                {progresoEntrenamiento === 100 ? (
+                  <MaterialIcon icon="check" className="w-4 h-4" />
+                ) : '4'}
+              </span>
+              <span className={pasoEntrenamiento >= 4 ? 'font-bold text-[var(--app-text)]' : 'text-[var(--app-text-muted)]'}>
+                Guardado de métricas y recarga en RAM activa
+              </span>
+            </div>
+          </div>
+
+          {/* Banner Informativo */}
+          <div className="p-3 text-left bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 rounded-2xl flex gap-2.5 items-start">
+            <MaterialIcon icon="info" className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-[10px] text-blue-700 dark:text-blue-400 leading-normal">
+              <strong>Nota del Servidor:</strong> El reentrenamiento se ejecuta directamente en el backend. Puedes cerrar esta ventana o ir a otro módulo si lo deseas; el modelo se actualizará en segundo plano y los resultados estarán listos al volver o recargar la página.
+            </p>
+          </div>
+
+          {/* Botón de Cierre (solo cuando no está entrenando) */}
+          {!reentrenando && (
+            <button
+              type="button"
+              onClick={() => {
+                setModalReentrenarOpen(false);
+                setProgresoEntrenamiento(0);
+                setPasoEntrenamiento(0);
+              }}
+              className="w-full py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md"
+            >
+              Entendido y Cerrar
+            </button>
+          )}
         </div>
       </AppModal>
     </div>
