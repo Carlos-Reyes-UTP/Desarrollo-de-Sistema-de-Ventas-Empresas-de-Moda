@@ -1463,6 +1463,8 @@ const PrediccionVentas: React.FC = () => {
         subtitle={modoTrabajoIA === 'optimizar' ? "Buscando la configuración óptima para minimizar el error de predicción" : "Procesando el histórico de ventas y calibrando el cerebro predictivo"}
         icon={<MaterialIcon icon={modoTrabajoIA === 'optimizar' ? "tune" : "psychology"} className="animate-pulse text-[var(--app-accent)]" />}
         maxWidth="md"
+        disableAnimation
+        zIndex={1000}
       >
         <div className="p-6 space-y-6 text-center">
           {/* Círculo con porcentaje */}

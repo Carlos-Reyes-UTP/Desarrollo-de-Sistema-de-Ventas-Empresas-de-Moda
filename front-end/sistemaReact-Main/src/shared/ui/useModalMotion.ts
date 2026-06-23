@@ -8,6 +8,7 @@ export type ModalMotionPhase = 'entering' | 'open' | 'exiting' | 'closed';
 export interface UseModalMotionOptions {
   open: boolean;
   onCloseComplete?: () => void;
+  disableAnimation?: boolean;
 }
 
 export interface UseModalMotionResult {
@@ -22,6 +23,7 @@ export interface UseModalMotionResult {
 export function useModalMotion({
   open,
   onCloseComplete,
+  disableAnimation = false,
 }: UseModalMotionOptions): UseModalMotionResult {
   const [motionPhase, setMotionPhase] = useState<ModalMotionPhase>('closed');
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -36,9 +38,9 @@ export function useModalMotion({
 
   useLayoutEffect(() => {
     if (open) {
-      setMotionPhase('entering');
+      setMotionPhase(disableAnimation ? 'open' : 'entering');
     }
-  }, [open]);
+  }, [open, disableAnimation]);
 
   useEffect(() => {
     clearMotionTimeout();
@@ -85,25 +87,31 @@ export function useModalMotion({
   const isExiting = motionPhase === 'exiting';
   const shouldShowEnter = open && !isExiting;
 
-  const overlayClass = isExiting
-    ? 'modal-motion-overlay--exit'
-    : shouldShowEnter
-      ? 'modal-motion-overlay--enter'
-      : '';
+  const overlayClass = disableAnimation
+    ? ''
+    : isExiting
+      ? 'modal-motion-overlay--exit'
+      : shouldShowEnter
+        ? 'modal-motion-overlay--enter'
+        : '';
 
-  const panelClass = isExiting
-    ? 'modal-motion-panel--exit'
-    : shouldShowEnter
-      ? 'modal-motion-panel--enter'
-      : '';
+  const panelClass = disableAnimation
+    ? ''
+    : isExiting
+      ? 'modal-motion-panel--exit'
+      : shouldShowEnter
+        ? 'modal-motion-panel--enter'
+        : '';
 
-  const sheetClass = isExiting
-    ? 'modal-motion-sheet--exit'
-    : shouldShowEnter
-      ? 'modal-motion-sheet--enter'
-      : '';
+  const sheetClass = disableAnimation
+    ? ''
+    : isExiting
+      ? 'modal-motion-sheet--exit'
+      : shouldShowEnter
+        ? 'modal-motion-sheet--enter'
+        : '';
 
-  const shouldRender = open || motionPhase === 'exiting';
+  const shouldRender = disableAnimation ? open : open || motionPhase === 'exiting';
 
   return {
     motionPhase,

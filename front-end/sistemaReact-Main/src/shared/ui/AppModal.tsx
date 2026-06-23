@@ -21,6 +21,7 @@ export interface AppModalProps {
   belowHeader?: ReactNode;
   maxWidth?: AppModalMaxWidth;
   zIndex?: number;
+  disableAnimation?: boolean;
 }
 
 const maxWidthClass: Record<AppModalMaxWidth, string> = {
@@ -42,8 +43,9 @@ const AppModal = ({
   belowHeader,
   maxWidth = 'md',
   zIndex,
+  disableAnimation = false,
 }: AppModalProps) => {
-  const { overlayClass, panelClass, shouldRender, requestClose } = useModalMotion({ open });
+  const { overlayClass, panelClass, shouldRender, requestClose } = useModalMotion({ open, disableAnimation });
 
   useModalBodyScrollLock(open);
 
