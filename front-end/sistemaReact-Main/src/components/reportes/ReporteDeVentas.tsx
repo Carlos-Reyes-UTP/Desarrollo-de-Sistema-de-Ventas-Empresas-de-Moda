@@ -452,6 +452,10 @@ const ReporteDeVentas: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {picoInsight ? (
+        <ReportInsightBanner message={picoInsight} headline="Concentración del período" icon="show_chart" />
+      ) : null}
+
       <DashboardPanel className="!p-5 sm:!p-6 relative z-10">
         <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
         <div className="flex flex-wrap gap-4 items-end">
@@ -499,10 +503,6 @@ const ReporteDeVentas: React.FC = () => {
           </div>
         </div>
       </DashboardPanel>
-
-      {picoInsight ? (
-        <ReportInsightBanner message={picoInsight} headline="Concentración del período" icon="show_chart" />
-      ) : null}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
         <DashboardMetricCard label="Total ventas" value={formatearMoneda(resumenVentas.totalVentas)} icon="payments" iconIndex={1} />

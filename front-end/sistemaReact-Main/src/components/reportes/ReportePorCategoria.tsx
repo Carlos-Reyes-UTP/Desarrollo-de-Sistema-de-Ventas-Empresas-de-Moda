@@ -224,7 +224,6 @@ const ReportePorCategoria: React.FC = () => {
       // Preparar datos para Excel
       const datosExcel = reportes.map(reporte => ({
         'Categoría': reporte.categoria,
-        'Productos Vendidos': reporte.cantidadProductosVendidos,
         'Cantidad Total Vendida': reporte.cantidadTotalVendida,
         'Ingresos Totales (S/)': reporte.ingresosTotales,
         'Producto Más Vendido': reporte.productoMasVendido?.nombre || 'No disponible',
@@ -389,7 +388,7 @@ const ReportePorCategoria: React.FC = () => {
         </div>
       </DashboardPanel>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <DashboardMetricCard
           label={nivelActual === 'padre' ? 'Categorías' : nivelActual === 'subcategoria' ? 'Subcategorías' : 'Líneas'}
           value={reportes.length}
@@ -407,12 +406,6 @@ const ReportePorCategoria: React.FC = () => {
           value={`S/ ${totalIngresos.toLocaleString('es-PE')}`}
           icon="payments"
           iconIndex={3}
-        />
-        <DashboardMetricCard
-          label="SKUs distintos"
-          value={reportes.reduce((sum, r) => sum + r.cantidadProductosVendidos, 0)}
-          icon="checkroom"
-          iconIndex={4}
         />
       </div>
 

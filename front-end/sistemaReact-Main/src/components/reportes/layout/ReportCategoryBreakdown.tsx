@@ -104,8 +104,8 @@ export const ReportCategoryBreakdown = ({ categorias }: ReportCategoryBreakdownP
         </div>
       )}
       {totalIngresos > 0 ? (
-        <p className="text-[10px] font-bold app-text-faint mt-4 pt-3 border-t border-[var(--app-border)]">
-          Total categorías: {formatterMonedaPE.format(totalIngresos)}
+        <p className="text-sm font-black app-heading mt-4 pt-3 border-t border-[var(--app-border)]">
+          Total de Ingresos: {formatterMonedaPE.format(totalIngresos)}
         </p>
       ) : null}
     </DashboardPanel>

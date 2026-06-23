@@ -769,13 +769,13 @@ const ProductosMasVendidos: React.FC = () => {
             onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('semana'); }}
             className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
           >
-            7 días
+            Ultimos 7 dias
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('mes'); }}
             className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
           >
-            30 días
+            Ultimos 30 dias
           </button>
         </div>
       </DashboardPanel>
