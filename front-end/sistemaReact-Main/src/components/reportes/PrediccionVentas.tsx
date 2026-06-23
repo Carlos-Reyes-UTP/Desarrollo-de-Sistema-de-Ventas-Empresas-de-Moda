@@ -66,10 +66,9 @@ const PrediccionVentas: React.FC = () => {
   // Configuración de Exportación a Excel
   const [modalExportarAbierto, setModalExportarAbierto] = useState<boolean>(false);
   const [exportConfig, setExportConfig] = useState({
-    inventarioGeneral: true,
     altoStock: false,
     stockNormal: false,
-    bajoStock: false,
+    bajoStock: true,
     prediccionDemanda: true,
     incluirStockSeguridad: true,
   });
@@ -327,22 +326,7 @@ const PrediccionVentas: React.FC = () => {
     const workbook = XLSX.utils.book_new();
     let sheetsAdded = 0;
 
-    // 1. Inventario General (Variantes)
-    if (exportConfig.inventarioGeneral && todasLasVariantes.length > 0) {
-      const data = todasLasVariantes.map((v) => ({
-        'ID Variante': v.idProductoVariante ?? v.idVariante ?? 'N/A',
-        Producto: v.producto?.nombre || 'Desconocido',
-        'Código': v.codigoIdentificacion || 'N/A',
-        Color: v.color?.nombre || 'N/A',
-        Talla: v.talla?.nombreTalla || 'N/A',
-        'Stock Actual': v.cantidad,
-      }));
-      const ws = XLSX.utils.json_to_sheet(data);
-      XLSX.utils.book_append_sheet(workbook, ws, 'Inventario General');
-      sheetsAdded++;
-    }
-
-    // 2. Alto Stock (sobreestock >180)
+    // 1. Alto Stock (sobreestock >180)
     if (exportConfig.altoStock && productos.length > 0) {
       const filtered = productos.filter((p) => p.stockTotal > 180);
       const data = filtered.map((p) => ({
@@ -1173,22 +1157,6 @@ const PrediccionVentas: React.FC = () => {
               Seleccionar Hojas de Datos
             </h4>
 
-            {/* Inventario General */}
-            <label className="flex items-start gap-3 p-3 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] cursor-pointer transition-all select-none">
-              <input
-                type="checkbox"
-                checked={exportConfig.inventarioGeneral}
-                onChange={(e) => setExportConfig(prev => ({ ...prev, inventarioGeneral: e.target.checked }))}
-                className="mt-1 accent-[var(--app-accent)] h-4 w-4"
-              />
-              <div>
-                <span className="text-sm font-bold text-[var(--app-text)] block text-left">Inventario General</span>
-                <span className="text-xs text-[var(--app-text-muted)] block mt-0.5 leading-relaxed text-left">
-                  Exporta una hoja con el listado detallado de todas las variantes de productos y su stock actual.
-                </span>
-              </div>
-            </label>
-
             {/* Alto Stock */}
             <label className="flex items-start gap-3 p-3 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] cursor-pointer transition-all select-none">
               <input
@@ -1287,18 +1255,6 @@ const PrediccionVentas: React.FC = () => {
               </p>
 
               <div className="space-y-2.5">
-                {exportConfig.inventarioGeneral && (
-                  <div className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
-                    <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
-                      <MaterialIcon icon="table_chart" className="w-4 h-4 text-blue-500" />
-                      Pestaña: Inventario General
-                    </span>
-                    <span className="px-2 py-0.5 rounded-md bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] text-[var(--app-accent)] font-mono text-[10px] font-bold">
-                      {todasLasVariantes.length} variantes
-                    </span>
-                  </div>
-                )}
-
                 {exportConfig.altoStock && (
                   <div className="flex items-center justify-between text-xs p-2.5 bg-[var(--app-bg)] border border-[var(--app-border)] rounded-xl">
                     <span className="flex items-center gap-2 text-[var(--app-text)] font-semibold">
@@ -1347,8 +1303,7 @@ const PrediccionVentas: React.FC = () => {
                   </div>
                 )}
 
-                {!exportConfig.inventarioGeneral &&
-                  !exportConfig.altoStock &&
+                {!exportConfig.altoStock &&
                   !exportConfig.stockNormal &&
                   !exportConfig.bajoStock &&
                   !exportConfig.prediccionDemanda && (
