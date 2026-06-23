@@ -68,7 +68,9 @@ export const ReporteService = {
    */
   predecirCantidadRecomendada: async (datos: PrediccionIARequest): Promise<PrediccionIAResponse> => {
     try {
-      const response = await apiClient.post<PrediccionIAResponse>(RUTAS_REPORTES.PREDICCION, datos);
+      const response = await apiClient.post<PrediccionIAResponse>(RUTAS_REPORTES.PREDICCION, datos, {
+        timeout: 30000 // 30 segundos
+      });
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener la predicción de IA:', error);
@@ -81,7 +83,9 @@ export const ReporteService = {
    */
   predecirLote: async (datos: PrediccionIARequest[]): Promise<PrediccionLoteResponse> => {
     try {
-      const response = await apiClient.post<PrediccionLoteResponse>(RUTAS_REPORTES.PREDICCION_LOTE, datos);
+      const response = await apiClient.post<PrediccionLoteResponse>(RUTAS_REPORTES.PREDICCION_LOTE, datos, {
+        timeout: 60000 // 60 segundos
+      });
       return response.data;
     } catch (error: any) {
       console.error('Error al obtener la predicción por lote de IA:', error);
@@ -495,7 +499,9 @@ export const ReporteService = {
    */
   entrenarModelo: async (): Promise<EntrenarModeloResponse> => {
     try {
-      const response = await apiClient.post<EntrenarModeloResponse>(RUTAS_REPORTES.MLOPS_ENTRENAR);
+      const response = await apiClient.post<EntrenarModeloResponse>(RUTAS_REPORTES.MLOPS_ENTRENAR, null, {
+        timeout: 180000 // 3 minutos (reentrenamiento de XGBoost sobre gran volumen de datos)
+      });
       return response.data;
     } catch (error: any) {
       console.error('Error al entrenar el modelo:', error);

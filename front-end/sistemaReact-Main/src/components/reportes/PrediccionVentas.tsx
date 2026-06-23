@@ -118,7 +118,7 @@ const PrediccionVentas: React.FC = () => {
         // Cargar stock general desde el endpoint exclusivo de ADMIN/GERENTE
         const [stockData, variantesData] = await Promise.all([
           ReporteService.getStockGeneral(),
-          ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, false),
+          ProductoVarianteService.obtenerTodasLasVariantes(rolPrincipal, true),
         ]);
 
         // Guardar stock general (ordenado por nombre)
@@ -168,11 +168,15 @@ const PrediccionVentas: React.FC = () => {
       if (response && response.resultados) {
         const nuevasPredicciones: Record<string, number> = {};
         response.resultados.forEach((res) => {
-          // Buscar la variante correspondiente por idProducto e identificación de variante
+          // Buscar la variante correspondiente por idProducto e identificación de variante (ignorando mayúsculas/minúsculas y espacios en blanco)
           const variant = variantes.find(
-            (v) =>
-              v.producto?.idProducto === res.id_producto &&
-              `${v.color.nombre}-${v.talla.nombreTalla}` === res.variante
+            (v) => {
+              const resVariante = (res.variante || '').trim().toLowerCase();
+              const colorNombre = (v.color?.nombre || '').trim().toLowerCase();
+              const tallaNombre = (v.talla?.nombreTalla || '').trim().toLowerCase();
+              return v.producto?.idProducto === res.id_producto &&
+                     `${colorNombre}-${tallaNombre}` === resVariante;
+            }
           );
           if (variant) {
             const key = variant.idProductoVariante ?? variant.idVariante ?? 0;
