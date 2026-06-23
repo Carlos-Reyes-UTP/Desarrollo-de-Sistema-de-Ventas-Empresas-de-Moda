@@ -222,7 +222,18 @@ const ResumenGeneral: React.FC = () => {
       setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
     }
+    
+    let loadingToast: HTMLDivElement | null = null;
     try {
+      // Mostrar indicador de carga
+      loadingToast = document.createElement('div');
+      loadingToast.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      loadingToast.innerHTML = `
+        <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+        <span>Generando resumen ejecutivo...</span>
+      `;
+      document.body.appendChild(loadingToast);
+
       const workbook = XLSX.utils.book_new();
       const resumenData = [
         ['RESUMEN EJECUTIVO', '', '', ''],
@@ -253,8 +264,36 @@ const ResumenGeneral: React.FC = () => {
       const ws = XLSX.utils.aoa_to_sheet(resumenData);
       XLSX.utils.book_append_sheet(workbook, ws, 'Resumen Ejecutivo');
       XLSX.writeFile(workbook, `resumen-general-${new Date().toISOString().split('T')[0]}.xlsx`);
-      setAlertModal({ open: true, message: 'Resumen exportado correctamente', variant: 'success' });
-    } catch {
+      
+      // Remover indicador de carga
+      if (loadingToast && document.body.contains(loadingToast)) {
+        document.body.removeChild(loadingToast);
+      }
+
+      // Mostrar éxito como toast top-right
+      const successToast = document.createElement('div');
+      successToast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      successToast.innerHTML = `
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+        <span>Resumen exportado exitosamente</span>
+      `;
+      document.body.appendChild(successToast);
+      
+      setTimeout(() => {
+        if (document.body.contains(successToast)) {
+          document.body.removeChild(successToast);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Error al exportar datos:', error);
+      
+      // Remover indicador de carga
+      if (loadingToast && document.body.contains(loadingToast)) {
+        document.body.removeChild(loadingToast);
+      }
+      
       setAlertModal({ open: true, message: 'Error al exportar Excel', variant: 'error' });
     }
   }, [resumen, etiqueta, insights, categoriasVentas]);

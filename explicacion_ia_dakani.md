@@ -20,7 +20,41 @@ Para este proyecto de predicción de ventas con datos tabulares e históricos te
 
 ---
 
-## 2. Tecnologías y Librerías Clave Utilizadas
+## 2. Estructura y Rol de los Datos de Entrenamiento (`datos_entrenamiento_dakani.csv`)
+
+El archivo de entrenamiento contiene datos históricos consolidados a nivel mensual para cada variante de producto. A continuación se detalla la justificación técnica de la presencia de cada campo y por qué es fundamental para que el modelo XGBoost aprenda patrones reales de venta:
+
+*   **`ID de Producto` (Identificador del Producto):**
+    *   **¿Para qué sirve?:** Indica el modelo base de la prenda (por ejemplo: Jeans Slim Fit, Camisa Oxford, Casaca de Cuero).
+    *   **Importancia:** Cada tipo de producto tiene una rotación e inercia de ventas inherente. Una prenda básica de alta demanda no se comporta igual que un accesorio de nicho. Al incluir este identificador, el modelo aprende a agrupar los datos históricos y a establecer un volumen base de demanda específico para cada artículo.
+
+*   **`color_num` (Color de la variante, codificado numéricamente):**
+    *   **¿Para qué sirve?:** Representa el color de la variante (ej: Rojo, Negro, Blanco) traducido a un índice numérico mediante `LabelEncoder` (ya que XGBoost solo admite entradas numéricas).
+    *   **Importancia:** En la industria textil, el color es una de las variables estéticas que más influye en el comportamiento de compra. Ciertos colores neutros (como el negro o azul marino) suelen tener una rotación alta y sostenida, mientras que otros colores más llamativos (como amarillo o verde fosforescente) pueden ser estacionales o tener una demanda mucho menor. El modelo utiliza este dato para evitar proyectar las mismas ventas a variantes de colores poco populares.
+
+*   **`talla_num` (Talla de la variante, codificada numéricamente):**
+    *   **¿Para qué sirve?:** Indica el tamaño específico de la prenda (S, M, L, XL, etc.) codificado a un índice entero.
+    *   **Importancia:** La curva de tallas en el mercado de moda no es uniforme; las tallas centrales (como M y L) concentran la gran mayoría del volumen de ventas, mientras que las tallas en los extremos (como XS o XXL) registran ventas muy bajas. Si omitiéramos esta variable, la IA sugeriría comprar la misma cantidad para todas las tallas, ocasionando un grave quiebre de stock en las tallas más comunes y un exceso innecesario (sobreabastecimiento) de las tallas extremas.
+
+*   **`mes` (Mes del año):**
+    *   **¿Para qué sirve?:** Identifica el mes (del 1 al 12) del registro histórico.
+    *   **Importancia:** La estacionalidad es crítica en el retail textil. Las casacas y abrigos se venden casi en su totalidad durante los meses de invierno (junio a agosto), mientras que los polos y vestidos cortos dominan en verano (diciembre a febrero). Al indicarle el mes, XGBoost correlaciona la fecha de la predicción con el comportamiento estacional histórico para ajustar la estimación.
+
+*   **`es_campana` (Indicador de Campaña Comercial):**
+    *   **¿Para qué sirve?:** Es un campo binario (`1` o `0`) que señala si el mes analizado coincide con una festividad o temporada comercial clave (como la campaña escolar de útiles y prendas en marzo, San Valentín en febrero, Fiestas Patrias en julio o Navidad y Año Nuevo en diciembre/enero).
+    *   **Importancia:** Durante estas campañas, la demanda suele dispararse exponencialmente. Un volumen de venta normal de 20 unidades puede escalar a 300 debido al pico comercial. Si el modelo no supiera que es un mes de campaña, vería estos picos como anomalías o ruido de datos inexplicable y trataría de "suavizar" sus predicciones a la baja. Al marcar explícitamente `es_campana = 1`, la IA aprende que este flag activa un comportamiento de demanda acelerada, permitiéndole pronosticar y justificar los picos de abastecimiento con total precisión.
+
+*   **`ventas_mes_pasado` (Rezago Temporal o *Lag Feature* calculado con `.shift(1)`):**
+    *   **¿Para qué sirve?:** Contiene la cantidad de unidades que la variante específica vendió en el mes anterior inmediato. Se genera en Pandas agrupando por producto-color-talla y aplicando `.shift(1)`.
+    *   **Importancia:** En series de tiempo, la inercia del mes anterior inmediato (autocorrelación) es el predictor más fuerte y estable del comportamiento actual. Si una variante vendió 80 unidades en abril, es extremadamente probable que en mayo mantenga un ritmo cercano (por ejemplo, entre 70 y 90 unidades), a menos que haya un cambio estacional drástico. Esta variable le proporciona "memoria reciente" al modelo, evitando que haga predicciones erráticas o desconectadas del rendimiento de ventas real e inmediato de la tienda.
+
+*   **`cantidad_vendida` (Variable Objetivo / Target):**
+    *   **¿Para qué sirve?:** Es la cantidad real de unidades vendidas al término de ese mes para esa variante.
+    *   **Importancia:** Es la variable a predecir (`y`). Durante el entrenamiento, funciona como la "respuesta correcta del examen". XGBoost compara sus estimaciones contra esta columna para medir la pérdida (error) y, mediante optimización matemática (*gradient boosting*), ajusta iterativamente las ramas y hojas de sus árboles para acercarse lo máximo posible a este valor.
+
+---
+
+## 3. Tecnologías y Librerías Clave Utilizadas
 
 *   **FastAPI:** Microframework de Python de alto rendimiento y bajo consumo. Se utiliza para exponer los endpoints de predicción y entrenamiento como servicios web (API REST) consumibles por el backend de Spring Boot. Su ventaja es que es asíncrono y valida datos automáticamente.
 *   **Pandas:** Librería fundamental para el análisis y manipulación de estructuras de datos tabulares (DataFrames). Se utiliza para agrupar transacciones diarias, ordenar cronológicamente las ventas y calcular variables temporales complejas.
@@ -33,7 +67,7 @@ Para este proyecto de predicción de ventas con datos tabulares e históricos te
 
 ---
 
-## 3. Explicación Detallada de cada Script (Paso a Paso)
+## 4. Explicación Detallada de cada Script (Paso a Paso)
 
 El pipeline de MLOps del sistema se divide en cuatro scripts especializados dentro de la carpeta `dakani/`:
 
