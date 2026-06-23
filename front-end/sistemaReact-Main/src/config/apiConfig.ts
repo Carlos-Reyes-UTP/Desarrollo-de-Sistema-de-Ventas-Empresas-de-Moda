@@ -313,8 +313,8 @@ export const RUTAS_REPORTES = {
   VARIANTES_POR_COLOR: (idProducto: number, nombreTalla: string) => `${API_BASE_URL}/api/admin/reportes/producto/variantes-por-color?idProducto=${idProducto}&nombreTalla=${encodeURIComponent(nombreTalla)}`,
   MLOPS_METRICAS: `${API_BASE_URL}/api/admin/reportes/mlops/metricas`,
   MLOPS_ENTRENAR: `${API_BASE_URL}/api/admin/reportes/mlops/entrenar`,
+  MLOPS_OPTIMIZAR: `${API_BASE_URL}/api/admin/reportes/mlops/optimizar`,
   STOCK_GENERAL: `${API_BASE_URL}/api/admin/reportes/stock-general`,
   STOCK_VARIANTES_POR_PRODUCTO: (idProducto: number) =>
     `${API_BASE_URL}/api/admin/reportes/stock-variantes/${idProducto}`,
 };
-

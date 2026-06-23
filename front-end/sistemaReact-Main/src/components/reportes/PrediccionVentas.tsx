@@ -44,6 +44,8 @@ const PrediccionVentas: React.FC = () => {
   const [progresoEntrenamiento, setProgresoEntrenamiento] = useState<number>(0);
   const [pasoEntrenamiento, setPasoEntrenamiento] = useState<number>(0);
   const [errorMetricas, setErrorMetricas] = useState<string | null>(null);
+  const [modoTrabajoIA, setModoTrabajoIA] = useState<'entrenar' | 'optimizar'>('entrenar');
+  const [modalConfirmarOptimizacionOpen, setModalConfirmarOptimizacionOpen] = useState<boolean>(false);
 
   // Estados para desglose de variantes en modal
   const [selectedProduct, setSelectedProduct] = useState<StockProducto | null>(null);
@@ -92,13 +94,14 @@ const PrediccionVentas: React.FC = () => {
   useEffect(() => {
     let interval: any;
     if (reentrenando) {
+      const ms = modoTrabajoIA === 'optimizar' ? 850 : 500;
       interval = setInterval(() => {
         setProgresoEntrenamiento((prev) => {
           if (prev >= 95) {
             return 95; // No pasar del 95% hasta que la API termine de responder
           }
           const nuevoProgreso = prev + (prev < 30 ? 4 : prev < 70 ? 2 : 1);
-          
+
           // Actualizar pasos estimados en base al porcentaje de progreso
           if (nuevoProgreso >= 80) {
             setPasoEntrenamiento(4);
@@ -107,31 +110,32 @@ const PrediccionVentas: React.FC = () => {
           } else if (nuevoProgreso >= 15) {
             setPasoEntrenamiento(2);
           }
-          
+
           return nuevoProgreso;
         });
-      }, 500);
+      }, ms);
     }
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [reentrenando]);
+  }, [reentrenando, modoTrabajoIA]);
 
   const handleReentrenarIA = async () => {
+    setModoTrabajoIA('entrenar');
     setModalReentrenarOpen(true);
     try {
       setReentrenando(true);
       setStatusIA('Ejecutando pipeline de reentrenamiento...');
       setProgresoEntrenamiento(0);
       setPasoEntrenamiento(1);
-      
+
       const response = await ReporteService.entrenarModelo();
       if (response && response.status === 'success') {
         setMae(response.mae);
         setRmse(response.rmse);
         setStockSeguridad(Math.round(response.mae));
         setStatusIA('Modelo reentrenado con éxito');
-        
+
         // Completar el progreso
         setPasoEntrenamiento(4);
         setProgresoEntrenamiento(100);
@@ -142,6 +146,40 @@ const PrediccionVentas: React.FC = () => {
       }
     } catch (err: any) {
       console.error('Error al reentrenar modelo de IA:', err);
+      setStatusIA('Error de Conexión / Permisos');
+      setProgresoEntrenamiento(0);
+      setPasoEntrenamiento(0);
+    } finally {
+      setReentrenando(false);
+    }
+  };
+
+  const handleOptimizarIA = async () => {
+    setModoTrabajoIA('optimizar');
+    setModalReentrenarOpen(true);
+    try {
+      setReentrenando(true);
+      setStatusIA('Ejecutando pipeline de optimización...');
+      setProgresoEntrenamiento(0);
+      setPasoEntrenamiento(1);
+
+      const response = await ReporteService.optimizarModelo();
+      if (response && response.status === 'success') {
+        setMae(response.mae);
+        setRmse(response.rmse);
+        setStockSeguridad(Math.round(response.mae));
+        setStatusIA('Modelo optimizado con éxito');
+
+        // Completar el progreso
+        setPasoEntrenamiento(4);
+        setProgresoEntrenamiento(100);
+      } else {
+        setStatusIA('Error al optimizar el modelo');
+        setProgresoEntrenamiento(0);
+        setPasoEntrenamiento(0);
+      }
+    } catch (err: any) {
+      console.error('Error al optimizar modelo de IA:', err);
       setStatusIA('Error de Conexión / Permisos');
       setProgresoEntrenamiento(0);
       setPasoEntrenamiento(0);
@@ -219,7 +257,7 @@ const PrediccionVentas: React.FC = () => {
               const colorNombre = (v.color?.nombre || '').trim().toLowerCase();
               const tallaNombre = (v.talla?.nombreTalla || '').trim().toLowerCase();
               return v.producto?.idProducto === res.id_producto &&
-                     `${colorNombre}-${tallaNombre}` === resVariante;
+                `${colorNombre}-${tallaNombre}` === resVariante;
             }
           );
           if (variant) {
@@ -389,11 +427,10 @@ const PrediccionVentas: React.FC = () => {
         <button
           type="button"
           onClick={() => setSubTabActiva('stock')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
-            subTabActiva === 'stock'
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${subTabActiva === 'stock'
               ? 'bg-[var(--app-accent)] text-white shadow-md font-bold'
               : 'app-text-muted hover:bg-[var(--app-bg-hover)]'
-          }`}
+            }`}
         >
           <MaterialIcon icon="inventory_2" className="w-4 h-4" />
           <span className="text-[10px] font-black uppercase tracking-wider">1. Stock General</span>
@@ -402,11 +439,10 @@ const PrediccionVentas: React.FC = () => {
         <button
           type="button"
           onClick={() => setSubTabActiva('demanda')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${
-            subTabActiva === 'demanda'
+          className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl transition-all ${subTabActiva === 'demanda'
               ? 'bg-[var(--app-accent)] text-white shadow-md font-bold'
               : 'app-text-muted hover:bg-[var(--app-bg-hover)]'
-          }`}
+            }`}
         >
           <MaterialIcon icon="psychology" className="w-4 h-4" />
           <span className="text-[10px] font-black uppercase tracking-wider">2. Predicción de Demanda</span>
@@ -429,16 +465,14 @@ const PrediccionVentas: React.FC = () => {
                 setFiltroStock('todos');
                 setPaginaActual(1);
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
-                filtroStock === 'todos'
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${filtroStock === 'todos'
                   ? 'bg-[var(--app-accent)] text-white border-transparent shadow-sm'
                   : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
-              }`}
+                }`}
             >
               Todos
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                filtroStock === 'todos' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${filtroStock === 'todos' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {countTodos}
               </span>
             </button>
@@ -449,16 +483,14 @@ const PrediccionVentas: React.FC = () => {
                 setFiltroStock('sobreestock');
                 setPaginaActual(1);
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
-                filtroStock === 'sobreestock'
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${filtroStock === 'sobreestock'
                   ? 'bg-emerald-600 text-white border-transparent shadow-sm'
                   : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
-              }`}
+                }`}
             >
               Sobreestock ({'>'}180)
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                filtroStock === 'sobreestock' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${filtroStock === 'sobreestock' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {countSobreestock}
               </span>
             </button>
@@ -469,16 +501,14 @@ const PrediccionVentas: React.FC = () => {
                 setFiltroStock('normal');
                 setPaginaActual(1);
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
-                filtroStock === 'normal'
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${filtroStock === 'normal'
                   ? 'bg-blue-600 text-white border-transparent shadow-sm'
                   : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
-              }`}
+                }`}
             >
               Stock Normal (30-180)
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                filtroStock === 'normal' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${filtroStock === 'normal' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {countNormal}
               </span>
             </button>
@@ -489,16 +519,14 @@ const PrediccionVentas: React.FC = () => {
                 setFiltroStock('bajo');
                 setPaginaActual(1);
               }}
-              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${
-                filtroStock === 'bajo'
+              className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center gap-2 border ${filtroStock === 'bajo'
                   ? 'bg-red-600 text-white border-transparent shadow-sm'
                   : 'bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border-[var(--app-border)] hover:bg-[var(--app-bg-hover)]'
-              }`}
+                }`}
             >
               Bajo Stock ({'<'}30)
-              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                filtroStock === 'bajo' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${filtroStock === 'bajo' ? 'bg-white/20 text-white' : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {countBajo}
               </span>
             </button>
@@ -632,11 +660,10 @@ const PrediccionVentas: React.FC = () => {
                             key={pag}
                             type="button"
                             onClick={() => setPaginaActual(pag)}
-                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                              paginaActual === pag
+                            className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${paginaActual === pag
                                 ? 'bg-[var(--app-accent)] text-white'
                                 : 'text-[var(--app-text-muted)] hover:bg-[var(--app-bg-hover)]'
-                            }`}
+                              }`}
                           >
                             {pag}
                           </button>
@@ -743,8 +770,17 @@ const PrediccionVentas: React.FC = () => {
                   disabled={reentrenando || !esAdmin}
                   className="w-full py-2.5 px-4 rounded-xl bg-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_85%,black)] disabled:bg-gray-400 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center justify-center gap-2 disabled:cursor-not-allowed"
                 >
-                  <MaterialIcon icon="sync" className={`w-4 h-4 ${reentrenando ? 'animate-spin' : ''}`} />
-                  {reentrenando ? 'Entrenando Cerebro...' : 'Reentrenar IA'}
+                  <MaterialIcon icon="sync" className={`w-4 h-4 ${reentrenando && modoTrabajoIA === 'entrenar' ? 'animate-spin' : ''}`} />
+                  {reentrenando && modoTrabajoIA === 'entrenar' ? 'Entrenando Cerebro...' : 'Reentrenar IA'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalConfirmarOptimizacionOpen(true)}
+                  disabled={reentrenando || !esAdmin}
+                  className="w-full py-2.5 px-4 rounded-xl border border-[var(--app-accent)] text-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_8%,transparent)] disabled:border-gray-400 disabled:text-gray-400 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+                >
+                  <MaterialIcon icon="tune" className={`w-4 h-4 ${reentrenando && modoTrabajoIA === 'optimizar' ? 'animate-spin' : ''}`} />
+                  {reentrenando && modoTrabajoIA === 'optimizar' ? 'Optimizando...' : 'Optimización Avanzada'}
                 </button>
                 {reentrenando && !modalReentrenarOpen && (
                   <button
@@ -758,7 +794,7 @@ const PrediccionVentas: React.FC = () => {
                 )}
                 {!esAdmin && (
                   <p className="text-[9px] text-red-500 dark:text-red-400 mt-1.5 text-center font-bold uppercase tracking-wider">
-                    * Solo administradores pueden reentrenar
+                    * Solo administradores pueden configurar la IA
                   </p>
                 )}
               </div>
@@ -781,7 +817,7 @@ const PrediccionVentas: React.FC = () => {
             <div className="mt-5">
               {/* Barra de Herramientas y Acciones de la IA */}
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5 p-4 bg-[var(--app-bg-muted)] border border-[var(--app-border)] rounded-2xl">
-                
+
                 {/* Ajuste de Stock de Seguridad */}
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="flex flex-col">
@@ -812,24 +848,22 @@ const PrediccionVentas: React.FC = () => {
                       Estado IA
                     </span>
                     <div className="flex items-center gap-2 mt-2">
-                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                        statusIA.toLowerCase().includes('success') || statusIA.toLowerCase().includes('éxito')
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold ${statusIA.toLowerCase().includes('success') || statusIA.toLowerCase().includes('éxito')
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400'
                           : statusIA.toLowerCase().includes('error') || statusIA.toLowerCase().includes('conexión') || statusIA.toLowerCase().includes('permisos')
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                          : statusIA.toLowerCase().includes('procesando') || statusIA.toLowerCase().includes('entrenando') || statusIA.toLowerCase().includes('ejecutando')
-                          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse'
-                          : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
-                      }`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${
-                          statusIA.toLowerCase().includes('success') || statusIA.toLowerCase().includes('éxito')
+                            ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
+                            : statusIA.toLowerCase().includes('procesando') || statusIA.toLowerCase().includes('entrenando') || statusIA.toLowerCase().includes('ejecutando')
+                              ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 animate-pulse'
+                              : 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                        }`}>
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusIA.toLowerCase().includes('success') || statusIA.toLowerCase().includes('éxito')
                             ? 'bg-emerald-500'
                             : statusIA.toLowerCase().includes('error') || statusIA.toLowerCase().includes('conexión') || statusIA.toLowerCase().includes('permisos')
-                            ? 'bg-red-500'
-                            : statusIA.toLowerCase().includes('procesando') || statusIA.toLowerCase().includes('entrenando') || statusIA.toLowerCase().includes('ejecutando')
-                            ? 'bg-blue-500'
-                            : 'bg-amber-500'
-                        }`} />
+                              ? 'bg-red-500'
+                              : statusIA.toLowerCase().includes('procesando') || statusIA.toLowerCase().includes('entrenando') || statusIA.toLowerCase().includes('ejecutando')
+                                ? 'bg-blue-500'
+                                : 'bg-amber-500'
+                          }`} />
                         {statusIA === 'success' || statusIA === 'Esperando IA' ? 'Modelo Listo' : statusIA}
                       </span>
                     </div>
@@ -964,7 +998,7 @@ const PrediccionVentas: React.FC = () => {
         }
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
+
           {/* Opciones de Selección */}
           <div className="space-y-4">
             <h4 className="text-xs font-black uppercase tracking-wider text-[var(--app-text-muted)] mb-3">
@@ -1145,15 +1179,15 @@ const PrediccionVentas: React.FC = () => {
                   </div>
                 )}
 
-                {!exportConfig.inventarioGeneral && 
-                 !exportConfig.altoStock && 
-                 !exportConfig.stockNormal && 
-                 !exportConfig.bajoStock && 
-                 !exportConfig.prediccionDemanda && (
-                  <div className="p-4 rounded-xl border border-dashed border-red-300 bg-red-50/50 dark:bg-red-950/10 text-center text-xs text-red-500 font-semibold italic">
-                    Debes seleccionar al menos una hoja para poder generar el Excel.
-                  </div>
-                )}
+                {!exportConfig.inventarioGeneral &&
+                  !exportConfig.altoStock &&
+                  !exportConfig.stockNormal &&
+                  !exportConfig.bajoStock &&
+                  !exportConfig.prediccionDemanda && (
+                    <div className="p-4 rounded-xl border border-dashed border-red-300 bg-red-50/50 dark:bg-red-950/10 text-center text-xs text-red-500 font-semibold italic">
+                      Debes seleccionar al menos una hoja para poder generar el Excel.
+                    </div>
+                  )}
               </div>
             </div>
 
@@ -1188,34 +1222,34 @@ const PrediccionVentas: React.FC = () => {
       >
         <div className="p-4">
           <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-bg)]">
-          <table className="min-w-full divide-y divide-[var(--app-border)]">
-            <thead className="bg-[var(--app-bg-muted)]">
-              <tr>
-                <th className="px-10 py-5 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Color</th>
-                <th className="px-10 py-5 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Talla</th>
-                <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">Stock Total</th>
-                <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">En Almacén</th>
-                <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">En Pisos de Venta</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--app-border)]">
-              {cargandoVariantesProducto ? (
+            <table className="min-w-full divide-y divide-[var(--app-border)]">
+              <thead className="bg-[var(--app-bg-muted)]">
                 <tr>
-                  <td colSpan={5} className="px-10 py-8 text-center app-text-muted">
-                    <div className="flex items-center justify-center gap-2">
-                      <MaterialIcon icon="hourglass_top" className="w-4 h-4 animate-spin" />
-                      Cargando variantes...
-                    </div>
-                  </td>
+                  <th className="px-10 py-5 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Color</th>
+                  <th className="px-10 py-5 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">Talla</th>
+                  <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">Stock Total</th>
+                  <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">En Almacén</th>
+                  <th className="px-10 py-5 text-right text-[10px] font-black app-text-faint uppercase tracking-wider">En Pisos de Venta</th>
                 </tr>
-              ) : variantesDelProducto.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-10 py-8 text-center app-text-muted">
-                    No se encontraron variantes para este producto.
-                  </td>
-                </tr>
-              ) : (
-                variantesDelProducto.map((v, idx) => (
+              </thead>
+              <tbody className="divide-y divide-[var(--app-border)]">
+                {cargandoVariantesProducto ? (
+                  <tr>
+                    <td colSpan={5} className="px-10 py-8 text-center app-text-muted">
+                      <div className="flex items-center justify-center gap-2">
+                        <MaterialIcon icon="hourglass_top" className="w-4 h-4 animate-spin" />
+                        Cargando variantes...
+                      </div>
+                    </td>
+                  </tr>
+                ) : variantesDelProducto.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-10 py-8 text-center app-text-muted">
+                      No se encontraron variantes para este producto.
+                    </td>
+                  </tr>
+                ) : (
+                  variantesDelProducto.map((v, idx) => (
                     <tr key={v.idVariante ?? idx} className="hover:bg-[color-mix(in_srgb,var(--app-accent)_4%,transparent)] transition-colors">
                       <td className="px-10 py-5 whitespace-nowrap text-sm font-bold text-[var(--app-text)]">{v.color || 'N/A'}</td>
                       <td className="px-10 py-5 whitespace-nowrap text-sm font-semibold text-[var(--app-text-muted)]">{v.talla || 'N/A'}</td>
@@ -1230,14 +1264,69 @@ const PrediccionVentas: React.FC = () => {
                       </td>
                     </tr>
                   ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </AppModal>
 
-      {/* Modal de Progreso del Reentrenamiento */}
+      {/* Modal de Confirmación de Optimización Avanzada */}
+      <AppModal
+        open={modalConfirmarOptimizacionOpen}
+        onClose={() => setModalConfirmarOptimizacionOpen(false)}
+        title="¿CONFIRMAR OPTIMIZACIÓN AVANZADA?"
+        subtitle="Esta es una operación de alta carga para el servidor de IA"
+        icon={<MaterialIcon icon="warning" className="text-amber-500 animate-bounce" />}
+        maxWidth="md"
+        footer={
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={() => setModalConfirmarOptimizacionOpen(false)}
+              className="px-4 py-2.5 rounded-xl border border-[var(--app-border)] hover:bg-[var(--app-bg-hover)] text-[var(--app-text)] font-bold text-xs uppercase tracking-wider transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setModalConfirmarOptimizacionOpen(false);
+                handleOptimizarIA();
+              }}
+              className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-black text-xs uppercase tracking-widest transition-all shadow-md"
+            >
+              Iniciar Optimización
+            </button>
+          </div>
+        }
+      >
+        <div className="p-6 space-y-4 text-left">
+          <p className="text-sm text-[var(--app-text)] leading-relaxed">
+            La búsqueda avanzada de hiperparámetros evalúa decenas de configuraciones del algoritmo XGBoost para encontrar la combinación que minimice el error de predicción.
+          </p>
+
+          <div className="p-4 rounded-2xl bg-[color-mix(in_srgb,var(--app-accent)_6%,transparent)] border border-[color-mix(in_srgb,var(--app-accent)_20%,transparent)] space-y-3">
+            <h4 className="text-xs font-black uppercase tracking-wider text-[var(--app-accent)] flex items-center gap-1.5">
+              <MaterialIcon icon="info" className="w-4.5 h-4.5" />
+              Recomendaciones de MLOps:
+            </h4>
+            <ul className="list-disc pl-5 text-xs text-[var(--app-text-muted)] space-y-2 leading-relaxed">
+              <li>
+                <strong>Frecuencia recomendada:</strong> Ejecutar esta operación únicamente cada cierto tiempo (ej: cada 3 a 6 meses) o cuando notes que el error promedio (MAE) de las predicciones suba demasiado.
+              </li>
+              <li>
+                <strong>Consumo de recursos:</strong> Este proceso realiza validación cruzada y entrena la IA decenas de veces consecutivas, elevando significativamente el uso del procesador (CPU) del servidor.
+              </li>
+              <li>
+                <strong>Horario sugerido:</strong> Se recomienda encarecidamente ejecutarlo durante horas de baja demanda del sistema o fuera del horario comercial para no ralentizar otras operaciones críticas de venta.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </AppModal>
+
+      {/* Modal de Progreso del Reentrenamiento o Optimización */}
       <AppModal
         open={modalReentrenarOpen}
         onClose={() => {
@@ -1247,9 +1336,9 @@ const PrediccionVentas: React.FC = () => {
             setPasoEntrenamiento(0);
           }
         }}
-        title="REENTRENAMIENTO DEL MODELO IA"
-        subtitle="Procesando el histórico de ventas y calibrando el cerebro predictivo"
-        icon={<MaterialIcon icon="psychology" className="animate-pulse text-[var(--app-accent)]" />}
+        title={modoTrabajoIA === 'optimizar' ? "OPTIMIZACIÓN DE IA (HIPERPARÁMETROS)" : "REENTRENAMIENTO DEL MODELO IA"}
+        subtitle={modoTrabajoIA === 'optimizar' ? "Buscando la configuración óptima para minimizar el error de predicción" : "Procesando el histórico de ventas y calibrando el cerebro predictivo"}
+        icon={<MaterialIcon icon={modoTrabajoIA === 'optimizar' ? "tune" : "psychology"} className="animate-pulse text-[var(--app-accent)]" />}
         maxWidth="md"
       >
         <div className="p-6 space-y-6 text-center">
@@ -1259,20 +1348,20 @@ const PrediccionVentas: React.FC = () => {
               <span className="text-2xl font-black text-[var(--app-text)] tabular-nums">
                 {progresoEntrenamiento}%
               </span>
-              <div 
-                className="absolute bottom-0 left-0 right-0 bg-[var(--app-accent)] opacity-10 transition-all duration-500" 
+              <div
+                className="absolute bottom-0 left-0 right-0 bg-[var(--app-accent)] opacity-10 transition-all duration-500"
                 style={{ height: `${progresoEntrenamiento}%` }}
               />
             </div>
             <p className="text-xs font-bold uppercase tracking-wider text-[var(--app-accent)] animate-pulse">
-              {reentrenando ? 'Analizando datos...' : '¡Completado!'}
+              {reentrenando ? (modoTrabajoIA === 'optimizar' ? 'Buscando parámetros...' : 'Analizando datos...') : '¡Completado!'}
             </p>
           </div>
 
           {/* Barra de progreso horizontal */}
           <div className="w-full bg-[var(--app-border)] h-2 rounded-full overflow-hidden">
-            <div 
-              className="bg-[var(--app-accent)] h-full transition-all duration-500 rounded-full" 
+            <div
+              className="bg-[var(--app-accent)] h-full transition-all duration-500 rounded-full"
               style={{ width: `${progresoEntrenamiento}%` }}
             />
           </div>
@@ -1285,13 +1374,12 @@ const PrediccionVentas: React.FC = () => {
 
             {/* Paso 1 */}
             <div className="flex items-center gap-3 text-xs">
-              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
-                pasoEntrenamiento > 1 || progresoEntrenamiento === 100
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${pasoEntrenamiento > 1 || progresoEntrenamiento === 100
                   ? 'bg-emerald-500 text-white'
                   : pasoEntrenamiento === 1
-                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
-                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+                    ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                    : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {pasoEntrenamiento > 1 || progresoEntrenamiento === 100 ? (
                   <MaterialIcon icon="check" className="w-4 h-4" />
                 ) : '1'}
@@ -1303,55 +1391,58 @@ const PrediccionVentas: React.FC = () => {
 
             {/* Paso 2 */}
             <div className="flex items-center gap-3 text-xs">
-              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
-                pasoEntrenamiento > 2 || progresoEntrenamiento === 100
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${pasoEntrenamiento > 2 || progresoEntrenamiento === 100
                   ? 'bg-emerald-500 text-white'
                   : pasoEntrenamiento === 2
-                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
-                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+                    ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                    : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {pasoEntrenamiento > 2 || progresoEntrenamiento === 100 ? (
                   <MaterialIcon icon="check" className="w-4 h-4" />
                 ) : '2'}
               </span>
               <span className={pasoEntrenamiento >= 2 ? 'font-bold text-[var(--app-text)]' : 'text-[var(--app-text-muted)]'}>
-                Preparación de datos e inyección de campañas comerciales
+                {modoTrabajoIA === 'optimizar'
+                  ? 'Preparación de datos y búsqueda óptima (RandomizedSearchCV - 20s)'
+                  : 'Preparación de datos e inyección de campañas comerciales'}
               </span>
             </div>
 
             {/* Paso 3 */}
             <div className="flex items-center gap-3 text-xs">
-              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
-                pasoEntrenamiento > 3 || progresoEntrenamiento === 100
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${pasoEntrenamiento > 3 || progresoEntrenamiento === 100
                   ? 'bg-emerald-500 text-white'
                   : pasoEntrenamiento === 3
-                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
-                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+                    ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                    : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {pasoEntrenamiento > 3 || progresoEntrenamiento === 100 ? (
                   <MaterialIcon icon="check" className="w-4 h-4" />
                 ) : '3'}
               </span>
               <span className={pasoEntrenamiento >= 3 ? 'font-bold text-[var(--app-text)]' : 'text-[var(--app-text-muted)]'}>
-                Entrenamiento del modelo XGBoost (1500 estimadores)
+                {modoTrabajoIA === 'optimizar'
+                  ? 'Entrenamiento del modelo final con parámetros óptimos'
+                  : 'Entrenamiento del modelo XGBoost (300 estimadores)'}
               </span>
             </div>
 
             {/* Paso 4 */}
             <div className="flex items-center gap-3 text-xs">
-              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${
-                progresoEntrenamiento === 100
+              <span className={`h-6 w-6 rounded-full flex items-center justify-center font-bold ${progresoEntrenamiento === 100
                   ? 'bg-emerald-500 text-white'
                   : pasoEntrenamiento === 4
-                  ? 'bg-[var(--app-accent)] text-white animate-pulse'
-                  : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
-              }`}>
+                    ? 'bg-[var(--app-accent)] text-white animate-pulse'
+                    : 'bg-[var(--app-border)] text-[var(--app-text-muted)]'
+                }`}>
                 {progresoEntrenamiento === 100 ? (
                   <MaterialIcon icon="check" className="w-4 h-4" />
                 ) : '4'}
               </span>
               <span className={pasoEntrenamiento >= 4 ? 'font-bold text-[var(--app-text)]' : 'text-[var(--app-text-muted)]'}>
-                Guardado de métricas y recarga en RAM activa
+                {modoTrabajoIA === 'optimizar'
+                  ? 'Guardado de mejores parámetros, métricas y recarga en RAM activa'
+                  : 'Guardado de métricas y recarga en RAM activa'}
               </span>
             </div>
           </div>

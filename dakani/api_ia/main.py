@@ -122,7 +122,7 @@ def reentrenar_ia():
         print("Iniciando pipeline de reentrenamiento...")
 
         # 1. Ejecutar preparar_datos.py
-        # sys.executable asegura que usemos el entorno virtual correcto (.venv)
+        # sys.executable asegura que useemos el entorno virtual correcto (.venv)
         subprocess.run([sys.executable, "../preparar_datos.py"], check=True)
         print("Datos preparados.")
 
@@ -159,6 +159,58 @@ def reentrenar_ia():
 
     except subprocess.CalledProcessError as e:
         raise HTTPException(status_code=500, detail=f"Error al ejecutar scripts: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# --- ENDPOINT 4: Optimización Avanzada de Hiperparámetros ---
+@app.post("/optimizar_modelo")
+def optimizar_hiperparametros_ia():
+    global modelo, encoder_color, encoder_talla
+    try:
+        print("Iniciando pipeline de optimización de hiperparámetros...")
+
+        # 1. Ejecutar preparar_datos.py
+        subprocess.run([sys.executable, "../preparar_datos.py"], check=True)
+        print("Datos de ventas preparados.")
+
+        # 2. Ejecutar optimizar_hiperparametros.py
+        subprocess.run([sys.executable, "../optimizar_hiperparametros.py"], check=True)
+        print("Hiperparámetros optimizados y guardados.")
+
+        # 3. Ejecutar entrenar_modelo.py (para entrenar usando los nuevos parámetros optimizados)
+        subprocess.run([sys.executable, "../entrenar_modelo.py"], check=True)
+        print("Modelo final entrenado con los parámetros optimizados.")
+
+        # 4. Hot-Reload: Recargar en memoria
+        modelo = xgb.XGBRegressor()
+        modelo.load_model("modelo_dakani.json")
+        
+        import joblib
+        encoder_color = joblib.load("encoder_color.pkl")
+        encoder_talla = joblib.load("encoder_talla.pkl")
+        print("Nuevo modelo y codificadores optimizados cargados en memoria.")
+
+        # 5. Leer métricas actualizadas
+        import json
+        try:
+            with open("metricas_modelo.json", "r") as f:
+                metricas = json.load(f)
+            mae = metricas.get("mae", 0.0)
+            rmse = metricas.get("rmse", 0.0)
+        except Exception as e:
+            print(f"Error al leer métricas del modelo: {e}")
+            mae = 0.0
+            rmse = 0.0
+
+        return {
+            "status": "success",
+            "message": "Optimización avanzada completada con éxito. Nuevos parámetros calculados y cargados.",
+            "mae": mae,
+            "rmse": rmse
+        }
+
+    except subprocess.CalledProcessError as e:
+        raise HTTPException(status_code=500, detail=f"Error al ejecutar scripts en subproceso: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

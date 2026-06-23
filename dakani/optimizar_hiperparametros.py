@@ -3,8 +3,28 @@ import xgboost as xgb
 from sklearn.model_selection import RandomizedSearchCV, train_test_split
 from sklearn.metrics import mean_absolute_error, root_mean_squared_error
 
-print("Cargando datos para optimización de hiperparámetros...")
-df = pd.read_csv('datos_entrenamiento_dakani.csv')
+# Buscar de forma inteligente el archivo datos_entrenamiento_dakani.csv
+import os
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+rutas_busqueda = [
+    'datos_entrenamiento_dakani.csv',
+    os.path.join(script_dir, 'datos_entrenamiento_dakani.csv'),
+    os.path.join(script_dir, 'api_ia', 'datos_entrenamiento_dakani.csv'),
+    os.path.join(os.path.dirname(script_dir), 'datos_entrenamiento_dakani.csv')
+]
+
+ruta_seleccionada = None
+for r in rutas_busqueda:
+    if os.path.exists(r):
+        ruta_seleccionada = r
+        break
+
+if not ruta_seleccionada:
+    raise FileNotFoundError("No se encontró el archivo 'datos_entrenamiento_dakani.csv' en ninguna de las rutas de búsqueda.")
+
+print(f"Cargando datos para optimización de hiperparámetros desde: {os.path.abspath(ruta_seleccionada)}")
+df = pd.read_csv(ruta_seleccionada)
 
 X = df.drop(columns=['cantidad_vendida'])
 y = df['cantidad_vendida']

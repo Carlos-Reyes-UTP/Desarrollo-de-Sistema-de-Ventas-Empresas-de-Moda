@@ -242,6 +242,17 @@ public class ReporteController {
         }
     }
 
+    @PostMapping("/mlops/optimizar")
+    @PreAuthorize("hasRole('ROLE_ADMIN')")
+    public ResponseEntity<Map<String, Object>> optimizarModelo() {
+        try {
+            Map<String, Object> resultado = mlopsPipelineService.ejecutarOptimizacionManual();
+            return ResponseEntity.ok(resultado);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
     // Stock general: todos los productos con stock total, en almacén y en pisos de venta
     @GetMapping("/stock-general")
     public ResponseEntity<List<StockProductoDTO>> obtenerStockGeneral() {

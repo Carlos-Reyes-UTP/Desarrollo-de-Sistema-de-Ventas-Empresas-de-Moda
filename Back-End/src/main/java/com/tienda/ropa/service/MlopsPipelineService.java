@@ -165,6 +165,66 @@ public class MlopsPipelineService {
     }
 
     /**
+     * Ejecuta la optimización avanzada de MLOps manualmente y retorna las métricas.
+     */
+    public Map<String, Object> ejecutarOptimizacionManual() {
+        log.info("Iniciando optimización de hiperparámetros de MLOps manual.");
+
+        try {
+            // 1. Consultar base de datos: Obtener historial completo de ventas
+            List<DetalleVenta> detalles = detalleVentaRepository.findAll();
+            log.info("Se obtuvieron {} registros de detalles de venta para optimización.", detalles.size());
+
+            // 2. Generar el archivo CSV
+            guardarVentasEnCsv(detalles);
+
+            // 3. Llamar al Microservicio de Python para optimización y obtener resultados
+            Map<String, Object> resultado = llamarMicroservicioOptimizacion();
+
+            log.info("Optimización de MLOps completada exitosamente.");
+            return resultado;
+        } catch (Exception e) {
+            log.error("Error crítico durante la ejecución de la optimización de MLOps", e);
+            Map<String, Object> errorRes = new HashMap<>();
+            errorRes.put("status", "error");
+            errorRes.put("message", e.getMessage());
+            return errorRes;
+        }
+    }
+
+    private Map<String, Object> llamarMicroservicioOptimizacion() {
+        String urlOptimizacion = pythonTrainUrl.replace("/entrenar_modelo", "/optimizar_modelo");
+        log.info("Haciendo petición POST al microservicio de Python para optimizar el modelo: {}", urlOptimizacion);
+        Map<String, Object> resultado = new HashMap<>();
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(urlOptimizacion, null, Map.class);
+            log.info("Respuesta del microservicio de optimización recibida con código HTTP: {}", response.getStatusCode().value());
+            
+            if (response.getBody() != null) {
+                Map<?, ?> body = response.getBody();
+                Object mae = body.get("mae");
+                Object rmse = body.get("rmse");
+                log.info("--- MÉTRICAS DE OPTIMIZACIÓN RECIBIDAS ---");
+                log.info("Error Absoluto Medio (MAE): {}", mae);
+                log.info("Raíz del Error Cuadrático Medio (RMSE): {}", rmse);
+                
+                resultado.put("status", body.get("status"));
+                resultado.put("message", body.get("message"));
+                resultado.put("mae", mae);
+                resultado.put("rmse", rmse);
+            } else {
+                resultado.put("status", "success");
+                resultado.put("message", "Optimización completada sin métricas devueltas.");
+            }
+        } catch (Exception e) {
+            log.error("Fallo al llamar al microservicio de optimización en la URL {}", urlOptimizacion, e);
+            resultado.put("status", "error");
+            resultado.put("message", "Fallo al llamar al microservicio de optimización: " + e.getMessage());
+        }
+        return resultado;
+    }
+
+    /**
      * Obtiene las métricas actuales de evaluación desde el microservicio de Python
      */
     public Map<String, Object> obtenerMetricasActuales() {

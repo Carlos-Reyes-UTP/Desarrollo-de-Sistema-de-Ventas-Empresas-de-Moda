@@ -510,6 +510,21 @@ export const ReporteService = {
   },
 
   /**
+   * Ejecuta la optimización avanzada de hiperparámetros y reentrenamiento del modelo en el backend principal
+   */
+  optimizarModelo: async (): Promise<EntrenarModeloResponse> => {
+    try {
+      const response = await apiClient.post<EntrenarModeloResponse>(RUTAS_REPORTES.MLOPS_OPTIMIZAR, null, {
+        timeout: 240000 // 4 minutos (búsqueda aleatoria + entrenamiento final)
+      });
+      return response.data;
+    } catch (error: any) {
+      console.error('Error al optimizar el modelo:', error);
+      throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al iniciar la optimización del modelo');
+    }
+  },
+
+  /**
    * Obtiene el stock general de todos los productos con desglose almacén / pisos de venta
    */
   getStockGeneral: async (): Promise<StockProducto[]> => {
