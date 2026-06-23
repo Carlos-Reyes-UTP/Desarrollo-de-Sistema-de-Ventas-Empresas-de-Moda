@@ -52,7 +52,18 @@ print(f"RMSE con el modelo optimizado: {rmse:.2f} unidades")
 
 # Guardar los mejores parámetros en un JSON para referencia
 import json
-with open("mejores_parametros.json", "w") as f:
-    json.dump(best_params, f, indent=4)
+import os
 
-print("¡Listo! Mejores parámetros guardados en 'mejores_parametros.json'.")
+script_dir = os.path.dirname(os.path.abspath(__file__))
+rutas_guardado = [
+    "mejores_parametros.json",
+    os.path.join(script_dir, "mejores_parametros.json")
+]
+
+for ruta in rutas_guardado:
+    try:
+        with open(ruta, "w") as f:
+            json.dump(best_params, f, indent=4)
+        print(f"Mejores parámetros guardados en: {os.path.abspath(ruta)}")
+    except Exception as e:
+        print(f"No se pudo guardar en {ruta}: {e}")

@@ -16,15 +16,53 @@ y = df['cantidad_vendida']
 # 3. Dividir los datos: 80% para estudiar, 20% para el examen final
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-# 4. Configurar e instanciar el modelo XGBoost Regressor
-# Estos son hiperparámetros básicos. n_estimators es la cantidad de árboles.
-modelo = xgb.XGBRegressor(
-    n_estimators=1500,      # Número de árboles de decisión
-    learning_rate=0.01,     # Qué tan rápido aprende de sus errores
-    max_depth=10,           # Profundidad máxima de cada árbol
-    random_state=42,
-    n_jobs=-1              # Usa todos los núcleos de tu procesador
-)
+# 4. Configurar e instanciar el modelo XGBoost Regressor con hiperparámetros optimizados
+import os
+import json
+
+# Parámetros por defecto (optimizados previamente para evitar sobreajuste y reducir MAE)
+hiperparametros = {
+    'n_estimators': 300,
+    'learning_rate': 0.05,
+    'max_depth': 5,
+    'subsample': 0.8,
+    'colsample_bytree': 0.8,
+    'random_state': 42,
+    'n_jobs': -1
+}
+
+# Intentar cargar mejores_parametros.json si existe en las rutas de búsqueda comunes
+script_dir = os.path.dirname(os.path.abspath(__file__))
+rutas_busqueda = [
+    'mejores_parametros.json',
+    os.path.join(script_dir, 'mejores_parametros.json'),
+    os.path.join(script_dir, 'api_ia', 'mejores_parametros.json'),
+    os.path.join(os.path.dirname(script_dir), 'mejores_parametros.json')
+]
+
+params_cargados = False
+for ruta in rutas_busqueda:
+    if os.path.exists(ruta):
+        try:
+            with open(ruta, 'r') as f:
+                params_optimos = json.load(f)
+            # Asegurar tipos correctos para XGBoost
+            if 'max_depth' in params_optimos:
+                params_optimos['max_depth'] = int(params_optimos['max_depth'])
+            if 'n_estimators' in params_optimos:
+                params_optimos['n_estimators'] = int(params_optimos['n_estimators'])
+            
+            hiperparametros.update(params_optimos)
+            print(f"Cargados hiperparámetros optimizados desde {os.path.abspath(ruta)}: {params_optimos}")
+            params_cargados = True
+            break
+        except Exception as e:
+            print(f"Error al leer {ruta}: {e}")
+
+if not params_cargados:
+    print("No se encontró 'mejores_parametros.json'. Usando hiperparámetros predeterminados optimizados.")
+
+modelo = xgb.XGBRegressor(**hiperparametros)
 
 print("Entrenando el modelo XGBoost... (Esto tomará unos segundos)")
 
