@@ -26,9 +26,6 @@ const GestionUsuariosPage = () => {
   const rutasApi = useMemo(() => resolveRutasUsuarios(tieneRol), [tieneRol]);
   const rolesAsignables = useMemo(() => {
     let roles = esAdmin ? TODOS_LOS_ROLES : TODOS_LOS_ROLES.filter((r) => r !== 'ROLE_ADMIN');
-    if (esGerente) {
-      roles = roles.filter((r) => r !== 'ROLE_SUPERVISOR_ALMACEN');
-    }
     return roles;
   }, [esAdmin, esGerente]);
 
