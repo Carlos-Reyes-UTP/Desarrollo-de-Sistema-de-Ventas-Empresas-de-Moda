@@ -1,0 +1,13 @@
+==================================================
+      REPORTE DE CONFIABILIDAD - MODELO DAKANI
+==================================================
+Error Absoluto Medio (MAE): 13.9420 unidades
+Coeficiente de Determinación (R2 Score): 0.876029
+Porcentaje de Varianza Explicada (Confiabilidad): 87.60%
+
+2. MÉTRICAS DE EXACTITUD DE PRONÓSTICO (Regresión)
+   - Exactitud Comercial (100% - MAPE): 74.15%
+     (Métrica estándar en retail: qué porcentaje del volumen real es correctamente estimado por la IA)
+   - Exactitud por Tolerancia (Margen de +/- 15.0 unidades): 72.11%
+     (Porcentaje de variantes que caen dentro del margen de seguridad del almacén)
+==================================================
