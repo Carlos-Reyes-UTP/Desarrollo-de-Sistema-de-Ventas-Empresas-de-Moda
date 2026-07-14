@@ -304,6 +304,21 @@ const ReportePorCategoria: React.FC = () => {
     return [...reportes].sort((a, b) => a.ingresosTotales - b.ingresosTotales)[0];
   }, [reportes]);
 
+  const formatearFechaCorta = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    return dt.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' });
+  };
+
+  const etiquetaPeriodo = `${formatearFechaCorta(fechaInicio)} – ${formatearFechaCorta(fechaFin)}`;
+  const tituloNivel = breadcrumbs[breadcrumbs.length - 1]?.nombre ?? 'Categorías principales';
+  const ayudaNivel =
+    nivelActual === 'padre'
+      ? 'Clic en una barra del gráfico para profundizar'
+      : nivelActual === 'subcategoria'
+        ? 'Subcategorías — clic en una barra para profundizar'
+        : 'Segunda subcategoría';
+
   if (loading) {
     return (
       <div className="space-y-6 p-6">
@@ -330,63 +345,68 @@ const ReportePorCategoria: React.FC = () => {
         <ReportInsightBanner message={insightCategoria} headline="Mix por categoría" icon="category" />
       ) : null}
 
-      <DashboardPanel className="!p-5 sm:!p-6 relative z-20">
-        <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-end">
-          {/* Fecha inicio */}
+      <section className="product-report-controls relative z-20" aria-label="Filtros de categorías">
+        <div className="product-report-controls__grid product-report-controls__grid--dates-only">
           <DatePickerPopover
             label="Fecha inicio"
             value={fechaInicio}
             onChange={setFechaInicio}
           />
-
-          {/* Fecha fin */}
           <DatePickerPopover
             label="Fecha fin"
             value={fechaFin}
             onChange={setFechaFin}
             min={fechaInicio}
           />
-
-          {/* Limpiar */}
-          <div>
-            <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3 invisible">
-              _
-            </label>
+          <div className="product-report-controls__clear-wrap">
+            <label className="product-report-controls__label product-report-controls__label--ghost">_</label>
             <button
-              onClick={(e) => { e.stopPropagation(); limpiarFiltros(); }}
-              className="w-full inline-flex min-h-12 lg:h-12 items-center justify-center gap-2 px-6 lg:px-8 text-sm font-bold uppercase tracking-wider rounded-xl transition-all duration-200 app-btn-primary shadow-sm"
+              type="button"
+              className="product-report-controls__clear"
+              onClick={(e) => {
+                e.stopPropagation();
+                limpiarFiltros();
+              }}
             >
               Limpiar
             </button>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 mt-4">
-          <span className="text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mr-2">
-            Filtros rápidos
-          </span>
+        <div className="product-report-controls__chips">
+          <span className="product-report-controls__label">Rápido</span>
           <button
-            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('hoy'); }}
-            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+            type="button"
+            className="product-report-chip"
+            onClick={(e) => {
+              e.stopPropagation();
+              aplicarFiltroRapido('hoy');
+            }}
           >
             Hoy
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('semana'); }}
-            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+            type="button"
+            className="product-report-chip"
+            onClick={(e) => {
+              e.stopPropagation();
+              aplicarFiltroRapido('semana');
+            }}
           >
             Últimos 7 días
           </button>
           <button
-            onClick={(e) => { e.stopPropagation(); aplicarFiltroRapido('mes'); }}
-            className="px-2.5 py-1 text-xs font-medium rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)] hover:bg-[var(--app-hover-overlay)] transition-colors"
+            type="button"
+            className="product-report-chip"
+            onClick={(e) => {
+              e.stopPropagation();
+              aplicarFiltroRapido('mes');
+            }}
           >
             Últimos 30 días
           </button>
         </div>
-      </DashboardPanel>
+      </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         <DashboardMetricCard
@@ -394,23 +414,26 @@ const ReportePorCategoria: React.FC = () => {
           value={reportes.length}
           icon="category"
           iconIndex={1}
+          sub={etiquetaPeriodo}
         />
         <DashboardMetricCard
           label="Unidades"
           value={reportes.reduce((sum, r) => sum + r.cantidadTotalVendida, 0)}
           icon="inventory_2"
           iconIndex={2}
+          sub={etiquetaPeriodo}
         />
         <DashboardMetricCard
           label="Ingresos"
           value={`S/ ${totalIngresos.toLocaleString('es-PE')}`}
           icon="payments"
           iconIndex={3}
+          sub={etiquetaPeriodo}
         />
       </div>
 
-      <DashboardPanel className="p-5">
-        <nav className="flex flex-wrap" aria-label="Breadcrumb">
+      <div className="min-w-0">
+        <nav className="flex flex-wrap mb-2" aria-label="Breadcrumb">
           <ol className="flex flex-wrap items-center gap-1">
             {breadcrumbs.map((breadcrumb, index) => (
               <li key={`${breadcrumb.nivel}-${breadcrumb.id || 'root'}`} className="flex items-center">
@@ -431,12 +454,8 @@ const ReportePorCategoria: React.FC = () => {
             ))}
           </ol>
         </nav>
-        <p className="text-[10px] font-bold app-text-muted mt-3">
-          {nivelActual === 'padre' && 'Categorías principales'}
-          {nivelActual === 'subcategoria' && 'Subcategorías — clic en una barra del gráfico para profundizar'}
-          {nivelActual === 'segunda-subcategoria' && 'Segunda subcategoría'}
-        </p>
-      </DashboardPanel>
+        <SectionHeader title={tituloNivel} subtitle={ayudaNivel} className="mb-0" />
+      </div>
 
       <ReportViewPills options={VISTAS_CATEGORIA} value={vistaGrafico} onChange={setVistaGrafico} />
 
