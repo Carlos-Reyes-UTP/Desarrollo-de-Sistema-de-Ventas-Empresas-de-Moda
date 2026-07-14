@@ -1,14 +1,12 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 
-import { MaterialIcon, AlertModal, ChartSkeleton, PageActionButton, SectionHeader } from '@/shared/ui';
+import { MaterialIcon, AlertModal, ChartSkeleton, PageActionButton } from '@/shared/ui';
 import * as XLSX from 'xlsx';
 import { VentaService } from '../../services/VentaService';
 import type { Venta } from '../../types/Venta';
 import type { DetalleVenta } from '../../types/DetalleVenta';
-import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
 import { DatePickerPopover } from '@/components/reportes/shared/DatePickerPopover';
-import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
 import { ReportTrendPanel } from '@/components/reportes/layout/ReportTrendPanel';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 import { generarInsightPicoGrafico } from '@/utils/reportInsights';
@@ -31,19 +29,40 @@ interface DetalleExportacion {
   "Sub Total": number;
 }
 
-type TipoPeriodo = 'diario' | 'semanal' | 'mensual';
-
-const OPCIONES_PERIODO: Array<{ value: TipoPeriodo; label: string }> = [
-  { value: 'diario', label: 'Diario' },
-  { value: 'semanal', label: 'Semanal' },
-  { value: 'mensual', label: 'Mensual' },
-];
-
-const SEMANAS = [1, 2, 3, 4, 5];
-
 const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
 const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+const hoyIsoLocal = () => {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+};
+
+const primerDiaMesIso = (iso: string) => `${iso.slice(0, 7)}-01`;
+
+const ultimoDiaMesIso = (iso: string) => {
+  const [y, m] = iso.split('-').map(Number);
+  const last = new Date(y, m, 0).getDate();
+  return `${y}-${String(m).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+};
+
+const mismoMesIso = (a: string, b: string) => a.slice(0, 7) === b.slice(0, 7);
+
+const fmtLabelDia = (d: Date) => {
+  const mesCorto = d.toLocaleDateString('es-PE', { month: 'short' }).replace(/\.$/, '');
+  return `${d.getDate()} ${mesCorto}`;
+};
+
+const parseIsoLocal = (iso: string, endOfDay = false) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  if (endOfDay) return new Date(y, m - 1, d, 23, 59, 59, 999);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+};
+
+const defaultsRangoMes = () => {
+  const hoy = hoyIsoLocal();
+  return { desde: primerDiaMesIso(hoy), hasta: hoy };
+};
 
 const buildDayDataFromVentas = (ventasList: Venta[], parsear: (s: string) => Date) => {
   const totalesDia = new Array(7).fill(0);
@@ -60,13 +79,9 @@ const buildDayDataFromVentas = (ventasList: Venta[], parsear: (s: string) => Dat
 
 const ReporteDeVentas: React.FC = () => {
   const { setActions } = useReportPageActions();
-  const [periodo, setPeriodo] = useState<TipoPeriodo>('mensual');
-  const [isPeriodoOpen, setIsPeriodoOpen] = useState(false);
-  const periodoRef = useRef<HTMLDivElement>(null);
-  const [semanaSeleccionada, setSemanaSeleccionada] = useState(1);
-  const [isSemanaOpen, setIsSemanaOpen] = useState(false);
-  const semanaRef = useRef<HTMLDivElement>(null);
-  const [fechaReferencia, setFechaReferencia] = useState(new Date().toISOString().split('T')[0]);
+  const iniciales = defaultsRangoMes();
+  const [fechaDesde, setFechaDesde] = useState(iniciales.desde);
+  const [fechaHasta, setFechaHasta] = useState(iniciales.hasta);
   const [ventas, setVentas] = useState<Venta[]>([]);
   const [datosGrafico, setDatosGrafico] = useState<ReporteData[]>([]);
   const [cargando, setCargando] = useState(false);
@@ -110,106 +125,80 @@ const ReporteDeVentas: React.FC = () => {
     }
   };
 
-  // Reset week on new data load
-  useEffect(() => {
-    setSemanaSeleccionada(1);
-  }, [ventas]);
-
-  // Close dropdowns on outside click
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (periodoRef.current && !periodoRef.current.contains(e.target as Node)) {
-        setIsPeriodoOpen(false);
-      }
-      if (semanaRef.current && !semanaRef.current.contains(e.target as Node)) {
-        setIsSemanaOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   const chartForInsight = useMemo(
     () => datosGrafico.map((d) => ({ label: d.fecha, ventas: d.ventas })),
     [datosGrafico]
   );
   const picoInsight = useMemo(() => generarInsightPicoGrafico(chartForInsight), [chartForInsight]);
-  const ventasParaDayData = useMemo(() => {
-    if (periodo !== 'mensual') return ventas;
-    return ventas.filter(v => {
-      const d = parsearFechaVenta(v.fechaVenta);
-      return Math.ceil(d.getDate() / 7) === semanaSeleccionada;
-    });
-  }, [ventas, periodo, semanaSeleccionada]);
 
   const dayData = useMemo(
-    () => buildDayDataFromVentas(ventasParaDayData, parsearFechaVenta),
-    [ventasParaDayData]
+    () => buildDayDataFromVentas(ventas, parsearFechaVenta),
+    [ventas]
   );
+
+  const diasEnRango = useMemo(() => {
+    const a = parseIsoLocal(fechaDesde).getTime();
+    const b = parseIsoLocal(fechaHasta).getTime();
+    return Math.max(1, Math.round((b - a) / 86400000) + 1);
+  }, [fechaDesde, fechaHasta]);
+
+  const mesBounds = useMemo(
+    () => ({
+      min: primerDiaMesIso(fechaDesde),
+      max: ultimoDiaMesIso(fechaDesde),
+    }),
+    [fechaDesde]
+  );
+
+  const onCambiarDesde = (v: string) => {
+    setFechaDesde(v);
+    const maxMes = ultimoDiaMesIso(v);
+    const minMes = primerDiaMesIso(v);
+    setFechaHasta((prev) => {
+      if (!mismoMesIso(prev, v)) {
+        const hoy = hoyIsoLocal();
+        if (mismoMesIso(hoy, v) && hoy >= v) return hoy <= maxMes ? hoy : maxMes;
+        return maxMes;
+      }
+      if (prev < v) return v;
+      if (prev > maxMes) return maxMes;
+      if (prev < minMes) return minMes;
+      return prev;
+    });
+  };
+
+  const onCambiarHasta = (v: string) => {
+    if (!mismoMesIso(v, fechaDesde)) {
+      setFechaHasta(fechaDesde);
+      return;
+    }
+    let next = v;
+    if (next < fechaDesde) next = fechaDesde;
+    if (next > mesBounds.max) next = mesBounds.max;
+    setFechaHasta(next);
+  };
 
   // Cargar datos al cambiar filtros
   useEffect(() => {
     cargarDatos();
-  }, [periodo, fechaReferencia]);
+  }, [fechaDesde, fechaHasta]);
 
   // Resetear página cuando cambien los filtros
   useEffect(() => {
     setPaginaActual(1);
-  }, [periodo, fechaReferencia]);
+  }, [fechaDesde, fechaHasta]);
 
   const cargarDatos = async () => {
     setCargando(true);
     try {
-      // Crear fecha de referencia en hora local (no UTC)
-      const [year, month, day] = fechaReferencia.split('-').map(Number);
-      const fechaRef = new Date(year, month - 1, day); // Crear en hora local
-      
-      let fechaInicio: Date;
-      let fechaFin: Date;
+      const fechaInicio = parseIsoLocal(fechaDesde, false);
+      const fechaFin = parseIsoLocal(fechaHasta, true);
 
-      // Calcular rango de fechas según el período
-      switch (periodo) {
-        case 'diario':
-          // Para diario: desde las 00:00:00 hasta las 23:59:59 del día seleccionado
-          fechaInicio = new Date(year, month - 1, day, 0, 0, 0, 0);
-          fechaFin = new Date(year, month - 1, day, 23, 59, 59, 999);
-          break;
-        case 'semanal':
-          // Para semanal: desde el domingo hasta el sábado
-          fechaInicio = new Date(fechaRef);
-          fechaInicio.setDate(fechaRef.getDate() - fechaRef.getDay());
-          fechaInicio.setHours(0, 0, 0, 0);
-          fechaFin = new Date(fechaInicio);
-          fechaFin.setDate(fechaInicio.getDate() + 6);
-          fechaFin.setHours(23, 59, 59, 999);
-          break;
-        case 'mensual':
-          // Para mensual: primer día del mes hasta último día del mes
-          fechaInicio = new Date(year, month - 1, 1, 0, 0, 0, 0);
-          fechaFin = new Date(year, month, 0, 23, 59, 59, 999); // Último día del mes
-          break;
-      }
-
-      console.log(`🔍 Cargando datos para período ${periodo}:`, {
-        fechaReferencia,
-        fechaInicio: fechaInicio.toLocaleString('es-PE'),
-        fechaFin: fechaFin.toLocaleString('es-PE')
-      });
-
-      // Obtener ventas filtradas por rango desde el backend
-      const fmtDate = (d: Date) => {
-        const y = d.getFullYear();
-        const m = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${y}-${m}-${day}`;
-      };
-      const ventasFiltradas = await VentaService.obtenerTodasVentas(fmtDate(fechaInicio), fmtDate(fechaFin));
+      const ventasFiltradas = await VentaService.obtenerTodasVentas(fechaDesde, fechaHasta);
       if (!Array.isArray(ventasFiltradas)) throw new Error('Respuesta inválida del servidor');
 
-      console.log('✅ Ventas obtenidas para el período:', ventasFiltradas.length);
-
       setVentas(ventasFiltradas);
-      procesarDatosGrafico(ventasFiltradas, periodo, fechaInicio, fechaFin);
+      procesarDatosGrafico(ventasFiltradas, fechaInicio, fechaFin);
       calcularResumenVentas(ventasFiltradas);
     } catch (error) {
       console.error('❌ Error al cargar datos:', error);
@@ -218,78 +207,31 @@ const ReporteDeVentas: React.FC = () => {
     }
   };
 
-  const procesarDatosGrafico = (ventas: Venta[], tipoPeriodo: TipoPeriodo, fechaInicio: Date, fechaFin: Date) => {
+  const procesarDatosGrafico = (ventasList: Venta[], fechaInicio: Date, fechaFin: Date) => {
     const datos: ReporteData[] = [];
+    const diaCursor = new Date(fechaInicio);
+    diaCursor.setHours(0, 0, 0, 0);
+    const fin = new Date(fechaFin);
+    fin.setHours(23, 59, 59, 999);
 
-    if (tipoPeriodo === 'diario') {
-      // Agrupar por horas del día
-      for (let hora = 0; hora < 24; hora++) {
-        const ventasHora = ventas.filter(venta => {
-          const fechaVenta = parsearFechaVenta(venta.fechaVenta);
-          return fechaVenta && fechaVenta.getHours() === hora;
-        });
+    while (diaCursor <= fin) {
+      const diaFin = new Date(diaCursor);
+      diaFin.setHours(23, 59, 59, 999);
 
-        datos.push({
-          fecha: `${hora.toString().padStart(2, '0')}:00`,
-          ventas: ventasHora.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
-          cantidad: ventasHora.length
-        });
-      }
-    } else if (tipoPeriodo === 'semanal') {
-      // Agrupar por días de la semana
-      const diasSemana = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-      for (let dia = 0; dia < 7; dia++) {
-        const fechaDia = new Date(fechaInicio);
-        fechaDia.setDate(fechaInicio.getDate() + dia);
-        fechaDia.setHours(0, 0, 0, 0);
-        
-        const fechaDiaFin = new Date(fechaDia);
-        fechaDiaFin.setHours(23, 59, 59, 999);
+      const ventasDia = ventasList.filter((venta) => {
+        const fechaVenta = parsearFechaVenta(venta.fechaVenta);
+        return fechaVenta && fechaVenta >= diaCursor && fechaVenta <= diaFin;
+      });
 
-        const ventasDia = ventas.filter(venta => {
-          const fechaVenta = parsearFechaVenta(venta.fechaVenta);
-          return fechaVenta && fechaVenta >= fechaDia && fechaVenta <= fechaDiaFin;
-        });
+      datos.push({
+        fecha: fmtLabelDia(diaCursor),
+        ventas: ventasDia.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
+        cantidad: ventasDia.length,
+      });
 
-        datos.push({
-          fecha: `${diasSemana[fechaDia.getDay()]} ${fechaDia.getDate()}`,
-          ventas: ventasDia.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
-          cantidad: ventasDia.length
-        });
-      }
-    } else if (tipoPeriodo === 'mensual') {
-      // Agrupar por semanas del mes
-      const semanaInicio = new Date(fechaInicio);
-
-      while (semanaInicio <= fechaFin) {
-        const semanaFinLocal = new Date(semanaInicio);
-        semanaFinLocal.setDate(semanaInicio.getDate() + 6);
-        semanaFinLocal.setHours(23, 59, 59, 999);
-
-        if (semanaFinLocal > fechaFin) {
-          semanaFinLocal.setTime(fechaFin.getTime());
-        }
-
-        const ventasSemana = ventas.filter(venta => {
-          const fechaVenta = parsearFechaVenta(venta.fechaVenta);
-          return fechaVenta && fechaVenta >= semanaInicio && fechaVenta <= semanaFinLocal;
-        });
-
-        // Formatear las fechas para mostrar el rango de la semana
-        const inicioStr = `${semanaInicio.getDate()}/${semanaInicio.getMonth() + 1}`;
-        const finStr = `${semanaFinLocal.getDate()}/${semanaFinLocal.getMonth() + 1}`;
-
-        datos.push({
-          fecha: `${inicioStr}-${finStr}`,
-          ventas: ventasSemana.reduce((sum, venta) => sum + (venta.totalVentas || 0), 0),
-          cantidad: ventasSemana.length
-        });
-
-        semanaInicio.setDate(semanaInicio.getDate() + 7);
-      }
+      diaCursor.setDate(diaCursor.getDate() + 1);
     }
 
-    console.log('📈 Datos procesados para gráfico:', datos);
     setDatosGrafico(datos);
   };
 
@@ -396,8 +338,7 @@ const ReporteDeVentas: React.FC = () => {
     XLSX.utils.book_append_sheet(wb, ws, 'Reporte de Ventas');
 
     // Generar nombre del archivo
-    const fechaActual = new Date().toISOString().split('T')[0];
-    const nombreArchivo = `reporte_ventas_${periodo}_${fechaActual}.xlsx`;
+    const nombreArchivo = `reporte_ventas_${fechaDesde}_${fechaHasta}.xlsx`;
 
     // Descargar archivo
     XLSX.writeFile(wb, nombreArchivo);
@@ -432,7 +373,7 @@ const ReporteDeVentas: React.FC = () => {
 
       setAlertModal({ open: true, message: 'Error al generar el reporte. Inténtalo nuevamente.', variant: 'error' });
     }
-  }, [ventas, periodo, fechaReferencia]);
+  }, [ventas, fechaDesde, fechaHasta]);
 
   useEffect(() => {
     setActions(
@@ -447,380 +388,306 @@ const ReporteDeVentas: React.FC = () => {
     return formatterMonedaPE.format(valor);
   };
 
-  const tituloGrafico =
-    periodo === 'diario' ? 'Ventas por hora' : periodo === 'semanal' ? 'Ventas por día' : 'Ventas por semana';
+  const labelDesdeUi = (() => {
+    try {
+      return parseIsoLocal(fechaDesde).toLocaleDateString('es-PE', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return fechaDesde;
+    }
+  })();
+
+  const labelHastaUi = (() => {
+    try {
+      return parseIsoLocal(fechaHasta).toLocaleDateString('es-PE', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch {
+      return fechaHasta;
+    }
+  })();
+
+  const mesTitulo = (() => {
+    try {
+      return parseIsoLocal(fechaDesde).toLocaleDateString('es-PE', {
+        month: 'long',
+        year: 'numeric',
+      });
+    } catch {
+      return fechaDesde.slice(0, 7);
+    }
+  })();
 
   return (
-    <div className="space-y-6">
-      {picoInsight ? (
-        <ReportInsightBanner message={picoInsight} headline="Concentración del período" icon="show_chart" />
-      ) : null}
+    <div className="report-ventas space-y-5">
+      {/* 1. Hero: total + rango fecha→fecha (mismo mes) */}
+      <section className="report-ventas-hero">
+        <div className="report-ventas-hero__main">
+          <p className="report-ventas-hero__eyebrow">Total del período</p>
+          <p className="report-ventas-hero__amount tabular-nums">
+            {cargando ? '—' : formatearMoneda(resumenVentas.totalVentas)}
+          </p>
+          <p className="report-ventas-hero__meta">
+            {labelDesdeUi} → {labelHastaUi}
+            {' · '}
+            {resumenVentas.cantidadTransacciones} transacciones
+            {' · '}
+            Solo dentro de {mesTitulo}
+          </p>
+        </div>
 
-      <DashboardPanel className="!p-5 sm:!p-6 relative z-10">
-        <h3 className="text-base font-black app-heading mb-4">Filtros de Búsqueda</h3>
-        <div className="flex flex-wrap gap-4 items-end">
-          <div className="flex-1 min-w-[160px]">
-             <label className="block text-[10px] font-bold tracking-[0.15em] text-gray-400 uppercase mb-3">
-              Periodo
-            </label>
-            <div className="relative" ref={periodoRef}>
-              <div
-                onClick={() => setIsPeriodoOpen(!isPeriodoOpen)}
-                className="w-full bg-app-input text-app-text rounded-xl py-3 px-4 text-sm font-bold border border-[var(--app-border)] flex items-center justify-between cursor-pointer"
-              >
-                <span className="truncate">
-                  {OPCIONES_PERIODO.find(p => p.value === periodo)?.label}
-                </span>
-                <svg className="w-4 h-4 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              {isPeriodoOpen && (
-                <div className="absolute z-50 w-full mt-2 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-2 animate-fadeIn">
-                  {OPCIONES_PERIODO.map(op => (
-                    <button
-                      key={op.value}
-                      onClick={() => { setPeriodo(op.value); setIsPeriodoOpen(false); }}
-                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors font-medium ${
-                        periodo === op.value
-                          ? 'bg-app-accent text-app-accent-fg'
-                          : 'hover:bg-app-hover-overlay text-app-text'
-                      }`}
-                    >
-                      {op.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="flex-1 min-w-[200px]">
+        <div className="report-ventas-hero__controls report-ventas-hero__range">
+          <div className="report-ventas-hero__datepicker">
             <DatePickerPopover
-              label="Fecha de referencia"
-              value={fechaReferencia}
-              onChange={setFechaReferencia}
+              label="Desde"
+              value={fechaDesde}
+              onChange={onCambiarDesde}
+            />
+          </div>
+          <span className="report-ventas-hero__range-sep" aria-hidden>
+            →
+          </span>
+          <div className="report-ventas-hero__datepicker">
+            <DatePickerPopover
+              label="Hasta"
+              value={fechaHasta}
+              onChange={onCambiarHasta}
+              min={fechaDesde}
+              max={mesBounds.max}
             />
           </div>
         </div>
-      </DashboardPanel>
+      </section>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-        <DashboardMetricCard label="Total ventas" value={formatearMoneda(resumenVentas.totalVentas)} icon="payments" iconIndex={1} />
-        <DashboardMetricCard label="Transacciones" value={resumenVentas.cantidadTransacciones} icon="receipt_long" iconIndex={2} />
-        <DashboardMetricCard label="Ticket promedio" value={formatearMoneda(resumenVentas.ticketPromedio)} icon="trending_up" iconIndex={3} />
-        <DashboardMetricCard label="Unidades" value={resumenVentas.productosVendidos} icon="checkroom" iconIndex={4} />
+      {picoInsight ? (
+        <div className="report-ventas-pulse" role="status">
+          <MaterialIcon icon="bolt" className="w-4 h-4 shrink-0 text-[var(--app-accent)]" />
+          <p>{picoInsight}</p>
+        </div>
+      ) : null}
+
+      {/* 2. Split asimétrico: chart dominante + stack de métricas */}
+      <div className="report-ventas-split">
+        <div className="report-ventas-split__chart">
+          {cargando ? (
+            <ChartSkeleton height="h-[340px]" />
+          ) : (
+            <ReportTrendPanel
+              chartPoints={chartForInsight}
+              dayData={dayData}
+              tituloGrafico="Ventas por día"
+              subtitulo={`${labelDesdeUi} → ${labelHastaUi}`}
+              serieLabel="Ventas por día"
+              gradientId="areaGradVentas"
+              showWeekdayDistribution={diasEnRango <= 7}
+            />
+          )}
+        </div>
+
+        <aside className="report-ventas-metrics" aria-label="Indicadores del período">
+          <div className="report-ventas-metric">
+            <span className="report-ventas-metric__label">Transacciones</span>
+            <span className="report-ventas-metric__value tabular-nums">
+              {resumenVentas.cantidadTransacciones.toLocaleString('es-PE')}
+            </span>
+          </div>
+          <div className="report-ventas-metric">
+            <span className="report-ventas-metric__label">Ticket promedio</span>
+            <span className="report-ventas-metric__value tabular-nums">
+              {formatearMoneda(resumenVentas.ticketPromedio)}
+            </span>
+          </div>
+          <div className="report-ventas-metric">
+            <span className="report-ventas-metric__label">Unidades</span>
+            <span className="report-ventas-metric__value tabular-nums">
+              {resumenVentas.productosVendidos.toLocaleString('es-PE')}
+            </span>
+          </div>
+          <div className="report-ventas-metric report-ventas-metric--accent">
+            <span className="report-ventas-metric__label">Ingresos</span>
+            <span className="report-ventas-metric__value tabular-nums">
+              {formatearMoneda(resumenVentas.totalVentas)}
+            </span>
+          </div>
+        </aside>
       </div>
 
-      {cargando ? (
-        <ChartSkeleton height="h-[360px]" />
-      ) : (
-        <ReportTrendPanel
-          chartPoints={chartForInsight}
-          dayData={dayData}
-          tituloGrafico="Ritmo de ventas"
-          subtitulo={`${tituloGrafico} · referencia ${fechaReferencia}`}
-          serieLabel={tituloGrafico}
-          gradientId="areaGradVentas"
-          weekSelector={periodo === 'mensual' ? (
-            <div className="relative" ref={semanaRef}>
-              <div
-                onClick={() => setIsSemanaOpen(!isSemanaOpen)}
-                className="bg-app-input text-app-text rounded-xl py-1.5 px-3 text-[11px] font-bold border border-[var(--app-border)] flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>Semana {semanaSeleccionada}</span>
-                <svg className="w-3 h-3 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              {isSemanaOpen && (
-                <div className="absolute z-50 right-0 mt-1.5 bg-app-surface border border-app-border rounded-xl shadow-xl overflow-y-auto p-1.5 animate-fadeIn min-w-[120px]">
-                  {SEMANAS.map(s => (
-                    <button
-                      key={s}
-                      onClick={() => { setSemanaSeleccionada(s); setIsSemanaOpen(false); }}
-                      className={`w-full text-left px-3 py-1.5 text-xs rounded-lg transition-colors font-medium ${
-                        semanaSeleccionada === s
-                          ? 'bg-app-accent text-app-accent-fg'
-                          : 'hover:bg-app-hover-overlay text-app-text'
-                      }`}
-                    >
-                      Semana {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ) : undefined}
-        />
-      )}
-
-      <DashboardPanel>
-        <SectionHeader
-          title={`Registro de Ventas (${ventas.length})`}
-        />
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-[var(--app-border)]">
-              <thead className="bg-[var(--app-bg-muted)]">
-                <tr>
-                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
-                    Fecha y Hora
-                  </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
-                    Usuario
-                  </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
-                    Cliente
-                  </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
-                    Total
-                  </th>
-                  <th className="px-6 py-3 text-left text-[10px] font-black app-text-faint uppercase tracking-wider">
-                    Método Pago
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--app-border)]">
-                {(() => {
-                  // Ordenar las ventas por fecha más reciente primero
-                  const ventasOrdenadas = ventas.toSorted((a, b) => {
-                    const fechaA = parsearFechaVenta(a.fechaVenta);
-                    const fechaB = parsearFechaVenta(b.fechaVenta);
-                    return fechaB.getTime() - fechaA.getTime();
-                  });
-
-                  // Calcular paginación
-                  const indiceInicio = (paginaActual - 1) * ventasPorPagina;
-                  const indiceFin = indiceInicio + ventasPorPagina;
-                  const ventasPagina = ventasOrdenadas.slice(indiceInicio, indiceFin);
-
-                  return ventasPagina.map((venta) => {
-                    // Función para formatear la fecha correctamente
-                    const formatearFechaHora = (fechaStr: string) => {
-                      try {
-                        const fecha = parsearFechaVenta(fechaStr);
-                        
-                        if (isNaN(fecha.getTime())) {
-                          return 'Fecha inválida';
-                        }
-                        
-                        return fecha.toLocaleString('es-PE', {
-                          year: 'numeric',
-                          month: '2-digit', 
-                          day: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: false
-                        });
-                      } catch (error) {
-                        console.error('Error al formatear fecha:', fechaStr, error);
-                        return 'Error en fecha';
-                      }
-                    };
-
-                    // Obtener método de pago de forma segura
-                    const obtenerMetodoPago = () => {
-                      try {
-                        const metodoPago = venta.metodoPago;
-                        if (metodoPago) {
-                          if (typeof metodoPago === 'string') {
-                            const metodoStr = String(metodoPago);
-                            return metodoStr.charAt(0).toUpperCase() + metodoStr.slice(1);
-                          }
-                          // Si es objeto MetodoPago, acceder a sus propiedades directamente
-                          return metodoPago.nombre || metodoPago.tipo || 'Método personalizado';
-                        }
-                        return 'No disponible';
-                      } catch {
-                        return 'No disponible';
-                      }
-                    };
-
-                    return (
-                      <tr key={venta.idVenta} className="hover:bg-[var(--app-bg-muted)]/50">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading font-mono">
-                          {formatearFechaHora(venta.fechaVenta)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">
-                          {venta.usuario?.usuario || 'No disponible'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">
-                          {venta.cliente?.nombreCliente || 'Cliente general'}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium app-heading tabular-nums">
-                          {formatearMoneda(venta.totalVentas || 0)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm app-heading">
-                          <span className="px-2 py-1 text-xs font-bold rounded-full bg-[color-mix(in_srgb,var(--app-accent)_15%,transparent)] text-[var(--app-accent)]">
-                            {obtenerMetodoPago()}
-                          </span>
-                        </td>
-                      </tr>
-                    );
-                  });
-                })()}
-              </tbody>
-            </table>
+      {/* 3. Ledger de ventas */}
+      <DashboardPanel className="report-ventas-ledger !p-0 overflow-hidden">
+        <div className="report-ventas-ledger__head">
+          <div>
+            <p className="report-ventas-ledger__eyebrow">Registro</p>
+            <h3 className="report-ventas-ledger__title">
+              {ventas.length} venta{ventas.length === 1 ? '' : 's'}
+            </h3>
           </div>
-          
-          {/* Controles de paginación responsiva */}
-          {(() => {
-            const ventasOrdenadas = ventas.toSorted((a, b) => {
-              const fechaA = parsearFechaVenta(a.fechaVenta);
-              const fechaB = parsearFechaVenta(b.fechaVenta);
-              return fechaB.getTime() - fechaA.getTime();
-            });
-            const totalPaginas = Math.ceil(ventasOrdenadas.length / ventasPorPagina);
-            
-            if (totalPaginas <= 1) return null;
+        </div>
 
-            return (
-              <div className="mt-6 report-pagination-bar">
-                <div className="block sm:hidden px-3 py-2">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
-                      disabled={paginaActual === 1}
-                      className="report-pagination-btn"
-                    >
-                      <MaterialIcon icon="chevron_left" className="h-4 w-4 mr-1" />
-                      Anterior
-                    </button>
-                    
-                    <div className="flex flex-col items-center">
-                      <span className="text-sm app-heading font-medium">
-                        Página {paginaActual} de {totalPaginas}
-                      </span>
-                      <span className="text-xs app-text-muted">
-                        {ventasOrdenadas.length} resultados
-                      </span>
-                    </div>
-                    
-                    <button
-                      type="button"
-                      onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-                      disabled={paginaActual === totalPaginas}
-                      className="report-pagination-btn"
-                    >
-                      Siguiente
-                      <MaterialIcon icon="chevron_right" className="h-4 w-4 ml-1" />
-                    </button>
-                  </div>
-                </div>
+        <div className="overflow-x-auto">
+          <table className="report-ventas-table min-w-full">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Usuario</th>
+                <th>Cliente</th>
+                <th className="text-right">Total</th>
+                <th>Pago</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(() => {
+                const ventasOrdenadas = ventas.toSorted((a, b) => {
+                  const fechaA = parsearFechaVenta(a.fechaVenta);
+                  const fechaB = parsearFechaVenta(b.fechaVenta);
+                  return fechaB.getTime() - fechaA.getTime();
+                });
 
-                <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-6">
-                  <div className="flex items-center">
-                    <p className="text-sm app-text-muted">
-                      Mostrando{' '}
-                      <span className="font-medium">
-                        {((paginaActual - 1) * ventasPorPagina) + 1}
-                      </span>{' '}
-                      a{' '}
-                      <span className="font-medium">
-                        {Math.min(paginaActual * ventasPorPagina, ventasOrdenadas.length)}
-                      </span>{' '}
-                      de{' '}
-                      <span className="font-medium">{ventasOrdenadas.length}</span>{' '}
-                      resultados
-                    </p>
-                  </div>
-                  
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setPaginaActual(prev => Math.max(prev - 1, 1))}
-                      disabled={paginaActual === 1}
-                      className="report-pagination-btn"
-                    >
-                      <MaterialIcon icon="chevron_left" className="h-4 w-4" />
-                      Anterior
-                    </button>
-                    
-                    <div className="flex items-center space-x-1">
-                      {(() => {
-                        const páginas = [];
-                        if (totalPaginas <= 5) {
-                          for (let i = 1; i <= totalPaginas; i++) {
-                            páginas.push(
-                              <button
-                                key={i}
-                                onClick={() => setPaginaActual(i)}
-                                className={`report-pagination-btn ${i === paginaActual ? 'report-pagination-btn--active' : ''}`}
-                              >
-                                {i}
-                              </button>
-                            );
-                          }
-                        } else {
-                          páginas.push(
-                            <button
-                              key={1}
-                              onClick={() => setPaginaActual(1)}
-                              className={`report-pagination-btn ${paginaActual === 1 ? 'report-pagination-btn--active' : ''}`}
-                            >
-                              1
-                            </button>
-                          );
-                          let rangeStart = Math.max(2, paginaActual - 2);
-                          let rangeEnd = Math.min(totalPaginas - 1, paginaActual + 2);
-                          if (paginaActual <= 3) {
-                            rangeStart = 2;
-                            rangeEnd = 5;
-                          } else if (paginaActual >= totalPaginas - 2) {
-                            rangeStart = totalPaginas - 4;
-                            rangeEnd = totalPaginas - 1;
-                          }
-                          if (rangeStart > 2) páginas.push(<span key="start-ellipsis" className="px-2 app-text-faint select-none text-base">...</span>);
-                          for (let i = rangeStart; i <= rangeEnd; i++) {
-                            páginas.push(
-                              <button
-                                key={i}
-                                onClick={() => setPaginaActual(i)}
-                                className={`report-pagination-btn ${i === paginaActual ? 'report-pagination-btn--active' : ''}`}
-                              >
-                                {i}
-                              </button>
-                            );
-                          }
-                          if (rangeEnd < totalPaginas - 1) páginas.push(<span key="end-ellipsis" className="px-2 app-text-faint select-none text-base">...</span>);
-                          páginas.push(
-                            <button
-                              key={totalPaginas}
-                              onClick={() => setPaginaActual(totalPaginas)}
-                              className={`report-pagination-btn ${paginaActual === totalPaginas ? 'report-pagination-btn--active' : ''}`}
-                            >
-                              {totalPaginas}
-                            </button>
-                          );
+                const indiceInicio = (paginaActual - 1) * ventasPorPagina;
+                const indiceFin = indiceInicio + ventasPorPagina;
+                const ventasPagina = ventasOrdenadas.slice(indiceInicio, indiceFin);
+
+                if (!cargando && ventasPagina.length === 0) {
+                  return (
+                    <tr>
+                      <td colSpan={5} className="report-ventas-table__empty">
+                        No hay ventas en este período
+                      </td>
+                    </tr>
+                  );
+                }
+
+                return ventasPagina.map((venta) => {
+                  const formatearFechaHora = (fechaStr: string) => {
+                    try {
+                      const fecha = parsearFechaVenta(fechaStr);
+                      if (isNaN(fecha.getTime())) return 'Fecha inválida';
+                      return fecha.toLocaleString('es-PE', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: false,
+                      });
+                    } catch {
+                      return 'Error en fecha';
+                    }
+                  };
+
+                  const obtenerMetodoPago = () => {
+                    try {
+                      const metodoPago = venta.metodoPago;
+                      if (metodoPago) {
+                        if (typeof metodoPago === 'string') {
+                          const metodoStr = String(metodoPago);
+                          return metodoStr.charAt(0).toUpperCase() + metodoStr.slice(1);
                         }
-                        return páginas;
-                      })()}
-                    </div>
-                    
-                    <button
-                      type="button"
-                      onClick={() => setPaginaActual(prev => Math.min(prev + 1, totalPaginas))}
-                      disabled={paginaActual === totalPaginas}
-                      className="report-pagination-btn"
-                    >
-                      Siguiente
-                      <MaterialIcon icon="chevron_right" className="h-4 w-4" />
-                    </button>
-                  </div>
+                        return metodoPago.nombre || metodoPago.tipo || 'Método personalizado';
+                      }
+                      return 'No disponible';
+                    } catch {
+                      return 'No disponible';
+                    }
+                  };
+
+                  return (
+                    <tr key={venta.idVenta}>
+                      <td className="font-mono text-[13px]">{formatearFechaHora(venta.fechaVenta)}</td>
+                      <td>{venta.usuario?.usuario || '—'}</td>
+                      <td>{venta.cliente?.nombreCliente || 'Cliente general'}</td>
+                      <td className="text-right font-semibold tabular-nums">
+                        {formatearMoneda(venta.totalVentas || 0)}
+                      </td>
+                      <td>
+                        <span className="report-ventas-pay">{obtenerMetodoPago()}</span>
+                      </td>
+                    </tr>
+                  );
+                });
+              })()}
+            </tbody>
+          </table>
+        </div>
+
+        {(() => {
+          const ventasOrdenadas = ventas.toSorted((a, b) => {
+            const fechaA = parsearFechaVenta(a.fechaVenta);
+            const fechaB = parsearFechaVenta(b.fechaVenta);
+            return fechaB.getTime() - fechaA.getTime();
+          });
+          const totalPaginas = Math.ceil(ventasOrdenadas.length / ventasPorPagina);
+
+          if (totalPaginas <= 1) return null;
+
+          return (
+            <div className="report-pagination-bar report-ventas-ledger__pager">
+              <div className="block sm:hidden px-3 py-2">
+                <div className="flex items-center justify-between">
+                  <button
+                    type="button"
+                    onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                    disabled={paginaActual === 1}
+                    className="report-pagination-btn"
+                  >
+                    <MaterialIcon icon="chevron_left" className="h-4 w-4 mr-1" />
+                    Anterior
+                  </button>
+
+                  <span className="text-sm app-heading font-medium">
+                    {paginaActual} / {totalPaginas}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                    disabled={paginaActual === totalPaginas}
+                    className="report-pagination-btn"
+                  >
+                    Siguiente
+                    <MaterialIcon icon="chevron_right" className="h-4 w-4 ml-1" />
+                  </button>
                 </div>
               </div>
-            );
-          })()}
-          
-          {ventas.length === 0 && !cargando && (
-            <div className="text-center py-8">
-              <p className="app-text-muted">No hay ventas en el período seleccionado</p>
+
+              <div className="hidden sm:flex items-center justify-between px-4 py-3 sm:px-5">
+                <p className="text-sm app-text-muted">
+                  {(paginaActual - 1) * ventasPorPagina + 1}–
+                  {Math.min(paginaActual * ventasPorPagina, ventasOrdenadas.length)} de{' '}
+                  {ventasOrdenadas.length}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaginaActual((prev) => Math.max(prev - 1, 1))}
+                    disabled={paginaActual === 1}
+                    className="report-pagination-btn"
+                  >
+                    <MaterialIcon icon="chevron_left" className="h-4 w-4" />
+                  </button>
+                  <span className="text-sm font-bold tabular-nums app-heading px-2">
+                    {paginaActual} / {totalPaginas}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setPaginaActual((prev) => Math.min(prev + 1, totalPaginas))}
+                    disabled={paginaActual === totalPaginas}
+                    className="report-pagination-btn"
+                  >
+                    <MaterialIcon icon="chevron_right" className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
             </div>
-          )}
+          );
+        })()}
       </DashboardPanel>
 
-      {/* Alert Modal */}
       <AlertModal
         open={alertModal.open}
         message={alertModal.message}

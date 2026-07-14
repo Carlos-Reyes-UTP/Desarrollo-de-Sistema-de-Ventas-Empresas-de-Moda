@@ -70,7 +70,11 @@ const VendedorPisoVentasPage = () => {
 
   const agregarToast = useCallback((toast: Omit<VendedorToastInfo, "id">) => {
     const id = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    setToasts((prev) => [...prev, { ...toast, id }]);
+    setToasts((prev) => {
+      const next = [...prev, { ...toast, id }];
+      // Evita apilar demasiadas alertas sobre la UI de piso.
+      return next.slice(-3);
+    });
   }, []);
 
   const eliminarToast = useCallback((id: string) => {
@@ -83,7 +87,7 @@ const VendedorPisoVentasPage = () => {
         tipo: "error",
         titulo: "Atención",
         mensaje: msg,
-        autoDismissMs: 5000,
+        autoDismissMs: 3200,
       });
     }
   }, [agregarToast]);
@@ -280,8 +284,8 @@ const VendedorPisoVentasPage = () => {
         agregarToast({
           tipo: "success",
           titulo: "Pedido cancelado",
-          mensaje: "La reserva se liberó. Vuelve a buscar el producto para ver el stock actualizado en almacén.",
-          autoDismissMs: 5000,
+          mensaje: "La reserva se liberó en almacén.",
+          autoDismissMs: 2800,
         });
         if (codigo.trim().length >= 2) {
           void ejecutarBusqueda(codigo);
@@ -296,21 +300,51 @@ const VendedorPisoVentasPage = () => {
   );
 
   const onNuevaRespuestaAlmacen = useCallback((items: VendedorAlmacenActualizacion[]) => {
+    if (items.length === 0) return;
+
     const huboCancelacion = items.some((item) => item.estado === "CANCELADO");
-    items.forEach((item) => {
+    const listos = items.filter((item) => item.estado === "ATENDIDO");
+    const rechazados = items.filter((item) => item.estado === "CANCELADO");
+
+    // Una sola notificación compacta por lote (menos invasivo en móvil).
+    if (listos.length === 1 && rechazados.length === 0) {
+      const item = listos[0];
       agregarToast({
-        tipo: item.estado === "ATENDIDO" ? "success" : "error",
-        titulo: item.estado === "ATENDIDO" ? "Pedido Listo en Almacén" : "Pedido Rechazado",
-        mensaje: item.estado === "ATENDIDO"
-          ? "El almacén preparó el producto y ya está disponible para retirar en el piso."
-          : "La reserva de ese pedido se liberó. Si el almacén ya había despachado antes, el stock puede estar en el piso y no en almacén.",
+        tipo: "success",
+        titulo: "Listo en almacén",
+        mensaje: "Ya puedes retirar el pedido.",
         producto: item.nombreProducto,
         color: item.color,
         talla: item.talla,
         cantidad: item.cantidad,
-        autoDismissMs: 8000,
+        autoDismissMs: 3500,
       });
-    });
+    } else if (rechazados.length === 1 && listos.length === 0) {
+      const item = rechazados[0];
+      agregarToast({
+        tipo: "error",
+        titulo: "Pedido rechazado",
+        mensaje: "La reserva se liberó.",
+        producto: item.nombreProducto,
+        color: item.color,
+        talla: item.talla,
+        cantidad: item.cantidad,
+        autoDismissMs: 3500,
+      });
+    } else {
+      const partes: string[] = [];
+      if (listos.length) partes.push(`${listos.length} listo${listos.length > 1 ? "s" : ""}`);
+      if (rechazados.length) {
+        partes.push(`${rechazados.length} rechazado${rechazados.length > 1 ? "s" : ""}`);
+      }
+      agregarToast({
+        tipo: rechazados.length && !listos.length ? "error" : listos.length && !rechazados.length ? "success" : "info",
+        titulo: "Actualización de almacén",
+        mensaje: partes.join(" · "),
+        autoDismissMs: 3500,
+      });
+    }
+
     if (huboCancelacion && codigo.trim().length >= 2) {
       void ejecutarBusqueda(codigo);
     }
@@ -429,13 +463,13 @@ const VendedorPisoVentasPage = () => {
     // Toast de éxito
     agregarToast({
       tipo: "success",
-      titulo: "Agregado a la Lista",
-      mensaje: "El producto se añadió a la bandeja de envíos pendientes.",
+      titulo: "Agregado a la lista",
+      mensaje: "Listo para enviar al almacén.",
       producto: catalogo.producto.nombre,
       color: variante?.color ?? "",
       talla: variante?.talla ?? "",
       cantidad: Math.min(cantidad, stockDisponible),
-      autoDismissMs: 4000,
+      autoDismissMs: 2500,
     });
     
     // Solo reseteamos la variante y cantidad para permitir elegir otra del MISMO producto
@@ -461,7 +495,7 @@ const VendedorPisoVentasPage = () => {
           {/* Columna Izquierda: Control y Búsqueda */}
           <div ref={topRef} className="flex-1 w-full md:max-w-[420px] space-y-8">
             <header className="pt-2 animate-fadeIn">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)] mb-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[var(--app-bg-muted)] border border-[var(--app-border-strong)] text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)] mb-3">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -484,7 +518,7 @@ const VendedorPisoVentasPage = () => {
                   duration={1.96}
                   className="rounded-[2.5rem]"
                 >
-                  <div className={`relative overflow-hidden rounded-[2.5rem] bg-white/[0.04] border border-white/[0.08] backdrop-blur-md transition-all duration-500 ${estaEnfocado || buscando ? 'shadow-[0_20px_50px_rgba(0,0,0,0.3)] scale-[1.02]' : 'shadow-[0_8px_30px_rgba(0,0,0,0.1)]'}`}>
+                  <div className={`relative overflow-hidden rounded-[2.5rem] bg-[var(--app-surface)] border border-[var(--app-border-strong)] backdrop-blur-md transition-all duration-500 ${estaEnfocado || buscando ? 'shadow-[0_20px_50px_rgba(0,0,0,0.18)] scale-[1.02]' : 'shadow-[0_8px_30px_rgba(0,0,0,0.06)]'}`}>
                     <input
                       type="search"
                       inputMode="search"
@@ -500,12 +534,12 @@ const VendedorPisoVentasPage = () => {
                           void ejecutarBusqueda(codigo);
                         }
                       }}
-                      className="w-full bg-transparent py-7 pl-9 pr-20 text-lg font-bold text-white placeholder:text-white/20 focus:outline-none placeholder:font-semibold tracking-tight"
+                      className="w-full bg-transparent py-7 pl-9 pr-20 text-lg font-bold text-[var(--app-text)] placeholder:text-[var(--app-text-faint)] focus:outline-none placeholder:font-semibold tracking-tight"
                     />
                     <button
                       type="button"
                       onClick={() => setScannerAbierto(true)}
-                      className={`absolute right-4 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-[1.8rem] text-black bg-white shadow-lg transition-all hover:scale-105 active:scale-95`}
+                      className="absolute right-4 top-1/2 flex h-14 w-14 -translate-y-1/2 items-center justify-center rounded-[1.8rem] bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-lg transition-all hover:scale-105 active:scale-95"
                       aria-label="Escanear código"
                     >
                       <MaterialIcon icon="qr_code_scanner" className="h-6 w-6" />
@@ -518,7 +552,7 @@ const VendedorPisoVentasPage = () => {
                 <button
                   type="button"
                   onClick={() => void ejecutarBusqueda(codigo)}
-                  className="flex-1 rounded-3xl bg-white/5 border border-white/10 py-5 text-xs font-black uppercase tracking-[0.25em] text-white shadow-md transition-all hover:bg-white hover:text-black hover:shadow-xl active:scale-[0.97]"
+                  className="flex-1 rounded-3xl app-btn-primary border border-transparent py-5 text-xs font-black uppercase tracking-[0.25em] shadow-md transition-all hover:shadow-xl active:scale-[0.97]"
                 >
                   Buscar Producto
                 </button>
@@ -560,7 +594,7 @@ const VendedorPisoVentasPage = () => {
                               className={`rounded-2xl border px-4 py-2 text-xs font-bold transition-all ${
                                 sel
                                   ? "border-[var(--app-accent)] bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-md font-black"
-                                  : "border-white/10 bg-white/[0.03] text-[var(--app-text)] hover:border-white/20 hover:bg-white/[0.08]"
+                                  : "border-[var(--app-border-strong)] bg-[var(--app-bg-muted)] text-[var(--app-text)] hover:border-[var(--app-border-strong)] hover:bg-[var(--app-hover-overlay)]"
                               }`}
                             >
                               {etiqueta}
@@ -591,19 +625,19 @@ const VendedorPisoVentasPage = () => {
                         <button
                           type="button"
                           onClick={() => void seleccionarVarianteLista(row.idProductoVariante)}
-                          className="flex w-full items-center justify-between rounded-3xl bg-white/[0.02] border border-white/5 px-5 py-4 text-left transition-all hover:bg-white hover:text-black group"
+                          className="flex w-full items-center justify-between rounded-3xl bg-[var(--app-bg-muted)] border border-[var(--app-border)] px-5 py-4 text-left transition-all hover:bg-[var(--app-accent)] hover:text-[var(--app-accent-fg)] group"
                         >
                           <div className="min-w-0 flex-1">
-                            <span className="font-bold text-sm block text-white group-hover:text-black">{row.nombreProducto}</span>
-                            <span className="mt-1 block text-xs font-bold text-[var(--app-text-muted)] group-hover:text-black/70">
+                            <span className="font-bold text-sm block text-[var(--app-text)] group-hover:text-[var(--app-accent-fg)]">{row.nombreProducto}</span>
+                            <span className="mt-1 block text-xs font-bold text-[var(--app-text-muted)] group-hover:text-[var(--app-accent-fg)]/70">
                               {row.color} · {row.talla}
                             </span>
                           </div>
                           <div className="ml-4 flex flex-col items-end gap-1">
-                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${row.stockAlmacen > 0 ? 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-transparent' : 'bg-white/10 text-white/50 border border-white/5'}`}>
+                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${row.stockAlmacen > 0 ? 'bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 group-hover:bg-emerald-500 group-hover:text-white group-hover:border-transparent' : 'bg-[var(--app-bg-muted)] text-[var(--app-text-faint)] border border-[var(--app-border)]'}`}>
                               {row.stockAlmacen > 0 ? `${row.stockAlmacen} STOCK` : "SIN STOCK"}
                             </span>
-                            <span className="text-[11px] font-bold text-[var(--app-text-muted)] group-hover:text-black/60">S/{Number(row.precioUnitario).toFixed(2)}</span>
+                            <span className="text-[11px] font-bold text-[var(--app-text-muted)] group-hover:text-[var(--app-accent-fg)]/60">S/{Number(row.precioUnitario).toFixed(2)}</span>
                           </div>
                         </button>
                       </li>
@@ -619,7 +653,7 @@ const VendedorPisoVentasPage = () => {
             {catalogo && !buscando ? (
               <section className="space-y-6 rounded-[3rem] border border-[var(--app-border-strong)] bg-[var(--app-surface-glass)]/90 p-8 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl animate-fadeInRight">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6 pb-6 border-b border-[var(--app-border)]">
-                  <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-[2rem] bg-white/10 text-white border border-white/10 shadow-2xl">
+                  <div className="flex h-24 w-24 flex-shrink-0 items-center justify-center rounded-[2rem] bg-[var(--app-bg-muted)] text-[var(--app-text)] border border-[var(--app-border-strong)] shadow-2xl">
                     <MaterialIcon icon="inventory_2" className="h-10 w-10" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -641,7 +675,7 @@ const VendedorPisoVentasPage = () => {
                     Variantes Disponibles
                   </p>
                   {catalogo.variantes.length === 0 ? (
-                    <div className="rounded-3xl border-2 border-dashed border-[var(--app-border)] p-8 text-center bg-white/[0.01]">
+                    <div className="rounded-3xl border-2 border-dashed border-[var(--app-border)] p-8 text-center bg-[var(--app-bg-muted)]/40">
                       <p className="text-sm font-bold text-[var(--app-text-muted)]">
                         No hay variantes registradas para este producto.
                       </p>
@@ -659,17 +693,17 @@ const VendedorPisoVentasPage = () => {
                             disabled={disabled}
                             onClick={() => handleSeleccionarVariante(v)}
                             className={`flex flex-col items-start gap-1 overflow-hidden rounded-[1.5rem] border-2 p-4 text-left transition-all ${disabled
-                                ? "cursor-not-allowed border-white/5 bg-white/[0.01] opacity-30 text-[var(--app-text-faint)]"
+                                ? "cursor-not-allowed border-[var(--app-border)] bg-[var(--app-bg-muted)]/50 opacity-40 text-[var(--app-text-faint)]"
                                 : sel
                                   ? "border-[var(--app-accent)] bg-[var(--app-accent)] text-[var(--app-accent-fg)] shadow-xl"
-                                  : "border-white/10 bg-white/[0.03] text-[var(--app-text)] hover:border-white/20 hover:bg-white/[0.08]"
+                                  : "border-[var(--app-border-strong)] bg-[var(--app-bg-muted)] text-[var(--app-text)] hover:border-[var(--app-accent)]/40 hover:bg-[var(--app-hover-overlay)]"
                               }`}
                           >
                             <span
                               className={`inline-flex rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-widest ${
                                 sel
                                   ? "bg-[var(--app-accent-fg)]/15 text-[var(--app-accent-fg)]"
-                                  : "bg-white/10 text-white/90 border border-white/15"
+                                  : "bg-[var(--app-surface)] text-[var(--app-text)] border border-[var(--app-border-strong)]"
                               }`}
                             >
                               Talla {v.talla}
@@ -700,11 +734,11 @@ const VendedorPisoVentasPage = () => {
                       </p>
                       {stockDisponible > 0 ? (
                         <>
-                        <div className="flex items-center gap-4 bg-white/[0.04] border border-white/[0.08] p-2 rounded-[2rem]">
+                        <div className="flex items-center gap-4 bg-[var(--app-bg-muted)] border border-[var(--app-border-strong)] p-2 rounded-[2rem]">
                           <button
                             type="button"
                             onClick={() => setCantidad((c) => Math.max(1, c - 1))}
-                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white/10 hover:bg-white/20 border border-white/10 text-white shadow-sm transition-all active:scale-95"
+                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] app-btn-secondary shadow-sm transition-all active:scale-95"
                           >
                             <MaterialIcon icon="remove" className="h-6 w-6" />
                           </button>
@@ -717,7 +751,7 @@ const VendedorPisoVentasPage = () => {
                               setCantidad((c) => Math.min(stockDisponible, c + 1))
                             }
                             disabled={cantidad >= stockDisponible}
-                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] bg-white/10 hover:bg-white/20 border border-white/10 text-white shadow-sm transition-all active:scale-95 disabled:opacity-30"
+                            className="flex h-14 w-14 items-center justify-center rounded-[1.5rem] app-btn-secondary shadow-sm transition-all active:scale-95 disabled:opacity-30"
                           >
                             <MaterialIcon icon="add" className="h-6 w-6" />
                           </button>
@@ -746,7 +780,7 @@ const VendedorPisoVentasPage = () => {
                         type="button"
                         disabled={stockDisponible <= 0 || !idUbicacionAreaDestino}
                         onClick={agregarALista}
-                        className="flex w-full items-center justify-center gap-2 rounded-[1.8rem] bg-white py-4 sm:py-5 text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-widest text-black shadow-2xl transition-all hover:bg-white/90 active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="flex w-full items-center justify-center gap-2 rounded-[1.8rem] app-btn-primary py-4 sm:py-5 text-xs sm:text-sm font-black uppercase tracking-wider sm:tracking-widest shadow-2xl transition-all active:scale-[0.98] disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <MaterialIcon icon="add" className="h-4 w-4" />
                         Agregar a la lista
@@ -784,9 +818,9 @@ const VendedorPisoVentasPage = () => {
           void cargarPedidos();
           agregarToast({
             tipo: "success",
-            titulo: "Solicitudes Enviadas",
-            mensaje: "Todos los pedidos pendientes fueron enviados al almacén con éxito.",
-            autoDismissMs: 4500,
+            titulo: "Solicitudes enviadas",
+            mensaje: "El almacén ya recibió tus pedidos.",
+            autoDismissMs: 2800,
           });
         }}
       />
@@ -803,7 +837,7 @@ const VendedorPisoVentasPage = () => {
       <button
         type="button"
         onClick={scrollToTop}
-        className={`fixed bottom-24 left-8 z-[110] md:hidden flex h-12 w-12 items-center justify-center rounded-full bg-black text-white shadow-xl border border-white/20 transition-all duration-300 ${
+        className={`fixed bottom-24 left-8 z-[110] md:hidden flex h-12 w-12 items-center justify-center rounded-full app-btn-primary shadow-xl border border-transparent transition-all duration-300 ${
           showScrollTop ? "scale-100 opacity-100" : "scale-0 opacity-0 pointer-events-none"
         }`}
         aria-label="Subir"

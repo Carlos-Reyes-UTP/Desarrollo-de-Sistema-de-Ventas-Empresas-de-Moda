@@ -3,6 +3,7 @@ import { RUTAS_REPORTES } from '../config/apiConfig';
 import axios from 'axios';
 import type {
   ProductoMasVendido,
+  VarianteMasVendida,
   ReporteCategoriaData,
   FiltrosReporte,
   ResumenGeneralVentas,
@@ -60,6 +61,32 @@ export const ReporteService = {
     } catch (error: any) {
       console.error('Error al obtener productos más vendidos:', error);
       throw new Error((axios.isAxiosError(error) ? error.response?.data?.message : undefined) || 'Error al cargar los productos más vendidos');
+    }
+  },
+
+  /**
+   * Ranking de variantes (producto + color + talla) más vendidas.
+   */
+  getVariantesMasVendidas: async (filtros?: FiltrosReporte): Promise<VarianteMasVendida[]> => {
+    try {
+      const params = new URLSearchParams();
+      if (filtros?.fechaInicio) params.append('fechaInicio', formatFechaInicio(filtros.fechaInicio));
+      if (filtros?.fechaFin) params.append('fechaFin', formatFechaFin(filtros.fechaFin));
+      if (filtros?.limite) params.append('limite', filtros.limite.toString());
+      if (filtros?.idCategoriaPadre) params.append('idCategoriaPadre', filtros.idCategoriaPadre);
+
+      const url = params.toString()
+        ? `${RUTAS_REPORTES.VARIANTES_MAS_VENDIDAS}?${params.toString()}`
+        : RUTAS_REPORTES.VARIANTES_MAS_VENDIDAS;
+
+      const response = await apiClient.get<VarianteMasVendida[]>(url);
+      return response.data;
+    } catch (error: unknown) {
+      console.error('Error al obtener variantes más vendidas:', error);
+      throw new Error(
+        (axios.isAxiosError(error) ? error.response?.data?.message : undefined) ||
+          'Error al cargar las variantes más vendidas'
+      );
     }
   },
 

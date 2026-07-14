@@ -7,7 +7,6 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { useLocation } from 'react-router-dom';
 
 export type AppThemeId =
   | 'classic'
@@ -109,7 +108,6 @@ interface AppThemeContextValue {
 const AppThemeContext = createContext<AppThemeContextValue | null>(null);
 
 export function AppThemeProvider({ children }: { children: ReactNode }) {
-  const location = useLocation();
   const [themeId, setThemeId] = useState<AppThemeId>(() => {
     const stored = readStoredTheme();
     if (typeof document !== 'undefined') {
@@ -118,14 +116,8 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
     return stored;
   });
 
-  const esVendedor = useMemo(() => {
-    return location.pathname.includes('/vendedor-solicitud-almacen');
-  }, [location.pathname]);
-
-  const temaEfectivo = esVendedor ? 'dark' : themeId;
-
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', temaEfectivo);
+    document.documentElement.setAttribute('data-theme', themeId);
 
     // Sincronizar el color de la barra de título nativa de la ventana (PWA) con el tema actual
     const themeColors: Record<AppThemeId, string> = {
@@ -142,26 +134,23 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
       metaThemeColor.setAttribute('name', 'theme-color');
       document.head.appendChild(metaThemeColor);
     }
-    metaThemeColor.setAttribute('content', themeColors[temaEfectivo]);
-  }, [temaEfectivo]);
+    metaThemeColor.setAttribute('content', themeColors[themeId]);
+  }, [themeId]);
 
   const setTheme = useCallback((id: AppThemeId) => {
-    if (esVendedor) return;
     writeStoredTheme(id);
     setThemeId(id);
-  }, [esVendedor]);
+  }, []);
 
   const value = useMemo(
     () => ({
-      themeId: temaEfectivo,
+      themeId,
       setTheme,
-      themes: esVendedor
-        ? (APP_THEMES.filter((t) => t.id === 'dark') as AppThemeMeta[])
-        : APP_THEMES,
-      isDark: temaEfectivo === 'dark',
-      showMesh: temaEfectivo === 'classic',
+      themes: APP_THEMES,
+      isDark: themeId === 'dark',
+      showMesh: themeId === 'classic',
     }),
-    [temaEfectivo, setTheme, esVendedor]
+    [themeId, setTheme]
   );
 
   return (

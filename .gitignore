@@ -11,3 +11,7 @@ QA-LOGS.md
 *.cjs
 build_output.txt
 build-output.txt
+
+.superpowers/
+
+.worktrees/

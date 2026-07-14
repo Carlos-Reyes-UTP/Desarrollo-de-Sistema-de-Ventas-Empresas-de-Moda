@@ -15,6 +15,24 @@ export interface ProductoMasVendido {
   ultimaVenta?: string;
 }
 
+/** Ranking a nivel SKU / variante (producto + color + talla). */
+export interface VarianteMasVendida {
+  idProductoVariante: number;
+  idProducto: number;
+  nombreProducto: string;
+  color: string;
+  talla: string;
+  codigoIdentificacion: string;
+  cantidadVendida: number;
+  ingresosTotales: number;
+  categoria?: string;
+  categoriaPadre?: string;
+  subCategoria2?: string;
+  proveedor?: string;
+  precioPromedio: number;
+  ultimaVenta?: string;
+}
+
 export interface ReporteCategoriaData {
   idCategoria?: number;
   categoria: string;

@@ -303,6 +303,7 @@ export const RUTAS_DASHBOARD = {
 export const RUTAS_REPORTES = {
   BASE: `${API_BASE_URL}/api/admin/reportes`,
   PRODUCTOS_MAS_VENDIDOS: `${API_BASE_URL}/api/admin/reportes/productos-mas-vendidos`,
+  VARIANTES_MAS_VENDIDAS: `${API_BASE_URL}/api/admin/reportes/variantes-mas-vendidas`,
   POR_CATEGORIA: `${API_BASE_URL}/api/admin/reportes/por-categoria`,
   RESUMEN_GENERAL: `${API_BASE_URL}/api/admin/reportes/resumen-completo`,
   VENTAS_POR_PERIODO: `${API_BASE_URL}/api/admin/reportes/ventas-por-periodo`,

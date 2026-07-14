@@ -38,7 +38,7 @@ const TABS: ReportTabConfig[] = [
 
     icon: 'dashboard',
 
-    descripcion: 'KPIs del período, salud comercial y mix por categoría',
+    descripcion: 'Cómo vamos hoy y comparación entre meses',
 
   },
 
@@ -50,7 +50,7 @@ const TABS: ReportTabConfig[] = [
 
     icon: 'bar_chart',
 
-    descripcion: 'Análisis por períodos con gráficos y exportación Excel',
+    descripcion: 'Serie temporal, tickets y registro exportable',
 
   },
 
@@ -62,7 +62,7 @@ const TABS: ReportTabConfig[] = [
 
     icon: 'inventory_2',
 
-    descripcion: 'Ranking, variantes y concentración del mix',
+    descripcion: 'Ranking y variantes del mix',
 
   },
 
@@ -74,7 +74,7 @@ const TABS: ReportTabConfig[] = [
 
     icon: 'category',
 
-    descripcion: 'Drill-down por líneas y subcategorías',
+    descripcion: 'Drill-down por líneas',
 
   },
 
@@ -86,7 +86,7 @@ const TABS: ReportTabConfig[] = [
 
     icon: 'insights',
 
-    descripcion: 'Control de stock físico de productos y predicción de demanda con IA',
+    descripcion: 'Stock y predicción de demanda',
 
   },
 
@@ -172,11 +172,15 @@ const ReportesPageContent: React.FC = () => {
 
   return (
 
-    <ReportPageShell tabs={TABS} tabActiva={tabActiva} onTabChange={cambiarTab}>
-
-      {renderizarContenidoTab()}
-
-    </ReportPageShell>
+    <div
+      className={`reports-analytics app-page min-h-screen p-4 md:p-8${
+        tabActiva === 'resumen' ? ' reports-analytics--signal' : ''
+      }`}
+    >
+      <ReportPageShell tabs={TABS} tabActiva={tabActiva} onTabChange={cambiarTab}>
+        {renderizarContenidoTab()}
+      </ReportPageShell>
+    </div>
 
   );
 
@@ -236,19 +240,15 @@ const ReportesPage: React.FC = () => {
 
   return (
 
-    <div className="reports-analytics app-page min-h-screen p-4 md:p-8">
+    <ReportPeriodProvider>
 
-      <ReportPeriodProvider>
+      <ReportPageActionsProvider>
 
-        <ReportPageActionsProvider>
+        <ReportesPageContent />
 
-          <ReportesPageContent />
+      </ReportPageActionsProvider>
 
-        </ReportPageActionsProvider>
-
-      </ReportPeriodProvider>
-
-    </div>
+    </ReportPeriodProvider>
 
   );
 

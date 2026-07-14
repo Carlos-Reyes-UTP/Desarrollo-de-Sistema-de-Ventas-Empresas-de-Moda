@@ -15,6 +15,7 @@ import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.StockProductoDTO;
 import com.tienda.ropa.dto.StockVarianteDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
+import com.tienda.ropa.dto.VarianteMasVendidaDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.repository.ReporteRepository;
 
@@ -89,6 +90,29 @@ public class ReporteService {
             Long idCategoriaPadre, LocalDateTime fechaInicio, LocalDateTime fechaFin, int limite) {
         Pageable pageable = PageRequest.of(0, limite);
         return reporteRepository.findProductosMasVendidosPorCategoriaPadreYFecha(
+                idCategoriaPadre, fechaInicio, fechaFin, pageable);
+    }
+
+    public List<VarianteMasVendidaDTO> obtenerVariantesMasVendidas(int limite) {
+        Pageable pageable = PageRequest.of(0, limite);
+        return reporteRepository.findVariantesMasVendidas(pageable);
+    }
+
+    public List<VarianteMasVendidaDTO> obtenerVariantesMasVendidasPorFecha(
+            LocalDateTime fechaInicio, LocalDateTime fechaFin, int limite) {
+        Pageable pageable = PageRequest.of(0, limite);
+        return reporteRepository.findVariantesMasVendidasPorFecha(fechaInicio, fechaFin, pageable);
+    }
+
+    public List<VarianteMasVendidaDTO> obtenerVariantesMasVendidasPorCategoriaPadre(Long idCategoriaPadre, int limite) {
+        Pageable pageable = PageRequest.of(0, limite);
+        return reporteRepository.findVariantesMasVendidasPorCategoriaPadre(idCategoriaPadre, pageable);
+    }
+
+    public List<VarianteMasVendidaDTO> obtenerVariantesMasVendidasPorCategoriaPadreYFecha(
+            Long idCategoriaPadre, LocalDateTime fechaInicio, LocalDateTime fechaFin, int limite) {
+        Pageable pageable = PageRequest.of(0, limite);
+        return reporteRepository.findVariantesMasVendidasPorCategoriaPadreYFecha(
                 idCategoriaPadre, fechaInicio, fechaFin, pageable);
     }
 

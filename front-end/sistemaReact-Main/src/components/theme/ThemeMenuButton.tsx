@@ -7,7 +7,7 @@ function iconColorOnSwatch(themeId: AppThemeId): string {
 }
 
 interface ThemeMenuButtonProps {
-  variant?: 'default' | 'compact';
+  variant?: 'default' | 'compact' | 'header';
 }
 
 export const ThemeMenuButton = ({ variant = 'default' }: ThemeMenuButtonProps) => {
@@ -27,15 +27,18 @@ export const ThemeMenuButton = ({ variant = 'default' }: ThemeMenuButtonProps) =
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const panelPositionClass =
+    variant === 'compact'
+      ? 'left-full bottom-0 ml-2 w-[min(280px,calc(100vw-96px))]'
+      : variant === 'header'
+        ? 'right-0 top-full mt-2 w-[min(280px,calc(100vw-2rem))]'
+        : 'left-2 right-2 bottom-full mb-2';
+
   const themePanel = open && (
     <div
       role="listbox"
       aria-label="Seleccionar tema"
-      className={`absolute z-[60] rounded-2xl border app-theme-menu-panel shadow-xl overflow-hidden animate-fadeIn max-h-[min(320px,50vh)] overflow-y-auto ${
-        variant === 'compact'
-          ? 'left-full bottom-0 ml-2 w-[min(280px,calc(100vw-96px))]'
-          : 'left-2 right-2 bottom-full mb-2'
-      }`}
+      className={`absolute z-[60] rounded-2xl border app-theme-menu-panel shadow-xl overflow-hidden animate-fadeIn max-h-[min(320px,50vh)] overflow-y-auto ${panelPositionClass}`}
     >
       {themes.map((theme) => {
         const active = themeId === theme.id;
@@ -110,6 +113,37 @@ export const ThemeMenuButton = ({ variant = 'default' }: ThemeMenuButtonProps) =
             </span>
           </span>
           <span className="text-[10px] font-medium app-nav-rail-label">Tema</span>
+        </button>
+        {themePanel}
+      </div>
+    );
+  }
+
+  if (variant === 'header') {
+    return (
+      <div ref={containerRef} className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          title={`Tema: ${activeTheme?.label ?? 'Apariencia'}`}
+          className="flex shrink-0 items-center gap-2 rounded-xl border app-btn-secondary px-3 py-2 text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-black/20"
+        >
+          <span
+            className="flex h-5 w-5 items-center justify-center rounded-full"
+            style={
+              activeTheme
+                ? {
+                    backgroundColor: activeTheme.swatch,
+                    color: iconColorOnSwatch(activeTheme.id),
+                  }
+                : undefined
+            }
+          >
+            <MaterialIcon icon={activeTheme?.icon ?? 'palette'} className="h-3.5 w-3.5" />
+          </span>
+          <span className="hidden sm:inline">{activeTheme?.label ?? 'Tema'}</span>
         </button>
         {themePanel}
       </div>

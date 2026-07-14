@@ -103,10 +103,10 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
       >
         {/* Handle + Header */}
         <div className="flex-shrink-0 px-6 pt-5 pb-4">
-          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/10" />
+          <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--app-border-strong)]" />
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-black tracking-tight text-white">Resumen del Pedido</h2>
+              <h2 className="text-xl font-black tracking-tight text-[var(--app-text)]">Resumen del Pedido</h2>
               <p className="text-[11px] font-semibold text-[var(--app-text-muted)] mt-0.5">
                 {items.length} {items.length === 1 ? "producto" : "productos"} en la lista
               </p>
@@ -115,7 +115,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
               type="button"
               onClick={handleClose}
               disabled={enviando}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-[var(--app-text-muted)] transition hover:bg-white/20 hover:text-white disabled:opacity-40"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] transition hover:bg-[var(--app-hover-overlay)] hover:text-[var(--app-text)] disabled:opacity-40"
               aria-label="Cerrar"
             >
               <MaterialIcon icon="close" className="h-5 w-5" />
@@ -130,7 +130,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 min-h-0">
           {items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <MaterialIcon icon="inventory_2" className="h-12 w-12 text-white/10 mb-4" />
+              <MaterialIcon icon="inventory_2" className="h-12 w-12 text-[var(--app-text-faint)] mb-4" />
               <p className="text-sm font-semibold text-[var(--app-text-muted)]">La lista está vacía</p>
             </div>
           ) : (
@@ -151,7 +151,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
 
           {/* Resumen de progreso mientras envía */}
           {hayEstados && (
-            <div className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 mt-2">
+            <div className="rounded-2xl border border-[var(--app-border-strong)] bg-[var(--app-bg-muted)] px-4 py-3 mt-2">
               <p className="text-[11px] font-bold text-[var(--app-text-muted)] uppercase tracking-widest">
                 Progreso: {okCount}/{items.length} enviados
                 {errCount > 0 && (
@@ -173,7 +173,7 @@ export function BandejaSolicitudSheet({ open, onClose, onEnvioCompleto }: Props)
             type="button"
             onClick={() => void enviarSecuencial()}
             disabled={enviando || items.length === 0}
-            className="flex w-full items-center justify-center gap-3 rounded-[1.8rem] bg-white py-5 text-sm font-black uppercase tracking-widest text-black shadow-2xl transition-all hover:bg-neutral-100 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex w-full items-center justify-center gap-3 rounded-[1.8rem] app-btn-primary py-5 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {enviando ? (
               <>
@@ -209,27 +209,27 @@ function ItemRow({
     <div
       className={`flex items-start gap-3 rounded-2xl border p-4 transition-all ${
         estado === "ok"
-          ? "border-emerald-500/20 bg-emerald-500/10 text-white"
+          ? "border-emerald-500/20 bg-emerald-500/10 text-[var(--app-text)]"
           : estado === "error"
-          ? "border-red-500/20 bg-red-500/10 text-white"
+          ? "border-red-500/20 bg-red-500/10 text-[var(--app-text)]"
           : estado === "enviando"
-          ? "border-white/10 bg-white/5 opacity-80"
-          : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+          ? "border-[var(--app-border-strong)] bg-[var(--app-bg-muted)] opacity-80"
+          : "border-[var(--app-border-strong)] bg-[var(--app-bg-muted)]/60 hover:bg-[var(--app-bg-muted)]"
       }`}
     >
       {/* Ícono de estado */}
       <div className="mt-0.5 flex-shrink-0">
         {estado === "ok" && <MaterialIcon icon="check_circle" className="h-5 w-5 text-emerald-400" />}
         {estado === "error" && <MaterialIcon icon="cancel" className="h-5 w-5 text-red-400" />}
-        {estado === "enviando" && <MaterialIcon icon="sync" className="h-5 w-5 animate-spin text-white/50" />}
+        {estado === "enviando" && <MaterialIcon icon="sync" className="h-5 w-5 animate-spin text-[var(--app-text-faint)]" />}
         {estado === "pendiente" && (
-          <div className="h-5 w-5 rounded-full border-2 border-white/20" />
+          <div className="h-5 w-5 rounded-full border-2 border-[var(--app-border-strong)]" />
         )}
       </div>
 
       {/* Contenido */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-white leading-snug truncate">
+        <p className="text-sm font-bold text-[var(--app-text)] leading-snug truncate">
           {item.nombreProducto}
         </p>
         <p className="text-[11px] font-bold text-[var(--app-text-muted)] mt-0.5">
@@ -250,7 +250,7 @@ function ItemRow({
           type="button"
           onClick={() => onQuitar(item.key)}
           disabled={disabled}
-          className="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl text-white/40 transition hover:bg-red-500/20 hover:text-red-400 disabled:opacity-30"
+          className="flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-xl text-[var(--app-text-faint)] transition hover:bg-red-500/20 hover:text-red-400 disabled:opacity-30"
           aria-label="Quitar"
         >
           <MaterialIcon icon="delete" className="h-4 w-4" />

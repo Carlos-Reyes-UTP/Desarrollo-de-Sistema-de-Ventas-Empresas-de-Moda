@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.tienda.ropa.dto.ProductoMasVendidoDTO;
+import com.tienda.ropa.dto.VarianteMasVendidaDTO;
 import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
@@ -341,6 +342,131 @@ public interface ReporteRepository extends JpaRepository<DetalleVenta, Long> {
                      "ORDER BY SUM(dv.cantidad) DESC")
        List<ProductoMasVendidoDTO> findProductosMasVendidosPorCategoriaPadreYFecha(
                      @Param("idCategoriaPadre") Long idCategoriaPadre, 
+                     @Param("fechaInicio") LocalDateTime fechaInicio,
+                     @Param("fechaFin") LocalDateTime fechaFin,
+                     Pageable pageable);
+
+       // Ranking por variante (color + talla), no por producto base
+       @Query("SELECT new com.tienda.ropa.dto.VarianteMasVendidaDTO(" +
+                     "pv.idProductoVariante, " +
+                     "p.idProducto, " +
+                     "p.nombre, " +
+                     "pv.color, " +
+                     "pv.talla, " +
+                     "COALESCE(pv.codigoBarras, COALESCE(pv.sku, p.codigoIdentificacion)), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
+                     "prov.nombre, " +
+                     "AVG(dv.precioUnitario), " +
+                     "MAX(v.fechaVenta)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
+                     "JOIN p.proveedor prov " +
+                     "JOIN dv.venta v " +
+                     "GROUP BY pv.idProductoVariante, p.idProducto, p.nombre, pv.color, pv.talla, " +
+                     "pv.codigoBarras, pv.sku, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<VarianteMasVendidaDTO> findVariantesMasVendidas(Pageable pageable);
+
+       @Query("SELECT new com.tienda.ropa.dto.VarianteMasVendidaDTO(" +
+                     "pv.idProductoVariante, " +
+                     "p.idProducto, " +
+                     "p.nombre, " +
+                     "pv.color, " +
+                     "pv.talla, " +
+                     "COALESCE(pv.codigoBarras, COALESCE(pv.sku, p.codigoIdentificacion)), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
+                     "prov.nombre, " +
+                     "AVG(dv.precioUnitario), " +
+                     "MAX(v.fechaVenta)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
+                     "JOIN p.proveedor prov " +
+                     "JOIN dv.venta v " +
+                     "WHERE v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     "GROUP BY pv.idProductoVariante, p.idProducto, p.nombre, pv.color, pv.talla, " +
+                     "pv.codigoBarras, pv.sku, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<VarianteMasVendidaDTO> findVariantesMasVendidasPorFecha(
+                     @Param("fechaInicio") LocalDateTime fechaInicio,
+                     @Param("fechaFin") LocalDateTime fechaFin,
+                     Pageable pageable);
+
+       @Query("SELECT new com.tienda.ropa.dto.VarianteMasVendidaDTO(" +
+                     "pv.idProductoVariante, " +
+                     "p.idProducto, " +
+                     "p.nombre, " +
+                     "pv.color, " +
+                     "pv.talla, " +
+                     "COALESCE(pv.codigoBarras, COALESCE(pv.sku, p.codigoIdentificacion)), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
+                     "prov.nombre, " +
+                     "AVG(dv.precioUnitario), " +
+                     "MAX(v.fechaVenta)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
+                     "JOIN p.proveedor prov " +
+                     "JOIN dv.venta v " +
+                     "WHERE cp.idCategoria = :idCategoriaPadre " +
+                     "GROUP BY pv.idProductoVariante, p.idProducto, p.nombre, pv.color, pv.talla, " +
+                     "pv.codigoBarras, pv.sku, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<VarianteMasVendidaDTO> findVariantesMasVendidasPorCategoriaPadre(
+                     @Param("idCategoriaPadre") Long idCategoriaPadre,
+                     Pageable pageable);
+
+       @Query("SELECT new com.tienda.ropa.dto.VarianteMasVendidaDTO(" +
+                     "pv.idProductoVariante, " +
+                     "p.idProducto, " +
+                     "p.nombre, " +
+                     "pv.color, " +
+                     "pv.talla, " +
+                     "COALESCE(pv.codigoBarras, COALESCE(pv.sku, p.codigoIdentificacion)), " +
+                     "SUM(dv.cantidad), " +
+                     "SUM(dv.precioUnitario * dv.cantidad), " +
+                     "COALESCE(cp.nombre, ''), " +
+                     "COALESCE(c.nombre, ''), " +
+                     "COALESCE(sc2.nombre, ''), " +
+                     "prov.nombre, " +
+                     "AVG(dv.precioUnitario), " +
+                     "MAX(v.fechaVenta)) " +
+                     "FROM DetalleVenta dv " +
+                     "JOIN dv.productoVariante pv " +
+                     "JOIN pv.producto p " +
+                     "LEFT JOIN p.categoriaPadre cp " +
+                     "LEFT JOIN p.categoria c " +
+                     "LEFT JOIN p.subCategoria2 sc2 " +
+                     "JOIN p.proveedor prov " +
+                     "JOIN dv.venta v " +
+                     "WHERE cp.idCategoria = :idCategoriaPadre AND v.fechaVenta BETWEEN :fechaInicio AND :fechaFin " +
+                     "GROUP BY pv.idProductoVariante, p.idProducto, p.nombre, pv.color, pv.talla, " +
+                     "pv.codigoBarras, pv.sku, p.codigoIdentificacion, cp.nombre, c.nombre, sc2.nombre, prov.nombre " +
+                     "ORDER BY SUM(dv.cantidad) DESC")
+       List<VarianteMasVendidaDTO> findVariantesMasVendidasPorCategoriaPadreYFecha(
+                     @Param("idCategoriaPadre") Long idCategoriaPadre,
                      @Param("fechaInicio") LocalDateTime fechaInicio,
                      @Param("fechaFin") LocalDateTime fechaFin,
                      Pageable pageable);

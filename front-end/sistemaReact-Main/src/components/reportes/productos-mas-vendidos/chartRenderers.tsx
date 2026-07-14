@@ -12,6 +12,9 @@ interface TooltipProps<T> {
 
 interface ProductoTooltipData {
   nombreProducto: string;
+  etiqueta?: string;
+  color?: string;
+  talla?: string;
   categoriaPadre?: string;
   categoria?: string;
   subCategoria2?: string;
@@ -29,13 +32,18 @@ interface VariantesTooltipData {
 export const CustomTooltip = ({ active, payload }: TooltipProps<ProductoTooltipData>) => {
   if (!active || !payload?.length) return null;
   const data = payload[0].payload;
+  const title =
+    data.etiqueta ||
+    (data.color && data.talla
+      ? `${data.nombreProducto} · ${data.color} · ${data.talla}`
+      : data.nombreProducto);
   const rows = [
     { label: 'Categoría', value: data.categoriaPadre || 'General' },
     { label: 'Sub-categoría', value: data.categoria || '—' },
     ...(data.subCategoria2 ? [{ label: 'Detalle', value: data.subCategoria2 }] : []),
     { label: 'Vendido', value: `${data.cantidadVendida.toLocaleString('es-PE')} uds`, emphasize: true },
   ];
-  return <ReportChartTooltip title={data.nombreProducto} rows={rows} />;
+  return <ReportChartTooltip title={title} rows={rows} />;
 };
 
 export const CustomTooltipVariantes = ({ active, payload }: TooltipProps<VariantesTooltipData>) => {

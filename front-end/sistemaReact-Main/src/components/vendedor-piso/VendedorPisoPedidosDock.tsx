@@ -117,7 +117,7 @@ export const VendedorPisoPedidosDock = ({
 
     const timer = setTimeout(() => {
       setHasNewResponse(false);
-    }, 8000);
+    }, 4000);
 
     return () => clearTimeout(timer);
   }, [pedidos, onNuevaRespuestaAlmacen]);
@@ -215,7 +215,7 @@ export const VendedorPisoPedidosDock = ({
             type="button"
             onClick={() => setShowConfig(!showConfig)}
             className={`rounded-xl p-2 transition-all active:scale-95 ${
-              showConfig ? "bg-white text-black font-bold shadow-md" : "text-[var(--app-text-muted)] hover:bg-white/10 hover:text-white"
+              showConfig ? "app-btn-primary font-bold shadow-md" : "text-[var(--app-text-muted)] hover:bg-[var(--app-hover-overlay)] hover:text-[var(--app-text)]"
             }`}
             aria-label="Configuración de sonido de notificaciones"
           >
@@ -225,7 +225,7 @@ export const VendedorPisoPedidosDock = ({
           <button
             type="button"
             onClick={cerrar}
-            className="rounded-xl p-2 text-[var(--app-text-muted)] transition-all hover:bg-white/10 hover:text-white"
+            className="rounded-xl p-2 text-[var(--app-text-muted)] transition-all hover:bg-[var(--app-hover-overlay)] hover:text-[var(--app-text)]"
             aria-label="Cerrar panel de pedidos"
           >
             <MaterialIcon icon="close" className="h-4 w-4" />
@@ -235,7 +235,7 @@ export const VendedorPisoPedidosDock = ({
 
       {/* PANEL DE AUDIO GLASSMORPHIC */}
       {showConfig && (
-        <div className="relative z-10 shrink-0 border-b border-[var(--app-border)] bg-white/[0.02] p-3.5 animate-fadeIn">
+        <div className="relative z-10 shrink-0 border-b border-[var(--app-border)] bg-[var(--app-bg-muted)]/50 p-3.5 animate-fadeIn">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-[var(--app-text-faint)]">
               Tema de Sonido
@@ -261,8 +261,8 @@ export const VendedorPisoPedidosDock = ({
                   }}
                   className={`flex items-center gap-1.5 justify-center px-2 py-2 rounded-xl border text-[11px] font-bold transition-all active:scale-[0.98] ${
                     active
-                      ? "bg-white border-white text-black shadow-md font-black"
-                      : "bg-white/[0.04] border-white/[0.08] text-[var(--app-text-muted)] hover:bg-white/[0.1] hover:text-white"
+                      ? "app-btn-primary border-transparent shadow-md font-black"
+                      : "bg-[var(--app-bg-muted)] border-[var(--app-border-strong)] text-[var(--app-text-muted)] hover:bg-[var(--app-hover-overlay)] hover:text-[var(--app-text)]"
                   }`}
                 >
                   {theme.icon}
@@ -295,7 +295,7 @@ export const VendedorPisoPedidosDock = ({
                       ? p.estado === "ATENDIDO" 
                         ? "border-emerald-500/30 bg-emerald-500/10 shadow-[0_4px_15px_rgba(16,185,129,0.08)]" 
                         : "border-red-500/30 bg-red-500/10 shadow-[0_4px_15px_rgba(239,68,68,0.08)]"
-                      : "border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06]"
+                      : "border-[var(--app-border)] bg-[var(--app-bg-muted)]/60 hover:bg-[var(--app-bg-muted)]"
                   }`}
                 >
                   <div className="flex items-start gap-2">
@@ -309,13 +309,13 @@ export const VendedorPisoPedidosDock = ({
                         <span
                           className={`rounded-md px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide ${
                             p.tipoSolicitud === "VENTA"
-                              ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                              : "bg-white/10 text-white/80 border border-white/5"
+                              ? "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+                              : "bg-[var(--app-bg-muted)] text-[var(--app-text-muted)] border border-[var(--app-border)]"
                           }`}
                         >
                           {etiquetaTipo(p.tipoSolicitud)}
                         </span>
-                        <span className="text-white/70">
+                        <span className="text-[var(--app-text-muted)]">
                           {p.color} · Talla {p.talla} · Cant. {p.cantidad}
                         </span>
                         {hora ? (
@@ -325,9 +325,9 @@ export const VendedorPisoPedidosDock = ({
                       <p
                         className={`mt-1 text-[11px] font-black uppercase tracking-wide ${
                           p.estado === "ATENDIDO"
-                            ? "text-emerald-400"
+                            ? "text-emerald-500"
                             : p.estado === "CANCELADO"
-                              ? "text-red-400"
+                              ? "text-red-500"
                               : "text-[var(--app-text-muted)]"
                         }`}
                       >
@@ -338,7 +338,7 @@ export const VendedorPisoPedidosDock = ({
                           type="button"
                           onClick={() => void onCancelarPedido(p.idSolicitud)}
                           disabled={cancelandoSolicitudId === p.idSolicitud}
-                          className="mt-2 rounded-xl border border-white/10 bg-white/5 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-white/80 transition-all active:scale-[0.97] disabled:opacity-50"
+                          className="mt-2 rounded-xl border border-[var(--app-border-strong)] bg-[var(--app-surface)] hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-[var(--app-text-muted)] transition-all active:scale-[0.97] disabled:opacity-50"
                         >
                           {cancelandoSolicitudId === p.idSolicitud ? "Cancelando…" : "Cancelar pedido"}
                         </button>
@@ -366,15 +366,15 @@ export const VendedorPisoPedidosDock = ({
           ? "Cerrar panel de solicitudes a almacén"
           : "Abrir panel de solicitudes a almacén"
       }
-      className={`relative flex h-14 min-w-14 items-center justify-center gap-1 rounded-2xl border px-3 text-white shadow-lg transition-all hover:bg-neutral-800 active:scale-[0.98] ${
-        abierto ? "border-white/20 bg-neutral-800" : "border-white/10 bg-neutral-950"
-      } ${hasNewResponse ? "ring-2 ring-offset-2 ring-emerald-400/90 ring-offset-neutral-900" : ""}`}
+      className={`relative flex h-14 min-w-14 items-center justify-center gap-1 rounded-2xl border px-3 app-btn-primary shadow-lg transition-all active:scale-[0.98] ${
+        abierto ? "opacity-95" : ""
+      } ${hasNewResponse ? "ring-2 ring-offset-2 ring-emerald-400/90 ring-offset-[var(--app-layout-bg)]" : ""}`}
     >
       <div className="relative z-10 flex items-center gap-1">
         <MaterialIcon icon="notifications" className="h-6 w-6 shrink-0" />
         {abierto ? <MaterialIcon icon="expand_more" className="h-4 w-4 shrink-0 opacity-80" aria-hidden /> : null}
         {ordenados.length > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-black animate-bounce-in">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--app-surface)] px-1 text-[10px] font-bold text-[var(--app-text)] border border-[var(--app-border-strong)] animate-bounce-in">
             {pendientes > 0 ? (pendientes > 9 ? "9+" : pendientes) : ordenados.length > 9 ? "9+" : ordenados.length}
           </span>
         )}

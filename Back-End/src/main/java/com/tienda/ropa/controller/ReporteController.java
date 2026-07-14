@@ -26,6 +26,7 @@ import com.tienda.ropa.dto.ReportePorCategoriaDTO;
 import com.tienda.ropa.dto.StockProductoDTO;
 import com.tienda.ropa.dto.StockVarianteDTO;
 import com.tienda.ropa.dto.TallaProductoDTO;
+import com.tienda.ropa.dto.VarianteMasVendidaDTO;
 import com.tienda.ropa.dto.VariantesPorColorDTO;
 import com.tienda.ropa.service.PrediccionIAService;
 import com.tienda.ropa.service.ReporteService;
@@ -73,6 +74,32 @@ public class ReporteController {
                 }
             }
             return ResponseEntity.ok(productos);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/variantes-mas-vendidas")
+    public ResponseEntity<List<VarianteMasVendidaDTO>> obtenerVariantesMasVendidas(
+            @RequestParam(defaultValue = "500") int limite,
+            @RequestParam(required = false) Long idCategoriaPadre,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaInicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fechaFin) {
+        try {
+            List<VarianteMasVendidaDTO> variantes;
+            if (fechaInicio != null && fechaFin != null) {
+                if (idCategoriaPadre != null) {
+                    variantes = reporteService.obtenerVariantesMasVendidasPorCategoriaPadreYFecha(
+                            idCategoriaPadre, fechaInicio, fechaFin, limite);
+                } else {
+                    variantes = reporteService.obtenerVariantesMasVendidasPorFecha(fechaInicio, fechaFin, limite);
+                }
+            } else if (idCategoriaPadre != null) {
+                variantes = reporteService.obtenerVariantesMasVendidasPorCategoriaPadre(idCategoriaPadre, limite);
+            } else {
+                variantes = reporteService.obtenerVariantesMasVendidas(limite);
+            }
+            return ResponseEntity.ok(variantes);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }

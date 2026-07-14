@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MaterialIcon, SectionHeader, TableSkeleton } from '@/shared/ui';
 import { DashboardPanel } from '@/shared/ui/dashboard/DashboardPanel';
 import { ProductoVarianteService } from '@/services/ProductoVarianteService';
@@ -9,6 +9,9 @@ import type { PrediccionIARequest, StockProducto, StockVariante } from '@/types/
 import * as XLSX from 'xlsx';
 import AppModal from '@/shared/ui/AppModal';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
+
+/** Evita reintentos automáticos en bucle cuando la API responde 4xx/5xx */
+const COOLDOWN_PREDICCION_MS = 60_000;
 
 const PrediccionVentas: React.FC = () => {
   const { usuario } = useAuth();
@@ -40,6 +43,7 @@ const PrediccionVentas: React.FC = () => {
   const [procesandoIA, setProcesandoIA] = useState<boolean>(false);
   const [paginaIA, setPaginaIA] = useState<number>(1);
   const [ordenDemanda, setOrdenDemanda] = useState<'mayor_demanda' | 'menor_demanda' | 'producto' | 'stock'>('mayor_demanda');
+  const ultimoIntentoPrediccionRef = useRef<number>(0);
 
 
   const { tieneRol } = useAuth();
@@ -74,8 +78,19 @@ const PrediccionVentas: React.FC = () => {
   });
 
   // Generar sugerencias llamando al microservicio de IA por lote
-  const handleGenerarSugerencias = async () => {
+  // forzar=true: clic manual / post-entrenamiento (ignora cooldown)
+  const handleGenerarSugerencias = async (forzar = false) => {
+    const ahora = Date.now();
+    if (
+      !forzar &&
+      ultimoIntentoPrediccionRef.current > 0 &&
+      ahora - ultimoIntentoPrediccionRef.current < COOLDOWN_PREDICCION_MS
+    ) {
+      return;
+    }
+
     try {
+      ultimoIntentoPrediccionRef.current = Date.now();
       setProcesandoIA(true);
       setStatusIA('Procesando...');
       setPredicciones({});
@@ -139,11 +154,28 @@ const PrediccionVentas: React.FC = () => {
     }
   };
 
-  // Ejecutar predicción automática al entrar a la tab de demanda si hay variantes y no se ha predicho aún
+  // Ejecutar predicción automática al entrar a la tab de demanda si hay variantes y no se ha predicho aún.
+  // Tras un fallo, no reintenta en bucle: exige 1 minuto de cooldown entre intentos automáticos.
   useEffect(() => {
-    if (subTabActiva === 'demanda' && todasLasVariantes.length > 0 && Object.keys(predicciones).length === 0 && !procesandoIA) {
-      handleGenerarSugerencias();
+    if (
+      subTabActiva !== 'demanda' ||
+      todasLasVariantes.length === 0 ||
+      Object.keys(predicciones).length > 0 ||
+      procesandoIA
+    ) {
+      return;
     }
+
+    const ahora = Date.now();
+    const enCooldown =
+      ultimoIntentoPrediccionRef.current > 0 &&
+      ahora - ultimoIntentoPrediccionRef.current < COOLDOWN_PREDICCION_MS;
+
+    if (enCooldown) {
+      return;
+    }
+
+    void handleGenerarSugerencias(false);
   }, [subTabActiva, todasLasVariantes, predicciones, procesandoIA]);
 
   // Cargar métricas del modelo al activar la subpestaña de demanda
@@ -224,7 +256,7 @@ const PrediccionVentas: React.FC = () => {
 
         // Disparar predicción automáticamente al terminar de entrenar
         setTimeout(() => {
-          handleGenerarSugerencias();
+          void handleGenerarSugerencias(true);
         }, 800);
       } else {
         setStatusIA('Error al reentrenar el modelo');
@@ -263,7 +295,7 @@ const PrediccionVentas: React.FC = () => {
 
         // Disparar predicción automáticamente al terminar de optimizar
         setTimeout(() => {
-          handleGenerarSugerencias();
+          void handleGenerarSugerencias(true);
         }, 800);
       } else {
         setStatusIA('Error al optimizar el modelo');
@@ -936,7 +968,7 @@ const PrediccionVentas: React.FC = () => {
 
                   <button
                     type="button"
-                    onClick={handleGenerarSugerencias}
+                    onClick={() => void handleGenerarSugerencias(true)}
                     disabled={procesandoIA || variantes.length === 0}
                     className="px-5 py-2.5 rounded-xl bg-[var(--app-accent)] hover:bg-[color-mix(in_srgb,var(--app-accent)_85%,black)] text-white font-black text-xs uppercase tracking-widest transition-all shadow-md shadow-[color-mix(in_srgb,var(--app-accent)_15%,transparent)] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >

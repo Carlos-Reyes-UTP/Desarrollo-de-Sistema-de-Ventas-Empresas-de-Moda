@@ -1,6 +1,6 @@
-import type { ReportInsightResult } from '@/utils/reportInsights';
+import type { ReactNode } from 'react';
+import { MaterialIcon } from '@/shared/ui';
 import { DashboardMetricCard } from '@/shared/ui/dashboard/DashboardMetricCard';
-import { ReportHealthGaugeCompact } from '@/components/reportes/layout/ReportHealthGaugeCompact';
 
 const formatterMonedaPE = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
@@ -17,66 +17,57 @@ export interface ResumenMetricasInput {
 
 interface ReportMetricStripProps {
   resumen: ResumenMetricasInput;
-  insights: ReportInsightResult;
   etiquetaPeriodo: string;
+  deltaVsLabel?: string;
 }
 
-function subConDelta(etiqueta: string, crecimiento: number | undefined): string {
-  const base = etiqueta.toLowerCase();
-  if (crecimiento === undefined || crecimiento === 0) return base;
-  const sign = crecimiento >= 0 ? '+' : '';
-  return `${base} · ${sign}${crecimiento.toFixed(1)}% vs anterior`;
+function DeltaBadge({ pct }: { pct: number }) {
+  if (pct === 0) {
+    return <span className="report-delta-chip report-delta-chip--flat">0%</span>;
+  }
+  const up = pct > 0;
+  return (
+    <span className={`report-delta-chip ${up ? 'report-delta-chip--up' : 'report-delta-chip--down'}`}>
+      <MaterialIcon icon={up ? 'trending_up' : 'trending_down'} className="w-3.5 h-3.5" />
+      {up ? '+' : ''}
+      {pct.toFixed(1)}%
+    </span>
+  );
 }
 
-export const ReportMetricStrip = ({ resumen, insights, etiquetaPeriodo }: ReportMetricStripProps) => {
+export const ReportMetricStrip = ({
+  resumen,
+  etiquetaPeriodo,
+  deltaVsLabel = 'período anterior',
+}: ReportMetricStripProps) => {
   const fmt = (v: number) => formatterMonedaPE.format(v);
 
+  const card = (label: string, value: ReactNode, icon: string, crecimiento: number) => (
+    <div className="report-quick-kpi">
+      <DashboardMetricCard
+        label={label}
+        value={value}
+        icon={icon}
+        iconWrapClassName="report-metric-kpi-icon"
+        iconClassName="report-metric-kpi-icon__glyph"
+        sub={`vs ${deltaVsLabel} · ${etiquetaPeriodo}`}
+      />
+      <div className="report-quick-kpi__delta">
+        <DeltaBadge pct={crecimiento} />
+      </div>
+    </div>
+  );
+
   return (
-    <section className="reports-analytics__metric-strip" aria-label="Métricas del período">
-      <div className="report-metric-strip__health">
-        <ReportHealthGaugeCompact
-          score={insights.score}
-          headline={insights.headline}
-          summary={insights.summary}
-        />
-      </div>
-      <div className="report-metric-strip__kpis">
-        <div className="report-metric-strip__kpi-grid">
-          <DashboardMetricCard
-            label="Ingresos"
-            value={fmt(resumen.totalVentas)}
-            icon="payments"
-            iconWrapClassName="report-metric-kpi-icon"
-            iconClassName="report-metric-kpi-icon__glyph"
-            sub={subConDelta(
-              etiquetaPeriodo,
-              resumen.crecimientoVentas !== 0 ? resumen.crecimientoVentas : undefined
-            )}
-          />
-          <DashboardMetricCard
-            label="Transacciones"
-            value={resumen.totalOrdenes.toLocaleString('es-PE')}
-            icon="receipt_long"
-            iconWrapClassName="report-metric-kpi-icon"
-            iconClassName="report-metric-kpi-icon__glyph"
-            sub={subConDelta(
-              etiquetaPeriodo,
-              resumen.crecimientoOrdenes !== 0 ? resumen.crecimientoOrdenes : undefined
-            )}
-          />
-          <DashboardMetricCard
-            label="Ticket prom."
-            value={fmt(resumen.ticketPromedio)}
-            icon="trending_up"
-            iconWrapClassName="report-metric-kpi-icon"
-            iconClassName="report-metric-kpi-icon__glyph"
-            sub={subConDelta(
-              etiquetaPeriodo,
-              resumen.crecimientoTicket !== 0 ? resumen.crecimientoTicket : undefined
-            )}
-          />
-        </div>
-      </div>
+    <section className="report-metric-strip__kpi-grid" aria-label="Métricas del período">
+      {card('Ingresos', fmt(resumen.totalVentas), 'payments', resumen.crecimientoVentas)}
+      {card(
+        'Transacciones',
+        resumen.totalOrdenes.toLocaleString('es-PE'),
+        'receipt_long',
+        resumen.crecimientoOrdenes
+      )}
+      {card('Ticket prom.', fmt(resumen.ticketPromedio), 'trending_up', resumen.crecimientoTicket)}
     </section>
   );
 };

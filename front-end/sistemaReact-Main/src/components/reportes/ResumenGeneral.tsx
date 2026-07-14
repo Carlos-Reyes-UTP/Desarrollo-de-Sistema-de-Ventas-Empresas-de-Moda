@@ -5,21 +5,32 @@ import { ReporteService } from '@/services/ReporteService';
 import { VentaService } from '@/services/VentaService';
 import type { Venta } from '@/types/Venta';
 import type { ReporteCategoriaData } from '@/types/ReporteVentas';
-import { AlertModal, ChartSkeleton, MetricCardsSkeleton, PageActionButton } from '@/shared/ui';
+import { AlertModal, ChartSkeleton, PageActionButton } from '@/shared/ui';
 import { useReportPeriodContext } from '@/components/reportes/context/ReportPeriodContext';
 import { useReportPageActions } from '@/components/reportes/context/ReportPageActionsContext';
 import { ReportCategoryBreakdown } from '@/components/reportes/layout/ReportCategoryBreakdown';
 import { ReportDriverCards } from '@/components/reportes/layout/ReportDriverCards';
-import { ReportMetricStrip } from '@/components/reportes/layout/ReportMetricStrip';
+import { ReportSignalMatrix } from '@/components/reportes/layout/ReportSignalMatrix';
+import { ReportSignalPanel } from '@/components/reportes/layout/ReportSignalPanel';
 import { ReportTrendPanel } from '@/components/reportes/layout/ReportTrendPanel';
+import { ReportInsightBanner } from '@/components/reportes/layout/ReportInsightBanner';
+import { ReportCompareMonthsChart } from '@/components/reportes/layout/ReportCompareMonthsChart';
 import {
   calcularMetricasComparacionPeriodo,
+  filtrarVentasEnRango,
   filtrarVentasPorPeriodo,
   procesarDatosGraficoPorPeriodo,
   rangoPeriodoAnterior,
   tituloGraficoPeriodo,
 } from '@/utils/dashboardPeriodo';
 import { generarInsightsResumen } from '@/utils/reportInsights';
+import {
+  compararMeses,
+  etiquetaMesUi,
+  pctCrecimientoComparar,
+  type ResultadoCompararMeses,
+} from '@/utils/reportesCompararMeses';
+import { buildSignalFromCompareDeltas, buildSignalFromScore } from '@/utils/reportSignal';
 
 interface ResumenVentasLocal {
   totalVentas: number;
@@ -31,9 +42,16 @@ interface ResumenVentasLocal {
   crecimientoOrdenes: number;
   crecimientoClientes: number;
   crecimientoTicket: number;
+  crecimientoProductos: number;
 }
 
 const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+const contarProductosVendidos = (ventas: Venta[]) =>
+  ventas.reduce((sum, v) => {
+    if (v.detalles?.length) return sum + v.detalles.reduce((d, det) => d + det.cantidad, 0);
+    return sum;
+  }, 0);
 
 const buildDayData = (ventas: Venta[]) => {
   const totals = new Array(7).fill(0);
@@ -49,11 +67,20 @@ const buildDayData = (ventas: Venta[]) => {
 };
 
 const ResumenGeneral: React.FC = () => {
-  const { periodo, etiqueta, filtrosFecha } = useReportPeriodContext();
+  const {
+    periodo,
+    etiqueta,
+    filtrosFecha,
+    modo,
+    mesBase,
+    mesComparar,
+    mesesIguales,
+  } = useReportPeriodContext();
   const { setActions } = useReportPageActions();
   const [resumen, setResumen] = useState<ResumenVentasLocal | null>(null);
   const [chartPoints, setChartPoints] = useState<Array<{ label: string; ventas: number }>>([]);
   const [allVentas, setAllVentas] = useState<Venta[]>([]);
+  const [comparativa, setComparativa] = useState<ResultadoCompararMeses | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [alertModal, setAlertModal] = useState<{
@@ -67,46 +94,76 @@ const ResumenGeneral: React.FC = () => {
       setLoading(true);
       setError(null);
 
-      const { inicio: inicioAnterior } = rangoPeriodoAnterior(periodo);
-      const fechaInicioExt = inicioAnterior.toISOString().split('T')[0];
-      const todasLasVentas = await VentaService.obtenerTodasVentas(fechaInicioExt, filtrosFecha.fechaFin);
+      let fechaInicioExt: string;
+      let fechaFinExt: string;
+
+      if (modo === 'comparar') {
+        fechaInicioExt = filtrosFecha.fechaInicio!;
+        fechaFinExt = filtrosFecha.fechaFin!;
+      } else {
+        const { inicio: inicioAnterior } = rangoPeriodoAnterior(periodo);
+        fechaInicioExt = inicioAnterior.toISOString().split('T')[0];
+        fechaFinExt = filtrosFecha.fechaFin!;
+      }
+
+      const todasLasVentas = await VentaService.obtenerTodasVentas(fechaInicioExt, fechaFinExt);
       if (!Array.isArray(todasLasVentas)) throw new Error('No se pudieron obtener datos de ventas');
 
-      setAllVentas(todasLasVentas as Venta[]);
+      const ventas = todasLasVentas as Venta[];
+      setAllVentas(ventas);
 
-      const ventasPeriodo = filtrarVentasPorPeriodo(todasLasVentas as Venta[], periodo);
-      const totalVentas = ventasPeriodo.reduce((sum, v) => sum + (v.totalVentas || 0), 0);
-      const totalOrdenes = ventasPeriodo.length;
-      const ticketPromedio = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
-      const productosVendidos = ventasPeriodo.reduce((sum, v) => {
-        if (v.detalles?.length) return sum + v.detalles.reduce((d, det) => d + det.cantidad, 0);
-        return sum;
-      }, 0);
+      if (modo === 'comparar') {
+        const cmp = compararMeses(ventas, mesBase, mesComparar);
+        setComparativa(cmp);
 
-      const clientesUnicos = new Set(
-        ventasPeriodo.map((v) => v.cliente?.idCliente).filter((id) => id !== undefined)
-      ).size;
+        if (cmp.invalidSameMonth) {
+          setResumen(null);
+          setChartPoints([]);
+        } else {
+          setResumen({
+            totalVentas: cmp.comparar.totalVentas,
+            totalOrdenes: cmp.comparar.totalOrdenes,
+            clientesActivos: cmp.comparar.clientesActivos,
+            ticketPromedio: cmp.comparar.ticketPromedio,
+            productosVendidos: cmp.comparar.productosVendidos,
+            crecimientoVentas: cmp.deltas.crecimientoVentas,
+            crecimientoOrdenes: cmp.deltas.crecimientoOrdenes,
+            crecimientoClientes: cmp.deltas.crecimientoClientes,
+            crecimientoTicket: cmp.deltas.crecimientoTicket,
+            crecimientoProductos: cmp.deltas.crecimientoProductos,
+          });
+          setChartPoints([]);
+        }
+      } else {
+        setComparativa(null);
+        const ventasPeriodo = filtrarVentasPorPeriodo(ventas, periodo);
+        const totalVentas = ventasPeriodo.reduce((sum, v) => sum + (v.totalVentas || 0), 0);
+        const totalOrdenes = ventasPeriodo.length;
+        const ticketPromedio = totalOrdenes > 0 ? totalVentas / totalOrdenes : 0;
+        const productosVendidos = contarProductosVendidos(ventasPeriodo);
 
-      const comparacion = calcularMetricasComparacionPeriodo(todasLasVentas as Venta[], periodo);
+        const clientesUnicos = new Set(
+          ventasPeriodo.map((v) => v.cliente?.idCliente).filter((id) => id !== undefined)
+        ).size;
 
-      setResumen({
-        totalVentas,
-        totalOrdenes,
-        clientesActivos: clientesUnicos,
-        ticketPromedio,
-        productosVendidos,
-        crecimientoVentas: comparacion.crecimientoVentas,
-        crecimientoOrdenes: comparacion.crecimientoOrdenes,
-        crecimientoClientes: comparacion.crecimientoClientes,
-        crecimientoTicket: comparacion.crecimientoTicket,
-      });
+        const comparacion = calcularMetricasComparacionPeriodo(ventas, periodo);
+        const { inicio, fin } = rangoPeriodoAnterior(periodo);
+        const productosAnterior = contarProductosVendidos(filtrarVentasEnRango(ventas, inicio, fin));
 
-      setChartPoints(procesarDatosGraficoPorPeriodo(ventasPeriodo, periodo));
+        setResumen({
+          totalVentas,
+          totalOrdenes,
+          clientesActivos: clientesUnicos,
+          ticketPromedio,
+          productosVendidos,
+          crecimientoVentas: comparacion.crecimientoVentas,
+          crecimientoOrdenes: comparacion.crecimientoOrdenes,
+          crecimientoClientes: comparacion.crecimientoClientes,
+          crecimientoTicket: comparacion.crecimientoTicket,
+          crecimientoProductos: pctCrecimientoComparar(productosVendidos, productosAnterior),
+        });
 
-      try {
-        await ReporteService.getResumenGeneral(filtrosFecha);
-      } catch {
-        /* fallback cliente */
+        setChartPoints(procesarDatosGraficoPorPeriodo(ventasPeriodo, periodo));
       }
     } catch (err) {
       console.error('Error al cargar resumen general:', err);
@@ -121,12 +178,14 @@ const ResumenGeneral: React.FC = () => {
         crecimientoOrdenes: 0,
         crecimientoClientes: 0,
         crecimientoTicket: 0,
+        crecimientoProductos: 0,
       });
       setChartPoints([]);
+      setComparativa(null);
     } finally {
       setLoading(false);
     }
-  }, [periodo]);
+  }, [periodo, modo, mesBase, mesComparar, filtrosFecha]);
 
   useEffect(() => {
     cargarDatos();
@@ -140,6 +199,12 @@ const ResumenGeneral: React.FC = () => {
   }>({});
 
   useEffect(() => {
+    if (modo === 'comparar') {
+      setCategoriasVentas([]);
+      setExtraInsights({});
+      return;
+    }
+
     let cancelled = false;
     const loadExtra = async () => {
       try {
@@ -208,26 +273,62 @@ const ResumenGeneral: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [periodo, filtrosFecha]);
+  }, [periodo, filtrosFecha, modo]);
 
   const insights = useMemo(() => {
-    if (!resumen) return null;
+    if (!resumen || modo === 'comparar') return null;
     return generarInsightsResumen({ ...resumen, ...extraInsights, chartPoints });
-  }, [resumen, extraInsights, chartPoints]);
+  }, [resumen, extraInsights, chartPoints, modo]);
 
-  const dayData = useMemo(() => buildDayData(allVentas), [allVentas]);
+  const signal = useMemo(() => {
+    if (modo === 'comparar' && comparativa && !comparativa.invalidSameMonth) {
+      return buildSignalFromCompareDeltas({
+        crecimientoVentas: comparativa.deltas.crecimientoVentas,
+        crecimientoOrdenes: comparativa.deltas.crecimientoOrdenes,
+        crecimientoTicket: comparativa.deltas.crecimientoTicket,
+        etiquetaBase: comparativa.etiquetaBase,
+        etiquetaComparar: comparativa.etiquetaComparar,
+      });
+    }
+    if (!resumen || !insights) return null;
+    return buildSignalFromScore({
+      score: insights.score,
+      headline: insights.headline,
+      crecimientoVentas: resumen.crecimientoVentas,
+      crecimientoOrdenes: resumen.crecimientoOrdenes,
+      crecimientoTicket: resumen.crecimientoTicket,
+      leadDeltaPct: resumen.crecimientoVentas,
+      leadDeltaLabel: 'Ingresos',
+    });
+  }, [modo, comparativa, resumen, insights]);
+
+  const dayData = useMemo(() => {
+    if (modo === 'comparar') return buildDayData([]);
+    const delPeriodo = filtrarVentasPorPeriodo(allVentas, periodo);
+    return buildDayData(delPeriodo);
+  }, [allVentas, modo, periodo]);
+
+  const hayVentasComparar = useMemo(() => {
+    if (modo !== 'comparar' || !comparativa || comparativa.invalidSameMonth) return true;
+    return (
+      comparativa.base.totalOrdenes > 0 ||
+      comparativa.comparar.totalOrdenes > 0 ||
+      comparativa.base.totalVentas > 0 ||
+      comparativa.comparar.totalVentas > 0
+    );
+  }, [modo, comparativa]);
 
   const exportarAExcel = useCallback(async () => {
-    if (!resumen) {
+    if (!resumen && !(modo === 'comparar' && comparativa && !comparativa.invalidSameMonth)) {
       setAlertModal({ open: true, message: 'No hay datos para exportar', variant: 'info' });
       return;
     }
-    
+
     let loadingToast: HTMLDivElement | null = null;
     try {
-      // Mostrar indicador de carga
       loadingToast = document.createElement('div');
-      loadingToast.className = 'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      loadingToast.className =
+        'fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
       loadingToast.innerHTML = `
         <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
         <span>Generando resumen ejecutivo...</span>
@@ -235,44 +336,98 @@ const ResumenGeneral: React.FC = () => {
       document.body.appendChild(loadingToast);
 
       const workbook = XLSX.utils.book_new();
-      const resumenData = [
-        ['RESUMEN EJECUTIVO', '', '', ''],
-        ['Período', etiqueta, '', ''],
-        ['', '', '', ''],
-        ['Métrica', 'Valor', 'Crecimiento %', ''],
-        ['Ingresos', resumen.totalVentas, resumen.crecimientoVentas, ''],
-        ['Transacciones', resumen.totalOrdenes, resumen.crecimientoOrdenes, ''],
-        ['Ticket Promedio', resumen.ticketPromedio, resumen.crecimientoTicket, ''],
-        ['Productos vendidos (uds)', resumen.productosVendidos, '', ''],
-      ];
-      if (insights) {
-        resumenData.push(['', '', '', '']);
-        resumenData.push(['Índice salud comercial', insights.score, '', '']);
+
+      let resumenData: (string | number)[][];
+      if (modo === 'comparar' && comparativa && !comparativa.invalidSameMonth) {
+        resumenData = [
+          ['RESUMEN EJECUTIVO — COMPARAR MESES', '', '', ''],
+          ['Modo', 'Comparar meses', '', ''],
+          ['Mes base', comparativa.etiquetaBase, '', ''],
+          ['Comparar con', comparativa.etiquetaComparar, '', ''],
+          ['', '', '', ''],
+          ['Métrica', 'Mes base', 'Comparar con', 'Crecimiento %'],
+          [
+            'Ingresos',
+            comparativa.base.totalVentas,
+            comparativa.comparar.totalVentas,
+            comparativa.deltas.crecimientoVentas,
+          ],
+          [
+            'Transacciones',
+            comparativa.base.totalOrdenes,
+            comparativa.comparar.totalOrdenes,
+            comparativa.deltas.crecimientoOrdenes,
+          ],
+          [
+            'Ticket Promedio',
+            comparativa.base.ticketPromedio,
+            comparativa.comparar.ticketPromedio,
+            comparativa.deltas.crecimientoTicket,
+          ],
+          [
+            'Clientes activos',
+            comparativa.base.clientesActivos,
+            comparativa.comparar.clientesActivos,
+            comparativa.deltas.crecimientoClientes,
+          ],
+          [
+            'Unidades',
+            comparativa.base.productosVendidos,
+            comparativa.comparar.productosVendidos,
+            comparativa.deltas.crecimientoProductos,
+          ],
+          ['', '', '', ''],
+          ['Señal', signal?.label ?? comparativa.insight, '', ''],
+          ['Delta ingresos %', comparativa.deltas.crecimientoVentas, '', ''],
+          ['Insight', comparativa.insight, '', ''],
+        ];
+      } else if (resumen) {
+        resumenData = [
+          ['RESUMEN EJECUTIVO', '', '', ''],
+          ['Modo', 'Vista simple', '', ''],
+          ['Período', etiqueta, '', ''],
+          ['', '', '', ''],
+          ['Métrica', 'Valor', 'Crecimiento % vs período anterior', ''],
+          ['Ingresos', resumen.totalVentas, resumen.crecimientoVentas, ''],
+          ['Transacciones', resumen.totalOrdenes, resumen.crecimientoOrdenes, ''],
+          ['Ticket Promedio', resumen.ticketPromedio, resumen.crecimientoTicket, ''],
+          ['Productos vendidos (uds)', resumen.productosVendidos, resumen.crecimientoProductos, ''],
+        ];
+        if (insights) {
+          resumenData.push(['', '', '', '']);
+          resumenData.push(['Índice salud comercial', insights.score, '', '']);
+        }
+        if (categoriasVentas.length) {
+          resumenData.push(['', '', '', '']);
+          resumenData.push(['Categoría', 'Ingresos (S/)', 'Unidades', '']);
+          categoriasVentas.forEach((c) => {
+            resumenData.push([
+              c.categoria,
+              Number(c.ingresosTotales || 0),
+              c.cantidadTotalVendida,
+              '',
+            ]);
+          });
+        }
+      } else {
+        throw new Error('Sin datos');
       }
-      if (categoriasVentas.length) {
-        resumenData.push(['', '', '', '']);
-        resumenData.push(['Categoría', 'Ingresos (S/)', 'Unidades', '']);
-        categoriasVentas.forEach((c) => {
-          resumenData.push([
-            c.categoria,
-            Number(c.ingresosTotales || 0),
-            c.cantidadTotalVendida,
-            '',
-          ]);
-        });
-      }
+
       const ws = XLSX.utils.aoa_to_sheet(resumenData);
       XLSX.utils.book_append_sheet(workbook, ws, 'Resumen Ejecutivo');
-      XLSX.writeFile(workbook, `resumen-general-${new Date().toISOString().split('T')[0]}.xlsx`);
-      
-      // Remover indicador de carga
+      const suffix =
+        modo === 'comparar'
+          ? `comparar-${etiquetaMesUi(mesBase).replace(/\s+/g, '-')}-vs-${etiquetaMesUi(mesComparar).replace(/\s+/g, '-')}`
+          : `rapido-${periodo}`;
+      XLSX.writeFile(workbook, `resumen-general-${suffix}-${new Date().toISOString().split('T')[0]}.xlsx`);
+
       if (loadingToast && document.body.contains(loadingToast)) {
         document.body.removeChild(loadingToast);
       }
 
-      // Mostrar éxito como toast top-right
       const successToast = document.createElement('div');
-      successToast.className = 'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
+      successToast.className =
+        'fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg z-50 flex items-center space-x-2';
       successToast.innerHTML = `
         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
@@ -280,43 +435,56 @@ const ResumenGeneral: React.FC = () => {
         <span>Resumen exportado exitosamente</span>
       `;
       document.body.appendChild(successToast);
-      
+
       setTimeout(() => {
         if (document.body.contains(successToast)) {
           document.body.removeChild(successToast);
         }
       }, 3000);
-    } catch (error) {
-      console.error('Error al exportar datos:', error);
-      
-      // Remover indicador de carga
+    } catch (exportError) {
+      console.error('Error al exportar datos:', exportError);
+
       if (loadingToast && document.body.contains(loadingToast)) {
         document.body.removeChild(loadingToast);
       }
-      
+
       setAlertModal({ open: true, message: 'Error al exportar Excel', variant: 'error' });
     }
-  }, [resumen, etiqueta, insights, categoriasVentas]);
+  }, [
+    resumen,
+    etiqueta,
+    insights,
+    signal,
+    categoriasVentas,
+    modo,
+    comparativa,
+    mesBase,
+    mesComparar,
+    periodo,
+  ]);
 
   useEffect(() => {
     setActions(
-      <PageActionButton onClick={exportarAExcel} disabled={loading || !resumen}>
+      <PageActionButton
+        onClick={exportarAExcel}
+        disabled={loading || (modo === 'comparar' ? mesesIguales || !comparativa : !resumen)}
+      >
         <ArrowDownTrayIcon className="h-4 w-4" />
         Exportar Excel
       </PageActionButton>
     );
-  }, [setActions, exportarAExcel, loading, resumen]);
+  }, [setActions, exportarAExcel, loading, resumen, modo, mesesIguales, comparativa]);
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="reports-analytics__metric-strip">
-          <div className="report-metric-strip__health min-h-[160px] rounded-2xl bg-[var(--app-bg-muted)] animate-pulse" />
-          <div className="report-metric-strip__kpis">
-            <MetricCardsSkeleton
-              count={3}
-              className="report-metric-strip__kpi-grid w-full"
-            />
+      <div className="space-y-5">
+        <div className="report-signal-fold" aria-busy="true">
+          <div className="report-signal-skeleton" />
+          <div className="report-signal-matrix">
+            <div className="report-signal-skeleton" />
+            <div className="report-signal-skeleton" />
+            <div className="report-signal-skeleton" />
+            <div className="report-signal-skeleton" />
           </div>
         </div>
         <ChartSkeleton />
@@ -327,12 +495,72 @@ const ResumenGeneral: React.FC = () => {
   if (error) {
     return (
       <div className="app-panel rounded-2xl border p-4 border-[color-mix(in_srgb,var(--app-metric-icon-5-fg)_40%,var(--app-border))]">
-        <p className="text-sm font-bold text-[var(--app-metric-icon-5-fg)]">{error}</p>
+        <p className="text-sm font-bold text-[var(--app-metric-icon-5-fg)] mb-3">{error}</p>
+        <PageActionButton onClick={cargarDatos}>Reintentar</PageActionButton>
       </div>
     );
   }
 
-  if (!resumen || !insights) {
+  if (modo === 'comparar' && (mesesIguales || comparativa?.invalidSameMonth)) {
+    return (
+      <div className="space-y-6">
+        <ReportInsightBanner
+          headline="Elige dos meses distintos"
+          message="Usa Base y Actual en la barra superior, o el botón de invertir."
+          icon="tune"
+        />
+        <AlertModal
+          open={alertModal.open}
+          message={alertModal.message}
+          variant={alertModal.variant}
+          onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+        />
+      </div>
+    );
+  }
+
+  if (modo === 'comparar' && comparativa && !hayVentasComparar) {
+    return (
+      <div className="space-y-6">
+        <ReportInsightBanner
+          headline="Sin ventas en estos meses"
+          message={`No hay ventas registradas en ${comparativa.etiquetaBase} ni en ${comparativa.etiquetaComparar}. Prueba con otros meses.`}
+          icon="inventory_2"
+        />
+        <AlertModal
+          open={alertModal.open}
+          message={alertModal.message}
+          variant={alertModal.variant}
+          onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+        />
+      </div>
+    );
+  }
+
+  if (
+    modo !== 'comparar' &&
+    resumen &&
+    resumen.totalOrdenes === 0 &&
+    resumen.totalVentas === 0
+  ) {
+    return (
+      <div className="space-y-6">
+        <ReportInsightBanner
+          headline="Sin ventas en el periodo"
+          message={`No hay ventas registradas en ${etiqueta}. Prueba eligiendo otro período en la barra superior.`}
+          icon="inventory_2"
+        />
+        <AlertModal
+          open={alertModal.open}
+          message={alertModal.message}
+          variant={alertModal.variant}
+          onClose={() => setAlertModal({ open: false, message: '', variant: 'info' })}
+        />
+      </div>
+    );
+  }
+
+  if (!resumen || !signal || (modo !== 'comparar' && !insights)) {
     return (
       <div className="app-panel rounded-2xl border p-4">
         <p className="text-sm app-text-muted">No hay datos disponibles para el período seleccionado.</p>
@@ -342,22 +570,115 @@ const ResumenGeneral: React.FC = () => {
 
   const etiquetaLower = etiqueta.toLowerCase();
 
+  const matrixCells =
+    modo === 'comparar' && comparativa
+      ? [
+          {
+            id: 'ing',
+            label: 'Ingresos',
+            value: comparativa.comparar.totalVentas,
+            baseValue: comparativa.base.totalVentas,
+            baseLabel: comparativa.etiquetaBase,
+            deltaPct: comparativa.deltas.crecimientoVentas,
+            format: 'moneda' as const,
+          },
+          {
+            id: 'ord',
+            label: 'Ventas',
+            value: comparativa.comparar.totalOrdenes,
+            baseValue: comparativa.base.totalOrdenes,
+            baseLabel: comparativa.etiquetaBase,
+            deltaPct: comparativa.deltas.crecimientoOrdenes,
+            format: 'entero' as const,
+          },
+          {
+            id: 'tkt',
+            label: 'Ticket prom.',
+            value: comparativa.comparar.ticketPromedio,
+            baseValue: comparativa.base.ticketPromedio,
+            baseLabel: comparativa.etiquetaBase,
+            deltaPct: comparativa.deltas.crecimientoTicket,
+            format: 'moneda' as const,
+          },
+          {
+            id: 'uni',
+            label: 'Unidades',
+            value: comparativa.comparar.productosVendidos,
+            baseValue: comparativa.base.productosVendidos,
+            baseLabel: comparativa.etiquetaBase,
+            deltaPct: comparativa.deltas.crecimientoProductos,
+            format: 'entero' as const,
+          },
+        ]
+      : [
+          {
+            id: 'ing',
+            label: 'Ingresos',
+            value: resumen.totalVentas,
+            deltaPct: resumen.crecimientoVentas,
+            format: 'moneda' as const,
+          },
+          {
+            id: 'ord',
+            label: 'Ventas',
+            value: resumen.totalOrdenes,
+            deltaPct: resumen.crecimientoOrdenes,
+            format: 'entero' as const,
+          },
+          {
+            id: 'tkt',
+            label: 'Ticket prom.',
+            value: resumen.ticketPromedio,
+            deltaPct: resumen.crecimientoTicket,
+            format: 'moneda' as const,
+          },
+          {
+            id: 'uni',
+            label: 'Unidades',
+            value: resumen.productosVendidos,
+            deltaPct: resumen.crecimientoProductos,
+            format: 'entero' as const,
+          },
+        ];
+
   return (
-    <div className="space-y-6">
-      <ReportMetricStrip resumen={resumen} insights={insights} etiquetaPeriodo={etiqueta} />
+    <div className="space-y-5">
+      <div className="report-signal-fold">
+        <ReportSignalPanel
+          signal={signal}
+          deltaVsLabel={modo === 'comparar' ? 'mes base' : undefined}
+        />
+        <ReportSignalMatrix
+          deltaVsLabel={modo === 'comparar' ? 'mes base' : 'ant.'}
+          cells={matrixCells}
+        />
+      </div>
 
-      {insights.drivers.length > 0 ? <ReportDriverCards drivers={insights.drivers} /> : null}
+      {modo === 'comparar' && comparativa ? (
+        <ReportCompareMonthsChart
+          data={comparativa.chartSerie}
+          etiquetaBase={comparativa.etiquetaBase}
+          etiquetaComparar={comparativa.etiquetaComparar}
+          insight={comparativa.insight}
+        />
+      ) : (
+        <>
+          {insights && insights.drivers.length > 0 ? (
+            <ReportDriverCards drivers={insights.drivers} />
+          ) : null}
 
-      <ReportTrendPanel
-        chartPoints={chartPoints}
-        dayData={dayData}
-        tituloGrafico="Ritmo de ingresos"
-        subtitulo={`Tendencia ${etiquetaLower} y distribución por día de la semana`}
-        gradientId="areaGradResumen"
-        serieLabel={`${tituloGraficoPeriodo(periodo)} — ${new Date().getFullYear()}`}
-      />
+          <ReportTrendPanel
+            chartPoints={chartPoints}
+            dayData={dayData}
+            tituloGrafico="Ritmo de ingresos"
+            subtitulo={`Tendencia ${etiquetaLower}`}
+            gradientId="areaGradResumen"
+            serieLabel={`${tituloGraficoPeriodo(periodo)} — ${new Date().getFullYear()}`}
+          />
 
-      <ReportCategoryBreakdown categorias={categoriasVentas} />
+          <ReportCategoryBreakdown categorias={categoriasVentas} />
+        </>
+      )}
 
       <AlertModal
         open={alertModal.open}

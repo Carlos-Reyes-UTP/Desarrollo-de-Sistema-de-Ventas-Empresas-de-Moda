@@ -1,7 +1,8 @@
 # Diseño: Reportes — Resumen intuitivo con comparativa libre de meses
 
 **Fecha:** 2026-07-13  
-**Estado:** Aprobado en brainstorming (pendiente revisión del usuario del documento)  
+**Estado:** Implementado — rediseño visual v2 (toolbar ejecutiva + decision cockpit)  
+**Nota v2:** Controles compactos Rápido|Comparar; franja veredicto → KPIs → chart; tabs hermanas con chrome coherente.  
 **Alcance:** Solo módulo Reportes, tab Resumen (+ chrome del command deck).  
 **Enfoque:** Extensión frontend del período/contexto; cálculo en cliente con `VentaService` (sin endpoints MoM nuevos).
 
